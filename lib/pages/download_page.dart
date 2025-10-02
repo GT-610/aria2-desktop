@@ -13,7 +13,7 @@ class _DownloadPageState extends State<DownloadPage> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -30,18 +30,6 @@ class _DownloadPageState extends State<DownloadPage> with SingleTickerProviderSt
     return Scaffold(
       body: Column(
         children: [
-          // 标签页切换 - Material You 风格
-          TabBar(
-            controller: _tabController,
-            indicator: UnderlineTabIndicator(
-              borderSide: BorderSide(width: 3, color: colorScheme.primary),
-              insets: const EdgeInsets.symmetric(horizontal: 20),
-            ),
-            tabs: const [
-              Tab(text: '所有任务'),
-              Tab(text: '本地实例'),
-            ],
-          ),
           // 任务操作工具栏 - Material You 风格
           Container(
             padding: const EdgeInsets.all(12),
@@ -121,12 +109,25 @@ class _DownloadPageState extends State<DownloadPage> with SingleTickerProviderSt
               ],
             ),
           ),
+          // 标签页切换 - Material You 风格
+          TabBar(
+            controller: _tabController,
+            indicator: UnderlineTabIndicator(
+              borderSide: BorderSide(width: 3, color: colorScheme.primary),
+              insets: const EdgeInsets.symmetric(horizontal: 20),
+            ),
+            tabs: const [
+              Tab(text: '全部'),
+              Tab(text: '本地'),
+              Tab(text: '远程'),
+            ],
+          ),
           // 任务列表 - Material You 风格
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                // 所有任务标签页
+                // 全部标签页
                 ListView.builder(
                   padding: const EdgeInsets.all(12),
                   itemCount: 3, // 示例数据
@@ -208,9 +209,13 @@ class _DownloadPageState extends State<DownloadPage> with SingleTickerProviderSt
                     );
                   },
                 ),
-                // 本地实例标签页
+                // 本地标签页
                 Center(
-                  child: Text('本地实例任务列表', style: theme.textTheme.bodyLarge),
+                  child: Text('本地任务列表', style: theme.textTheme.bodyLarge),
+                ),
+                // 远程标签页
+                Center(
+                  child: Text('远程任务列表', style: theme.textTheme.bodyLarge),
                 ),
               ],
             ),
