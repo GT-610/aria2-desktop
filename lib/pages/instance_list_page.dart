@@ -19,6 +19,22 @@ class _InstanceListPageState extends State<InstanceListPage> {
     super.initState();
     // 注册监听器
     widget.instanceManager.addListener(_onInstancesChanged);
+    
+    // 初始化时确保所有实例状态正确，防止错误显示为"连接中"
+    _resetInstanceStatuses();
+  }
+  
+  // 重置实例状态，确保没有错误的"连接中"状态
+  void _resetInstanceStatuses() {
+    for (var instance in widget.instanceManager.instances) {
+      if (instance.status == ConnectionStatus.connecting) {
+        // 将所有"连接中"状态重置为"未连接"
+        final updatedInstance = instance.copyWith(
+          status: ConnectionStatus.disconnected,
+        );
+        widget.instanceManager.updateInstance(updatedInstance);
+      }
+    }
   }
 
   @override

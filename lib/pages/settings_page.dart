@@ -47,8 +47,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         style: theme.textTheme.bodyLarge,
                       ),
                       subtitle: const Text('自动连接到最近使用的Aria2实例'),
-                      value: true,
-                      onChanged: (value) {},
+                      value: settings.autoConnectLastInstance,
+                      onChanged: (value) {
+                        settings.setAutoConnectLastInstance(value);
+                      },
                       activeColor: colorScheme.primary,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                     ),

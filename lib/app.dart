@@ -6,6 +6,8 @@ import 'pages/settings_page.dart';
 import 'models/global_stat.dart';
 import 'services/instance_manager.dart';
 import 'models/settings.dart';
+import 'services/aria2_rpc_client.dart';
+import 'models/aria2_instance.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -82,9 +84,39 @@ class _HomeWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     // 初始化实例管理器
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+    final settings = Provider.of<Settings>(context, listen: false);
+    
+    // 确保设置已加载
+    final initializationFuture = Future(() async {
+      // 等待实例管理器初始化
+      await instanceManager.initialize();
+      
+      // 如果启用了自动连接上次使用的实例，尝试连接活动实例
+      if (settings.autoConnectLastInstance && instanceManager.activeInstance != null) {
+        try {
+          // 尝试连接到活动实例
+          final activeInstance = instanceManager.activeInstance!;
+          final client = Aria2RpcClient(activeInstance);
+          
+          // 获取版本信息以验证连接
+          final version = await client.getVersion();
+          
+          // 更新实例的连接状态和版本信息
+          final updatedInstance = activeInstance.copyWith(
+            version: version,
+            status: ConnectionStatus.connected,
+          );
+          
+          // 更新实例信息
+          await instanceManager.updateInstance(updatedInstance);
+        } catch (e) {
+          print('自动连接失败: $e');
+        }
+      }
+    });
     
     return FutureBuilder(
-      future: instanceManager.initialize(),
+      future: initializationFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
