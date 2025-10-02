@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'pages/download_page.dart';
-import 'pages/instance_page.dart';
+import 'pages/instance_list_page.dart';
 import 'pages/settings_page.dart';
 import 'models/global_stat.dart';
+import 'services/instance_manager.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -36,7 +38,34 @@ class MyApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.system,
-      home: const MainWindow(),
+      home: MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (context) => InstanceManager()),
+        ],
+        child: const _HomeWrapper(),
+      ),
+    );
+  }
+}
+
+class _HomeWrapper extends StatelessWidget {
+  const _HomeWrapper();
+
+  @override
+  Widget build(BuildContext context) {
+    // 初始化实例管理器
+    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+    
+    return FutureBuilder(
+      future: instanceManager.initialize(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return const MainWindow();
+      },
     );
   }
 }
@@ -52,11 +81,15 @@ class _MainWindowState extends State<MainWindow> {
   int _selectedIndex = 0;
   final GlobalStat _globalStat = GlobalStat();
 
-  static final List<Widget> _pages = [
-    const DownloadPage(),
-    const InstancePage(),
-    const SettingsPage(),
-  ];
+  @override
+  Widget build(BuildContext context) {
+    final instanceManager = Provider.of<InstanceManager>(context);
+    
+    List<Widget> _pages = [
+      const DownloadPage(),
+      InstanceListPage(instanceManager: instanceManager),
+      const SettingsPage(),
+    ];
 
   void _onItemTapped(int index) {
     setState(() {
@@ -64,8 +97,6 @@ class _MainWindowState extends State<MainWindow> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     
