@@ -108,9 +108,7 @@ class _InstanceEditPageState extends State<InstanceEditPage> {
                 title: Text('协议'),
                 trailing: DropdownButton<String>(
                   value: _protocol,
-                  items: _type == InstanceType.local 
-                      ? ['http', 'https'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList()
-                      : ['http', 'https', 'ws', 'wss'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                  items: ['http', 'https', 'ws', 'wss'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                   onChanged: (value) {
                     setState(() {
                       _protocol = value!;
