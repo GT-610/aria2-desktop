@@ -49,7 +49,10 @@ class _InstanceListPageState extends State<InstanceListPage> {
           final instance = widget.instanceManager.instances[index];
           return Card(
             margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
+            child: InkWell(
+              onTap: () {},
+              borderRadius: BorderRadius.circular(8),
+              child: ListTile(style: ListTileStyle.drawer,
               title: Text(
                 instance.name,
                 style: TextStyle(
@@ -68,39 +71,31 @@ class _InstanceListPageState extends State<InstanceListPage> {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  PopupMenuButton(
-                    itemBuilder: (context) {
-                      final menuItems = [
-                        PopupMenuItem(
-                          child: Text('编辑'),
-                          onTap: () => _editInstance(instance),
-                        ),
-                      ];
-                      
-                      if (widget.instanceManager.instances.length > 1) {
-                        menuItems.add(
-                          PopupMenuItem(
-                            child: Text('删除'),
-                            onTap: () => _deleteInstance(instance),
-                          ),
-                        );
-                      }
-                      
-                      return menuItems;
-                    },
+                  IconButton(
+                    icon: Icon(Icons.check_circle_outline),
+                    onPressed: () {}, // 激活功能暂不实现
+                    tooltip: '激活',
                   ),
+                  IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: () => _editInstance(instance),
+                    tooltip: '编辑',
+                  ),
+                  if (widget.instanceManager.instances.length > 1)
+                    IconButton(
+                      icon: Icon(Icons.delete_outline),
+                      onPressed: () => _deleteInstance(instance),
+                      tooltip: '删除',
+                    ),
                 ],
               ),
               leading: instance.isActive
                   ? Icon(Icons.check_circle, color: Colors.green)
                   : Icon(Icons.circle_outlined),
-              onTap: () {
-                if (!instance.isActive) {
-                  _activateInstance(instance);
-                }
-              },
+              onTap: null,
             ),
-          );
+            ),
+            );
         },
       ),
     );
