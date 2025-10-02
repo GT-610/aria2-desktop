@@ -6,6 +6,14 @@ enum InstanceType {
   remote
 }
 
+/// 实例在线状态枚举
+enum ConnectionStatus {
+  disconnected, // 未连接
+  connecting,   // 连接中
+  connected,    // 已连接
+  failed        // 连接失败
+}
+
 /// Aria2实例数据模型
 class Aria2Instance {
   String id;              // 唯一标识符
@@ -18,6 +26,7 @@ class Aria2Instance {
   String? aria2Path;      // 本地实例的 Aria2 可执行文件路径
   String? version;        // Aria2 版本
   bool isActive;          // 是否为当前活动实例
+  ConnectionStatus status; // 连接状态
   Process? localProcess;  // 本地进程引用
 
   Aria2Instance({
@@ -31,6 +40,7 @@ class Aria2Instance {
     this.aria2Path,
     this.version,
     this.isActive = false,
+    this.status = ConnectionStatus.disconnected,
     this.localProcess,
   });
 
@@ -47,6 +57,7 @@ class Aria2Instance {
       aria2Path: json['aria2Path'],
       version: json['version'],
       isActive: json['isActive'] ?? false,
+      status: json.containsKey('status') ? ConnectionStatus.values.byName(json['status']) : ConnectionStatus.disconnected,
     );
   }
 
@@ -63,6 +74,7 @@ class Aria2Instance {
       'aria2Path': aria2Path,
       'version': version,
       'isActive': isActive,
+      'status': status.name,
     };
   }
 
@@ -83,6 +95,7 @@ class Aria2Instance {
     String? aria2Path,
     String? version,
     bool? isActive,
+    ConnectionStatus? status,
     Process? localProcess,
   }) {
     return Aria2Instance(
@@ -96,6 +109,7 @@ class Aria2Instance {
       aria2Path: aria2Path ?? this.aria2Path,
       version: version ?? this.version,
       isActive: isActive ?? this.isActive,
+      status: status ?? this.status,
       localProcess: localProcess ?? this.localProcess,
     );
   }
