@@ -8,8 +8,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _proxyEnabled = false;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -98,114 +96,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // 代理设置部分 - Material You 风格
-            Text(
-              '代理设置',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Card(
-              margin: const EdgeInsets.only(top: 12, bottom: 24),
-              elevation: 2,
-              shadowColor: Colors.black.withOpacity(0.1),
-              surfaceTintColor: colorScheme.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    SwitchListTile.adaptive(
-                      title: Text(
-                        '启用代理',
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      value: _proxyEnabled,
-                      onChanged: (value) {
-                        setState(() {
-                          _proxyEnabled = value;
-                        });
-                      },
-                      activeColor: colorScheme.primary,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      title: Text(
-                        '代理类型',
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      trailing: AbsorbPointer(
-                        absorbing: !_proxyEnabled,
-                        child: Opacity(
-                          opacity: _proxyEnabled ? 1.0 : 0.5,
-                          child: SegmentedButton<String>(
-                            segments: const [
-                              ButtonSegment(value: 'http', label: Text('HTTP')),
-                              ButtonSegment(value: 'socks5', label: Text('SOCKS5')),
-                            ],
-                            selected: {'http'},
-                            onSelectionChanged: (newSelection) {},
-                            style: SegmentedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              backgroundColor: colorScheme.surfaceVariant,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: TextField(
-                        decoration: InputDecoration(
-                          labelText: '代理地址',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: colorScheme.outline),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: colorScheme.primary),
-                          ),
-                        ),
-                        enabled: _proxyEnabled,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: TextField(
-                        decoration: InputDecoration(
-                          labelText: '代理端口',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: colorScheme.outline),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: colorScheme.primary),
-                          ),
-                        ),
-                        enabled: _proxyEnabled,
-                        keyboardType: TextInputType.number,
-                      ),
                     ),
                   ],
                 ),
