@@ -134,7 +134,7 @@ class _InstanceListPageState extends State<InstanceListPage> {
                         '${_getStatusText(instance)} | ${instance.type == InstanceType.local ? '本地' : '远程'} | ${instance.protocol}://${instance.host}:${instance.port}',
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (instance.secret.isNotEmpty) Text('已设置密钥'),
+                      // 移除了密钥显示
                       if (instance.type == InstanceType.local && instance.aria2Path != null) 
                         Text('路径: ${instance.aria2Path}', style: TextStyle(fontSize: 12, color: Colors.grey)),
                     ],

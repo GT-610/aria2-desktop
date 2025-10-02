@@ -346,14 +346,7 @@ class _InstancePageState extends State<InstancePage> {
                                                 color: colorScheme.onSurfaceVariant,
                                               ),
                                             ),
-                                            if (instance.secret.isNotEmpty)
-                                              Text(
-                                                '已设置密钥',
-                                                style: TextStyle(
-                                                  color: colorScheme.onSurfaceVariant,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
+                                            // 移除了密钥显示
                                           ],
                                         ),
                                       ),
