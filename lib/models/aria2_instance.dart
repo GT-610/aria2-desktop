@@ -25,6 +25,7 @@ class Aria2Instance {
   String secret;          // 密钥
   String? aria2Path;      // 本地实例的 Aria2 可执行文件路径
   String? version;        // Aria2 版本
+  String? errorMessage;   // 错误信息
   bool isActive;          // 是否为当前活动实例
   ConnectionStatus status; // 连接状态
   Process? localProcess;  // 本地进程引用
@@ -39,6 +40,7 @@ class Aria2Instance {
     this.secret = '',
     this.aria2Path,
     this.version,
+    this.errorMessage,
     this.isActive = false,
     this.status = ConnectionStatus.disconnected,
     this.localProcess,
@@ -56,6 +58,7 @@ class Aria2Instance {
       secret: json['secret'] ?? '',
       aria2Path: json['aria2Path'],
       version: json['version'],
+      errorMessage: json['errorMessage'],
       isActive: json['isActive'] ?? false,
       status: json.containsKey('status') ? ConnectionStatus.values.byName(json['status']) : ConnectionStatus.disconnected,
     );
@@ -73,6 +76,7 @@ class Aria2Instance {
       'secret': secret,
       'aria2Path': aria2Path,
       'version': version,
+      'errorMessage': errorMessage,
       'isActive': isActive,
       'status': status.name,
     };
@@ -94,6 +98,7 @@ class Aria2Instance {
     String? secret,
     String? aria2Path,
     String? version,
+    String? errorMessage,
     bool? isActive,
     ConnectionStatus? status,
     Process? localProcess,
@@ -108,6 +113,7 @@ class Aria2Instance {
       secret: secret ?? this.secret,
       aria2Path: aria2Path ?? this.aria2Path,
       version: version ?? this.version,
+      errorMessage: errorMessage ?? this.errorMessage,
       isActive: isActive ?? this.isActive,
       status: status ?? this.status,
       localProcess: localProcess ?? this.localProcess,

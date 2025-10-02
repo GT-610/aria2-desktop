@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/aria2_instance.dart';
 import '../services/instance_manager.dart';
+import '../services/aria2_rpc_client.dart';
 import 'instance_edit_page.dart';
 
 class InstanceListPage extends StatefulWidget {
@@ -46,18 +47,29 @@ class _InstanceListPageState extends State<InstanceListPage> {
   }
   
   // 获取状态文本
-  String _getStatusText(ConnectionStatus status, bool isActive) {
+  String _getStatusText(Aria2Instance instance) {
+    final status = instance.status;
+    final isActive = instance.isActive;
+    
     if (!isActive) {
       return '未激活';
     }
     
     switch (status) {
       case ConnectionStatus.connected:
+        // 如果有版本号，显示版本号
+        if (instance.version != null && instance.version!.isNotEmpty) {
+          return '已连接 (${instance.version})';
+        }
         return '已连接';
       case ConnectionStatus.connecting:
         return '连接中';
       case ConnectionStatus.failed:
-        return '连接失败';
+          // 如果有错误信息，显示错误信息
+          if (instance.errorMessage != null && instance.errorMessage!.isNotEmpty) {
+            return '连接失败 (${instance.errorMessage})';
+          }
+          return '连接失败';
       case ConnectionStatus.disconnected:
       default:
         return '未连接';
@@ -103,7 +115,7 @@ class _InstanceListPageState extends State<InstanceListPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${_getStatusText(instance.status, instance.isActive)} | ${instance.type == InstanceType.local ? '本地' : '远程'} | ${instance.protocol}://${instance.host}:${instance.port}',
+                        '${_getStatusText(instance)} | ${instance.type == InstanceType.local ? '本地' : '远程'} | ${instance.protocol}://${instance.host}:${instance.port}',
                         overflow: TextOverflow.ellipsis,
                       ),
                       if (instance.secret.isNotEmpty) Text('已设置密钥'),
@@ -225,6 +237,7 @@ class _InstanceListPageState extends State<InstanceListPage> {
     
     setState(() {
       instance.status = ConnectionStatus.disconnected;
+      instance.errorMessage = null; // 清除错误信息
     });
     
     // 只有在连接中状态断开时才显示提示
@@ -245,17 +258,30 @@ class _InstanceListPageState extends State<InstanceListPage> {
       
       await widget.instanceManager.setActiveInstance(instance.id);
       
-      // 模拟连接过程，实际应该调用真实的连接API
-      Future.delayed(Duration(seconds: 1), () {
-        setState(() {
-          // 这里简化处理，直接设置为已连接
-          // 实际应用中应该根据真实连接结果设置状态
-          instance.status = ConnectionStatus.connected;
-        });
+      // 创建RPC客户端并进行连接测试
+      final rpcClient = Aria2RpcClient(instance);
+      
+      // 使用getVersion方法验证连接
+      final version = await rpcClient.getVersion();
+      
+      // 连接成功，更新实例状态和版本信息
+      setState(() {
+        instance.status = ConnectionStatus.connected;
+        instance.version = version;
       });
+      
+      // 关闭客户端
+      rpcClient.close();
     } catch (e) {
+      // 连接失败，解析错误信息
+      String? errorMsg;
+      if (e is Exception && e.toString().contains('Unauthorized')) {
+        errorMsg = '认证失败';
+      }
+      
       setState(() {
         instance.status = ConnectionStatus.failed;
+        instance.errorMessage = errorMsg;
       });
     }
   }
