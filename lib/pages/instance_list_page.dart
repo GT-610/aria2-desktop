@@ -289,10 +289,15 @@ class _InstanceListPageState extends State<InstanceListPage> {
       // 关闭客户端
       rpcClient.close();
     } catch (e) {
-      // 连接失败，解析错误信息
+      // 连接失败，根据异常类型设置不同的错误消息
       String? errorMsg;
-      if (e is Exception && e.toString().contains('Unauthorized')) {
-        errorMsg = '认证失败';
+      
+      // 直接使用异常的toString()，因为我们已经在异常类中定义了适当的错误消息
+      if (e is ConnectionFailedException || e is UnauthorizedException) {
+        errorMsg = e.toString();
+      } else {
+        // 其他错误情况
+        errorMsg = '未知的连接错误';
       }
       
       setState(() {
