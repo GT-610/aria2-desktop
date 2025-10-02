@@ -115,9 +115,19 @@ class _InstanceListPageState extends State<InstanceListPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: Icon(Icons.check_circle_outline),
-                        onPressed: () => _activateInstance(instance),
-                        tooltip: '激活',
+                        icon: instance.status == ConnectionStatus.connecting || instance.status == ConnectionStatus.connected
+                            ? Icon(Icons.link_off)
+                            : Icon(Icons.link),
+                        onPressed: () {
+                          if (instance.status == ConnectionStatus.connecting || instance.status == ConnectionStatus.connected) {
+                            _disconnectInstance(instance);
+                          } else {
+                            _activateInstance(instance);
+                          }
+                        },
+                        tooltip: instance.status == ConnectionStatus.connecting || instance.status == ConnectionStatus.connected
+                            ? '断开连接'
+                            : '连接',
                       ),
                       IconButton(
                         icon: Icon(Icons.edit),
@@ -208,6 +218,23 @@ class _InstanceListPageState extends State<InstanceListPage> {
     );
   }
 
+  // 断开实例连接
+  void _disconnectInstance(Aria2Instance instance) {
+    // 记录断开前的状态
+    final wasConnecting = instance.status == ConnectionStatus.connecting;
+    
+    setState(() {
+      instance.status = ConnectionStatus.disconnected;
+    });
+    
+    // 只有在连接中状态断开时才显示提示
+    if (wasConnecting) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已中断当前连接')),
+      );
+    }
+  }
+  
   // 激活实例
   void _activateInstance(Aria2Instance instance) async {
     try {

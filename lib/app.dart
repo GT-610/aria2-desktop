@@ -5,12 +5,39 @@ import 'pages/instance_list_page.dart';
 import 'pages/settings_page.dart';
 import 'models/global_stat.dart';
 import 'services/instance_manager.dart';
+import 'models/settings.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => Settings()),
+      ],
+      child: _ThemeProvider(),
+    );
+  }
+}
+
+class _ThemeProvider extends StatefulWidget {
+  @override
+  State<_ThemeProvider> createState() => _ThemeProviderState();
+}
+
+class _ThemeProviderState extends State<_ThemeProvider> {
+  @override
+  void initState() {
+    super.initState();
+    // 加载设置
+    Provider.of<Settings>(context, listen: false).loadSettings();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = Provider.of<Settings>(context);
+    
     return MaterialApp(
       title: 'Aria2 Desktop',
       theme: ThemeData(
@@ -37,7 +64,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      themeMode: ThemeMode.system,
+      themeMode: settings.themeMode,
       home: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => InstanceManager()),
