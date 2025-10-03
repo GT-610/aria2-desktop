@@ -1,5 +1,43 @@
 import 'package:flutter/material.dart';
 
+// 定义下载任务状态枚举
+enum DownloadStatus {
+  active,   // 活跃
+  waiting,  // 等待
+  stopped   // 停止
+}
+
+// 定义分类方式枚举
+enum CategoryType {
+  all,      // 全部
+  byStatus, // 按状态
+  byType,   // 按类型
+  byInstance // 按实例
+}
+
+// 下载任务模型
+class DownloadTask {
+  final String id;
+  final String name;
+  final DownloadStatus status;
+  final double progress;
+  final String speed;
+  final String size;
+  final String completedSize;
+  final bool isLocal;
+
+  DownloadTask({
+    required this.id,
+    required this.name,
+    required this.status,
+    required this.progress,
+    required this.speed,
+    required this.size,
+    required this.completedSize,
+    required this.isLocal,
+  });
+}
+
 class DownloadPage extends StatefulWidget {
   const DownloadPage({super.key});
 
@@ -7,19 +45,384 @@ class DownloadPage extends StatefulWidget {
   State<DownloadPage> createState() => _DownloadPageState();
 }
 
-class _DownloadPageState extends State<DownloadPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _DownloadPageState extends State<DownloadPage> {
+  CategoryType _selectedCategory = CategoryType.all;
+  DownloadStatus? _selectedStatusFilter;
+  bool? _selectedTypeFilter; // true for local, false for remote
+  String? _selectedInstanceFilter;
+
+  // 模拟下载任务数据
+  final List<DownloadTask> _downloadTasks = [
+    DownloadTask(
+      id: '1',
+      name: 'Ubuntu 22.04 LTS ISO 镜像文件',
+      status: DownloadStatus.active,
+      progress: 0.45,
+      speed: '1.2 MB/s',
+      size: '4.5 GB',
+      completedSize: '2.0 GB',
+      isLocal: true,
+    ),
+    DownloadTask(
+      id: '2',
+      name: 'Flutter 框架源码包',
+      status: DownloadStatus.waiting,
+      progress: 0.0,
+      speed: '0 B/s',
+      size: '150 MB',
+      completedSize: '0 MB',
+      isLocal: true,
+    ),
+    DownloadTask(
+      id: '3',
+      name: '设计资源合集.zip',
+      status: DownloadStatus.stopped,
+      progress: 0.75,
+      speed: '0 B/s',
+      size: '2.8 GB',
+      completedSize: '2.1 GB',
+      isLocal: false,
+    ),
+    DownloadTask(
+      id: '4',
+      name: '项目文档.pdf',
+      status: DownloadStatus.active,
+      progress: 0.92,
+      speed: '500 KB/s',
+      size: '15 MB',
+      completedSize: '13.8 MB',
+      isLocal: false,
+    ),
+    DownloadTask(
+      id: '5',
+      name: '音乐专辑.mp3',
+      status: DownloadStatus.waiting,
+      progress: 0.0,
+      speed: '0 B/s',
+      size: '120 MB',
+      completedSize: '0 MB',
+      isLocal: true,
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  // 获取状态对应的标签和颜色
+  (String, Color) _getStatusInfo(DownloadStatus status, ColorScheme colorScheme) {
+    switch (status) {
+      case DownloadStatus.active:
+        return ('下载中', colorScheme.primary);
+      case DownloadStatus.waiting:
+        return ('等待中', colorScheme.secondary);
+      case DownloadStatus.stopped:
+        return ('已停止', colorScheme.errorContainer);
+    }
+  }
+
+  // 获取状态对应的图标
+  Icon _getStatusIcon(DownloadStatus status, Color color) {
+    switch (status) {
+      case DownloadStatus.active:
+        return Icon(Icons.file_download, color: color);
+      case DownloadStatus.waiting:
+        return Icon(Icons.schedule, color: color);
+      case DownloadStatus.stopped:
+        return Icon(Icons.pause_circle, color: color);
+    }
+  }
+
+  // 过滤任务列表
+  List<DownloadTask> _filterTasks() {
+    List<DownloadTask> filtered = _downloadTasks;
+    
+    // 根据当前选择的分类方式进行过滤
+    switch (_selectedCategory) {
+      case CategoryType.all:
+        // 全部任务，不过滤
+        break;
+      case CategoryType.byStatus:
+        if (_selectedStatusFilter != null) {
+          filtered = filtered.where((task) => task.status == _selectedStatusFilter).toList();
+        }
+        break;
+      case CategoryType.byType:
+        if (_selectedTypeFilter != null) {
+          filtered = filtered.where((task) => task.isLocal == _selectedTypeFilter).toList();
+        }
+        break;
+      case CategoryType.byInstance:
+        // 按实例过滤（模拟实现，实际应根据真实的实例数据）
+        // 这里我们假设每个任务都有实例信息
+        break;
+    }
+    
+    return filtered;
+  }
+  
+  // 获取分类选项的显示文本
+  String _getCategoryText(CategoryType category) {
+    switch (category) {
+      case CategoryType.all:
+        return '全部';
+      case CategoryType.byStatus:
+        return '按状态';
+      case CategoryType.byType:
+        return '按类型';
+      case CategoryType.byInstance:
+        return '按实例';
+    }
+  }
+  
+  // 构建分类选择器
+  Widget _buildCategorySelector(ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(bottom: BorderSide(color: colorScheme.surfaceVariant)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: CategoryType.values.map((category) {
+            final isSelected = _selectedCategory == category;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilledButton.tonal(
+                onPressed: () {
+                  setState(() {
+                    _selectedCategory = category;
+                    // 重置其他过滤器状态
+                    if (category != CategoryType.byStatus) {
+                      _selectedStatusFilter = null;
+                    }
+                    if (category != CategoryType.byType) {
+                      _selectedTypeFilter = null;
+                    }
+                    if (category != CategoryType.byInstance) {
+                      _selectedInstanceFilter = null;
+                    }
+                  });
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: isSelected ? colorScheme.primaryContainer : null,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(_getCategoryText(category)),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+  
+  // 构建子分类过滤器
+  Widget _buildSubCategoryFilter(ColorScheme colorScheme) {
+    switch (_selectedCategory) {
+      case CategoryType.byStatus:
+        return _buildStatusFilter(colorScheme);
+      case CategoryType.byType:
+        return _buildTypeFilter(colorScheme);
+      case CategoryType.byInstance:
+        return _buildInstanceFilter(colorScheme);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+  
+  // 构建类型过滤器
+  Widget _buildTypeFilter(ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(bottom: BorderSide(color: colorScheme.surfaceVariant)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            FilterChip(
+              label: Text('全部类型'),
+              selected: _selectedTypeFilter == null,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedTypeFilter = null;
+                });
+              },
+              selectedColor: colorScheme.primaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilterChip(
+              label: Text('本地'),
+              selected: _selectedTypeFilter == true,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedTypeFilter = selected ? true : null;
+                });
+              },
+              selectedColor: colorScheme.primary.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilterChip(
+              label: Text('远程'),
+              selected: _selectedTypeFilter == false,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedTypeFilter = selected ? false : null;
+                });
+              },
+              selectedColor: colorScheme.secondary.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  // 构建实例过滤器
+  Widget _buildInstanceFilter(ColorScheme colorScheme) {
+    // 模拟实例数据
+    final instances = ['默认实例', '实例1', '实例2'];
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(bottom: BorderSide(color: colorScheme.surfaceVariant)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            FilterChip(
+              label: Text('全部实例'),
+              selected: _selectedInstanceFilter == null,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedInstanceFilter = null;
+                });
+              },
+              selectedColor: colorScheme.primaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            ...instances.map((instance) {
+              return Row(
+                children: [
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    label: Text(instance),
+                    selected: _selectedInstanceFilter == instance,
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedInstanceFilter = selected ? instance : null;
+                      });
+                    },
+                    selectedColor: colorScheme.primary.withOpacity(0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 构建状态过滤器
+  Widget _buildStatusFilter(ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(bottom: BorderSide(color: colorScheme.surfaceVariant)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            FilterChip(
+              label: Text('全部状态'),
+              selected: _selectedStatusFilter == null,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedStatusFilter = null;
+                });
+              },
+              selectedColor: colorScheme.primaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilterChip(
+              label: Text('活跃'),
+              labelStyle: TextStyle(color: colorScheme.primary),
+              selected: _selectedStatusFilter == DownloadStatus.active,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedStatusFilter = selected ? DownloadStatus.active : null;
+                });
+              },
+              selectedColor: colorScheme.primary.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilterChip(
+              label: Text('等待'),
+              labelStyle: TextStyle(color: colorScheme.secondary),
+              selected: _selectedStatusFilter == DownloadStatus.waiting,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedStatusFilter = selected ? DownloadStatus.waiting : null;
+                });
+              },
+              selectedColor: colorScheme.secondary.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilterChip(
+              label: Text('停止'),
+              labelStyle: TextStyle(color: colorScheme.errorContainer),
+              selected: _selectedStatusFilter == DownloadStatus.stopped,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedStatusFilter = selected ? DownloadStatus.stopped : null;
+                });
+              },
+              selectedColor: colorScheme.errorContainer.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -96,132 +499,167 @@ class _DownloadPageState extends State<DownloadPage> with SingleTickerProviderSt
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton.outlined(
-                  onPressed: () {},
-                  icon: const Icon(Icons.filter_list),
-                  style: IconButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
-          // 标签页切换 - Material You 风格
-          TabBar(
-            controller: _tabController,
-            indicator: UnderlineTabIndicator(
-              borderSide: BorderSide(width: 3, color: colorScheme.primary),
-              insets: const EdgeInsets.symmetric(horizontal: 20),
-            ),
-            tabs: const [
-              Tab(text: '全部'),
-              Tab(text: '本地'),
-              Tab(text: '远程'),
-            ],
-          ),
+          // 分类选择器
+          _buildCategorySelector(colorScheme),
+          // 子分类过滤器
+          _buildSubCategoryFilter(colorScheme),
           // 任务列表 - Material You 风格
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // 全部标签页
-                ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: 3, // 示例数据
-                  itemBuilder: (context, index) {
-                    final isActive = index == 0;
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                      elevation: 2,
-                      shadowColor: Colors.black.withOpacity(0.1),
-                      surfaceTintColor: colorScheme.surface,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () {},
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    isActive ? Icons.file_download : Icons.file_download_outlined,
-                                    color: isActive ? colorScheme.primary : colorScheme.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      '示例下载任务 $index',
-                                      style: theme.textTheme.titleMedium,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.more_vert),
-                                    onPressed: () {},
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    isActive ? '下载中' : '等待中',
-                                    style: TextStyle(
-                                      color: isActive ? colorScheme.primary : colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  Text(
-                                    isActive ? '1.2 MB/s' : '0 B/s',
-                                    style: TextStyle(
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  Text(
-                                    isActive ? '45%' : '0%',
-                                    style: TextStyle(
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (isActive)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: LinearProgressIndicator(
-                                    value: 0.45,
-                                    borderRadius: BorderRadius.circular(10),
-                                    minHeight: 6,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                // 本地标签页
-                Center(
-                  child: Text('本地任务列表', style: theme.textTheme.bodyLarge),
-                ),
-                // 远程标签页
-                Center(
-                  child: Text('远程任务列表', style: theme.textTheme.bodyLarge),
-                ),
-              ],
-            ),
+            child: _buildTaskList(theme, colorScheme),
           ),
         ],
       ),
+    );
+  }
+
+  // 构建任务列表
+  Widget _buildTaskList(ThemeData theme, ColorScheme colorScheme) {
+    final tasks = _filterTasks();
+    
+    if (tasks.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inbox_outlined, size: 64, color: colorScheme.onSurfaceVariant),
+            SizedBox(height: 16),
+            Text('暂无任务', style: theme.textTheme.titleMedium),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: tasks.length,
+      itemBuilder: (context, index) {
+        final task = tasks[index];
+        final (statusText, statusColor) = _getStatusInfo(task.status, colorScheme);
+        
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+          elevation: 2,
+          shadowColor: Colors.black.withOpacity(0.1),
+          surfaceTintColor: colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {},
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 任务名称和状态图标
+                  Row(
+                    children: [
+                      _getStatusIcon(task.status, statusColor),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          task.name,
+                          style: theme.textTheme.titleMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // 状态标签
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          statusText,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.more_vert),
+                        onPressed: () {},
+                        padding: EdgeInsets.zero,
+                        constraints: BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // 进度条（对所有状态都显示，但非活跃状态样式略有不同）
+                  Stack(
+                    children: [
+                      LinearProgressIndicator(
+                        value: task.progress,
+                        borderRadius: BorderRadius.circular(10),
+                        minHeight: 6,
+                        backgroundColor: colorScheme.surfaceVariant,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          task.status == DownloadStatus.active ? statusColor : statusColor.withOpacity(0.6),
+                        ),
+                      ),
+                      // 只有非活跃状态显示进度文本
+                      if (task.status != DownloadStatus.active && task.progress > 0)
+                        Positioned.fill(
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: Text(
+                              '${(task.progress * 100).toInt()}%',
+                              style: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  
+                  // 任务详细信息
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // 文件大小信息
+                      Text(
+                        '${task.completedSize} / ${task.size}',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 13,
+                        ),
+                      ),
+                      // 下载速度（只在活跃状态显示）
+                      if (task.status == DownloadStatus.active)
+                        Text(
+                          task.speed,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      // 非活跃状态显示空白占位，保持对齐
+                      if (task.status != DownloadStatus.active)
+                        SizedBox(width: 60),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

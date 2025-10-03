@@ -150,22 +150,16 @@ class _MainWindowState extends State<MainWindow> {
       const SettingsPage(),
     ];
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
+    void _onItemTapped(int index) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Aria2 Desktop'),
-        elevation: 0,
-        scrolledUnderElevation: 4,
-        centerTitle: false,
-      ),
       body: Column(
         children: [
           Expanded(
@@ -179,6 +173,21 @@ class _MainWindowState extends State<MainWindow> {
                   backgroundColor: colorScheme.surfaceContainer,
                   indicatorColor: colorScheme.surfaceVariant,
                   elevation: null,
+                  leading: Container(
+                    padding: const EdgeInsets.only(top: 16, bottom: 8),
+                    alignment: Alignment.center,
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: colorScheme.primaryContainer,
+                      ),
+                      alignment: Alignment.center,
+                      // 图标占位符 - 未来将替换为实际应用图标
+                      child: Icon(Icons.download_done, size: 28, color: colorScheme.primary),
+                    ),
+                  ),
                   destinations: const [
                     NavigationRailDestination(
                       icon: Icon(Icons.download_outlined),

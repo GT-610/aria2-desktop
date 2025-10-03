@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../models/settings.dart';
 
@@ -10,6 +11,21 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  String _version = '';
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadVersionInfo();
+  }
+  
+  Future<void> _loadVersionInfo() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = packageInfo.version;
+    });
+  }
+  
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<Settings>(context);
@@ -180,6 +196,59 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                         ),
                       ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            // 关于部分 - Material You 风格
+            Text(
+              '关于',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Card(
+              margin: const EdgeInsets.only(top: 12, bottom: 24),
+              elevation: 2,
+              shadowColor: Colors.black.withOpacity(0.1),
+              surfaceTintColor: colorScheme.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    ListTile(
+                      title: Text(
+                        '版本号',
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(_version.isEmpty ? '加载中...' : _version),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                      onTap: () {},
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      title: Text(
+                        '贡献者',
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                      onTap: () {},
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      title: Text(
+                        '许可协议',
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                      onTap: () {},
                     ),
                   ],
                 ),
