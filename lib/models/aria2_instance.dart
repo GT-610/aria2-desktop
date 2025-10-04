@@ -1,34 +1,34 @@
 import 'dart:io';
 
-/// 实例类型枚举
+/// Instance type enum
 enum InstanceType {
   local,
   remote
 }
 
-/// 实例在线状态枚举
+/// Connection status enum
 enum ConnectionStatus {
-  disconnected, // 未连接
-  connecting,   // 连接中
-  connected,    // 已连接
-  failed        // 连接失败
+  disconnected, // Disconnected
+  connecting,   // Connecting
+  connected,    // Connected
+  failed        // Connection failed
 }
 
-/// Aria2实例数据模型
+/// Aria2 instance data model
 class Aria2Instance {
-  String id;              // 唯一标识符
-  String name;            // 实例名称
-  InstanceType type;      // 本地或远程
-  String protocol;        // HTTP/HTTPS/WS/WSS
-  String host;            // 主机地址
-  int port;               // 端口
-  String secret;          // 密钥
-  String? aria2Path;      // 本地实例的 Aria2 可执行文件路径
-  String? version;        // Aria2 版本
-  String? errorMessage;   // 错误信息
-  bool isActive;          // 是否为当前活动实例
-  ConnectionStatus status; // 连接状态
-  Process? localProcess;  // 本地进程引用
+  String id;
+  String name;
+  InstanceType type;
+  String protocol;
+  String host;
+  int port;
+  String secret;
+  String? aria2Path;
+  String? version;
+  String? errorMessage;
+  bool isActive;
+  ConnectionStatus status;
+  Process? localProcess;
 
   Aria2Instance({
     required this.id,
@@ -46,7 +46,7 @@ class Aria2Instance {
     this.localProcess,
   });
 
-  // 从JSON创建实例
+  // Create instance from JSON
   factory Aria2Instance.fromJson(Map<String, dynamic> json) {
     return Aria2Instance(
       id: json['id'],
@@ -64,7 +64,7 @@ class Aria2Instance {
     );
   }
 
-  // 转换为JSON
+  // Convert to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -82,12 +82,12 @@ class Aria2Instance {
     };
   }
 
-  // 获取RPC URL
+  // Get RPC URL
   String get rpcUrl {
     return '$protocol://$host:$port/jsonrpc';
   }
 
-  // 复制方法，用于编辑实例
+  // Copy method for editing instances
   Aria2Instance copyWith({
     String? id,
     String? name,

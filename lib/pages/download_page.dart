@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 
-// 定义下载任务状态枚举
+// Define download task status enum
 enum DownloadStatus {
-  active,   // 活跃
-  waiting,  // 等待
-  stopped   // 停止
+  active,   // Active
+  waiting,  // Waiting
+  stopped   // Stopped
 }
 
-// 定义分类方式枚举
+// Define category type enum
 enum CategoryType {
-  all,      // 全部
-  byStatus, // 按状态
-  byType,   // 按类型
-  byInstance // 按实例
+  all,      // All
+  byStatus, // By status
+  byType,   // By type
+  byInstance // By instance
 }
 
-// 下载任务模型
+// Download task model
 class DownloadTask {
   final String id;
   final String name;
@@ -51,7 +51,7 @@ class _DownloadPageState extends State<DownloadPage> {
   bool? _selectedTypeFilter; // true for local, false for remote
   String? _selectedInstanceFilter;
 
-  // 模拟下载任务数据
+  // Mock download task data
   final List<DownloadTask> _downloadTasks = [
     DownloadTask(
       id: '1',
@@ -110,7 +110,7 @@ class _DownloadPageState extends State<DownloadPage> {
     super.initState();
   }
 
-  // 获取状态对应的标签和颜色
+  // Get status text and color
   (String, Color) _getStatusInfo(DownloadStatus status, ColorScheme colorScheme) {
     switch (status) {
       case DownloadStatus.active:
@@ -122,7 +122,7 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
 
-  // 获取状态对应的图标
+  // Get status icon
   Icon _getStatusIcon(DownloadStatus status, Color color) {
     switch (status) {
       case DownloadStatus.active:
@@ -134,7 +134,7 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
 
-  // 过滤任务列表
+  // Filter tasks based on selected criteria
   List<DownloadTask> _filterTasks() {
     List<DownloadTask> filtered = _downloadTasks;
     
@@ -162,7 +162,7 @@ class _DownloadPageState extends State<DownloadPage> {
     return filtered;
   }
   
-  // 获取分类选项的显示文本
+  // Get display text for category
   String _getCategoryText(CategoryType category) {
     switch (category) {
       case CategoryType.all:
@@ -176,7 +176,7 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
   
-  // 构建分类选择器
+  // Build category selector
   Widget _buildCategorySelector(ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -222,7 +222,7 @@ class _DownloadPageState extends State<DownloadPage> {
     );
   }
   
-  // 构建子分类过滤器
+  // Build sub-category filter
   Widget _buildSubCategoryFilter(ColorScheme colorScheme) {
     switch (_selectedCategory) {
       case CategoryType.byStatus:
@@ -236,7 +236,7 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
   
-  // 构建类型过滤器
+  // Build type filter
   Widget _buildTypeFilter(ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -295,9 +295,9 @@ class _DownloadPageState extends State<DownloadPage> {
     );
   }
   
-  // 构建实例过滤器
+  // Build instance filter
   Widget _buildInstanceFilter(ColorScheme colorScheme) {
-    // 模拟实例数据
+    // Mock instance data
     final instances = ['默认实例', '实例1', '实例2'];
     
     return Container(
@@ -349,7 +349,7 @@ class _DownloadPageState extends State<DownloadPage> {
     );
   }
 
-  // 构建状态过滤器
+  // Build status filter
   Widget _buildStatusFilter(ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -433,7 +433,7 @@ class _DownloadPageState extends State<DownloadPage> {
     return Scaffold(
       body: Column(
         children: [
-          // 任务操作工具栏 - Material You 风格
+          // Task action toolbar - Material You style
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -502,11 +502,11 @@ class _DownloadPageState extends State<DownloadPage> {
               ],
             ),
           ),
-          // 分类选择器
+          // Category selector
           _buildCategorySelector(colorScheme),
-          // 子分类过滤器
+          // Sub-category filter
           _buildSubCategoryFilter(colorScheme),
-          // 任务列表 - Material You 风格
+          // Task list - Material You style
           Expanded(
             child: _buildTaskList(theme, colorScheme),
           ),
@@ -515,7 +515,7 @@ class _DownloadPageState extends State<DownloadPage> {
     );
   }
 
-  // 构建任务列表
+  // Build task list
   Widget _buildTaskList(ThemeData theme, ColorScheme colorScheme) {
     final tasks = _filterTasks();
     
@@ -555,101 +555,101 @@ class _DownloadPageState extends State<DownloadPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 任务名称和状态图标
-                  Row(
-                    children: [
-                      _getStatusIcon(task.status, statusColor),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          task.name,
-                          style: theme.textTheme.titleMedium,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      // 状态标签
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          statusText,
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                    // Task name and status icon
+                    Row(
+                      children: [
+                        _getStatusIcon(task.status, statusColor),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            task.name,
+                            style: theme.textTheme.titleMedium,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.more_vert),
-                        onPressed: () {},
-                        padding: EdgeInsets.zero,
-                        constraints: BoxConstraints(),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // 进度条（对所有状态都显示，但非活跃状态样式略有不同）
-                  Stack(
-                    children: [
-                      LinearProgressIndicator(
-                        value: task.progress,
-                        borderRadius: BorderRadius.circular(10),
-                        minHeight: 6,
-                        backgroundColor: colorScheme.surfaceVariant,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          task.status == DownloadStatus.active ? statusColor : statusColor.withOpacity(0.6),
-                        ),
-                      ),
-                      // 只有非活跃状态显示进度文本
-                      if (task.status != DownloadStatus.active && task.progress > 0)
-                        Positioned.fill(
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: Text(
-                              '${(task.progress * 100).toInt()}%',
-                              style: TextStyle(
-                                color: colorScheme.onSurfaceVariant,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
+                        // Status label
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            statusText,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // 任务详细信息
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // 文件大小信息
-                      Text(
-                        '${task.completedSize} / ${task.size}',
-                        style: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 13,
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.more_vert),
+                          onPressed: () {},
+                          padding: EdgeInsets.zero,
+                          constraints: BoxConstraints(),
                         ),
-                      ),
-                      // 下载速度（只在活跃状态显示）
-                      if (task.status == DownloadStatus.active)
-                        Text(
-                          task.speed,
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Progress bar (shown for all statuses with slight style variation for non-active)
+                    Stack(
+                      children: [
+                        LinearProgressIndicator(
+                          value: task.progress,
+                          borderRadius: BorderRadius.circular(10),
+                          minHeight: 6,
+                          backgroundColor: colorScheme.surfaceVariant,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            task.status == DownloadStatus.active ? statusColor : statusColor.withOpacity(0.6),
                           ),
                         ),
-                      // 非活跃状态显示空白占位，保持对齐
+                        // Only show progress text for non-active status
+                        if (task.status != DownloadStatus.active && task.progress > 0)
+                          Positioned.fill(
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                '${(task.progress * 100).toInt()}%',
+                                style: TextStyle(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Task details
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // File size info
+                        Text(
+                          '${task.completedSize} / ${task.size}',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 13,
+                          ),
+                        ),
+                        // Download speed (only shown for active status)
+                        if (task.status == DownloadStatus.active)
+                          Text(
+                            task.speed,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      // Empty space for alignment in non-active status
                       if (task.status != DownloadStatus.active)
                         SizedBox(width: 60),
                     ],

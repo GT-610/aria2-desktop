@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'app.dart';
 
 void main() {
-  // 确保所有平台初始化完成
+  // Ensure all platform initializations are complete
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 运行应用
+  // Run the application
   runApp(const MyApp());
 }

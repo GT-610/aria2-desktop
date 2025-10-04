@@ -32,7 +32,7 @@ class _ThemeProviderState extends State<_ThemeProvider> {
   @override
   void initState() {
     super.initState();
-    // 加载设置
+    // Load settings
     Provider.of<Settings>(context, listen: false).loadSettings();
   }
 
@@ -82,35 +82,35 @@ class _HomeWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 初始化实例管理器
+    // Initialize instance manager
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     final settings = Provider.of<Settings>(context, listen: false);
     
-    // 确保设置已加载
+    // Ensure settings are loaded
     final initializationFuture = Future(() async {
-      // 等待实例管理器初始化
+      // Wait for instance manager initialization
       await instanceManager.initialize();
       
-      // 如果启用了自动连接上次使用的实例，尝试连接活动实例
+      // Try to connect to active instance if auto-connect is enabled
       if (settings.autoConnectLastInstance && instanceManager.activeInstance != null) {
         try {
-          // 尝试连接到活动实例
+          // Attempt to connect to active instance
           final activeInstance = instanceManager.activeInstance!;
           final client = Aria2RpcClient(activeInstance);
           
-          // 获取版本信息以验证连接
+          // Validate connection by getting version info
           final version = await client.getVersion();
           
-          // 更新实例的连接状态和版本信息
+          // Update instance connection status and version
           final updatedInstance = activeInstance.copyWith(
             version: version,
             status: ConnectionStatus.connected,
           );
           
-          // 更新实例信息
+          // Update instance information
           await instanceManager.updateInstance(updatedInstance);
         } catch (e) {
-          print('自动连接失败: $e');
+          print('Auto-connection failed: $e');
         }
       }
     });
@@ -165,7 +165,7 @@ class _MainWindowState extends State<MainWindow> {
           Expanded(
             child: Row(
               children: [
-                // 侧边导航栏 - Material You 风格
+                // Side navigation rail
                 NavigationRail(
                   selectedIndex: _selectedIndex,
                   onDestinationSelected: _onItemTapped,
@@ -184,7 +184,7 @@ class _MainWindowState extends State<MainWindow> {
                         color: colorScheme.primaryContainer,
                       ),
                       alignment: Alignment.center,
-                      // 图标占位符 - 未来将替换为实际应用图标
+                      // Icon placeholder - will be replaced with actual app icon
                       child: Icon(Icons.download_done, size: 28, color: colorScheme.primary),
                     ),
                   ),
@@ -206,14 +206,14 @@ class _MainWindowState extends State<MainWindow> {
                     ),
                   ],
                 ),
-                // 主内容区域
+                // Main content area
                 Expanded(
                   child: _pages[_selectedIndex],
                 ),
               ],
             ),
           ),
-          // 底部状态栏 - Material You 风格
+          // Bottom status bar - Material You style
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(

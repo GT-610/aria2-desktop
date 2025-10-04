@@ -8,7 +8,7 @@ class Settings extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
   bool get autoConnectLastInstance => _autoConnectLastInstance;
 
-  // 加载设置
+  // Load settings from SharedPreferences
   Future<void> loadSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -27,7 +27,7 @@ class Settings extends ChangeNotifier {
     }
   }
 
-  // 设置主题模式
+  // Update and save theme mode setting
   Future<void> setThemeMode(ThemeMode themeMode) async {
     _themeMode = themeMode;
     notifyListeners();
@@ -40,7 +40,7 @@ class Settings extends ChangeNotifier {
     }
   }
   
-  // 设置自动连接上次使用的实例
+  // Update and save auto-connect setting
   Future<void> setAutoConnectLastInstance(bool value) async {
     _autoConnectLastInstance = value;
     notifyListeners();
