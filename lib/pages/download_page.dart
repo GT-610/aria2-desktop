@@ -23,6 +23,7 @@ enum FilterOption {
   stopped,  // Stopped status
   local,    // Local type
   remote,   // Remote type
+  instance, // Instance filter (dynamic)
 }
 
 // Download task model
@@ -35,6 +36,7 @@ class DownloadTask {
   final String size;
   final String completedSize;
   final bool isLocal;
+  final String instanceId; // 添加实例ID字段
 
   DownloadTask({
     required this.id,
@@ -45,6 +47,7 @@ class DownloadTask {
     required this.size,
     required this.completedSize,
     required this.isLocal,
+    required this.instanceId,
   });
 }
 
@@ -59,6 +62,9 @@ class _DownloadPageState extends State<DownloadPage> {
   FilterOption _selectedFilter = FilterOption.all;
   CategoryType _currentCategoryType = CategoryType.all; // 默认设置为'全部'
 
+  // 实例名称映射表，用于展示实例名称
+  Map<String, String> _instanceNames = {};
+  
   // Mock download task data
   final List<DownloadTask> _downloadTasks = [
     DownloadTask(
@@ -70,6 +76,7 @@ class _DownloadPageState extends State<DownloadPage> {
       size: '4.5 GB',
       completedSize: '2.0 GB',
       isLocal: true,
+      instanceId: 'local1',
     ),
     DownloadTask(
       id: '2',
@@ -80,6 +87,7 @@ class _DownloadPageState extends State<DownloadPage> {
       size: '150 MB',
       completedSize: '0 MB',
       isLocal: true,
+      instanceId: 'local1',
     ),
     DownloadTask(
       id: '3',
@@ -90,6 +98,7 @@ class _DownloadPageState extends State<DownloadPage> {
       size: '2.8 GB',
       completedSize: '2.1 GB',
       isLocal: false,
+      instanceId: 'remote1',
     ),
     DownloadTask(
       id: '4',
@@ -100,6 +109,7 @@ class _DownloadPageState extends State<DownloadPage> {
       size: '15 MB',
       completedSize: '13.8 MB',
       isLocal: false,
+      instanceId: 'remote1',
     ),
     DownloadTask(
       id: '5',
@@ -110,13 +120,40 @@ class _DownloadPageState extends State<DownloadPage> {
       size: '120 MB',
       completedSize: '0 MB',
       isLocal: true,
+      instanceId: 'local2',
     ),
   ];
 
   @override
   void initState() {
     super.initState();
+    // 初始化实例名称映射（实际应用中应该从InstanceManager获取）
+    _loadInstanceNames();
   }
+  
+  // 加载实例名称
+  void _loadInstanceNames() {
+    // 在实际应用中，这里应该调用InstanceManager.getInstance()获取真实实例数据
+    // 这里使用模拟数据进行演示
+    _instanceNames = {
+      'local1': '本地实例',
+      'local2': '本地测试',
+      'remote1': '远程服务器',
+    };
+  }
+  
+  // 根据实例ID获取实例名称
+  String _getInstanceName(String instanceId) {
+    return _instanceNames[instanceId] ?? '未知实例';
+  }
+  
+  // 获取所有实例ID列表
+  List<String> _getAllInstanceIds() {
+    // 从任务中提取所有唯一的实例ID
+    return _downloadTasks.map((task) => task.instanceId).toSet().toList();
+  }
+
+  
 
   // Get status text and color
   (String, Color) _getStatusInfo(DownloadStatus status, ColorScheme colorScheme) {
@@ -142,29 +179,41 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
 
+  // 存储当前选择的实例ID
+  String? _selectedInstanceId;
+  
   // Filter tasks based on selected criteria
   List<DownloadTask> _filterTasks() {
     List<DownloadTask> filtered = _downloadTasks;
     
-    switch (_selectedFilter) {
-      case FilterOption.all:
-        // 全部任务，不过滤
-        break;
-      case FilterOption.active:
-        filtered = filtered.where((task) => task.status == DownloadStatus.active).toList();
-        break;
-      case FilterOption.waiting:
-        filtered = filtered.where((task) => task.status == DownloadStatus.waiting).toList();
-        break;
-      case FilterOption.stopped:
-        filtered = filtered.where((task) => task.status == DownloadStatus.stopped).toList();
-        break;
-      case FilterOption.local:
-        filtered = filtered.where((task) => task.isLocal == true).toList();
-        break;
-      case FilterOption.remote:
-        filtered = filtered.where((task) => task.isLocal == false).toList();
-        break;
+    // 如果是按实例筛选，使用_selectedInstanceId
+    if (_currentCategoryType == CategoryType.byInstance && _selectedInstanceId != null) {
+      filtered = filtered.where((task) => task.instanceId == _selectedInstanceId).toList();
+    } else {
+      // 其他分类使用_selectedFilter
+      switch (_selectedFilter) {
+        case FilterOption.all:
+          // 全部任务，不过滤
+          break;
+        case FilterOption.active:
+          filtered = filtered.where((task) => task.status == DownloadStatus.active).toList();
+          break;
+        case FilterOption.waiting:
+          filtered = filtered.where((task) => task.status == DownloadStatus.waiting).toList();
+          break;
+        case FilterOption.stopped:
+          filtered = filtered.where((task) => task.status == DownloadStatus.stopped).toList();
+          break;
+        case FilterOption.local:
+          filtered = filtered.where((task) => task.isLocal == true).toList();
+          break;
+        case FilterOption.remote:
+          filtered = filtered.where((task) => task.isLocal == false).toList();
+          break;
+        case FilterOption.instance:
+          // 实例筛选已经在上面处理
+          break;
+      }
     }
     
     return filtered;
@@ -185,6 +234,8 @@ class _DownloadPageState extends State<DownloadPage> {
         return '本地';
       case FilterOption.remote:
         return '远程';
+      case FilterOption.instance:
+        return '实例';
     }
   }
   
@@ -203,6 +254,8 @@ class _DownloadPageState extends State<DownloadPage> {
         return colorScheme.primary;
       case FilterOption.remote:
         return colorScheme.secondary;
+      case FilterOption.instance:
+        return colorScheme.tertiary; // 实例筛选器使用第三颜色
     }
   }
   
@@ -258,14 +311,14 @@ class _DownloadPageState extends State<DownloadPage> {
                 },
               ),
               const SizedBox(height: 8),
-              // By instance (mock implementation)
+              // By instance
               _buildDialogOption(
                 context,
                 '按实例',
                 onTap: () {
                   setState(() {
                     _currentCategoryType = CategoryType.byInstance;
-                    // 没有选项时保持为默认值
+                    _selectedInstanceId = null; // 重置选择的实例
                   });
                   Navigator.pop(context);
                 },
@@ -323,36 +376,67 @@ class _DownloadPageState extends State<DownloadPage> {
             const SizedBox(width: 12),
           // Dynamic filter chips based on selected category - only show when not in 'all' category
           if (_currentCategoryType != CategoryType.all) 
-            ..._getFilterOptionsForCurrentCategory().map((option) {
-              final isSelected = _selectedFilter == option;
-              final filterColor = _getFilterColor(option, colorScheme);
-              
-              return Row(
-                children: [
-                  FilterChip(
-                    label: Text(
-                      _getFilterText(option),
-                      style: TextStyle(
-                        color: filterColor,
+            // Special handling for instance category
+            if (_currentCategoryType == CategoryType.byInstance)
+              ..._getInstanceFilterOptions().map((instanceId) {
+                final isSelected = _selectedInstanceId == instanceId;
+                final instanceColor = colorScheme.tertiary;
+                
+                return Row(
+                  children: [
+                    FilterChip(
+                      label: Text(
+                        _getInstanceName(instanceId),
+                        style: TextStyle(
+                          color: instanceColor,
+                        ),
+                      ),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedInstanceId = selected ? instanceId : null;
+                        });
+                      },
+                      selectedColor: instanceColor.withOpacity(0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() {
-                          _selectedFilter = option;
-                        });
-                      }
-                    },
-                    selectedColor: filterColor.withOpacity(0.1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                    const SizedBox(width: 8),
+                  ],
+                );
+              }).toList()
+            else
+              ..._getFilterOptionsForCurrentCategory().map((option) {
+                final isSelected = _selectedFilter == option;
+                final filterColor = _getFilterColor(option, colorScheme);
+                
+                return Row(
+                  children: [
+                    FilterChip(
+                      label: Text(
+                        _getFilterText(option),
+                        style: TextStyle(
+                          color: filterColor,
+                        ),
+                      ),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setState(() {
+                            _selectedFilter = option;
+                          });
+                        }
+                      },
+                      selectedColor: filterColor.withOpacity(0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              );
-            }).toList(),
+                    const SizedBox(width: 8),
+                  ],
+                );
+              }).toList(),
         ],
       ),
     );
@@ -374,6 +458,11 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
   
+  // 获取实例ID列表作为筛选选项
+  List<String> _getInstanceFilterOptions() {
+    return _getAllInstanceIds();
+  }
+  
   // Get filter options based on current category
   List<FilterOption> _getFilterOptionsForCurrentCategory() {
     switch (_currentCategoryType) {
@@ -382,7 +471,8 @@ class _DownloadPageState extends State<DownloadPage> {
       case CategoryType.byType:
         return [FilterOption.local, FilterOption.remote];
       case CategoryType.byInstance:
-        return [];
+        // 对于实例分类，我们将在UI中单独处理
+        return [FilterOption.instance];
       default:
         return [];
     }
