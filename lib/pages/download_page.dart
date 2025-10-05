@@ -15,6 +15,16 @@ enum CategoryType {
   byInstance // By instance
 }
 
+// Define filter option enum
+enum FilterOption {
+  all,      // All items
+  active,   // Active status
+  waiting,  // Waiting status
+  stopped,  // Stopped status
+  local,    // Local type
+  remote,   // Remote type
+}
+
 // Download task model
 class DownloadTask {
   final String id;
@@ -46,10 +56,8 @@ class DownloadPage extends StatefulWidget {
 }
 
 class _DownloadPageState extends State<DownloadPage> {
-  CategoryType _selectedCategory = CategoryType.all;
-  DownloadStatus? _selectedStatusFilter;
-  bool? _selectedTypeFilter; // true for local, false for remote
-  String? _selectedInstanceFilter;
+  FilterOption _selectedFilter = FilterOption.all;
+  CategoryType _currentCategoryType = CategoryType.all; // 默认设置为'全部'
 
   // Mock download task data
   final List<DownloadTask> _downloadTasks = [
@@ -138,33 +146,221 @@ class _DownloadPageState extends State<DownloadPage> {
   List<DownloadTask> _filterTasks() {
     List<DownloadTask> filtered = _downloadTasks;
     
-    // 根据当前选择的分类方式进行过滤
-    switch (_selectedCategory) {
-      case CategoryType.all:
+    switch (_selectedFilter) {
+      case FilterOption.all:
         // 全部任务，不过滤
         break;
-      case CategoryType.byStatus:
-        if (_selectedStatusFilter != null) {
-          filtered = filtered.where((task) => task.status == _selectedStatusFilter).toList();
-        }
+      case FilterOption.active:
+        filtered = filtered.where((task) => task.status == DownloadStatus.active).toList();
         break;
-      case CategoryType.byType:
-        if (_selectedTypeFilter != null) {
-          filtered = filtered.where((task) => task.isLocal == _selectedTypeFilter).toList();
-        }
+      case FilterOption.waiting:
+        filtered = filtered.where((task) => task.status == DownloadStatus.waiting).toList();
         break;
-      case CategoryType.byInstance:
-        // 按实例过滤（模拟实现，实际应根据真实的实例数据）
-        // 这里我们假设每个任务都有实例信息
+      case FilterOption.stopped:
+        filtered = filtered.where((task) => task.status == DownloadStatus.stopped).toList();
+        break;
+      case FilterOption.local:
+        filtered = filtered.where((task) => task.isLocal == true).toList();
+        break;
+      case FilterOption.remote:
+        filtered = filtered.where((task) => task.isLocal == false).toList();
         break;
     }
     
     return filtered;
   }
   
-  // Get display text for category
-  String _getCategoryText(CategoryType category) {
-    switch (category) {
+  // Get display text for filter option
+  String _getFilterText(FilterOption filter) {
+    switch (filter) {
+      case FilterOption.all:
+        return '全部';
+      case FilterOption.active:
+        return '下载中';
+      case FilterOption.waiting:
+        return '等待中';
+      case FilterOption.stopped:
+        return '已停止';
+      case FilterOption.local:
+        return '本地';
+      case FilterOption.remote:
+        return '远程';
+    }
+  }
+  
+  // Get color for filter option
+  Color _getFilterColor(FilterOption filter, ColorScheme colorScheme) {
+    switch (filter) {
+      case FilterOption.all:
+        return colorScheme.primaryContainer;
+      case FilterOption.active:
+        return colorScheme.primary;
+      case FilterOption.waiting:
+        return colorScheme.secondary;
+      case FilterOption.stopped:
+        return colorScheme.errorContainer;
+      case FilterOption.local:
+        return colorScheme.primary;
+      case FilterOption.remote:
+        return colorScheme.secondary;
+    }
+  }
+  
+  // Show category selection dialog
+  void _showCategoryDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final colorScheme = Theme.of(context).colorScheme;
+        
+        return AlertDialog(
+          title: const Text('选择分类方式'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // All option
+              _buildDialogOption(
+                context,
+                '全部',
+                onTap: () {
+                  setState(() {
+                    _selectedFilter = FilterOption.all;
+                    _currentCategoryType = CategoryType.all;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 8),
+              // By status
+              _buildDialogOption(
+                context,
+                '按状态',
+                onTap: () {
+                  setState(() {
+                    _currentCategoryType = CategoryType.byStatus;
+                    _selectedFilter = FilterOption.active; // 默认选择第一个选项
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 8),
+              // By type
+              _buildDialogOption(
+                context,
+                '按类型',
+                onTap: () {
+                  setState(() {
+                    _currentCategoryType = CategoryType.byType;
+                    _selectedFilter = FilterOption.local; // 默认选择第一个选项
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 8),
+              // By instance (mock implementation)
+              _buildDialogOption(
+                context,
+                '按实例',
+                onTap: () {
+                  setState(() {
+                    _currentCategoryType = CategoryType.byInstance;
+                    // 没有选项时保持为默认值
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+  
+  // Build dialog option
+  Widget _buildDialogOption(BuildContext context, String text, {required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Text(
+          text,
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+      ),
+    );
+  }
+  
+  // Build filter selector
+  Widget _buildFilterSelector(ColorScheme colorScheme) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(bottom: BorderSide(color: colorScheme.surfaceVariant)),
+      ),
+      child: Row(
+        children: [
+          // Category button - always show this for switching categories
+          FilledButton.tonal(
+            onPressed: _showCategoryDialog,
+            style: FilledButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                Text(_getCurrentCategoryText()),
+                const SizedBox(width: 4),
+                const Icon(Icons.arrow_drop_down),
+              ],
+            ),
+          ),
+          // Only show filter chips when not in 'all' category
+          if (_currentCategoryType != CategoryType.all) 
+            const SizedBox(width: 12),
+          // Dynamic filter chips based on selected category - only show when not in 'all' category
+          if (_currentCategoryType != CategoryType.all) 
+            ..._getFilterOptionsForCurrentCategory().map((option) {
+              final isSelected = _selectedFilter == option;
+              final filterColor = _getFilterColor(option, colorScheme);
+              
+              return Row(
+                children: [
+                  FilterChip(
+                    label: Text(
+                      _getFilterText(option),
+                      style: TextStyle(
+                        color: filterColor,
+                      ),
+                    ),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedFilter = option;
+                        });
+                      }
+                    },
+                    selectedColor: filterColor.withOpacity(0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              );
+            }).toList(),
+        ],
+      ),
+    );
+  }
+  
+  // Get current category display text
+  String _getCurrentCategoryText() {
+    switch (_currentCategoryType) {
       case CategoryType.all:
         return '全部';
       case CategoryType.byStatus:
@@ -173,257 +369,26 @@ class _DownloadPageState extends State<DownloadPage> {
         return '按类型';
       case CategoryType.byInstance:
         return '按实例';
-    }
-  }
-  
-  // Build category selector
-  Widget _buildCategorySelector(ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(bottom: BorderSide(color: colorScheme.surfaceVariant)),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: CategoryType.values.map((category) {
-            final isSelected = _selectedCategory == category;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilledButton.tonal(
-                onPressed: () {
-                  setState(() {
-                    _selectedCategory = category;
-                    // 重置其他过滤器状态
-                    if (category != CategoryType.byStatus) {
-                      _selectedStatusFilter = null;
-                    }
-                    if (category != CategoryType.byType) {
-                      _selectedTypeFilter = null;
-                    }
-                    if (category != CategoryType.byInstance) {
-                      _selectedInstanceFilter = null;
-                    }
-                  });
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: isSelected ? colorScheme.primaryContainer : null,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(_getCategoryText(category)),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-  
-  // Build sub-category filter
-  Widget _buildSubCategoryFilter(ColorScheme colorScheme) {
-    switch (_selectedCategory) {
-      case CategoryType.byStatus:
-        return _buildStatusFilter(colorScheme);
-      case CategoryType.byType:
-        return _buildTypeFilter(colorScheme);
-      case CategoryType.byInstance:
-        return _buildInstanceFilter(colorScheme);
       default:
-        return const SizedBox.shrink();
+        return '分类';
     }
   }
   
-  // Build type filter
-  Widget _buildTypeFilter(ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(bottom: BorderSide(color: colorScheme.surfaceVariant)),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            FilterChip(
-              label: Text('全部类型'),
-              selected: _selectedTypeFilter == null,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedTypeFilter = null;
-                });
-              },
-              selectedColor: colorScheme.primaryContainer,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            const SizedBox(width: 8),
-            FilterChip(
-              label: Text('本地'),
-              selected: _selectedTypeFilter == true,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedTypeFilter = selected ? true : null;
-                });
-              },
-              selectedColor: colorScheme.primary.withOpacity(0.1),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            const SizedBox(width: 8),
-            FilterChip(
-              label: Text('远程'),
-              selected: _selectedTypeFilter == false,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedTypeFilter = selected ? false : null;
-                });
-              },
-              selectedColor: colorScheme.secondary.withOpacity(0.1),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  // Get filter options based on current category
+  List<FilterOption> _getFilterOptionsForCurrentCategory() {
+    switch (_currentCategoryType) {
+      case CategoryType.byStatus:
+        return [FilterOption.active, FilterOption.waiting, FilterOption.stopped];
+      case CategoryType.byType:
+        return [FilterOption.local, FilterOption.remote];
+      case CategoryType.byInstance:
+        return [];
+      default:
+        return [];
+    }
   }
   
-  // Build instance filter
-  Widget _buildInstanceFilter(ColorScheme colorScheme) {
-    // Mock instance data
-    final instances = ['默认实例', '实例1', '实例2'];
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(bottom: BorderSide(color: colorScheme.surfaceVariant)),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            FilterChip(
-              label: Text('全部实例'),
-              selected: _selectedInstanceFilter == null,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedInstanceFilter = null;
-                });
-              },
-              selectedColor: colorScheme.primaryContainer,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            ...instances.map((instance) {
-              return Row(
-                children: [
-                  const SizedBox(width: 8),
-                  FilterChip(
-                    label: Text(instance),
-                    selected: _selectedInstanceFilter == instance,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedInstanceFilter = selected ? instance : null;
-                      });
-                    },
-                    selectedColor: colorScheme.primary.withOpacity(0.1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
-          ],
-        ),
-      ),
-    );
-  }
 
-  // Build status filter
-  Widget _buildStatusFilter(ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(bottom: BorderSide(color: colorScheme.surfaceVariant)),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            FilterChip(
-              label: Text('全部状态'),
-              selected: _selectedStatusFilter == null,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedStatusFilter = null;
-                });
-              },
-              selectedColor: colorScheme.primaryContainer,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            const SizedBox(width: 8),
-            FilterChip(
-              label: Text('活跃'),
-              labelStyle: TextStyle(color: colorScheme.primary),
-              selected: _selectedStatusFilter == DownloadStatus.active,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedStatusFilter = selected ? DownloadStatus.active : null;
-                });
-              },
-              selectedColor: colorScheme.primary.withOpacity(0.1),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            const SizedBox(width: 8),
-            FilterChip(
-              label: Text('等待'),
-              labelStyle: TextStyle(color: colorScheme.secondary),
-              selected: _selectedStatusFilter == DownloadStatus.waiting,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedStatusFilter = selected ? DownloadStatus.waiting : null;
-                });
-              },
-              selectedColor: colorScheme.secondary.withOpacity(0.1),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            const SizedBox(width: 8),
-            FilterChip(
-              label: Text('停止'),
-              labelStyle: TextStyle(color: colorScheme.errorContainer),
-              selected: _selectedStatusFilter == DownloadStatus.stopped,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedStatusFilter = selected ? DownloadStatus.stopped : null;
-                });
-              },
-              selectedColor: colorScheme.errorContainer.withOpacity(0.1),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -502,10 +467,8 @@ class _DownloadPageState extends State<DownloadPage> {
               ],
             ),
           ),
-          // Category selector
-          _buildCategorySelector(colorScheme),
-          // Sub-category filter
-          _buildSubCategoryFilter(colorScheme),
+          // Filter selector
+          _buildFilterSelector(colorScheme),
           // Task list - Material You style
           Expanded(
             child: _buildTaskList(theme, colorScheme),
