@@ -19,34 +19,48 @@ class UnauthorizedException implements Exception {
 /// Aria2 RPC client service
 class Aria2RpcClient {
   final Aria2Instance instance;
-  final http.Client _client = http.Client();
+  final http.Client? _httpClient;
+  WebSocket? _webSocket;
+  final Map<String, Completer<Map<String, dynamic>>> _pendingRequests = {};
+  bool _isWebSocket = false;
 
-  Aria2RpcClient(this.instance);
+  /// Factory method to create appropriate client based on protocol
+  factory Aria2RpcClient(Aria2Instance instance) {
+    if (instance.protocol.startsWith('ws')) {
+      return Aria2RpcClient._(instance, isWebSocket: true);
+    } else {
+      return Aria2RpcClient._(instance, isWebSocket: false);
+    }
+  }
+
+  Aria2RpcClient._(this.instance, {required bool isWebSocket}) : 
+    _isWebSocket = isWebSocket,
+    _httpClient = isWebSocket ? null : http.Client() {
+    if (_isWebSocket) {
+      _initWebSocket();
+    }
+  }
 
   /// Send RPC request
   Future<Map<String, dynamic>> callRpc(
     String method,
     List<dynamic> params,
   ) async {
+    if (_isWebSocket) {
+      return _callWebSocketRpc(method, params);
+    } else {
+      return _callHttpRpc(method, params);
+    }
+  }
+
+  /// HTTP RPC implementation
+  Future<Map<String, dynamic>> _callHttpRpc(String method, List<dynamic> params) async {
     try {
-      final requestId = DateTime.now().millisecondsSinceEpoch;
-      
-      // Build request body
-      final requestBody = {
-        'jsonrpc': '2.0',
-        'id': requestId,
-        'method': method,
-      };
+      final requestId = DateTime.now().millisecondsSinceEpoch.toString();
+      final requestBody = _buildRequestBody(method, params, requestId);
 
-      // If there's a secret, it needs to be placed first in params
-      if (instance.secret.isNotEmpty) {
-        requestBody['params'] = ['token:${instance.secret}', ...params];
-      } else {
-        requestBody['params'] = params;
-      }
-
-      final response = await _client.post(
-        Uri.parse(instance.rpcUrl),
+      final response = await _httpClient!.post(
+        Uri.parse(buildRpcUrl()),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -93,6 +107,93 @@ class Aria2RpcClient {
     }
   }
 
+  /// WebSocket RPC implementation
+  Future<Map<String, dynamic>> _callWebSocketRpc(String method, List<dynamic> params) async {
+    try {
+      await _initWebSocket();
+      final requestId = DateTime.now().millisecondsSinceEpoch.toString();
+      final requestBody = _buildRequestBody(method, params, requestId);
+
+      final completer = Completer<Map<String, dynamic>>();
+      _pendingRequests[requestId] = completer;
+
+      _webSocket!.add(jsonEncode(requestBody));
+
+      return await completer.future.timeout(const Duration(seconds: 10));
+    } catch (e) {
+      if (e is TimeoutException || e is SocketException) {
+        throw ConnectionFailedException();
+      }
+      rethrow;
+    }
+  }
+
+  /// Initialize WebSocket connection
+  Future<void> _initWebSocket() async {
+    if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
+      return;
+    }
+
+    try {
+      _webSocket = await WebSocket.connect(buildRpcUrl())
+          .timeout(const Duration(seconds: 10));
+      _webSocket!.listen(
+        _handleWebSocketMessage,
+        onError: _handleWebSocketError,
+        onDone: _handleWebSocketDone,
+      );
+    } catch (e) {
+      throw ConnectionFailedException();
+    }
+  }
+
+  /// Handle WebSocket messages
+  void _handleWebSocketMessage(dynamic message) {
+    try {
+      final data = jsonDecode(message);
+      final requestId = data['id']?.toString();
+
+      if (requestId != null && _pendingRequests.containsKey(requestId)) {
+        final completer = _pendingRequests[requestId]!;
+        _pendingRequests.remove(requestId);
+
+        if (data.containsKey('error')) {
+          if (data['error']['message'] == 'Unauthorized') {
+            completer.completeError(UnauthorizedException());
+          } else {
+            completer.completeError(Exception('RPC Error: ${data['error']['message']}'));
+          }
+        } else {
+          completer.complete(data);
+        }
+      }
+    } catch (e) {
+      // Handle parsing errors
+      print('Failed to parse WebSocket message: $e');
+    }
+  }
+
+  /// Handle WebSocket errors
+  void _handleWebSocketError(error) {
+    // Complete all pending requests with error
+    final errorToThrow = error is TimeoutException || error is SocketException
+        ? ConnectionFailedException()
+        : error;
+
+    for (final completer in _pendingRequests.values) {
+      if (!completer.isCompleted) {
+        completer.completeError(errorToThrow);
+      }
+    }
+    _pendingRequests.clear();
+  }
+
+  /// Handle WebSocket connection closed
+  void _handleWebSocketDone() {
+    _handleWebSocketError(ConnectionFailedException());
+    _webSocket = null;
+  }
+
   /// Get version information
   Future<String> getVersion() async {
     final response = await callRpc('aria2.getVersion', []);
@@ -105,21 +206,44 @@ class Aria2RpcClient {
       await getVersion();
       return true;
     } catch (e) {
-      // Re-throw exception so caller can get specific error type
       rethrow;
     }
   }
 
   /// Close connection
   void close() {
-    _client.close();
+    if (_isWebSocket) {
+      _webSocket?.close();
+      _webSocket = null;
+      _pendingRequests.clear();
+    } else {
+      _httpClient?.close();
+    }
   }
 
-  /// Build RPC URL (compatible with WS/WSS protocols)
-  String _buildRpcUrl() {
-    if (instance.protocol.startsWith('ws')) {
-      return '${instance.protocol}://${instance.host}:${instance.port}/jsonrpc';
+  /// Build request body
+  Map<String, dynamic> _buildRequestBody(String method, List<dynamic> params, String requestId) {
+    Map<String, dynamic> requestBody = {
+      'jsonrpc': '2.0',
+      'id': requestId,
+      'method': method,
+    };
+
+    List<dynamic> requestParams = [];
+    // If there's a secret, it needs to be placed first in params
+    if (instance.secret.isNotEmpty) {
+      requestParams.add('token:${instance.secret}');
+      requestParams.addAll(params);
+    } else {
+      requestParams = List.from(params);
     }
+    requestBody['params'] = requestParams;
+
+    return requestBody;
+  }
+
+  /// Build RPC URL
+  String buildRpcUrl() {
     return '${instance.protocol}://${instance.host}:${instance.port}/jsonrpc';
   }
 }
