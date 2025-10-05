@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import '../models/aria2_instance.dart';
 
-// 自定义异常类
+// Custom exception classes
 class ConnectionFailedException implements Exception {
   @override
   String toString() => '连接实例失败';
@@ -16,14 +16,14 @@ class UnauthorizedException implements Exception {
   String toString() => '认证未通过';
 }
 
-/// Aria2 RPC客户端服务
+/// Aria2 RPC client service
 class Aria2RpcClient {
   final Aria2Instance instance;
   final http.Client _client = http.Client();
 
   Aria2RpcClient(this.instance);
 
-  /// 发送RPC请求
+  /// Send RPC request
   Future<Map<String, dynamic>> callRpc(
     String method,
     List<dynamic> params,
@@ -31,14 +31,14 @@ class Aria2RpcClient {
     try {
       final requestId = DateTime.now().millisecondsSinceEpoch;
       
-      // 构建请求体
+      // Build request body
       final requestBody = {
         'jsonrpc': '2.0',
         'id': requestId,
         'method': method,
       };
 
-      // 如果有密钥，需要放在params的第一位
+      // If there's a secret, it needs to be placed first in params
       if (instance.secret.isNotEmpty) {
         requestBody['params'] = ['token:${instance.secret}', ...params];
       } else {
@@ -53,11 +53,11 @@ class Aria2RpcClient {
         body: jsonEncode(requestBody),
       ).timeout(const Duration(seconds: 10));
 
-      // 无论状态码是什么，都尝试解析响应体以检查是否包含Unauthorized错误
+      // Regardless of status code, try to parse response body to check for Unauthorized error
       try {
         final data = jsonDecode(response.body);
         
-        // 检查是否有Unauthorized错误，无论是在error字段中还是在其他地方
+        // Check for Unauthorized error, whether in error field or elsewhere
         if ((data.containsKey('error') && data['error']['message'] == 'Unauthorized') ||
             response.body.contains('Unauthorized')) {
           throw UnauthorizedException();
@@ -72,50 +72,50 @@ class Aria2RpcClient {
           throw Exception('HTTP Error: ${response.statusCode}');
         }
       } catch (e) {
-        // 如果JSON解析失败，再次检查响应体是否包含Unauthorized
+        // If JSON parsing fails, check again if response body contains Unauthorized
         if (e is FormatException && response.body.contains('Unauthorized')) {
           throw UnauthorizedException();
         }
-        // 重新抛出其他异常
+        // Re-throw other exceptions
         rethrow;
       }
     } catch (e) {
-      // 超时错误表示未收到响应
+      // Timeout error indicates no response was received
       if (e is TimeoutException) {
         throw ConnectionFailedException();
       }
-      // SocketException通常表示网络连接问题
+      // SocketException usually indicates network connection issue
       if (e is SocketException || e is ClientException) {
         throw ConnectionFailedException();
       }
-      // 重新抛出其他异常，包括UnauthorizedException
+      // Re-throw other exceptions, including UnauthorizedException
       rethrow;
     }
   }
 
-  /// 获取版本信息
+  /// Get version information
   Future<String> getVersion() async {
     final response = await callRpc('aria2.getVersion', []);
     return response['result']['version'];
   }
 
-  /// 测试连接
+  /// Test connection
   Future<bool> testConnection() async {
     try {
       await getVersion();
       return true;
     } catch (e) {
-      // 重新抛出异常，这样调用者可以获取具体的错误类型
+      // Re-throw exception so caller can get specific error type
       rethrow;
     }
   }
 
-  /// 关闭连接
+  /// Close connection
   void close() {
     _client.close();
   }
 
-  /// 构建RPC URL（兼容WS/WSS协议）
+  /// Build RPC URL (compatible with WS/WSS protocols)
   String _buildRpcUrl() {
     if (instance.protocol.startsWith('ws')) {
       return '${instance.protocol}://${instance.host}:${instance.port}/jsonrpc';

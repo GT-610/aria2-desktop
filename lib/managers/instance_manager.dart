@@ -13,13 +13,13 @@ class InstanceManager {
 
   InstanceManager._internal();
 
-  // 初始化
+  // Initialize
   Future<void> initialize() async {
     _prefs = await SharedPreferences.getInstance();
     await loadInstances();
   }
 
-  // 加载实例配置
+  // Load instance configurations
   Future<void> loadInstances() async {
     if (_prefs == null) return;
     
@@ -38,7 +38,7 @@ class InstanceManager {
                 return map;
               }));
           
-          // 添加基本字段
+          // Add basic fields
           map['id'] = id;
           
           final instance = Aria2Instance.fromMap(map);
@@ -54,13 +54,13 @@ class InstanceManager {
     }
   }
 
-  // 保存实例配置
+  // Save instance configuration
   Future<void> _saveInstance(Aria2Instance instance) async {
     if (_prefs == null) return;
     
     final instanceMap = instance.toMap();
     
-    // 保存单个实例的每个字段
+    // Save each field of the instance
     for (final entry in instanceMap.entries) {
       if (entry.key != 'id') {
         final key = 'instance_${instance.id}/${entry.key}';
@@ -74,7 +74,7 @@ class InstanceManager {
       }
     }
     
-    // 更新实例ID列表
+    // Update instance ID list
     final instanceIds = _prefs!.getStringList('instanceIds') ?? [];
     if (!instanceIds.contains(instance.id)) {
       instanceIds.add(instance.id);
@@ -82,14 +82,14 @@ class InstanceManager {
     }
   }
 
-  // 添加实例
+  // Add instance
   Future<Aria2Instance> addInstance(Aria2Instance instance) async {
     _instances.add(instance);
     await _saveInstance(instance);
     return instance;
   }
 
-  // 更新实例
+  // Update instance
   Future<Aria2Instance> updateInstance(Aria2Instance instance) async {
     final index = _instances.indexWhere((i) => i.id == instance.id);
     if (index != -1) {
@@ -97,7 +97,7 @@ class InstanceManager {
       await _saveInstance(instance);
     }
     
-    // 如果更新的是当前活动实例，同步更新
+    // If updating the current active instance, sync update
     if (_activeInstance?.id == instance.id) {
       _activeInstance = instance;
     }
@@ -105,53 +105,53 @@ class InstanceManager {
     return instance;
   }
 
-  // 删除实例
+  // Delete instance
   Future<void> deleteInstance(String id) async {
     if (_prefs == null) return;
     
-    // 如果删除的是当前活动实例，断开连接
+    // If deleting the current active instance, disconnect first
     if (_activeInstance?.id == id) {
       await disconnectInstance();
     }
     
     _instances.removeWhere((instance) => instance.id == id);
     
-    // 从存储中删除
+    // Remove from storage
     final instanceIds = _prefs!.getStringList('instanceIds') ?? [];
     instanceIds.remove(id);
     await _prefs!.setStringList('instanceIds', instanceIds);
     
-    // 删除所有相关字段
+    // Delete all related fields
     final keysToRemove = _prefs!.getKeys().where((key) => key.startsWith('instance_$id')).toList();
     for (final key in keysToRemove) {
       await _prefs!.remove(key);
     }
   }
 
-  // 获取所有实例
+  // Get all instances
   List<Aria2Instance> getInstances() {
     return [..._instances];
   }
 
-  // 获取活动实例
+  // Get active instance
   Aria2Instance? getActiveInstance() {
     return _activeInstance;
   }
 
-  // 连接实例
+  // Connect instance
   Future<bool> connectInstance(Aria2Instance instance) async {
     try {
-      // 如果当前有活动实例，先断开
+      // If there is an active instance, disconnect first
       if (_activeInstance != null && _activeInstance!.id != instance.id) {
         await disconnectInstance();
       }
       
-      // 对于本地实例，启动Aria2进程
+      // For local instance, start Aria2 process
       if (instance.type == InstanceType.local) {
         await startLocalAria2(instance);
       }
       
-      // 标记为活动实例
+      // Mark as active instance
       instance.isActive = true;
       await updateInstance(instance);
       _activeInstance = instance;
@@ -163,17 +163,17 @@ class InstanceManager {
     }
   }
 
-  // 断开实例连接
+  // Disconnect instance
   Future<void> disconnectInstance() async {
     if (_activeInstance == null) return;
     
     try {
-      // 停止本地Aria2进程
+      // Stop local Aria2 process
       if (_activeInstance!.type == InstanceType.local && _activeInstance!.localProcess != null) {
         await stopLocalAria2(_activeInstance!);
       }
       
-      // 取消活动状态
+      // Cancel active status
       _activeInstance!.isActive = false;
       await updateInstance(_activeInstance!);
       _activeInstance = null;
@@ -182,14 +182,14 @@ class InstanceManager {
     }
   }
 
-  // 启动本地Aria2进程
+  // Start local Aria2 process
   Future<void> startLocalAria2(Aria2Instance instance) async {
     if (instance.type != InstanceType.local || instance.aria2Path == null) {
       throw Exception('无效的本地实例配置');
     }
     
     try {
-      // 构建启动命令
+      // Build start command
       final process = await Process.start(
         instance.aria2Path!,
         [
@@ -205,14 +205,14 @@ class InstanceManager {
       instance.localProcess = process;
       await updateInstance(instance);
       
-      // 等待进程启动
+      // Wait for process to start
       await Future.delayed(const Duration(seconds: 2));
     } catch (e) {
       throw Exception('启动本地Aria2失败: $e');
     }
   }
 
-  // 停止本地Aria2进程
+  // Stop local Aria2 process
   Future<void> stopLocalAria2(Aria2Instance instance) async {
     if (instance.localProcess != null) {
       try {
@@ -220,7 +220,7 @@ class InstanceManager {
         await instance.localProcess!.exitCode.timeout(
           const Duration(seconds: 5),
           onTimeout: () {
-            // 强制终止
+            // Force terminate
             if (Platform.isWindows) {
               Process.run('taskkill', ['/F', '/PID', instance.localProcess!.pid.toString()]);
             } else {
@@ -237,10 +237,10 @@ class InstanceManager {
     }
   }
 
-  // 检查实例是否在线
+  // Check if instance is online
   Future<bool> checkInstanceOnline(Aria2Instance instance) async {
     try {
-      // 简单的连接检查
+      // Simple connection check
       final socket = await Socket.connect(instance.host, instance.port, timeout: const Duration(seconds: 3));
       await socket.close();
       return true;

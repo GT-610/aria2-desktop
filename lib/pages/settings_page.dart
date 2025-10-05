@@ -38,7 +38,7 @@ class _SettingsPageState extends State<SettingsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 全局设置部分 - Material You 风格
+            // Global settings section
             Text(
               '全局设置',
               style: theme.textTheme.headlineSmall?.copyWith(
@@ -128,7 +128,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
 
-            // 日志设置部分 - Material You 风格
+            // Log settings section
             Text(
               '日志设置',
               style: theme.textTheme.headlineSmall?.copyWith(
@@ -202,7 +202,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             
-            // 关于部分 - Material You 风格
+            // About section
             Text(
               '关于',
               style: theme.textTheme.headlineSmall?.copyWith(
@@ -260,7 +260,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
   
-  // 根据字符串获取主题模式
+  // Get theme mode from string
   ThemeMode _getThemeModeFromString(String mode) {
     switch (mode) {
       case 'light':
