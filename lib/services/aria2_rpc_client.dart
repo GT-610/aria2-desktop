@@ -201,8 +201,8 @@ class Aria2RpcClient {
   }
 
   /// Execute multiple RPC calls in one request
-  Future<List<Map<String, dynamic>>> multicall(List<List<dynamic>> calls) async {
-    // Format: [["aria2.getActive", [...]], ["aria2.getWaiting", [...]], ...]
+  Future<List<Map<String, dynamic>>> multicall(List<Map<String, dynamic>> calls) async {
+    // Format: [{"methodName": "aria2.getActive", "params": [...]}, ...]
     final response = await callRpc('system.multicall', [calls]);
     
     // Process the results
@@ -222,11 +222,20 @@ class Aria2RpcClient {
 
   /// Get download status information
   Future<List<Map<String, dynamic>>> getDownloadStatus() async {
-    // Create multicall with three status requests
+    // Create multicall with three status requests using correct format
     final calls = [
-      ["aria2.tellActive", []],       // Active downloads
-      ["aria2.tellWaiting", [0, 100]], // Waiting downloads (first 100)
-      ["aria2.tellStopped", [0, 100]]  // Stopped downloads (first 100)
+      {
+        "methodName": "aria2.tellActive",
+        "params": instance.secret.isNotEmpty ? ["token:${instance.secret}"] : []
+      },
+      {
+        "methodName": "aria2.tellWaiting",
+        "params": instance.secret.isNotEmpty ? ["token:${instance.secret}", 0, 100] : [0, 100]
+      },
+      {
+        "methodName": "aria2.tellStopped",
+        "params": instance.secret.isNotEmpty ? ["token:${instance.secret}", 0, 100] : [0, 100]
+      }
     ];
     
     return await multicall(calls);
@@ -234,10 +243,20 @@ class Aria2RpcClient {
 
   /// Get all tasks using multicall (legacy method)
   Future<Map<String, dynamic>> getTasksMulticall() async {
+    // 创建正确格式的参数数组
     final multicallParams = [
-      ['aria2.tellActive'],
-      ['aria2.tellWaiting', 0, 1000],
-      ['aria2.tellStopped', 0, 1000]
+      {
+        "methodName": "aria2.tellActive",
+        "params": instance.secret.isNotEmpty ? ["token:${instance.secret}"] : []
+      },
+      {
+        "methodName": "aria2.tellWaiting",
+        "params": instance.secret.isNotEmpty ? ["token:${instance.secret}", 0, 1000] : [0, 1000]
+      },
+      {
+        "methodName": "aria2.tellStopped",
+        "params": instance.secret.isNotEmpty ? ["token:${instance.secret}", 0, 1000] : [0, 1000]
+      }
     ];
     
     final response = await callRpc('system.multicall', [multicallParams]);
@@ -274,15 +293,22 @@ class Aria2RpcClient {
     };
 
     List<dynamic> requestParams = [];
-    // If there's a secret, it needs to be placed first in params
-    if (instance.secret.isNotEmpty) {
-      requestParams.add('token:${instance.secret}');
-      requestParams.addAll(params);
-    } else {
+    
+    // 对system.multicall方法进行特殊处理
+    // 因为在multicall中，token已经包含在每个子调用的params中
+    if (method == 'system.multicall') {
       requestParams = List.from(params);
+    } else {
+      // 对于其他方法，按照常规方式处理token
+      if (instance.secret.isNotEmpty) {
+        requestParams.add('token:${instance.secret}');
+        requestParams.addAll(params);
+      } else {
+        requestParams = List.from(params);
+      }
     }
+    
     requestBody['params'] = requestParams;
-
     return requestBody;
   }
 
