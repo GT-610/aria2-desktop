@@ -713,13 +713,36 @@ class _DownloadPageState extends State<DownloadPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // File size info
-                        Text(
-                          '${task.completedSize} / ${task.size}',
-                          style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: 13,
-                          ),
+                        // File size info and instance name
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Instance name
+                            Container(
+                              margin: EdgeInsets.only(bottom: 2),
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: colorScheme.tertiary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _getInstanceName(task.instanceId),
+                                style: TextStyle(
+                                  color: colorScheme.tertiary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            // Size info
+                            Text(
+                              '${task.completedSize} / ${task.size}',
+                              style: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
                         // Download speed (only shown for active status)
                         if (task.status == DownloadStatus.active)
@@ -731,11 +754,11 @@ class _DownloadPageState extends State<DownloadPage> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                      // Empty space for alignment in non-active status
-                      if (task.status != DownloadStatus.active)
-                        SizedBox(width: 60),
-                    ],
-                  ),
+                        // Empty space for alignment in non-active status
+                        if (task.status != DownloadStatus.active)
+                          SizedBox(width: 60),
+                      ],
+                    )
                 ],
               ),
             ),
