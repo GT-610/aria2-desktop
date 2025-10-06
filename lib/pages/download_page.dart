@@ -1,5 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../managers/instance_manager.dart';
+import '../services/aria2_rpc_client.dart';
+import '../models/aria2_instance.dart';
 
 // Define download task status enum
 enum DownloadStatus {
@@ -66,83 +71,200 @@ class _DownloadPageState extends State<DownloadPage> {
   // 实例名称映射表，用于展示实例名称
   Map<String, String> _instanceNames = {};
   
-  // Mock download task data
-  final List<DownloadTask> _downloadTasks = [
-    DownloadTask(
-      id: '1',
-      name: 'Ubuntu 22.04 LTS ISO 镜像文件',
-      status: DownloadStatus.active,
-      progress: 0.45,
-      speed: '1.2 MB/s',
-      size: '4.5 GB',
-      completedSize: '2.0 GB',
-      isLocal: true,
-      instanceId: 'local1',
-    ),
-    DownloadTask(
-      id: '2',
-      name: 'Flutter 框架源码包',
-      status: DownloadStatus.waiting,
-      progress: 0.0,
-      speed: '0 B/s',
-      size: '150 MB',
-      completedSize: '0 MB',
-      isLocal: true,
-      instanceId: 'local1',
-    ),
-    DownloadTask(
-      id: '3',
-      name: '设计资源合集.zip',
-      status: DownloadStatus.stopped,
-      progress: 0.75,
-      speed: '0 B/s',
-      size: '2.8 GB',
-      completedSize: '2.1 GB',
-      isLocal: false,
-      instanceId: 'remote1',
-    ),
-    DownloadTask(
-      id: '4',
-      name: '项目文档.pdf',
-      status: DownloadStatus.active,
-      progress: 0.92,
-      speed: '500 KB/s',
-      size: '15 MB',
-      completedSize: '13.8 MB',
-      isLocal: false,
-      instanceId: 'remote1',
-    ),
-    DownloadTask(
-      id: '5',
-      name: '音乐专辑.mp3',
-      status: DownloadStatus.waiting,
-      progress: 0.0,
-      speed: '0 B/s',
-      size: '120 MB',
-      completedSize: '0 MB',
-      isLocal: true,
-      instanceId: 'local2',
-    ),
-  ];
+  // 实例管理器
+  late final InstanceManager _instanceManager;
+  
+  // 定时器，用于周期性获取任务状态
+  Timer? _refreshTimer;
+  
+  // 下载任务列表
+  List<DownloadTask> _downloadTasks = [];
 
   @override
   void initState() {
     super.initState();
-    // 初始化实例名称映射（使用真实实例数据）
-    _loadInstanceNames();
+    // 初始化实例管理器
+    _instanceManager = InstanceManager();
+    // 加载实例和初始化
+    _initialize();
+    
+    // 启动定时刷新（1秒一次）
+    _startPeriodicRefresh();
+  }
+  
+  // 初始化
+  Future<void> _initialize() async {
+    await _instanceManager.initialize();
+    await _loadInstanceNames();
+    await _refreshTasks();
+  }
+  
+  // 启动周期性刷新
+  void _startPeriodicRefresh() {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      await _refreshTasks();
+    });
+  }
+  
+  // 停止周期性刷新
+  void _stopPeriodicRefresh() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+  }
+  
+  @override
+  void dispose() {
+    _stopPeriodicRefresh();
+    super.dispose();
+  }
+  
+  // 刷新所有任务
+  Future<void> _refreshTasks() async {
+    try {
+      List<DownloadTask> allTasks = [];
+      
+      // 获取所有实例
+      final instances = _instanceManager.getInstances();
+      
+      // 对每个实例发送请求
+      for (final instance in instances) {
+        try {
+          // 创建RPC客户端
+          final client = Aria2RpcClient(instance);
+          
+          // 发送multicall请求获取所有任务
+          final response = await client.getTasksMulticall();
+          
+          // 解析响应
+          if (response.containsKey('result') && response['result'] is List) {
+            final result = response['result'] as List;
+            
+            // 解析活跃任务
+            if (result.length > 0 && result[0] is Map && result[0].containsKey('result')) {
+              final activeTasks = result[0]['result'] as List;
+              allTasks.addAll(_parseTasks(activeTasks, DownloadStatus.active, instance.id, instance.type == InstanceType.local));
+            }
+            
+            // 解析等待任务
+            if (result.length > 1 && result[1] is Map && result[1].containsKey('result')) {
+              final waitingTasks = result[1]['result'] as List;
+              allTasks.addAll(_parseTasks(waitingTasks, DownloadStatus.waiting, instance.id, instance.type == InstanceType.local));
+            }
+            
+            // 解析已停止任务
+            if (result.length > 2 && result[2] is Map && result[2].containsKey('result')) {
+              final stoppedTasks = result[2]['result'] as List;
+              allTasks.addAll(_parseTasks(stoppedTasks, DownloadStatus.stopped, instance.id, instance.type == InstanceType.local));
+            }
+          }
+          
+          // 关闭客户端
+          client.close();
+        } catch (e) {
+          print('获取实例 ${instance.name} 的任务失败: $e');
+          // 继续尝试其他实例
+          continue;
+        }
+      }
+      
+      // 更新任务列表
+      if (mounted) {
+        setState(() {
+          _downloadTasks = allTasks;
+        });
+      }
+    } catch (e) {
+      print('刷新任务失败: $e');
+    }
+  }
+  
+  // 解析任务列表
+  List<DownloadTask> _parseTasks(List tasks, DownloadStatus status, String instanceId, bool isLocal) {
+    List<DownloadTask> parsedTasks = [];
+    
+    for (var taskData in tasks) {
+      if (taskData is Map) {
+        try {
+          String name = '';
+          double progress = 0.0;
+          String speed = '0 B/s';
+          String size = '0 B';
+          String completedSize = '0 B';
+          String id = taskData['gid'] as String? ?? '';
+          
+          // 获取文件名
+          if (taskData.containsKey('files') && taskData['files'] is List && (taskData['files'] as List).isNotEmpty) {
+            final firstFile = (taskData['files'] as List)[0];
+            if (firstFile is Map && firstFile.containsKey('path')) {
+              final path = firstFile['path'] as String;
+              name = path.split('/').last.split('\\').last;
+            }
+          }
+          
+          // 获取进度信息
+          if (status == DownloadStatus.active) {
+            // 活跃任务有特定的进度字段
+            final completedLength = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
+            final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 1;
+            progress = totalLength > 0 ? completedLength / totalLength : 0.0;
+            speed = _formatBytes(int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0) + '/s';
+            size = _formatBytes(totalLength);
+            completedSize = _formatBytes(completedLength);
+          } else if (status == DownloadStatus.waiting) {
+            // 等待任务通常没有进度
+            final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 0;
+            size = _formatBytes(totalLength);
+          } else if (status == DownloadStatus.stopped) {
+            // 停止任务有已完成的长度
+            final completedLength = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
+            final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 1;
+            progress = totalLength > 0 ? completedLength / totalLength : 0.0;
+            size = _formatBytes(totalLength);
+            completedSize = _formatBytes(completedLength);
+          }
+          
+          // 如果没有文件名，使用gid作为名称
+          if (name.isEmpty) {
+            name = id.substring(0, 8);
+          }
+          
+          parsedTasks.add(DownloadTask(
+            id: id,
+            name: name,
+            status: status,
+            progress: progress,
+            speed: speed,
+            size: size,
+            completedSize: completedSize,
+            isLocal: isLocal,
+            instanceId: instanceId,
+          ));
+        } catch (e) {
+          print('解析任务失败: $e');
+          continue;
+        }
+      }
+    }
+    
+    return parsedTasks;
+  }
+  
+  // 格式化字节大小
+  String _formatBytes(int bytes, {int decimals = 2}) {
+    if (bytes <= 0) return '0 B';
+    
+    const suffixes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    int i = (bytes == 0 ? 0 : (log(bytes) / log(1024))).floor();
+    i = i.clamp(0, suffixes.length - 1);
+    
+    return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
   }
   
   // 加载实例名称
   Future<void> _loadInstanceNames() async {
     try {
-      // 获取InstanceManager实例
-      final instanceManager = InstanceManager();
-      
-      // 确保实例管理器已初始化
-      await instanceManager.initialize();
-      
       // 获取所有实例
-      final instances = instanceManager.getInstances();
+      final instances = _instanceManager.getInstances();
       
       // 构建实例ID到名称的映射
       final Map<String, String> instanceMap = {};
@@ -181,8 +303,6 @@ class _DownloadPageState extends State<DownloadPage> {
     // 从任务中提取所有唯一的实例ID
     return _downloadTasks.map((task) => task.instanceId).toSet().toList();
   }
-
-  
 
   // Get status text and color
   (String, Color) _getStatusInfo(DownloadStatus status, ColorScheme colorScheme) {
@@ -507,8 +627,6 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
   
-
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

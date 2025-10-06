@@ -200,6 +200,50 @@ class Aria2RpcClient {
     return response['result']['version'];
   }
 
+  /// Execute multiple RPC calls in one request
+  Future<List<Map<String, dynamic>>> multicall(List<List<dynamic>> calls) async {
+    // Format: [["aria2.getActive", [...]], ["aria2.getWaiting", [...]], ...]
+    final response = await callRpc('system.multicall', [calls]);
+    
+    // Process the results
+    final results = response['result'] as List<dynamic>;
+    return results.map((item) {
+      if (item is List && item.isNotEmpty) {
+        // aria2 returns results in format: [{"result": ...}] or [{"error": ...}]
+        if (item[0].containsKey('result')) {
+          return {'success': true, 'data': item[0]['result']};
+        } else if (item[0].containsKey('error')) {
+          return {'success': false, 'error': item[0]['error']};
+        }
+      }
+      return {'success': false, 'error': 'Invalid response format'};
+    }).toList();
+  }
+
+  /// Get download status information
+  Future<List<Map<String, dynamic>>> getDownloadStatus() async {
+    // Create multicall with three status requests
+    final calls = [
+      ["aria2.tellActive", []],       // Active downloads
+      ["aria2.tellWaiting", [0, 100]], // Waiting downloads (first 100)
+      ["aria2.tellStopped", [0, 100]]  // Stopped downloads (first 100)
+    ];
+    
+    return await multicall(calls);
+  }
+
+  /// Get all tasks using multicall (legacy method)
+  Future<Map<String, dynamic>> getTasksMulticall() async {
+    final multicallParams = [
+      ['aria2.tellActive'],
+      ['aria2.tellWaiting', 0, 1000],
+      ['aria2.tellStopped', 0, 1000]
+    ];
+    
+    final response = await callRpc('system.multicall', [multicallParams]);
+    return response;
+  }
+
   /// Test connection
   Future<bool> testConnection() async {
     try {
