@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../managers/instance_manager.dart';
+import 'package:provider/provider.dart';
+import '../services/instance_manager.dart';
 import '../services/aria2_rpc_client.dart';
 import '../models/aria2_instance.dart';
+import '../models/global_stat.dart';
 
 // Define download task status enum
 enum DownloadStatus {
@@ -71,9 +73,6 @@ class _DownloadPageState extends State<DownloadPage> {
   // 实例名称映射表，用于展示实例名称
   Map<String, String> _instanceNames = {};
   
-  // 实例管理器
-  late final InstanceManager _instanceManager;
-  
   // 定时器，用于周期性获取任务状态
   Timer? _refreshTimer;
   
@@ -83,20 +82,36 @@ class _DownloadPageState extends State<DownloadPage> {
   @override
   void initState() {
     super.initState();
-    // 初始化实例管理器
-    _instanceManager = InstanceManager();
-    // 加载实例和初始化
+    // 加载实例名称和初始化
     _initialize();
+    
+    // 通过Provider获取InstanceManager实例
+    instanceManager = Provider.of<InstanceManager>(context, listen: false);
+    // 监听实例管理器的变化，当实例状态改变时刷新页面
+    instanceManager.addListener(_handleInstanceChanges);
     
     // 启动定时刷新（1秒一次）
     _startPeriodicRefresh();
   }
   
+  // InstanceManager实例
+  late InstanceManager instanceManager;
+  
   // 初始化
   Future<void> _initialize() async {
-    await _instanceManager.initialize();
-    await _loadInstanceNames();
+    // 从Provider获取实例管理器并监听变化
+    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+    await _loadInstanceNames(instanceManager);
     await _refreshTasks();
+  }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 监听实例管理器的变化
+    Provider.of<InstanceManager>(context, listen: true).addListener(() {
+      _onInstancesChanged();
+    });
   }
   
   // 启动周期性刷新
@@ -115,7 +130,23 @@ class _DownloadPageState extends State<DownloadPage> {
   @override
   void dispose() {
     _stopPeriodicRefresh();
+    // 移除监听器以避免内存泄漏
+    if (instanceManager != null) {
+      instanceManager.removeListener(_handleInstanceChanges);
+    }
     super.dispose();
+  }
+  
+  // 处理实例状态变化的方法
+  void _handleInstanceChanges() {
+    if (mounted) {
+      setState(() {
+        // 状态变化时，我们不需要做什么特殊处理，setState会触发UI重建
+        // UI重建时会根据最新的实例状态重新渲染
+      });
+      // 当实例状态变化时，重新加载任务列表
+      _refreshTasks();
+    }
   }
   
   // 刷新所有任务
@@ -123,8 +154,11 @@ class _DownloadPageState extends State<DownloadPage> {
     try {
       List<DownloadTask> allTasks = [];
       
+      // 从Provider获取实例管理器
+      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+      
       // 获取所有实例
-      final instances = _instanceManager.getInstances();
+      final instances = instanceManager.instances;
       
       // 对每个实例发送请求
       for (final instance in instances) {
@@ -261,10 +295,10 @@ class _DownloadPageState extends State<DownloadPage> {
   }
   
   // 加载实例名称
-  Future<void> _loadInstanceNames() async {
+  Future<void> _loadInstanceNames(InstanceManager instanceManager) async {
     try {
       // 获取所有实例
-      final instances = _instanceManager.getInstances();
+      final instances = instanceManager.instances;
       
       // 构建实例ID到名称的映射
       final Map<String, String> instanceMap = {};
@@ -291,6 +325,13 @@ class _DownloadPageState extends State<DownloadPage> {
         });
       }
     }
+  }
+  
+  // 当实例列表发生变化时调用
+  void _onInstancesChanged() {
+    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+    _loadInstanceNames(instanceManager);
+    _refreshTasks();
   }
   
   // 根据实例ID获取实例名称
@@ -719,6 +760,40 @@ class _DownloadPageState extends State<DownloadPage> {
   Widget _buildTaskList(ThemeData theme, ColorScheme colorScheme) {
     final tasks = _filterTasks();
     
+    // 检查是否有已连接的实例
+    final hasConnectedInstances = instanceManager.instances.any((instance) => 
+      instance.status == ConnectionStatus.connected
+    );
+    
+    // 如果没有已连接的实例，显示特殊提示
+    if (!hasConnectedInstances) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cloud_off_outlined, size: 64, color: colorScheme.onSurfaceVariant),
+            SizedBox(height: 16),
+            Text('没有正在连接的实例，快去连接实例吧', style: theme.textTheme.titleMedium),
+            SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                // 跳转到实例管理页面
+                Navigator.pushNamed(context, '/instance');
+              },
+              child: const Text('去连接实例'),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // 如果有已连接的实例但没有任务，显示暂无任务
     if (tasks.isEmpty) {
       return Center(
         child: Column(
