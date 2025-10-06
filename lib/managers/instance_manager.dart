@@ -41,7 +41,7 @@ class InstanceManager {
           // Add basic fields
           map['id'] = id;
           
-          final instance = Aria2Instance.fromMap(map);
+          final instance = Aria2Instance.fromJson(map);
           _instances.add(instance);
           
           if (instance.isActive) {
@@ -58,7 +58,7 @@ class InstanceManager {
   Future<void> _saveInstance(Aria2Instance instance) async {
     if (_prefs == null) return;
     
-    final instanceMap = instance.toMap();
+    final instanceMap = instance.toJson();
     
     // Save each field of the instance
     for (final entry in instanceMap.entries) {
@@ -221,11 +221,12 @@ class InstanceManager {
           const Duration(seconds: 5),
           onTimeout: () {
             // Force terminate
-            if (Platform.isWindows) {
-              Process.run('taskkill', ['/F', '/PID', instance.localProcess!.pid.toString()]);
-            } else {
-              Process.killPid(instance.localProcess!.pid);
-            }
+              if (Platform.isWindows) {
+                Process.run('taskkill', ['/F', '/PID', instance.localProcess!.pid.toString()]);
+              } else {
+                Process.killPid(instance.localProcess!.pid);
+              }
+              return 0;
           },
         );
       } catch (e) {

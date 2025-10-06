@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../managers/instance_manager.dart';
 
 // Define download task status enum
 enum DownloadStatus {
@@ -127,19 +128,47 @@ class _DownloadPageState extends State<DownloadPage> {
   @override
   void initState() {
     super.initState();
-    // 初始化实例名称映射（实际应用中应该从InstanceManager获取）
+    // 初始化实例名称映射（使用真实实例数据）
     _loadInstanceNames();
   }
   
   // 加载实例名称
-  void _loadInstanceNames() {
-    // 在实际应用中，这里应该调用InstanceManager.getInstance()获取真实实例数据
-    // 这里使用模拟数据进行演示
-    _instanceNames = {
-      'local1': '本地实例',
-      'local2': '本地测试',
-      'remote1': '远程服务器',
-    };
+  Future<void> _loadInstanceNames() async {
+    try {
+      // 获取InstanceManager实例
+      final instanceManager = InstanceManager();
+      
+      // 确保实例管理器已初始化
+      await instanceManager.initialize();
+      
+      // 获取所有实例
+      final instances = instanceManager.getInstances();
+      
+      // 构建实例ID到名称的映射
+      final Map<String, String> instanceMap = {};
+      for (final instance in instances) {
+        instanceMap[instance.id] = instance.name;
+      }
+      
+      // 更新状态
+      if (mounted) {
+        setState(() {
+          _instanceNames = instanceMap;
+        });
+      }
+    } catch (e) {
+      print('加载实例名称失败: $e');
+      // 发生错误时使用备用数据
+      if (mounted) {
+        setState(() {
+          _instanceNames = {
+            'local1': '本地实例',
+            'local2': '本地测试',
+            'remote1': '远程服务器',
+          };
+        });
+      }
+    }
   }
   
   // 根据实例ID获取实例名称
