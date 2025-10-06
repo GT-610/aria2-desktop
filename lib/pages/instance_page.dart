@@ -58,13 +58,17 @@ class _InstancePageState extends State<InstancePage> {
   Future<void> _checkInstanceStatus(Aria2Instance instance) async {
     try {
       final isOnline = await _instanceManager.checkInstanceOnline(instance);
-      setState(() {
-        _instanceStatus[instance.id] = isOnline;
-      });
+      if (mounted) {
+        setState(() {
+          _instanceStatus[instance.id] = isOnline;
+        });
+      }
     } catch (_) {
-      setState(() {
-        _instanceStatus[instance.id] = false;
-      });
+      if (mounted) {
+        setState(() {
+          _instanceStatus[instance.id] = false;
+        });
+      }
     }
   }
 
@@ -163,31 +167,39 @@ class _InstancePageState extends State<InstancePage> {
       if (instance.isActive) {
         // 断开连接
         await _instanceManager.disconnectInstance();
-        _loadInstances();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已断开连接')),
-        );
-      } else {
-        // 连接实例
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('正在连接...')),
-        );
-        final success = await _instanceManager.connectInstance(instance);
-        if (success) {
+        if (mounted) {
           _loadInstances();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('连接成功')),
+            const SnackBar(content: Text('已断开连接')),
           );
-        } else {
+        }
+      } else {
+        // 连接实例
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('连接失败，请检查实例配置')),
+            const SnackBar(content: Text('正在连接...')),
           );
+        }
+        final success = await _instanceManager.connectInstance(instance);
+        if (mounted) {
+          if (success) {
+            _loadInstances();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('连接成功')),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('连接失败，请检查实例配置')),
+            );
+          }
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('操作失败: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('操作失败: $e')),
+        );
+      }
     }
   }
 

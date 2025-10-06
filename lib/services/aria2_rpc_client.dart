@@ -243,7 +243,6 @@ class Aria2RpcClient {
 
   /// Get all tasks using multicall (legacy method)
   Future<Map<String, dynamic>> getTasksMulticall() async {
-    // 创建正确格式的参数数组
     final multicallParams = [
       {
         "methodName": "aria2.tellActive",
@@ -294,12 +293,12 @@ class Aria2RpcClient {
 
     List<dynamic> requestParams = [];
     
-    // 对system.multicall方法进行特殊处理
-    // 因为在multicall中，token已经包含在每个子调用的params中
+    // Special handling for the system.multicall method
+    // Because in multicall, the token is already included in the params of each sub-call
     if (method == 'system.multicall') {
       requestParams = List.from(params);
     } else {
-      // 对于其他方法，按照常规方式处理token
+      // For other methods, handle token normally
       if (instance.secret.isNotEmpty) {
         requestParams.add('token:${instance.secret}');
         requestParams.addAll(params);

@@ -78,6 +78,9 @@ class _DownloadPageState extends State<DownloadPage> {
   
   // 下载任务列表
   List<DownloadTask> _downloadTasks = [];
+  
+  // InstanceManager实例
+  InstanceManager? instanceManager;
 
   @override
   void initState() {
@@ -88,20 +91,17 @@ class _DownloadPageState extends State<DownloadPage> {
     // 通过Provider获取InstanceManager实例
     instanceManager = Provider.of<InstanceManager>(context, listen: false);
     // 监听实例管理器的变化，当实例状态改变时刷新页面
-    instanceManager.addListener(_handleInstanceChanges);
+    instanceManager?.addListener(_handleInstanceChanges);
     
     // 启动定时刷新（1秒一次）
     _startPeriodicRefresh();
   }
   
-  // InstanceManager实例
-  late InstanceManager instanceManager;
-  
   // 初始化
   Future<void> _initialize() async {
-    // 从Provider获取实例管理器并监听变化
-    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    await _loadInstanceNames(instanceManager);
+    // 从Provider获取实例管理器
+    instanceManager = Provider.of<InstanceManager>(context, listen: false);
+    await _loadInstanceNames(instanceManager!);
     await _refreshTasks();
   }
   
@@ -109,9 +109,8 @@ class _DownloadPageState extends State<DownloadPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // 监听实例管理器的变化
-    Provider.of<InstanceManager>(context, listen: true).addListener(() {
-      _onInstancesChanged();
-    });
+    instanceManager = Provider.of<InstanceManager>(context, listen: false);
+    instanceManager?.addListener(_handleInstanceChanges);
   }
   
   // 启动周期性刷新
@@ -132,14 +131,14 @@ class _DownloadPageState extends State<DownloadPage> {
     _stopPeriodicRefresh();
     // 移除监听器以避免内存泄漏
     if (instanceManager != null) {
-      instanceManager.removeListener(_handleInstanceChanges);
+      instanceManager!.removeListener(_handleInstanceChanges);
     }
     super.dispose();
   }
   
   // 处理实例状态变化的方法
   void _handleInstanceChanges() {
-    if (mounted) {
+    if (mounted && instanceManager != null) {
       setState(() {
         // 状态变化时，我们不需要做什么特殊处理，setState会触发UI重建
         // UI重建时会根据最新的实例状态重新渲染
@@ -329,9 +328,11 @@ class _DownloadPageState extends State<DownloadPage> {
   
   // 当实例列表发生变化时调用
   void _onInstancesChanged() {
-    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    _loadInstanceNames(instanceManager);
-    _refreshTasks();
+    if (mounted) {
+      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+      _loadInstanceNames(instanceManager);
+      _refreshTasks();
+    }
   }
   
   // 根据实例ID获取实例名称
@@ -761,9 +762,9 @@ class _DownloadPageState extends State<DownloadPage> {
     final tasks = _filterTasks();
     
     // 检查是否有已连接的实例
-    final hasConnectedInstances = instanceManager.instances.any((instance) => 
+    final hasConnectedInstances = instanceManager?.instances.any((instance) => 
       instance.status == ConnectionStatus.connected
-    );
+    ) ?? false;
     
     // 如果没有已连接的实例，显示特殊提示
     if (!hasConnectedInstances) {
