@@ -172,22 +172,34 @@ class _DownloadPageState extends State<DownloadPage> {
             if (response.containsKey('result') && response['result'] is List) {
               final result = response['result'] as List;
               
-              // 解析活跃任务
-              if (result.length > 0 && result[0] is Map && result[0].containsKey('result')) {
-                final activeTasks = result[0]['result'] as List;
+              // 打印调试信息：result的结构和内容
+              print('result结构: $result');
+              print('result长度: ${result.length}');
+              
+              // 解析活跃任务 - 处理三层嵌套数组结构 [[[]], [[]], [[...]]]
+              if (result.length > 0 && result[0] is List && (result[0] as List).isNotEmpty && (result[0] as List)[0] is List) {
+                final activeTasks = (result[0] as List)[0] as List;
+                print('活跃任务数量: ${activeTasks.length}');
                 allTasks.addAll(_parseTasks(activeTasks, DownloadStatus.active, activeInstance.id, activeInstance.type == InstanceType.local));
               }
               
               // 解析等待任务
-              if (result.length > 1 && result[1] is Map && result[1].containsKey('result')) {
-                final waitingTasks = result[1]['result'] as List;
+              if (result.length > 1 && result[1] is List && (result[1] as List).isNotEmpty && (result[1] as List)[0] is List) {
+                final waitingTasks = (result[1] as List)[0] as List;
+                print('等待任务数量: ${waitingTasks.length}');
                 allTasks.addAll(_parseTasks(waitingTasks, DownloadStatus.waiting, activeInstance.id, activeInstance.type == InstanceType.local));
               }
               
               // 解析已停止任务
-              if (result.length > 2 && result[2] is Map && result[2].containsKey('result')) {
-                final stoppedTasks = result[2]['result'] as List;
-                allTasks.addAll(_parseTasks(stoppedTasks, DownloadStatus.stopped, activeInstance.id, activeInstance.type == InstanceType.local));
+              if (result.length > 2 && result[2] is List && (result[2] as List).isNotEmpty && (result[2] as List)[0] is List) {
+                final stoppedTasks = (result[2] as List)[0] as List;
+                print('已停止任务数量: ${stoppedTasks.length}');
+                if (stoppedTasks.isNotEmpty) {
+                  print('第一个已停止任务数据: ${stoppedTasks[0]}');
+                }
+                final parsedStoppedTasks = _parseTasks(stoppedTasks, DownloadStatus.stopped, activeInstance.id, activeInstance.type == InstanceType.local);
+                print('解析后的已停止任务数量: ${parsedStoppedTasks.length}');
+                allTasks.addAll(parsedStoppedTasks);
               }
             }
             
