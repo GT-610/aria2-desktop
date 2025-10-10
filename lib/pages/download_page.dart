@@ -156,47 +156,52 @@ class _DownloadPageState extends State<DownloadPage> {
       // 从Provider获取实例管理器
       final instanceManager = Provider.of<InstanceManager>(context, listen: false);
       
-      // 获取所有实例
-      final instances = instanceManager.instances;
-      
-      // 对每个实例发送请求
-      for (final instance in instances) {
-        try {
-          // 创建RPC客户端
-          final client = Aria2RpcClient(instance);
-          
-          // 发送multicall请求获取所有任务
-          final response = await client.getTasksMulticall();
-          
-          // 解析响应
-          if (response.containsKey('result') && response['result'] is List) {
-            final result = response['result'] as List;
+      // 只对活动实例发送请求，不再循环尝试所有实例
+      final activeInstance = instanceManager.activeInstance;
+      if (activeInstance != null) {
+        // 检查实例状态，如果不是连接状态则不尝试连接
+        if (activeInstance.status == ConnectionStatus.connected) {
+          try {
+            // 创建RPC客户端
+            final client = Aria2RpcClient(activeInstance);
             
-            // 解析活跃任务
-            if (result.length > 0 && result[0] is Map && result[0].containsKey('result')) {
-              final activeTasks = result[0]['result'] as List;
-              allTasks.addAll(_parseTasks(activeTasks, DownloadStatus.active, instance.id, instance.type == InstanceType.local));
+            // 发送multicall请求获取所有任务
+            final response = await client.getTasksMulticall();
+            
+            // 解析响应
+            if (response.containsKey('result') && response['result'] is List) {
+              final result = response['result'] as List;
+              
+              // 解析活跃任务
+              if (result.length > 0 && result[0] is Map && result[0].containsKey('result')) {
+                final activeTasks = result[0]['result'] as List;
+                allTasks.addAll(_parseTasks(activeTasks, DownloadStatus.active, activeInstance.id, activeInstance.type == InstanceType.local));
+              }
+              
+              // 解析等待任务
+              if (result.length > 1 && result[1] is Map && result[1].containsKey('result')) {
+                final waitingTasks = result[1]['result'] as List;
+                allTasks.addAll(_parseTasks(waitingTasks, DownloadStatus.waiting, activeInstance.id, activeInstance.type == InstanceType.local));
+              }
+              
+              // 解析已停止任务
+              if (result.length > 2 && result[2] is Map && result[2].containsKey('result')) {
+                final stoppedTasks = result[2]['result'] as List;
+                allTasks.addAll(_parseTasks(stoppedTasks, DownloadStatus.stopped, activeInstance.id, activeInstance.type == InstanceType.local));
+              }
             }
             
-            // 解析等待任务
-            if (result.length > 1 && result[1] is Map && result[1].containsKey('result')) {
-              final waitingTasks = result[1]['result'] as List;
-              allTasks.addAll(_parseTasks(waitingTasks, DownloadStatus.waiting, instance.id, instance.type == InstanceType.local));
-            }
-            
-            // 解析已停止任务
-            if (result.length > 2 && result[2] is Map && result[2].containsKey('result')) {
-              final stoppedTasks = result[2]['result'] as List;
-              allTasks.addAll(_parseTasks(stoppedTasks, DownloadStatus.stopped, instance.id, instance.type == InstanceType.local));
-            }
+            // 关闭客户端
+            client.close();
+          } catch (e) {
+            print('获取实例 ${activeInstance.name} 的任务失败: $e');
           }
-          
-          // 关闭客户端
-          client.close();
-        } catch (e) {
-          print('获取实例 ${instance.name} 的任务失败: $e');
-          // 继续尝试其他实例
-          continue;
+        } else if (activeInstance.status == ConnectionStatus.connecting) {
+          // 如果正在连接中，不重复尝试
+          print('实例 ${activeInstance.name} 正在连接中，跳过当前刷新');
+        } else {
+          // 如果实例未连接且不是正在连接中，不尝试连接
+          // 避免自动连接行为
         }
       }
       

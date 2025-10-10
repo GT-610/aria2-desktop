@@ -90,29 +90,7 @@ class _HomeWrapper extends StatelessWidget {
     final initializationFuture = Future(() async {
       // Wait for instance manager initialization
       await instanceManager.initialize();
-      
-      // Try to connect to active instance if auto-connect is enabled
-      if (settings.autoConnectLastInstance && instanceManager.activeInstance != null) {
-        try {
-          // Attempt to connect to active instance
-          final activeInstance = instanceManager.activeInstance!;
-          final client = Aria2RpcClient(activeInstance);
-          
-          // Validate connection by getting version info
-          final version = await client.getVersion();
-          
-          // Update instance connection status and version
-          final updatedInstance = activeInstance.copyWith(
-            version: version,
-            status: ConnectionStatus.connected,
-          );
-          
-          // Update instance information
-          await instanceManager.updateInstance(updatedInstance);
-        } catch (e) {
-          print('Auto-connection failed: $e');
-        }
-      }
+      // Removed auto-connect functionality
     });
     
     return FutureBuilder(

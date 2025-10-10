@@ -59,20 +59,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     SwitchListTile.adaptive(
                       title: Text(
-                        '启动时自动连接上次使用的实例',
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: const Text('自动连接到最近使用的Aria2实例'),
-                      value: settings.autoConnectLastInstance,
-                      onChanged: (value) {
-                        settings.setAutoConnectLastInstance(value);
-                      },
-                      activeColor: colorScheme.primary,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const Divider(height: 1),
-                    SwitchListTile.adaptive(
-                      title: Text(
                         '系统启动时自动运行',
                         style: theme.textTheme.bodyLarge,
                       ),
