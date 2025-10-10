@@ -39,6 +39,7 @@ class DownloadTask {
   final String id;
   final String name;
   final DownloadStatus status;
+  final String? taskStatus; // 存储原始任务状态，如'paused'
   final double progress;
   final String speed;
   final String size;
@@ -50,6 +51,7 @@ class DownloadTask {
     required this.id,
     required this.name,
     required this.status,
+    this.taskStatus,
     required this.progress,
     required this.speed,
     required this.size,
@@ -210,7 +212,6 @@ class _DownloadPageState extends State<DownloadPage> {
           }
         } else if (activeInstance.status == ConnectionStatus.connecting) {
           // 如果正在连接中，不重复尝试
-          print('实例 ${activeInstance.name} 正在连接中，跳过当前刷新');
         } else {
           // 如果实例未连接且不是正在连接中，不尝试连接
           // 避免自动连接行为
@@ -241,6 +242,7 @@ class _DownloadPageState extends State<DownloadPage> {
           String size = '0 B';
           String completedSize = '0 B';
           String id = taskData['gid'] as String? ?? '';
+          String? taskStatus = taskData['status'] as String?;
           
           // 获取文件名
           if (taskData.containsKey('files') && taskData['files'] is List && (taskData['files'] as List).isNotEmpty) {
@@ -261,9 +263,19 @@ class _DownloadPageState extends State<DownloadPage> {
             size = _formatBytes(totalLength);
             completedSize = _formatBytes(completedLength);
           } else if (status == DownloadStatus.waiting) {
-            // 等待任务通常没有进度
-            final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 0;
-            size = _formatBytes(totalLength);
+            // 检查是否为暂停中任务（status为paused）
+            if (taskStatus == 'paused') {
+              // 暂停中任务需要显示进度信息
+              final completedLength = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
+              final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 1;
+              progress = totalLength > 0 ? completedLength / totalLength : 0.0;
+              size = _formatBytes(totalLength);
+              completedSize = _formatBytes(completedLength);
+            } else {
+              // 普通等待任务通常没有进度
+              final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 0;
+              size = _formatBytes(totalLength);
+            }
           } else if (status == DownloadStatus.stopped) {
             // 停止任务有已完成的长度
             final completedLength = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
@@ -282,6 +294,7 @@ class _DownloadPageState extends State<DownloadPage> {
             id: id,
             name: name,
             status: status,
+            taskStatus: taskStatus,
             progress: progress,
             speed: speed,
             size: size,
@@ -364,8 +377,13 @@ class _DownloadPageState extends State<DownloadPage> {
   }
 
   // Get status text and color
-  (String, Color) _getStatusInfo(DownloadStatus status, ColorScheme colorScheme) {
-    switch (status) {
+  (String, Color) _getStatusInfo(DownloadTask task, ColorScheme colorScheme) {
+    // 检查是否为暂停中任务
+    if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
+      return ('已暂停', colorScheme.tertiary);
+    }
+    
+    switch (task.status) {
       case DownloadStatus.active:
         return ('下载中', colorScheme.primary);
       case DownloadStatus.waiting:
@@ -376,8 +394,13 @@ class _DownloadPageState extends State<DownloadPage> {
   }
 
   // Get status icon
-  Icon _getStatusIcon(DownloadStatus status, Color color) {
-    switch (status) {
+  Icon _getStatusIcon(DownloadTask task, Color color) {
+    // 检查是否为暂停中任务
+    if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
+      return Icon(Icons.pause, color: color);
+    }
+    
+    switch (task.status) {
       case DownloadStatus.active:
         return Icon(Icons.file_download, color: color);
       case DownloadStatus.waiting:
@@ -830,7 +853,7 @@ class _DownloadPageState extends State<DownloadPage> {
       itemCount: tasks.length,
       itemBuilder: (context, index) {
         final task = tasks[index];
-        final (statusText, statusColor) = _getStatusInfo(task.status, colorScheme);
+        final (statusText, statusColor) = _getStatusInfo(task, colorScheme);
         
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
@@ -851,7 +874,7 @@ class _DownloadPageState extends State<DownloadPage> {
                     // Task name and status icon
                     Row(
                       children: [
-                        _getStatusIcon(task.status, statusColor),
+                        _getStatusIcon(task, statusColor),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -897,7 +920,10 @@ class _DownloadPageState extends State<DownloadPage> {
                           minHeight: 6,
                           backgroundColor: colorScheme.surfaceVariant,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            task.status == DownloadStatus.active ? statusColor : statusColor.withOpacity(0.6),
+                            // 暂停中任务使用黄色显示进度条
+                            (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') 
+                              ? colorScheme.tertiary 
+                              : (task.status == DownloadStatus.active ? statusColor : statusColor.withOpacity(0.6)),
                           ),
                         ),
                         // Only show progress text for non-active status
