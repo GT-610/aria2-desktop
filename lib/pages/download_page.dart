@@ -39,13 +39,13 @@ class DownloadTask {
   final String id;
   final String name;
   final DownloadStatus status;
-  final String? taskStatus; // 存储原始任务状态，如'paused'
+  final String? taskStatus; // Store original task status, e.g. 'paused'
   final double progress;
   final String speed;
   final String size;
   final String completedSize;
   final bool isLocal;
-  final String instanceId; // 添加实例ID字段
+  final String instanceId; // Add instance ID field
 
   DownloadTask({
     required this.id,
@@ -72,36 +72,36 @@ class _DownloadPageState extends State<DownloadPage> {
   FilterOption _selectedFilter = FilterOption.all;
   CategoryType _currentCategoryType = CategoryType.all; // 默认设置为'全部'
 
-  // 实例名称映射表，用于展示实例名称
+  // Instance name mapping for displaying instance names
   Map<String, String> _instanceNames = {};
   
-  // 定时器，用于周期性获取任务状态
+  // Timer for periodically fetching task status
   Timer? _refreshTimer;
   
-  // 下载任务列表
+  // Download task list
   List<DownloadTask> _downloadTasks = [];
   
-  // InstanceManager实例
+  // InstanceManager instance
   InstanceManager? instanceManager;
 
   @override
   void initState() {
     super.initState();
-    // 加载实例名称和初始化
+    // Load instance names and initialize
     _initialize();
     
-    // 通过Provider获取InstanceManager实例
+    // Get InstanceManager instance through Provider
     instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    // 监听实例管理器的变化，当实例状态改变时刷新页面
+    // Listen for changes in the instance manager and refresh the page when instance status changes
     instanceManager?.addListener(_handleInstanceChanges);
     
-    // 启动定时刷新（1秒一次）
+    // Start periodic refresh (every 1 second)
     _startPeriodicRefresh();
   }
   
-  // 初始化
+  // Initialize
   Future<void> _initialize() async {
-    // 从Provider获取实例管理器
+    // Get instance manager from Provider
     instanceManager = Provider.of<InstanceManager>(context, listen: false);
     await _loadInstanceNames(instanceManager!);
     await _refreshTasks();
@@ -110,19 +110,19 @@ class _DownloadPageState extends State<DownloadPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 监听实例管理器的变化
+    // Listen for changes in the instance manager
     instanceManager = Provider.of<InstanceManager>(context, listen: false);
     instanceManager?.addListener(_handleInstanceChanges);
   }
   
-  // 启动周期性刷新
+  // Start periodic refresh
   void _startPeriodicRefresh() {
     _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
       await _refreshTasks();
     });
   }
   
-  // 停止周期性刷新
+  // Stop periodic refresh
   void _stopPeriodicRefresh() {
     _refreshTimer?.cancel();
     _refreshTimer = null;
@@ -131,68 +131,68 @@ class _DownloadPageState extends State<DownloadPage> {
   @override
   void dispose() {
     _stopPeriodicRefresh();
-    // 移除监听器以避免内存泄漏
+    // Remove listener to avoid memory leaks
     if (instanceManager != null) {
       instanceManager!.removeListener(_handleInstanceChanges);
     }
     super.dispose();
   }
   
-  // 处理实例状态变化的方法
+  // Method to handle instance status changes
   void _handleInstanceChanges() {
     if (mounted && instanceManager != null) {
       setState(() {
-        // 状态变化时，我们不需要做什么特殊处理，setState会触发UI重建
-        // UI重建时会根据最新的实例状态重新渲染
+        // When status changes, we don't need any special handling, setState will trigger UI rebuild
+        // UI will re-render based on the latest instance status during rebuild
       });
-      // 当实例状态变化时，重新加载任务列表
+      // When instance status changes, reload the task list
       _refreshTasks();
     }
   }
   
-  // 刷新所有任务
+  // Refresh all tasks
   Future<void> _refreshTasks() async {
     try {
       List<DownloadTask> allTasks = [];
       
-      // 从Provider获取实例管理器
+      // Get instance manager from Provider
       final instanceManager = Provider.of<InstanceManager>(context, listen: false);
       
-      // 只对活动实例发送请求，不再循环尝试所有实例
+      // Only send requests to active instances, no longer loop through all instances
       final activeInstance = instanceManager.activeInstance;
       if (activeInstance != null) {
-        // 检查实例状态，如果不是连接状态则不尝试连接
+        // Check instance status, do not attempt to connect if not in connected state
         if (activeInstance.status == ConnectionStatus.connected) {
           try {
-            // 创建RPC客户端
+            // Create RPC client
             final client = Aria2RpcClient(activeInstance);
             
-            // 发送multicall请求获取所有任务
+            // Send multicall request to get all tasks
             final response = await client.getTasksMulticall();
             
-            // 解析响应
+            // Parse response
             if (response.containsKey('result') && response['result'] is List) {
               final result = response['result'] as List;
               
-              // 打印调试信息：result的结构和内容
+              // Print debug information: structure and content of result
               print('result结构: $result');
               print('result长度: ${result.length}');
               
-              // 解析活跃任务 - 处理三层嵌套数组结构 [[[]], [[]], [[...]]]
+              // Parse active tasks - handle three-layer nested array structure [[[]], [[]], [[...]]]
               if (result.length > 0 && result[0] is List && (result[0] as List).isNotEmpty && (result[0] as List)[0] is List) {
                 final activeTasks = (result[0] as List)[0] as List;
                 print('活跃任务数量: ${activeTasks.length}');
                 allTasks.addAll(_parseTasks(activeTasks, DownloadStatus.active, activeInstance.id, activeInstance.type == InstanceType.local));
               }
               
-              // 解析等待任务
+              // Parse waiting tasks
               if (result.length > 1 && result[1] is List && (result[1] as List).isNotEmpty && (result[1] as List)[0] is List) {
                 final waitingTasks = (result[1] as List)[0] as List;
                 print('等待任务数量: ${waitingTasks.length}');
                 allTasks.addAll(_parseTasks(waitingTasks, DownloadStatus.waiting, activeInstance.id, activeInstance.type == InstanceType.local));
               }
               
-              // 解析已停止任务
+              // Parse stopped tasks
               if (result.length > 2 && result[2] is List && (result[2] as List).isNotEmpty && (result[2] as List)[0] is List) {
                 final stoppedTasks = (result[2] as List)[0] as List;
                 print('已停止任务数量: ${stoppedTasks.length}');
@@ -205,10 +205,10 @@ class _DownloadPageState extends State<DownloadPage> {
               }
             }
             
-            // 关闭客户端
+            // Close client
             client.close();
           } catch (e) {
-            print('获取实例 ${activeInstance.name} 的任务失败: $e');
+            print('Failed to get tasks from instance ${activeInstance.name}: $e');
           }
         } else if (activeInstance.status == ConnectionStatus.connecting) {
           // 如果正在连接中，不重复尝试
@@ -218,18 +218,18 @@ class _DownloadPageState extends State<DownloadPage> {
         }
       }
       
-      // 更新任务列表
+      // Update task list
       if (mounted) {
         setState(() {
           _downloadTasks = allTasks;
         });
       }
     } catch (e) {
-      print('刷新任务失败: $e');
+      print('Failed to refresh tasks: $e');
     }
   }
   
-  // 解析任务列表
+  // Parse task list
   List<DownloadTask> _parseTasks(List tasks, DownloadStatus status, String instanceId, bool isLocal) {
     List<DownloadTask> parsedTasks = [];
     
@@ -244,7 +244,7 @@ class _DownloadPageState extends State<DownloadPage> {
           String id = taskData['gid'] as String? ?? '';
           String? taskStatus = taskData['status'] as String?;
           
-          // 获取文件名
+          // Get file name
           if (taskData.containsKey('files') && taskData['files'] is List && (taskData['files'] as List).isNotEmpty) {
             final firstFile = (taskData['files'] as List)[0];
             if (firstFile is Map && firstFile.containsKey('path')) {
@@ -253,9 +253,9 @@ class _DownloadPageState extends State<DownloadPage> {
             }
           }
           
-          // 获取进度信息
+          // Get progress information
           if (status == DownloadStatus.active) {
-            // 活跃任务有特定的进度字段
+            // Active tasks have specific progress fields
             final completedLength = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
             final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 1;
             progress = totalLength > 0 ? completedLength / totalLength : 0.0;
@@ -263,21 +263,21 @@ class _DownloadPageState extends State<DownloadPage> {
             size = _formatBytes(totalLength);
             completedSize = _formatBytes(completedLength);
           } else if (status == DownloadStatus.waiting) {
-            // 检查是否为暂停中任务（status为paused）
+            // Check if it's a paused task (status is 'paused')
             if (taskStatus == 'paused') {
-              // 暂停中任务需要显示进度信息
+              // Paused tasks need to display progress information
               final completedLength = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
               final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 1;
               progress = totalLength > 0 ? completedLength / totalLength : 0.0;
               size = _formatBytes(totalLength);
               completedSize = _formatBytes(completedLength);
             } else {
-              // 普通等待任务通常没有进度
+              // Regular waiting tasks usually don't have progress
               final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 0;
               size = _formatBytes(totalLength);
             }
           } else if (status == DownloadStatus.stopped) {
-            // 停止任务有已完成的长度
+            // Stopped tasks have completed length
             final completedLength = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
             final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 1;
             progress = totalLength > 0 ? completedLength / totalLength : 0.0;
@@ -285,7 +285,7 @@ class _DownloadPageState extends State<DownloadPage> {
             completedSize = _formatBytes(completedLength);
           }
           
-          // 如果没有文件名，使用gid作为名称
+          // If there's no file name, use gid as the name
           if (name.isEmpty) {
             name = id.substring(0, 8);
           }
@@ -303,7 +303,7 @@ class _DownloadPageState extends State<DownloadPage> {
             instanceId: instanceId,
           ));
         } catch (e) {
-          print('解析任务失败: $e');
+          print('Failed to parse task: $e');
           continue;
         }
       }
@@ -312,7 +312,7 @@ class _DownloadPageState extends State<DownloadPage> {
     return parsedTasks;
   }
   
-  // 格式化字节大小
+  // Format byte size
   String _formatBytes(int bytes, {int decimals = 2}) {
     if (bytes <= 0) return '0 B';
     
@@ -323,40 +323,40 @@ class _DownloadPageState extends State<DownloadPage> {
     return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
   }
   
-  // 加载实例名称
+  // Load instance names
   Future<void> _loadInstanceNames(InstanceManager instanceManager) async {
     try {
-      // 获取所有实例
+      // Get all instances
       final instances = instanceManager.instances;
       
-      // 构建实例ID到名称的映射
+      // Build mapping from instance ID to name
       final Map<String, String> instanceMap = {};
       for (final instance in instances) {
         instanceMap[instance.id] = instance.name;
       }
       
-      // 更新状态
+      // Update state
       if (mounted) {
         setState(() {
           _instanceNames = instanceMap;
         });
       }
     } catch (e) {
-      print('加载实例名称失败: $e');
-      // 发生错误时使用备用数据
+      print('Failed to load instance names: $e');
+      // Notify user when error occurs
       if (mounted) {
-        setState(() {
-          _instanceNames = {
-            'local1': '本地实例',
-            'local2': '本地测试',
-            'remote1': '远程服务器',
-          };
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load instance names: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        // Keep _instanceNames empty to avoid displaying incorrect instance information
       }
     }
   }
   
-  // 当实例列表发生变化时调用
+  // Called when instance list changes
   void _onInstancesChanged() {
     if (mounted) {
       final instanceManager = Provider.of<InstanceManager>(context, listen: false);
@@ -365,12 +365,12 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
   
-  // 根据实例ID获取实例名称
+  // Get instance name by ID
   String _getInstanceName(String instanceId) {
     return _instanceNames[instanceId] ?? '未知实例';
   }
   
-  // 获取所有实例ID列表
+  // Get all instance IDs list
   List<String> _getAllInstanceIds() {
     // 从任务中提取所有唯一的实例ID
     return _downloadTasks.map((task) => task.instanceId).toSet().toList();
@@ -410,7 +410,7 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
 
-  // 存储当前选择的实例ID
+  // Store currently selected instance ID
   String? _selectedInstanceId;
   
   // Filter tasks based on selected criteria
@@ -486,7 +486,7 @@ class _DownloadPageState extends State<DownloadPage> {
       case FilterOption.remote:
         return colorScheme.secondary;
       case FilterOption.instance:
-        return colorScheme.tertiary; // 实例筛选器使用第三颜色
+        return colorScheme.tertiary;
     }
   }
   
@@ -523,7 +523,7 @@ class _DownloadPageState extends State<DownloadPage> {
                 onTap: () {
                   setState(() {
                     _currentCategoryType = CategoryType.byStatus;
-                    _selectedFilter = FilterOption.active; // 默认选择第一个选项
+                    _selectedFilter = FilterOption.active; // Select the first option by default
                   });
                   Navigator.pop(context);
                 },
@@ -536,7 +536,7 @@ class _DownloadPageState extends State<DownloadPage> {
                 onTap: () {
                   setState(() {
                     _currentCategoryType = CategoryType.byType;
-                    _selectedFilter = FilterOption.local; // 默认选择第一个选项
+                    _selectedFilter = FilterOption.local; // Select first option by default
                   });
                   Navigator.pop(context);
                 },
@@ -549,7 +549,7 @@ class _DownloadPageState extends State<DownloadPage> {
                 onTap: () {
                   setState(() {
                     _currentCategoryType = CategoryType.byInstance;
-                    _selectedInstanceId = null; // 重置选择的实例
+                    _selectedInstanceId = null; // Reset selected instance
                   });
                   Navigator.pop(context);
                 },
@@ -689,7 +689,7 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
   
-  // 获取实例ID列表作为筛选选项
+  // Get instance ID list as filter options
   List<String> _getInstanceFilterOptions() {
     return _getAllInstanceIds();
   }
@@ -702,7 +702,7 @@ class _DownloadPageState extends State<DownloadPage> {
       case CategoryType.byType:
         return [FilterOption.local, FilterOption.remote];
       case CategoryType.byInstance:
-        // 对于实例分类，我们将在UI中单独处理
+        // For instance category, we will handle it separately in UI
         return [FilterOption.instance];
       default:
         return [];
@@ -801,12 +801,12 @@ class _DownloadPageState extends State<DownloadPage> {
   Widget _buildTaskList(ThemeData theme, ColorScheme colorScheme) {
     final tasks = _filterTasks();
     
-    // 检查是否有已连接的实例
+    // Check if there are any connected instances
     final hasConnectedInstances = instanceManager?.instances.any((instance) => 
       instance.status == ConnectionStatus.connected
     ) ?? false;
     
-    // 如果没有已连接的实例，显示特殊提示
+    // If no connected instances, show special prompt
     if (!hasConnectedInstances) {
       return Center(
         child: Column(
@@ -818,7 +818,7 @@ class _DownloadPageState extends State<DownloadPage> {
             SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
-                // 跳转到实例管理页面
+                // Navigate to instance management page
                 Navigator.pushNamed(context, '/instance');
               },
               child: const Text('去连接实例'),
@@ -834,7 +834,7 @@ class _DownloadPageState extends State<DownloadPage> {
       );
     }
     
-    // 如果有已连接的实例但没有任务，显示暂无任务
+    // If there are connected instances but no tasks, show 'no tasks' message
     if (tasks.isEmpty) {
       return Center(
         child: Column(
@@ -898,13 +898,6 @@ class _DownloadPageState extends State<DownloadPage> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(Icons.more_vert),
-                          onPressed: () {},
-                          padding: EdgeInsets.zero,
-                          constraints: BoxConstraints(),
                         ),
                       ],
                     ),
@@ -981,19 +974,49 @@ class _DownloadPageState extends State<DownloadPage> {
                             ),
                           ],
                         ),
-                        // Download speed (only shown for active status)
-                        if (task.status == DownloadStatus.active)
-                          Text(
-                            task.speed,
-                            style: TextStyle(
-                              color: statusColor,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                        // Action buttons
+                        Row(
+                          children: [
+                            // Pause button
+                            Tooltip(
+                              message: '暂停',
+                              child: IconButton(
+                                icon: const Icon(Icons.pause),
+                                onPressed: () {
+                                  print('Pause task: ${task.id}');
+                                },
+                                padding: EdgeInsets.zero,
+                                constraints: BoxConstraints(),
+                              ),
                             ),
-                          ),
-                        // Empty space for alignment in non-active status
-                        if (task.status != DownloadStatus.active)
-                          SizedBox(width: 60),
+                            SizedBox(width: 8), // Add spacing between buttons
+                            // Stop button
+                            Tooltip(
+                              message: '停止',
+                              child: IconButton(
+                                icon: const Icon(Icons.stop),
+                                onPressed: () {
+                                  print('Stop task: ${task.id}');
+                                },
+                                padding: EdgeInsets.zero,
+                                constraints: BoxConstraints(),
+                              ),
+                            ),
+                            SizedBox(width: 8), // Add spacing between buttons
+                            // Open directory button
+                            Tooltip(
+                              message: '打开下载目录',
+                              child: IconButton(
+                                icon: const Icon(Icons.folder_open),
+                                onPressed: () {
+                                  print('Open directory for task: ${task.id}');
+                                },
+                                padding: EdgeInsets.zero,
+                                constraints: BoxConstraints(),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     )
                 ],
