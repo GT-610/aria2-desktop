@@ -290,6 +290,12 @@ class Aria2RpcClient {
     return response['result'] as Map<String, dynamic>; // Returns the task details
   }
 
+  /// Remove a download task
+  Future<String> removeTask(String gid) async {
+    final response = await callRpc('aria2.remove', [gid]);
+    return response['result'] as String; // Returns the GID of the removed task
+  }
+
   /// Close connection
   void close() {
     if (_isWebSocket) {

@@ -1217,8 +1217,24 @@ class _DownloadPageState extends State<DownloadPage> {
                                 message: '停止',
                                 child: IconButton(
                                   icon: const Icon(Icons.stop),
-                                  onPressed: () {
+                                  onPressed: () async {
                                     print('Stop task: ${task.id}');
+                                    try {
+                                      // Get instance manager and active instance
+                                      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+                                      final activeInstance = instanceManager.activeInstance;
+                                      if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
+                                        final client = Aria2RpcClient(activeInstance);
+                                        await client.removeTask(task.id);
+                                        // Immediately refresh tasks after successful request
+                                        await _refreshTasks();
+                                        // Reset refresh timer
+                                        _stopPeriodicRefresh();
+                                        _startPeriodicRefresh();
+                                      }
+                                    } catch (e) {
+                                      print('Error stopping task: $e');
+                                    }
                                   },
                                   padding: EdgeInsets.zero,
                                   constraints: BoxConstraints(),
@@ -1259,8 +1275,24 @@ class _DownloadPageState extends State<DownloadPage> {
                                 message: '停止',
                                 child: IconButton(
                                   icon: const Icon(Icons.stop),
-                                  onPressed: () {
+                                  onPressed: () async {
                                     print('Stop task: ${task.id}');
+                                    try {
+                                      // Get instance manager and active instance
+                                      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+                                      final activeInstance = instanceManager.activeInstance;
+                                      if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
+                                        final client = Aria2RpcClient(activeInstance);
+                                        await client.removeTask(task.id);
+                                        // Immediately refresh tasks after successful request
+                                        await _refreshTasks();
+                                        // Reset refresh timer
+                                        _stopPeriodicRefresh();
+                                        _startPeriodicRefresh();
+                                      }
+                                    } catch (e) {
+                                      print('Error stopping task: $e');
+                                    }
                                   },
                                   padding: EdgeInsets.zero,
                                   constraints: BoxConstraints(),
