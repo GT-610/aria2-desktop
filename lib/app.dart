@@ -45,7 +45,7 @@ class _ThemeProviderState extends State<_ThemeProvider> {
       theme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.blue,
+              seedColor: settings.primaryColor,
               brightness: Brightness.light,
             ),
         buttonTheme: ButtonThemeData(
@@ -57,7 +57,7 @@ class _ThemeProviderState extends State<_ThemeProvider> {
       darkTheme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.blue,
+              seedColor: settings.primaryColor,
               brightness: Brightness.dark,
             ),
         buttonTheme: ButtonThemeData(

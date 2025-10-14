@@ -815,20 +815,6 @@ class _DownloadPageState extends State<DownloadPage> {
             Icon(Icons.cloud_off_outlined, size: 64, color: colorScheme.onSurfaceVariant),
             SizedBox(height: 16),
             Text('没有正在连接的实例，快去连接实例吧', style: theme.textTheme.titleMedium),
-            SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                // Navigate to instance management page
-                Navigator.pushNamed(context, '/instance');
-              },
-              child: const Text('去连接实例'),
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
           ],
         ),
       );
