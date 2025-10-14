@@ -41,7 +41,8 @@ class DownloadTask {
   final DownloadStatus status;
   final String? taskStatus; // Store original task status, e.g. 'paused'
   final double progress;
-  final String speed;
+  final String downloadSpeed;
+  final String uploadSpeed;
   final String size;
   final String completedSize;
   final bool isLocal;
@@ -53,7 +54,8 @@ class DownloadTask {
     required this.status,
     this.taskStatus,
     required this.progress,
-    required this.speed,
+    required this.downloadSpeed,
+    required this.uploadSpeed,
     required this.size,
     required this.completedSize,
     required this.isLocal,
@@ -259,7 +261,8 @@ class _DownloadPageState extends State<DownloadPage> {
             final completedLength = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
             final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 1;
             progress = totalLength > 0 ? completedLength / totalLength : 0.0;
-            speed = _formatBytes(int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0) + '/s';
+            final downloadSpeed = _formatBytes(int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0) + '/s';
+            final uploadSpeed = _formatBytes(int.tryParse(taskData['uploadSpeed'] as String? ?? '0') ?? 0) + '/s';
             size = _formatBytes(totalLength);
             completedSize = _formatBytes(completedLength);
           } else if (status == DownloadStatus.waiting) {
@@ -296,7 +299,8 @@ class _DownloadPageState extends State<DownloadPage> {
             status: status,
             taskStatus: taskStatus,
             progress: progress,
-            speed: speed,
+            downloadSpeed: status == DownloadStatus.active ? _formatBytes(int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0) + '/s' : '0 B/s',
+            uploadSpeed: status == DownloadStatus.active ? _formatBytes(int.tryParse(taskData['uploadSpeed'] as String? ?? '0') ?? 0) + '/s' : '0 B/s',
             size: size,
             completedSize: completedSize,
             isLocal: isLocal,
@@ -869,6 +873,58 @@ class _DownloadPageState extends State<DownloadPage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        // Download and upload speed display
+                        if (task.status == DownloadStatus.active)
+                          Row(
+                            children: [
+                              // Upload speed
+                              Container(
+                                margin: EdgeInsets.only(right: 8),
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.secondary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.upload, size: 12, color: colorScheme.secondary),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      task.uploadSpeed,
+                                      style: TextStyle(
+                                        color: colorScheme.secondary,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Download speed
+                              Container(
+                                margin: EdgeInsets.only(right: 8),
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.download, size: 12, color: colorScheme.primary),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      task.downloadSpeed,
+                                      style: TextStyle(
+                                        color: colorScheme.primary,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         // Status label
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
