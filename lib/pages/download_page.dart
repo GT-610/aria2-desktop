@@ -326,6 +326,61 @@ class _DownloadPageState extends State<DownloadPage> {
     
     return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
   }
+
+  // Show task details dialog
+  void _showTaskDetails(BuildContext context, DownloadTask task) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('任务详情 - ${task.name}'),
+          content: SizedBox(
+            width: 600,
+            height: 400,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 基本信息
+                  Text('任务ID: ${task.id ?? '未知'}'),
+                  SizedBox(height: 8),
+                  Text('任务状态: ${_getStatusInfo(task, Theme.of(context).colorScheme).$1}'),
+                  SizedBox(height: 8),
+                  Text('文件大小: ${task.size}'),
+                  SizedBox(height: 8),
+                  Text('已下载: ${task.completedSize}'),
+                  SizedBox(height: 8),
+                  Text('进度: ${(task.progress * 100).toInt()}%'),
+                  SizedBox(height: 16),
+                  
+                  // 分隔线
+                  Divider(),
+                  SizedBox(height: 16),
+                  
+                  // 预留解析区域
+                  Text('任务详情信息将在后续实现中显示', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  Text('预留用于解析aria2.tellStatus返回的JSON数据'),
+                  SizedBox(height: 16),
+                  
+                  // 注意信息
+                  Text('提示: 任务详情获取功能正在实现中', style: TextStyle(color: Colors.blue)),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('关闭'),
+            ),
+          ],
+        );
+      },
+    );
+  }
   
   // Load instance names
   Future<void> _loadInstanceNames(InstanceManager instanceManager) async {
@@ -855,7 +910,9 @@ class _DownloadPageState extends State<DownloadPage> {
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
-            onTap: () {},
+            onTap: () {
+              _showTaskDetails(context, task);
+            },
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -1016,36 +1073,109 @@ class _DownloadPageState extends State<DownloadPage> {
                             ),
                           ],
                         ),
-                        // Action buttons
+                        // Action buttons - Dynamic based on task status
                         Row(
                           children: [
-                            // Pause button
-                            Tooltip(
-                              message: '暂停',
-                              child: IconButton(
-                                icon: const Icon(Icons.pause),
-                                onPressed: () {
-                                  print('Pause task: ${task.id}');
-                                },
-                                padding: EdgeInsets.zero,
-                                constraints: BoxConstraints(),
+                            if (task.status == DownloadStatus.active) ...[
+                              // Pause button
+                              Tooltip(
+                                message: '暂停',
+                                child: IconButton(
+                                  icon: const Icon(Icons.pause),
+                                  onPressed: () async {
+                                    print('Pause task: ${task.id}');
+                                    try {
+                                      // Get instance manager and active instance
+                                      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+                                      final activeInstance = instanceManager.activeInstance;
+                                      if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
+                                        final client = Aria2RpcClient(activeInstance);
+                                        await client.pauseTask(task.id);
+                                        // Immediately refresh tasks after successful request
+                                        await _refreshTasks();
+                                        // Reset refresh timer
+                                        _stopPeriodicRefresh();
+                                        _startPeriodicRefresh();
+                                      }
+                                    } catch (e) {
+                                      print('Error pausing task: $e');
+                                    }
+                                  },
+                                  padding: EdgeInsets.zero,
+                                  constraints: BoxConstraints(),
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 8), // Add spacing between buttons
-                            // Stop button
-                            Tooltip(
-                              message: '停止',
-                              child: IconButton(
-                                icon: const Icon(Icons.stop),
-                                onPressed: () {
-                                  print('Stop task: ${task.id}');
-                                },
-                                padding: EdgeInsets.zero,
-                                constraints: BoxConstraints(),
+                              SizedBox(width: 8), // Add spacing between buttons
+                              // Stop button
+                              Tooltip(
+                                message: '停止',
+                                child: IconButton(
+                                  icon: const Icon(Icons.stop),
+                                  onPressed: () {
+                                    print('Stop task: ${task.id}');
+                                  },
+                                  padding: EdgeInsets.zero,
+                                  constraints: BoxConstraints(),
+                                ),
                               ),
-                            ),
+                            ] else if (task.status == DownloadStatus.waiting) ...[
+                              // Resume button
+                              Tooltip(
+                                message: '继续',
+                                child: IconButton(
+                                  icon: const Icon(Icons.play_arrow),
+                                  onPressed: () async {
+                                    print('Resume task: ${task.id}');
+                                    try {
+                                      // Get instance manager and active instance
+                                      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+                                      final activeInstance = instanceManager.activeInstance;
+                                      if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
+                                        final client = Aria2RpcClient(activeInstance);
+                                        await client.unpauseTask(task.id);
+                                        // Immediately refresh tasks after successful request
+                                        await _refreshTasks();
+                                        // Reset refresh timer
+                                        _stopPeriodicRefresh();
+                                        _startPeriodicRefresh();
+                                      }
+                                    } catch (e) {
+                                      print('Error resuming task: $e');
+                                    }
+                                  },
+                                  padding: EdgeInsets.zero,
+                                  constraints: BoxConstraints(),
+                                ),
+                              ),
+                              SizedBox(width: 8), // Add spacing between buttons
+                              // Stop button
+                              Tooltip(
+                                message: '停止',
+                                child: IconButton(
+                                  icon: const Icon(Icons.stop),
+                                  onPressed: () {
+                                    print('Stop task: ${task.id}');
+                                  },
+                                  padding: EdgeInsets.zero,
+                                  constraints: BoxConstraints(),
+                                ),
+                              ),
+                            ] else if (task.status == DownloadStatus.stopped) ...[
+                              // Retry button
+                              Tooltip(
+                                message: '重试',
+                                child: IconButton(
+                                  icon: const Icon(Icons.refresh),
+                                  onPressed: () {
+                                    print('Retry task: ${task.id}');
+                                  },
+                                  padding: EdgeInsets.zero,
+                                  constraints: BoxConstraints(),
+                                ),
+                              ),
+                            ],
                             SizedBox(width: 8), // Add spacing between buttons
-                            // Open directory button
+                            // Open directory button - Show for all statuses
                             Tooltip(
                               message: '打开下载目录',
                               child: IconButton(

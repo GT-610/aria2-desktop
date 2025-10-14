@@ -5,26 +5,11 @@ import 'package:http/http.dart' as http;
 /// 功能：发送getVersion请求到Aria2 RPC服务并显示响应
 void main() async {
   // 定义请求对象
-  final request = {
-  "jsonrpc": "2.0",
-  "id": "aria2_multicall",
-  "method": "system.multicall",
-  "params": [
-    [
-      {
-        "methodName": "aria2.tellActive",
-        "params": ["token:test"]
-      },
-      {
-        "methodName": "aria2.tellWaiting",
-        "params": ["token:test", 0, 1000]
-      },
-      {
-        "methodName": "aria2.tellStopped",
-        "params": ["token:test", 0, 1000]
-      }
-    ]
-  ]
+  final request = {  
+  "jsonrpc": "2.0",  
+  "id": "qwer",  
+  "method": "aria2.tellStatus",  
+  "params": ["token:test114514", "8b3ec29e6e73ff74"]  
 };
 
   try {

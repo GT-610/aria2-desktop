@@ -272,6 +272,24 @@ class Aria2RpcClient {
     }
   }
 
+  /// Pause a download task
+  Future<String> pauseTask(String gid) async {
+    final response = await callRpc('aria2.pause', [gid]);
+    return response['result'] as String; // Returns the GID of the paused task
+  }
+
+  /// Resume a paused download task
+  Future<String> unpauseTask(String gid) async {
+    final response = await callRpc('aria2.unpause', [gid]);
+    return response['result'] as String; // Returns the GID of the resumed task
+  }
+
+  /// Get detailed information about a specific download task
+  Future<Map<String, dynamic>> tellStatus(String gid) async {
+    final response = await callRpc('aria2.tellStatus', [gid]);
+    return response['result'] as Map<String, dynamic>; // Returns the task details
+  }
+
   /// Close connection
   void close() {
     if (_isWebSocket) {
