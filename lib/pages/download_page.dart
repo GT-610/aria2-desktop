@@ -326,6 +326,118 @@ class _DownloadPageState extends State<DownloadPage> {
     
     return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
   }
+  
+  // Calculate and format remaining time
+  String _calculateRemainingTime(DownloadTask task) {
+    // Only calculate remaining time for active tasks
+    if (task.status != DownloadStatus.active) {
+      return '-';
+    }
+    
+    try {
+      // Extract numeric part from download speed string (e.g., "1.2 MB/s" -> 1.2 MB)
+      String speedStr = task.downloadSpeed;
+      if (speedStr.contains('/s')) {
+        speedStr = speedStr.replaceAll('/s', '').trim();
+      }
+      
+      // Parse speed value
+      double speedValue = 0;
+      String speedUnit = '';
+      
+      // Match number and unit
+      final speedMatch = RegExp(r'([\d.]+)\s*([BKMGT]B?)').firstMatch(speedStr);
+      if (speedMatch != null && speedMatch.groupCount >= 2) {
+        speedValue = double.tryParse(speedMatch.group(1)!) ?? 0;
+        speedUnit = speedMatch.group(2)!;
+        
+        // Convert speed to bytes per second
+        if (speedUnit.startsWith('KB')) {
+          speedValue *= 1024;
+        } else if (speedUnit.startsWith('MB')) {
+          speedValue *= 1024 * 1024;
+        } else if (speedUnit.startsWith('GB')) {
+          speedValue *= 1024 * 1024 * 1024;
+        } else if (speedUnit.startsWith('TB')) {
+          speedValue *= 1024 * 1024 * 1024 * 1024;
+        }
+      }
+      
+      // If speed is 0 or invalid, return '未知'
+      if (speedValue <= 0) {
+        return '未知';
+      }
+      
+      // Extract total size and completed size
+      String totalSizeStr = task.size;
+      String completedSizeStr = task.completedSize;
+      
+      // Parse total size
+      double totalSize = 0;
+      String totalUnit = '';
+      
+      final totalMatch = RegExp(r'([\d.]+)\s*([BKMGT]B?)').firstMatch(totalSizeStr);
+      if (totalMatch != null && totalMatch.groupCount >= 2) {
+        totalSize = double.tryParse(totalMatch.group(1)!) ?? 0;
+        totalUnit = totalMatch.group(2)!;
+        
+        // Convert to bytes
+        if (totalUnit.startsWith('KB')) {
+          totalSize *= 1024;
+        } else if (totalUnit.startsWith('MB')) {
+          totalSize *= 1024 * 1024;
+        } else if (totalUnit.startsWith('GB')) {
+          totalSize *= 1024 * 1024 * 1024;
+        } else if (totalUnit.startsWith('TB')) {
+          totalSize *= 1024 * 1024 * 1024 * 1024;
+        }
+      }
+      
+      // Parse completed size
+      double completedSize = 0;
+      String completedUnit = '';
+      
+      final completedMatch = RegExp(r'([\d.]+)\s*([BKMGT]B?)').firstMatch(completedSizeStr);
+      if (completedMatch != null && completedMatch.groupCount >= 2) {
+        completedSize = double.tryParse(completedMatch.group(1)!) ?? 0;
+        completedUnit = completedMatch.group(2)!;
+        
+        // Convert to bytes
+        if (completedUnit.startsWith('KB')) {
+          completedSize *= 1024;
+        } else if (completedUnit.startsWith('MB')) {
+          completedSize *= 1024 * 1024;
+        } else if (completedUnit.startsWith('GB')) {
+          completedSize *= 1024 * 1024 * 1024;
+        } else if (completedUnit.startsWith('TB')) {
+          completedSize *= 1024 * 1024 * 1024 * 1024;
+        }
+      }
+      
+      // Calculate remaining bytes
+      double remainingBytes = totalSize - completedSize;
+      
+      // Calculate remaining time in seconds
+      double remainingSeconds = remainingBytes / speedValue;
+      
+      // Format remaining time
+      if (remainingSeconds < 60) {
+        return '${remainingSeconds.ceil()}s';
+      } else if (remainingSeconds < 3600) {
+        int minutes = (remainingSeconds / 60).floor();
+        int seconds = (remainingSeconds % 60).floor();
+        return '${minutes}m ${seconds}s';
+      } else {
+        int hours = (remainingSeconds / 3600).floor();
+        int minutes = ((remainingSeconds % 3600) / 60).floor();
+        return '${hours}h ${minutes}m';
+      }
+    } catch (e) {
+      // If any error occurs during calculation, return '未知'
+      print('Error calculating remaining time: $e');
+      return '未知';
+    }
+  }
 
   // Show task details dialog
   void _showTaskDetails(BuildContext context, DownloadTask task) {
@@ -357,14 +469,8 @@ class _DownloadPageState extends State<DownloadPage> {
                   Divider(),
                   SizedBox(height: 16),
                   
-                  // 预留解析区域
-                  Text('任务详情信息将在后续实现中显示', style: TextStyle(fontWeight: FontWeight.bold)),
-                  SizedBox(height: 8),
-                  Text('预留用于解析aria2.tellStatus返回的JSON数据'),
-                  SizedBox(height: 16),
-                  
                   // 注意信息
-                  Text('提示: 任务详情获取功能正在实现中', style: TextStyle(color: Colors.blue)),
+                  Text('任务详情获取功能正在实现中', style: TextStyle(color: Colors.blue)),
                 ],
               ),
             ),
@@ -1063,9 +1169,9 @@ class _DownloadPageState extends State<DownloadPage> {
                                 ),
                               ),
                             ),
-                            // Size info
+                            // Size info with remaining time
                             Text(
-                              '${task.completedSize} / ${task.size}',
+                              '${task.completedSize} / ${task.size} (${_calculateRemainingTime(task)})',
                               style: TextStyle(
                                 color: colorScheme.onSurfaceVariant,
                                 fontSize: 13,
