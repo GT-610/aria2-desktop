@@ -892,9 +892,11 @@ class _DownloadPageState extends State<DownloadPage> {
             child: Row(
               children: [
                 FilledButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    _showAddTaskDialog(context);
+                  },
                   icon: const Icon(Icons.add),
-                  label: const Text('添加下载'),
+                  label: const Text('添加任务'),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -1332,6 +1334,177 @@ class _DownloadPageState extends State<DownloadPage> {
                 ],
               ),
             ),
+          ),
+        );
+      },
+    );
+  }
+
+  // 显示添加任务对话框
+  void _showAddTaskDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        // 使用DefaultTabController来简化TabController的管理
+        return DefaultTabController(
+          length: 3,
+          initialIndex: 0,
+          child: AlertDialog(
+            title: const Text('添加任务'),
+            content: SizedBox(
+              width: 500,
+              height: 450,
+              child: Column(
+                children: [
+                  // 选项卡
+                  const TabBar(
+                    tabs: [
+                      Tab(text: 'URI'),
+                      Tab(text: '种子'),
+                      Tab(text: 'Metalink'),
+                    ],
+                    indicatorSize: TabBarIndicatorSize.tab,
+                  ),
+                  // 选项卡内容
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              // URI 选项卡内容
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  children: [
+                                    TextField(
+                                      decoration: const InputDecoration(
+                                        labelText: 'URL或磁力链接',
+                                        hintText: '请输入下载链接...',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      maxLines: 3,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    TextButton(
+                                      onPressed: () {
+                                        // TODO: 实现从剪贴板粘贴功能
+                                      },
+                                      child: const Text('从剪贴板粘贴'),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Text('支持HTTP/HTTPS、FTP、SFTP、磁力链接等'),
+                                  ],
+                                ),
+                              ),
+                              // 种子 选项卡内容
+                              Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.file_open, size: 64),
+                                    const SizedBox(height: 16),
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        // TODO: 实现选择种子文件功能
+                                      },
+                                      icon: const Icon(Icons.upload_file),
+                                      label: const Text('选择种子文件'),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Text('支持.torrent格式的种子文件'),
+                                  ],
+                                ),
+                              ),
+                              // Metalink 选项卡内容
+                              Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.file_open, size: 64),
+                                    const SizedBox(height: 16),
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        // TODO: 实现选择Metalink文件功能
+                                      },
+                                      icon: const Icon(Icons.upload_file),
+                                      label: const Text('选择Metalink文件'),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Text('支持.metalink格式的文件'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // 分隔线
+                        const Divider(),
+                        // 公共区域 - 不受选项卡影响
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 保存位置
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      decoration: const InputDecoration(
+                                        labelText: '保存位置',
+                                        hintText: '默认下载目录',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      // TODO: 实现选择保存位置功能
+                                    },
+                                    child: const Icon(Icons.folder_open),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              // 高级选项开关
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text('显示高级选项'),
+                                  Switch(
+                                    value: false,
+                                    onChanged: (bool value) {
+                                      // TODO: 实现高级选项显示/隐藏逻辑
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  // TODO: 根据当前选中的选项卡实现添加任务功能
+                  Navigator.of(context).pop();
+                },
+                child: const Text('确认'),
+              ),
+            ],
           ),
         );
       },
