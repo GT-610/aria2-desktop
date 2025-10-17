@@ -8,8 +8,8 @@ void main() async {
   final request = {  
   "jsonrpc": "2.0",  
   "id": "qwer",  
-  "method": "aria2.tellStatus",  
-  "params": ["token:test114514", "8b3ec29e6e73ff74"]  
+  "method": "aria2.tellActive",  
+  "params": ["token:test114514"]  
 };
 
   try {

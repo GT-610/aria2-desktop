@@ -284,11 +284,8 @@ class Aria2RpcClient {
     return response['result'] as String; // Returns the GID of the resumed task
   }
 
-  /// Get detailed information about a specific download task
-  Future<Map<String, dynamic>> tellStatus(String gid) async {
-    final response = await callRpc('aria2.tellStatus', [gid]);
-    return response['result'] as Map<String, dynamic>; // Returns the task details
-  }
+  // tellStatus method removed as main loop already gets complete task data
+  // through tellActive, tellWaiting and tellStopped calls in getTasksMulticall
 
   /// Remove a download task
   Future<String> removeTask(String gid) async {

@@ -47,6 +47,8 @@ class DownloadTask {
   final String completedSize;
   final bool isLocal;
   final String instanceId; // Add instance ID field
+  final int? connections; // 连接数信息
+  final String? dir; // 下载路径
 
   DownloadTask({
     required this.id,
@@ -60,6 +62,8 @@ class DownloadTask {
     required this.completedSize,
     required this.isLocal,
     required this.instanceId,
+    this.connections,
+    this.dir,
   });
 }
 
@@ -245,6 +249,9 @@ class _DownloadPageState extends State<DownloadPage> {
           String completedSize = '0 B';
           String id = taskData['gid'] as String? ?? '';
           String? taskStatus = taskData['status'] as String?;
+          int? connections;
+          String? dir = taskData['dir'] as String?;
+          
           
           // Get file name
           if (taskData.containsKey('files') && taskData['files'] is List && (taskData['files'] as List).isNotEmpty) {
@@ -265,6 +272,10 @@ class _DownloadPageState extends State<DownloadPage> {
             final uploadSpeed = _formatBytes(int.tryParse(taskData['uploadSpeed'] as String? ?? '0') ?? 0) + '/s';
             size = _formatBytes(totalLength);
             completedSize = _formatBytes(completedLength);
+            // Parse connections field if available
+            if (taskData.containsKey('connections')) {
+              connections = int.tryParse(taskData['connections'] as String? ?? '') ?? null;
+            }
           } else if (status == DownloadStatus.waiting) {
             // Check if it's a paused task (status is 'paused')
             if (taskStatus == 'paused') {
@@ -305,6 +316,8 @@ class _DownloadPageState extends State<DownloadPage> {
             completedSize: completedSize,
             isLocal: isLocal,
             instanceId: instanceId,
+            connections: connections,
+            dir: dir,
           ));
         } catch (e) {
           print('Failed to parse task: $e');
@@ -444,45 +457,79 @@ class _DownloadPageState extends State<DownloadPage> {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text('任务详情 - ${task.name}'),
-          content: SizedBox(
-            width: 600,
-            height: 400,
-            child: SingleChildScrollView(
+        // 使用DefaultTabController实现标签页功能
+        return DefaultTabController(
+          length: 3,
+          initialIndex: 0, // 默认选中第一个标签页（总览）
+          child: AlertDialog(
+            title: Text('任务详情 - ${task.name}'),
+            content: SizedBox(
+              width: 600,
+              height: 450,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 基本信息
-                  Text('任务ID: ${task.id ?? '未知'}'),
-                  SizedBox(height: 8),
-                  Text('任务状态: ${_getStatusInfo(task, Theme.of(context).colorScheme).$1}'),
-                  SizedBox(height: 8),
-                  Text('文件大小: ${task.size}'),
-                  SizedBox(height: 8),
-                  Text('已下载: ${task.completedSize}'),
-                  SizedBox(height: 8),
-                  Text('进度: ${(task.progress * 100).toInt()}%'),
-                  SizedBox(height: 16),
-                  
-                  // 分隔线
-                  Divider(),
-                  SizedBox(height: 16),
-                  
-                  // 注意信息
-                  Text('任务详情获取功能正在实现中', style: TextStyle(color: Colors.blue)),
+                  // 标签栏
+                  TabBar(
+                    tabs: [
+                      Tab(text: '总览'),
+                      Tab(text: '区块'),
+                      Tab(text: '文件信息'),
+                    ],
+                    indicatorSize: TabBarIndicatorSize.tab,
+                  ),
+                  // 标签页内容
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        // 总览标签页
+                        SingleChildScrollView(
+                          padding: EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 基本信息
+                              Text('任务ID: ${task.id ?? '未知'}'),
+                              SizedBox(height: 8),
+                              Text('任务状态: ${_getStatusInfo(task, Theme.of(context).colorScheme).$1}'),
+                              SizedBox(height: 8),
+                              Text('任务大小: ${task.size}'),
+                              SizedBox(height: 8),
+                              Text('已下载: ${task.completedSize}'),
+                              SizedBox(height: 8),
+                              Text('进度: ${(task.progress * 100).toStringAsFixed(2)}%'),
+                              SizedBox(height: 8),
+                              Text('连接数: ${task.connections ?? '--'}'),
+                              SizedBox(height: 8),
+                              Text('下载路径: ${task.dir ?? '--'}'),
+                              SizedBox(height: 16),
+                            ],
+                          ),
+                        ),
+                        
+                        // 区块标签页
+                        Center(
+                          child: Text('区块信息功能开发中', style: TextStyle(color: Colors.blue)),
+                        ),
+                        
+                        // 文件信息标签页
+                        Center(
+                          child: Text('文件信息功能开发中', style: TextStyle(color: Colors.blue)),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('关闭'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('关闭'),
-            ),
-          ],
         );
       },
     );
