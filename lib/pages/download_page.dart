@@ -692,8 +692,8 @@ class _DownloadPageState extends State<DownloadPage> {
                       TabBar(
                         tabs: const [
                           Tab(text: '总览'),
-                          Tab(text: '文件信息'),
-                          Tab(text: '连接信息'),
+                          Tab(text: '区块信息'),
+                          Tab(text: '文件列表'),
                         ],
                         indicatorSize: TabBarIndicatorSize.tab,
                       ),
