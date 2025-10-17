@@ -34,7 +34,7 @@ enum FilterOption {
   instance, // Instance filter (dynamic)
 }
 
-// Download task model
+// Enhanced Download task model with more detailed information
 class DownloadTask {
   final String id;
   final String name;
@@ -49,6 +49,17 @@ class DownloadTask {
   final String instanceId; // Add instance ID field
   final int? connections; // 连接数信息
   final String? dir; // 下载路径
+  
+  // Extended detailed information
+  final int totalLengthBytes; // Raw bytes for accurate calculations
+  final int completedLengthBytes; // Raw bytes for accurate calculations
+  final int downloadSpeedBytes; // Raw bytes for accurate calculations
+  final int uploadSpeedBytes; // Raw bytes for accurate calculations
+  final List<Map<String, dynamic>>? files; // File list with detailed information
+  final String? bittorrentInfo; // Torrent info if available
+  final List<String>? uris; // Download URIs
+  final String? errorMessage; // Error message if any
+  final DateTime? startTime; // Task start time
 
   DownloadTask({
     required this.id,
@@ -64,6 +75,15 @@ class DownloadTask {
     required this.instanceId,
     this.connections,
     this.dir,
+    this.totalLengthBytes = 0,
+    this.completedLengthBytes = 0,
+    this.downloadSpeedBytes = 0,
+    this.uploadSpeedBytes = 0,
+    this.files,
+    this.bittorrentInfo,
+    this.uris,
+    this.errorMessage,
+    this.startTime,
   });
 }
 
@@ -229,32 +249,62 @@ class _DownloadPageState extends State<DownloadPage> {
         setState(() {
           _downloadTasks = allTasks;
         });
+        
+        // 如果有任务详情对话框打开，通知其更新
+        // 注意：由于我们使用StatefulBuilder，实际上StatefulBuilder会自动重建
+        // 当主循环调用setState时，整个页面会重建，包括打开的对话框
       }
     } catch (e) {
       print('Failed to refresh tasks: $e');
     }
   }
   
-  // Parse task list
+  // Parse task list - now stores complete information in the model
   List<DownloadTask> _parseTasks(List tasks, DownloadStatus status, String instanceId, bool isLocal) {
     List<DownloadTask> parsedTasks = [];
     
     for (var taskData in tasks) {
       if (taskData is Map) {
         try {
-          String name = '';
-          double progress = 0.0;
-          String speed = '0 B/s';
-          String size = '0 B';
-          String completedSize = '0 B';
+          // Parse raw bytes data first for accurate calculations and storage
+          final totalLengthBytes = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 0;
+          final completedLengthBytes = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
+          final downloadSpeedBytes = int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0;
+          final uploadSpeedBytes = int.tryParse(taskData['uploadSpeed'] as String? ?? '0') ?? 0;
+          
+          // Basic fields
           String id = taskData['gid'] as String? ?? '';
           String? taskStatus = taskData['status'] as String?;
-          int? connections;
-          String? dir = taskData['dir'] as String?;
           
+          // Calculate progress
+          double progress = totalLengthBytes > 0 ? completedLengthBytes / totalLengthBytes : 0.0;
           
-          // Get file name
+          // Format display values
+          String size = _formatBytes(totalLengthBytes);
+          String completedSize = _formatBytes(completedLengthBytes);
+          String downloadSpeed = _formatBytes(downloadSpeedBytes) + '/s';
+          String uploadSpeed = _formatBytes(uploadSpeedBytes) + '/s';
+          
+          // Get file name and store complete files info
+          String name = '';
+          List<Map<String, dynamic>>? files;
+          
           if (taskData.containsKey('files') && taskData['files'] is List && (taskData['files'] as List).isNotEmpty) {
+            // Store complete files information for detailed view
+            files = (taskData['files'] as List).map((file) {
+              if (file is Map) {
+                return <String, dynamic>{
+                  ...file,
+                  'path': file['path'] as String? ?? '',
+                  'length': file['length'] as String? ?? '0',
+                  'completedLength': file['completedLength'] as String? ?? '0',
+                  'selected': file['selected'] as String? ?? 'true',
+                };
+              }
+              return <String, dynamic>{};
+            }).toList();
+            
+            // Extract first file name for display
             final firstFile = (taskData['files'] as List)[0];
             if (firstFile is Map && firstFile.containsKey('path')) {
               final path = firstFile['path'] as String;
@@ -262,41 +312,34 @@ class _DownloadPageState extends State<DownloadPage> {
             }
           }
           
-          // Get progress information
-          if (status == DownloadStatus.active) {
-            // Active tasks have specific progress fields
-            final completedLength = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
-            final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 1;
-            progress = totalLength > 0 ? completedLength / totalLength : 0.0;
-            final downloadSpeed = _formatBytes(int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0) + '/s';
-            final uploadSpeed = _formatBytes(int.tryParse(taskData['uploadSpeed'] as String? ?? '0') ?? 0) + '/s';
-            size = _formatBytes(totalLength);
-            completedSize = _formatBytes(completedLength);
-            // Parse connections field if available
-            if (taskData.containsKey('connections')) {
-              connections = int.tryParse(taskData['connections'] as String? ?? '') ?? null;
-            }
-          } else if (status == DownloadStatus.waiting) {
-            // Check if it's a paused task (status is 'paused')
-            if (taskStatus == 'paused') {
-              // Paused tasks need to display progress information
-              final completedLength = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
-              final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 1;
-              progress = totalLength > 0 ? completedLength / totalLength : 0.0;
-              size = _formatBytes(totalLength);
-              completedSize = _formatBytes(completedLength);
-            } else {
-              // Regular waiting tasks usually don't have progress
-              final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 0;
-              size = _formatBytes(totalLength);
-            }
-          } else if (status == DownloadStatus.stopped) {
-            // Stopped tasks have completed length
-            final completedLength = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
-            final totalLength = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 1;
-            progress = totalLength > 0 ? completedLength / totalLength : 0.0;
-            size = _formatBytes(totalLength);
-            completedSize = _formatBytes(completedLength);
+          // Parse additional details for the extended model
+          int? connections = taskData.containsKey('connections') 
+            ? int.tryParse(taskData['connections'] as String? ?? '') ?? null
+            : null;
+          
+          String? dir = taskData['dir'] as String?;
+          
+          // Parse torrent info if available
+          String? bittorrentInfo;
+          if (taskData.containsKey('bittorrent') && taskData['bittorrent'] is Map) {
+            bittorrentInfo = json.encode(taskData['bittorrent']);
+          }
+          
+          // Parse URIs if available
+          List<String>? uris;
+          if (taskData.containsKey('uris') && taskData['uris'] is List) {
+            uris = (taskData['uris'] as List).expand((uriList) {
+              if (uriList is List) {
+                return uriList.whereType<Map>().map((uri) => uri['uri'] as String? ?? '').where((s) => s.isNotEmpty).cast<String>();
+              }
+              return <String>[];
+            }).toList();
+          }
+          
+          // Parse error message if any
+          String? errorMessage;
+          if (taskData.containsKey('errorMessage')) {
+            errorMessage = taskData['errorMessage'] as String?;
           }
           
           // If there's no file name, use gid as the name
@@ -310,14 +353,25 @@ class _DownloadPageState extends State<DownloadPage> {
             status: status,
             taskStatus: taskStatus,
             progress: progress,
-            downloadSpeed: status == DownloadStatus.active ? _formatBytes(int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0) + '/s' : '0 B/s',
-            uploadSpeed: status == DownloadStatus.active ? _formatBytes(int.tryParse(taskData['uploadSpeed'] as String? ?? '0') ?? 0) + '/s' : '0 B/s',
+            downloadSpeed: downloadSpeed,
+            uploadSpeed: uploadSpeed,
             size: size,
             completedSize: completedSize,
             isLocal: isLocal,
             instanceId: instanceId,
             connections: connections,
             dir: dir,
+            // Extended detailed information
+            totalLengthBytes: totalLengthBytes,
+            completedLengthBytes: completedLengthBytes,
+            downloadSpeedBytes: downloadSpeedBytes,
+            uploadSpeedBytes: uploadSpeedBytes,
+            files: files,
+            bittorrentInfo: bittorrentInfo,
+            uris: uris,
+            errorMessage: errorMessage,
+            // We don't have exact start time from the API, so we'll leave it as null
+            // and it can be set when needed
           ));
         } catch (e) {
           print('Failed to parse task: $e');
@@ -452,87 +506,370 @@ class _DownloadPageState extends State<DownloadPage> {
     }
   }
 
-  // Show task details dialog
+  // Parse single task data - now compatible with extended model
+  // This function is now primarily used as a fallback when task isn't found in the main list
+  DownloadTask _parseTask(Map<String, dynamic> taskData) {
+    // Parse raw bytes data first for accurate calculations and storage
+    final totalLengthBytes = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 0;
+    final completedLengthBytes = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
+    final downloadSpeedBytes = int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0;
+    final uploadSpeedBytes = int.tryParse(taskData['uploadSpeed'] as String? ?? '0') ?? 0;
+    
+    // Parse basic info
+    final id = taskData['gid'] as String? ?? '';
+    
+    // Parse status
+    DownloadStatus status = DownloadStatus.waiting;
+    String? taskStatus = taskData['status'] as String?;
+    
+    if (taskStatus != null) {
+      switch (taskStatus) {
+        case 'active':
+          status = DownloadStatus.active;
+          break;
+        case 'waiting':
+        case 'paused':
+          status = DownloadStatus.waiting;
+          break;
+        case 'complete':
+        case 'error':
+        case 'removed':
+          status = DownloadStatus.stopped;
+          break;
+      }
+    }
+    
+    // Calculate progress
+    double progress = totalLengthBytes > 0 ? completedLengthBytes / totalLengthBytes : 0.0;
+    
+    // Format display values
+    String size = _formatBytes(totalLengthBytes);
+    String completedSize = _formatBytes(completedLengthBytes);
+    String downloadSpeed = _formatBytes(downloadSpeedBytes) + '/s';
+    String uploadSpeed = _formatBytes(uploadSpeedBytes) + '/s';
+    
+    // Get file name and store complete files info
+    String name = '未知任务';
+    List<Map<String, dynamic>>? files;
+    
+    if (taskData.containsKey('files') && taskData['files'] is List && (taskData['files'] as List).isNotEmpty) {
+      // Store complete files information for detailed view
+      files = (taskData['files'] as List).map((file) {
+        if (file is Map) {
+          return <String, dynamic>{
+            ...file,
+            'path': file['path'] as String? ?? '',
+            'length': file['length'] as String? ?? '0',
+            'completedLength': file['completedLength'] as String? ?? '0',
+            'selected': file['selected'] as String? ?? 'true',
+          };
+        }
+        return <String, dynamic>{};
+      }).toList();
+      
+      // Extract first file name for display
+      final firstFile = (taskData['files'] as List)[0];
+      if (firstFile is Map && firstFile.containsKey('path')) {
+        final path = firstFile['path'] as String;
+        name = path.split('/').last.split('\\').last;
+      }
+    }
+    
+    // Parse additional details
+    int? connections = taskData.containsKey('connections') 
+      ? int.tryParse(taskData['connections'] as String? ?? '') ?? null
+      : null;
+    
+    String? dir = taskData['dir'] as String?;
+    
+    // Parse torrent info if available
+    String? bittorrentInfo;
+    if (taskData.containsKey('bittorrent') && taskData['bittorrent'] is Map) {
+      bittorrentInfo = json.encode(taskData['bittorrent']);
+    }
+    
+    // Parse URIs if available
+    List<String>? uris;
+    if (taskData.containsKey('uris') && taskData['uris'] is List) {
+      uris = (taskData['uris'] as List).expand((uriList) {
+        if (uriList is List) {
+          return uriList.whereType<Map>().map((uri) => uri['uri'] as String? ?? '').where((s) => s.isNotEmpty).cast<String>();
+        }
+        return <String>[];
+      }).toList();
+    }
+    
+    // Parse error message if any
+    String? errorMessage;
+    if (taskData.containsKey('errorMessage')) {
+      errorMessage = taskData['errorMessage'] as String?;
+    }
+    
+    // Return parsed task object with all extended fields
+    return DownloadTask(
+      id: id,
+      name: name,
+      status: status,
+      taskStatus: taskStatus,
+      progress: progress,
+      downloadSpeed: downloadSpeed,
+      uploadSpeed: uploadSpeed,
+      size: size,
+      completedSize: completedSize,
+      isLocal: true, // Default value, will be updated based on instance
+      instanceId: '', // Default value, will be updated based on instance
+      connections: connections,
+      dir: dir,
+      // Extended detailed information
+      totalLengthBytes: totalLengthBytes,
+      completedLengthBytes: completedLengthBytes,
+      downloadSpeedBytes: downloadSpeedBytes,
+      uploadSpeedBytes: uploadSpeedBytes,
+      files: files,
+      bittorrentInfo: bittorrentInfo,
+      uris: uris,
+      errorMessage: errorMessage,
+    );
+  }
+
+  // 存储当前打开的任务详情对话框中的任务ID
+  String? _openedTaskDetailsId;
+  
+  // 更新任务详情的回调函数
+  void _updateTaskDetails() {
+    if (_openedTaskDetailsId != null) {
+      // 当主循环刷新任务列表后，我们可以在这里添加通知对话框更新的逻辑
+      // 由于我们使用Provider和StatefulBuilder，实际上不需要显式通知
+      // 对话框会通过StatefulBuilder自动获取最新数据
+    }
+  }
+  
+  // Show task details dialog using main loop data - now displays extended information
   void _showTaskDetails(BuildContext context, DownloadTask task) {
+    // 设置当前打开的任务ID
+    _openedTaskDetailsId = task.id;
+    
     showDialog(
       context: context,
       builder: (context) {
-        // 使用DefaultTabController实现标签页功能
-        return DefaultTabController(
-          length: 3,
-          initialIndex: 0, // 默认选中第一个标签页（总览）
-          child: AlertDialog(
-            title: Text('任务详情 - ${task.name}'),
-            content: SizedBox(
-              width: 600,
-              height: 450,
-              child: Column(
-                children: [
-                  // 标签栏
-                  TabBar(
-                    tabs: [
-                      Tab(text: '总览'),
-                      Tab(text: '区块'),
-                      Tab(text: '文件信息'),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            // 从主循环的下载任务列表中查找当前任务的最新数据
+            DownloadTask getLatestTaskData() {
+              // 优先从主循环的任务列表中查找
+              final taskFromList = _downloadTasks.firstWhere(
+                (t) => t.id == task.id,
+                orElse: () => task, // 如果找不到，使用传入的task作为默认值
+              );
+              return taskFromList;
+            }
+            
+            // 创建一个每分钟刷新一次的定时器（仅作为备份，主循环会更频繁地更新）
+            // 这样即使主循环数据有问题，详情页也能更新
+            Timer? backupTimer;
+            backupTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+              if (context.mounted) {
+                setState(() {
+                  // 触发重建，从主循环获取最新数据
+                });
+              }
+            });
+            
+            // 获取最新的任务数据
+            final currentTask = getLatestTaskData();
+
+            return DefaultTabController(
+              length: 3,
+              initialIndex: 0, // 默认选中第一个标签页（总览）
+              child: AlertDialog(
+                title: Text('任务详情 - ${currentTask.name}'),
+                content: SizedBox(
+                  width: 600,
+                  height: 450,
+                  child: Column(
+                    children: [
+                      // 标签栏
+                      TabBar(
+                        tabs: const [
+                          Tab(text: '总览'),
+                          Tab(text: '文件信息'),
+                          Tab(text: '连接信息'),
+                        ],
+                        indicatorSize: TabBarIndicatorSize.tab,
+                      ),
+                      // 标签页内容
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            // 总览标签页 - 显示扩展的详细信息
+                            SingleChildScrollView(
+                              padding: EdgeInsets.all(8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // 基本信息
+                                  Text('任务ID: ${currentTask.id}'),
+                                  SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Text('任务状态: '),
+                                      Text(
+                                        _getStatusInfo(currentTask, Theme.of(context).colorScheme).$1,
+                                        style: TextStyle(color: _getStatusInfo(currentTask, Theme.of(context).colorScheme).$2),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text('任务大小: ${currentTask.size} (${currentTask.totalLengthBytes} 字节)'),
+                                  SizedBox(height: 8),
+                                  Text('已下载: ${currentTask.completedSize} (${currentTask.completedLengthBytes} 字节)'),
+                                  SizedBox(height: 8),
+                                  Text('进度: ${(currentTask.progress * 100).toStringAsFixed(2)}%'),
+                                  SizedBox(height: 12),
+                                  // 速度信息
+                                  Text('下载速度: ${currentTask.downloadSpeed} (${currentTask.downloadSpeedBytes} 字节/秒)'),
+                                  SizedBox(height: 8),
+                                  Text('上传速度: ${currentTask.uploadSpeed} (${currentTask.uploadSpeedBytes} 字节/秒)'),
+                                  SizedBox(height: 12),
+                                  // 其他信息
+                                  Text('连接数: ${currentTask.connections ?? '--'}'),
+                                  SizedBox(height: 8),
+                                  Text('下载路径: ${currentTask.dir ?? '--'}'),
+                                  SizedBox(height: 8),
+                                  // 显示错误信息（如果有）
+                                  if (currentTask.errorMessage != null && currentTask.errorMessage!.isNotEmpty) 
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('错误信息: ${currentTask.errorMessage}', style: TextStyle(color: Colors.red)),
+                                        SizedBox(height: 8),
+                                      ],
+                                    ),
+                                  // 计算并显示剩余时间
+                                  if (currentTask.status == DownloadStatus.active && currentTask.downloadSpeedBytes > 0)
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('剩余时间: ${_calculateRemainingTime(currentTask)}'),
+                                        SizedBox(height: 8),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+                            
+                            // 文件信息标签页 - 显示从主循环获取的文件列表
+                            SingleChildScrollView(
+                              padding: EdgeInsets.all(8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('文件列表:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  SizedBox(height: 8),
+                                  if (currentTask.files != null && currentTask.files!.isNotEmpty) 
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      physics: NeverScrollableScrollPhysics(),
+                                      itemCount: currentTask.files!.length,
+                                      itemBuilder: (context, index) {
+                                        final file = currentTask.files![index];
+                                        final filePath = file['path'] as String? ?? '未知路径';
+                                        final fileName = filePath.split('/').last.split('\\').last;
+                                        final fileSize = _formatBytes(int.tryParse(file['length'] as String? ?? '0') ?? 0);
+                                        final completedSize = _formatBytes(int.tryParse(file['completedLength'] as String? ?? '0') ?? 0);
+                                        final selected = (file['selected'] as String? ?? 'true') == 'true';
+                                        
+                                        return Container(
+                                          padding: EdgeInsets.symmetric(vertical: 4),
+                                          decoration: BoxDecoration(
+                                            border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(fileName, style: TextStyle(fontWeight: selected ? FontWeight.normal : FontWeight.w300)),
+                                              Row(
+                                                children: [
+                                                  Text('$completedSize / $fileSize'),
+                                                  if (!selected) Text(' (未选择)', style: TextStyle(color: Colors.grey)),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  else
+                                    Text('无文件信息'),
+                                ],
+                              ),
+                            ),
+                            
+                            // 连接信息标签页 - 显示从主循环获取的URI信息
+                            SingleChildScrollView(
+                              padding: EdgeInsets.all(8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('下载链接:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  SizedBox(height: 8),
+                                  if (currentTask.uris != null && currentTask.uris!.isNotEmpty) 
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      physics: NeverScrollableScrollPhysics(),
+                                      itemCount: currentTask.uris!.length,
+                                      itemBuilder: (context, index) {
+                                        final uri = currentTask.uris![index];
+                                        return Container(
+                                          padding: EdgeInsets.symmetric(vertical: 4),
+                                          decoration: BoxDecoration(
+                                            border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                                          ),
+                                          child: Text(uri, style: TextStyle(fontSize: 12, color: Colors.blue)),
+                                        );
+                                      },
+                                    )
+                                  else
+                                    Text('无链接信息'),
+                                  SizedBox(height: 16),
+                                  // 显示种子信息指示
+                                  if (currentTask.bittorrentInfo != null) 
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('种子信息:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                        SizedBox(height: 4),
+                                        Text('此任务为种子下载，包含种子元数据'),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
-                    indicatorSize: TabBarIndicatorSize.tab,
                   ),
-                  // 标签页内容
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        // 总览标签页
-                        SingleChildScrollView(
-                          padding: EdgeInsets.all(8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // 基本信息
-                              Text('任务ID: ${task.id ?? '未知'}'),
-                              SizedBox(height: 8),
-                              Text('任务状态: ${_getStatusInfo(task, Theme.of(context).colorScheme).$1}'),
-                              SizedBox(height: 8),
-                              Text('任务大小: ${task.size}'),
-                              SizedBox(height: 8),
-                              Text('已下载: ${task.completedSize}'),
-                              SizedBox(height: 8),
-                              Text('进度: ${(task.progress * 100).toStringAsFixed(2)}%'),
-                              SizedBox(height: 8),
-                              Text('连接数: ${task.connections ?? '--'}'),
-                              SizedBox(height: 8),
-                              Text('下载路径: ${task.dir ?? '--'}'),
-                              SizedBox(height: 16),
-                            ],
-                          ),
-                        ),
-                        
-                        // 区块标签页
-                        Center(
-                          child: Text('区块信息功能开发中', style: TextStyle(color: Colors.blue)),
-                        ),
-                        
-                        // 文件信息标签页
-                        Center(
-                          child: Text('文件信息功能开发中', style: TextStyle(color: Colors.blue)),
-                        ),
-                      ],
-                    ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      backupTimer?.cancel();
+                      _openedTaskDetailsId = null; // 清除当前打开的任务ID
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('关闭'),
                   ),
                 ],
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text('关闭'),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
-    );
+    ).then((_) {
+      // 对话框关闭时清除状态
+      _openedTaskDetailsId = null;
+    });
   }
   
   // Load instance names
