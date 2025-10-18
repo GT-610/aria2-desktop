@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/instance_manager.dart';
 import '../services/aria2_rpc_client.dart';
 import '../models/aria2_instance.dart';
@@ -664,10 +666,10 @@ class _DownloadPageState extends State<DownloadPage> {
               return taskFromList;
             }
             
-            // 创建一个每分钟刷新一次的定时器（仅作为备份，主循环会更频繁地更新）
-            // 这样即使主循环数据有问题，详情页也能更新
-            Timer? backupTimer;
-            backupTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+            // 创建一个每秒刷新一次的定时器，与主循环的刷新频率保持一致
+            // 这样详情页面可以实时显示最新的任务状态
+            Timer? refreshTimer;
+            refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
               if (context.mounted) {
                 setState(() {
                   // 触发重建，从主循环获取最新数据
@@ -675,192 +677,207 @@ class _DownloadPageState extends State<DownloadPage> {
               }
             });
             
+            // 添加对话框关闭时的清理操作
+            void disposeResources() {
+              if (refreshTimer != null) {
+                refreshTimer!.cancel();
+                refreshTimer = null;
+              }
+            }
+            
             // 获取最新的任务数据
             final currentTask = getLatestTaskData();
-
-            return DefaultTabController(
-              length: 3,
-              initialIndex: 0, // 默认选中第一个标签页（总览）
-              child: AlertDialog(
-                title: Text('任务详情 - ${currentTask.name}'),
-                content: SizedBox(
-                  width: 600,
-                  height: 450,
-                  child: Column(
-                    children: [
-                      // 标签栏
-                      TabBar(
-                        tabs: const [
-                          Tab(text: '总览'),
-                          Tab(text: '区块信息'),
-                          Tab(text: '文件列表'),
-                        ],
-                        indicatorSize: TabBarIndicatorSize.tab,
-                      ),
-                      // 标签页内容
-                      Expanded(
-                        child: TabBarView(
-                          children: [
-                            // 总览标签页 - 显示扩展的详细信息
-                            SingleChildScrollView(
-                              padding: EdgeInsets.all(8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // 基本信息
-                                  Text('任务ID: ${currentTask.id}'),
-                                  SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Text('任务状态: '),
-                                      Text(
-                                        _getStatusInfo(currentTask, Theme.of(context).colorScheme).$1,
-                                        style: TextStyle(color: _getStatusInfo(currentTask, Theme.of(context).colorScheme).$2),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text('任务大小: ${currentTask.size} (${currentTask.totalLengthBytes} 字节)'),
-                                  SizedBox(height: 8),
-                                  Text('已下载: ${currentTask.completedSize} (${currentTask.completedLengthBytes} 字节)'),
-                                  SizedBox(height: 8),
-                                  Text('进度: ${(currentTask.progress * 100).toStringAsFixed(2)}%'),
-                                  SizedBox(height: 12),
-                                  // 速度信息
-                                  Text('下载速度: ${currentTask.downloadSpeed} (${currentTask.downloadSpeedBytes} 字节/秒)'),
-                                  SizedBox(height: 8),
-                                  Text('上传速度: ${currentTask.uploadSpeed} (${currentTask.uploadSpeedBytes} 字节/秒)'),
-                                  SizedBox(height: 12),
-                                  // 其他信息
-                                  Text('连接数: ${currentTask.connections ?? '--'}'),
-                                  SizedBox(height: 8),
-                                  Text('下载路径: ${currentTask.dir ?? '--'}'),
-                                  SizedBox(height: 8),
-                                  // 显示错误信息（如果有）
-                                  if (currentTask.errorMessage != null && currentTask.errorMessage!.isNotEmpty) 
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('错误信息: ${currentTask.errorMessage}', style: TextStyle(color: Colors.red)),
-                                        SizedBox(height: 8),
-                                      ],
-                                    ),
-                                  // 计算并显示剩余时间
-                                  if (currentTask.status == DownloadStatus.active && currentTask.downloadSpeedBytes > 0)
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('剩余时间: ${_calculateRemainingTime(currentTask)}'),
-                                        SizedBox(height: 8),
-                                      ],
-                                    ),
-                                ],
-                              ),
-                            ),
-                            
-                            // 文件信息标签页 - 显示从主循环获取的文件列表
-                            SingleChildScrollView(
-                              padding: EdgeInsets.all(8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('文件列表:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  SizedBox(height: 8),
-                                  if (currentTask.files != null && currentTask.files!.isNotEmpty) 
-                                    ListView.builder(
-                                      shrinkWrap: true,
-                                      physics: NeverScrollableScrollPhysics(),
-                                      itemCount: currentTask.files!.length,
-                                      itemBuilder: (context, index) {
-                                        final file = currentTask.files![index];
-                                        final filePath = file['path'] as String? ?? '未知路径';
-                                        final fileName = filePath.split('/').last.split('\\').last;
-                                        final fileSize = _formatBytes(int.tryParse(file['length'] as String? ?? '0') ?? 0);
-                                        final completedSize = _formatBytes(int.tryParse(file['completedLength'] as String? ?? '0') ?? 0);
-                                        final selected = (file['selected'] as String? ?? 'true') == 'true';
-                                        
-                                        return Container(
-                                          padding: EdgeInsets.symmetric(vertical: 4),
-                                          decoration: BoxDecoration(
-                                            border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(fileName, style: TextStyle(fontWeight: selected ? FontWeight.normal : FontWeight.w300)),
-                                              Row(
-                                                children: [
-                                                  Text('$completedSize / $fileSize'),
-                                                  if (!selected) Text(' (未选择)', style: TextStyle(color: Colors.grey)),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  else
-                                    Text('无文件信息'),
-                                ],
-                              ),
-                            ),
-                            
-                            // 连接信息标签页 - 显示从主循环获取的URI信息
-                            SingleChildScrollView(
-                              padding: EdgeInsets.all(8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('下载链接:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  SizedBox(height: 8),
-                                  if (currentTask.uris != null && currentTask.uris!.isNotEmpty) 
-                                    ListView.builder(
-                                      shrinkWrap: true,
-                                      physics: NeverScrollableScrollPhysics(),
-                                      itemCount: currentTask.uris!.length,
-                                      itemBuilder: (context, index) {
-                                        final uri = currentTask.uris![index];
-                                        return Container(
-                                          padding: EdgeInsets.symmetric(vertical: 4),
-                                          decoration: BoxDecoration(
-                                            border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-                                          ),
-                                          child: Text(uri, style: TextStyle(fontSize: 12, color: Colors.blue)),
-                                        );
-                                      },
-                                    )
-                                  else
-                                    Text('无链接信息'),
-                                  SizedBox(height: 16),
-                                  // 显示种子信息指示
-                                  if (currentTask.bittorrentInfo != null) 
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('种子信息:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                        SizedBox(height: 4),
-                                        Text('此任务为种子下载，包含种子元数据'),
-                                      ],
-                                    ),
-                                ],
-                              ),
-                            ),
+              
+            return WillPopScope(
+              onWillPop: () async {
+                disposeResources();
+                _openedTaskDetailsId = null;
+                return true;
+              },
+              child: DefaultTabController(
+                length: 3,
+                initialIndex: 0, // 默认选中第一个标签页（总览）
+                child: AlertDialog(
+                  title: Text('任务详情 - ${currentTask.name}'),
+                  content: SizedBox(
+                    width: 600,
+                    height: 450,
+                    child: Column(
+                      children: [
+                        // 标签栏
+                        TabBar(
+                          tabs: const [
+                            Tab(text: '总览'),
+                            Tab(text: '区块信息'),
+                            Tab(text: '文件列表'),
                           ],
+                          indicatorSize: TabBarIndicatorSize.tab,
                         ),
-                      ),
-                    ],
+                        // 标签页内容
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              // 总览标签页 - 显示扩展的详细信息
+                              SingleChildScrollView(
+                                padding: EdgeInsets.all(8),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // 基本信息
+                                    Text('任务ID: ${currentTask.id}'),
+                                    SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Text('任务状态: '),
+                                        Text(
+                                          _getStatusInfo(currentTask, Theme.of(context).colorScheme).$1,
+                                          style: TextStyle(color: _getStatusInfo(currentTask, Theme.of(context).colorScheme).$2),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text('任务大小: ${currentTask.size} (${currentTask.totalLengthBytes} 字节)'),
+                                    SizedBox(height: 8),
+                                    Text('已下载: ${currentTask.completedSize} (${currentTask.completedLengthBytes} 字节)'),
+                                    SizedBox(height: 8),
+                                    Text('进度: ${(currentTask.progress * 100).toStringAsFixed(2)}%'),
+                                    SizedBox(height: 12),
+                                    // 速度信息
+                                    Text('下载速度: ${currentTask.downloadSpeed} (${currentTask.downloadSpeedBytes} 字节/秒)'),
+                                    SizedBox(height: 8),
+                                    Text('上传速度: ${currentTask.uploadSpeed} (${currentTask.uploadSpeedBytes} 字节/秒)'),
+                                    SizedBox(height: 12),
+                                    // 其他信息
+                                    Text('连接数: ${currentTask.connections ?? '--'}'),
+                                    SizedBox(height: 8),
+                                    Text('下载路径: ${currentTask.dir ?? '--'}'),
+                                    SizedBox(height: 8),
+                                    // 显示错误信息（如果有）
+                                    if (currentTask.errorMessage != null && currentTask.errorMessage!.isNotEmpty) 
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('错误信息: ${currentTask.errorMessage}', style: TextStyle(color: Colors.red)),
+                                          SizedBox(height: 8),
+                                        ],
+                                      ),
+                                    // 计算并显示剩余时间
+                                    if (currentTask.status == DownloadStatus.active && currentTask.downloadSpeedBytes > 0)
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('剩余时间: ${_calculateRemainingTime(currentTask)}'),
+                                          SizedBox(height: 8),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              
+                              // 文件信息标签页 - 显示从主循环获取的文件列表
+                              SingleChildScrollView(
+                                padding: EdgeInsets.all(8),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('文件列表:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    SizedBox(height: 8),
+                                    if (currentTask.files != null && currentTask.files!.isNotEmpty) 
+                                      ListView.builder(
+                                        shrinkWrap: true,
+                                        physics: NeverScrollableScrollPhysics(),
+                                        itemCount: currentTask.files!.length,
+                                        itemBuilder: (context, index) {
+                                          final file = currentTask.files![index];
+                                          final filePath = file['path'] as String? ?? '未知路径';
+                                          final fileName = filePath.split('/').last.split('\\').last;
+                                          final fileSize = _formatBytes(int.tryParse(file['length'] as String? ?? '0') ?? 0);
+                                          final completedSize = _formatBytes(int.tryParse(file['completedLength'] as String? ?? '0') ?? 0);
+                                          final selected = (file['selected'] as String? ?? 'true') == 'true';
+                                          
+                                          return Container(
+                                            padding: EdgeInsets.symmetric(vertical: 4),
+                                            decoration: BoxDecoration(
+                                              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(fileName, style: TextStyle(fontWeight: selected ? FontWeight.normal : FontWeight.w300)),
+                                                Row(
+                                                  children: [
+                                                    Text('$completedSize / $fileSize'),
+                                                    if (!selected) Text(' (未选择)', style: TextStyle(color: Colors.grey)),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      )
+                                    else
+                                      Text('无文件信息'),
+                                  ],
+                                ),
+                              ),
+                              
+                              // 连接信息标签页 - 显示从主循环获取的URI信息
+                              SingleChildScrollView(
+                                padding: EdgeInsets.all(8),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('下载链接:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    SizedBox(height: 8),
+                                    if (currentTask.uris != null && currentTask.uris!.isNotEmpty) 
+                                      ListView.builder(
+                                        shrinkWrap: true,
+                                        physics: NeverScrollableScrollPhysics(),
+                                        itemCount: currentTask.uris!.length,
+                                        itemBuilder: (context, index) {
+                                          final uri = currentTask.uris![index];
+                                          return Container(
+                                            padding: EdgeInsets.symmetric(vertical: 4),
+                                            decoration: BoxDecoration(
+                                              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                                            ),
+                                            child: Text(uri, style: TextStyle(fontSize: 12, color: Colors.blue)),
+                                          );
+                                        },
+                                      )
+                                    else
+                                      Text('无链接信息'),
+                                    SizedBox(height: 16),
+                                    // 显示种子信息指示
+                                    if (currentTask.bittorrentInfo != null) 
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('种子信息:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                          SizedBox(height: 4),
+                                          Text('此任务为种子下载，包含种子元数据'),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        disposeResources();
+                        _openedTaskDetailsId = null;
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('关闭'),
+                    ),
+                  ],
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      backupTimer?.cancel();
-                      _openedTaskDetailsId = null; // 清除当前打开的任务ID
-                      Navigator.of(context).pop();
-                    },
-                    child: Text('关闭'),
-                  ),
-                ],
               ),
             );
           },
@@ -939,6 +956,56 @@ class _DownloadPageState extends State<DownloadPage> {
         return ('等待中', colorScheme.secondary);
       case DownloadStatus.stopped:
         return ('已停止', colorScheme.errorContainer);
+    }
+  }
+
+  // 打开下载目录
+  void _openDownloadDirectory(DownloadTask task) async {
+    try {
+      // 检查任务是否有下载目录信息
+      if (task.dir == null || task.dir!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('无法获取下载目录信息')),
+        );
+        return;
+      }
+
+      String directoryPath = task.dir!;
+      
+      // 确保路径存在
+      if (!Directory(directoryPath).existsSync()) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('下载目录不存在')),
+        );
+        return;
+      }
+
+      // 不同平台的处理方式
+      if (Platform.isWindows) {
+        // Windows平台特殊处理：使用explorer命令打开目录
+        // 修复Windows路径格式问题
+        String windowsPath = directoryPath;
+        // 对于Windows路径，我们使用run方法而不是url_launcher
+        await Process.run('explorer.exe', [windowsPath]);
+        print('Opening Windows directory: $windowsPath');
+      } else {
+        // 非Windows平台使用file://协议
+        Uri uri = Uri.parse('file://$directoryPath');
+        
+        // 尝试打开目录
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('无法打开下载目录')),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error opening directory: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('打开目录时出错: $e')),
+      );
     }
   }
 
@@ -1292,7 +1359,7 @@ class _DownloadPageState extends State<DownloadPage> {
                 OutlinedButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.pause),
-                  label: const Text('暂停'),
+                  label: const Text('全部暂停'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -1304,7 +1371,7 @@ class _DownloadPageState extends State<DownloadPage> {
                 OutlinedButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.play_arrow),
-                  label: const Text('继续'),
+                  label: const Text('全部继续'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -1316,7 +1383,7 @@ class _DownloadPageState extends State<DownloadPage> {
                 OutlinedButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.delete),
-                  label: const Text('删除'),
+                  label: const Text('全部删除'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -1705,12 +1772,12 @@ class _DownloadPageState extends State<DownloadPage> {
                               child: IconButton(
                                 icon: const Icon(Icons.folder_open),
                                 onPressed: () {
-                                  print('Open directory for task: ${task.id}');
+                                  _openDownloadDirectory(task);
                                 },
                                 padding: EdgeInsets.zero,
                                 constraints: BoxConstraints(),
                               ),
-                            ),
+                            )
                           ],
                         ),
                       ],
