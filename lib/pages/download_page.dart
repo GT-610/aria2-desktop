@@ -774,7 +774,44 @@ class _DownloadPageState extends State<DownloadPage> {
                                 ),
                               ),
                               
-                              // 文件信息标签页 - 显示从主循环获取的文件列表
+                              // 区块信息标签页 - 占位符文本
+                              SingleChildScrollView(
+                                padding: EdgeInsets.all(16),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.construction,
+                                        size: 64,
+                                        color: Colors.grey,
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        '区块信息可视化功能正在开发中',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey[700],
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        '此功能将在未来版本中提供，届时您可以直观查看下载区块的完成状态。',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                               
+                              // 文件信息标签页 - 显示在文件列表标签下
                               SingleChildScrollView(
                                 padding: EdgeInsets.all(8),
                                 child: Column(
@@ -794,7 +831,7 @@ class _DownloadPageState extends State<DownloadPage> {
                                           final fileSize = _formatBytes(int.tryParse(file['length'] as String? ?? '0') ?? 0);
                                           final completedSize = _formatBytes(int.tryParse(file['completedLength'] as String? ?? '0') ?? 0);
                                           final selected = (file['selected'] as String? ?? 'true') == 'true';
-                                          
+                                           
                                           return Container(
                                             padding: EdgeInsets.symmetric(vertical: 4),
                                             decoration: BoxDecoration(
@@ -817,47 +854,6 @@ class _DownloadPageState extends State<DownloadPage> {
                                       )
                                     else
                                       Text('无文件信息'),
-                                  ],
-                                ),
-                              ),
-                              
-                              // 连接信息标签页 - 显示从主循环获取的URI信息
-                              SingleChildScrollView(
-                                padding: EdgeInsets.all(8),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('下载链接:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                    SizedBox(height: 8),
-                                    if (currentTask.uris != null && currentTask.uris!.isNotEmpty) 
-                                      ListView.builder(
-                                        shrinkWrap: true,
-                                        physics: NeverScrollableScrollPhysics(),
-                                        itemCount: currentTask.uris!.length,
-                                        itemBuilder: (context, index) {
-                                          final uri = currentTask.uris![index];
-                                          return Container(
-                                            padding: EdgeInsets.symmetric(vertical: 4),
-                                            decoration: BoxDecoration(
-                                              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-                                            ),
-                                            child: Text(uri, style: TextStyle(fontSize: 12, color: Colors.blue)),
-                                          );
-                                        },
-                                      )
-                                    else
-                                      Text('无链接信息'),
-                                    SizedBox(height: 16),
-                                    // 显示种子信息指示
-                                    if (currentTask.bittorrentInfo != null) 
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('种子信息:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                          SizedBox(height: 4),
-                                          Text('此任务为种子下载，包含种子元数据'),
-                                        ],
-                                      ),
                                   ],
                                 ),
                               ),
@@ -949,6 +945,11 @@ class _DownloadPageState extends State<DownloadPage> {
       return ('已暂停', colorScheme.tertiary);
     }
     
+    // 特殊处理已完成的任务
+    if (task.status == DownloadStatus.stopped && task.taskStatus == 'complete') {
+      return ('已完成', colorScheme.primaryContainer);
+    }
+    
     switch (task.status) {
       case DownloadStatus.active:
         return ('下载中', colorScheme.primary);
@@ -1016,6 +1017,11 @@ class _DownloadPageState extends State<DownloadPage> {
       return Icon(Icons.pause, color: color);
     }
     
+    // 特殊处理已完成的任务
+    if (task.status == DownloadStatus.stopped && task.taskStatus == 'complete') {
+      return Icon(Icons.check_circle, color: color);
+    }
+    
     switch (task.status) {
       case DownloadStatus.active:
         return Icon(Icons.file_download, color: color);
@@ -1076,7 +1082,7 @@ class _DownloadPageState extends State<DownloadPage> {
       case FilterOption.waiting:
         return '等待中';
       case FilterOption.stopped:
-        return '已停止';
+        return '已停止 / 已完成';
       case FilterOption.local:
         return '本地';
       case FilterOption.remote:
@@ -1482,6 +1488,28 @@ class _DownloadPageState extends State<DownloadPage> {
                       children: [
                         _getStatusIcon(task, statusColor),
                         const SizedBox(width: 12),
+                        // Progress percentage - styled like download speed
+                        if (task.progress > 0)
+                          Container(
+                            margin: EdgeInsets.only(right: 8),
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  '${(task.progress * 100).toInt()}%',
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         Expanded(
                           child: Text(
                             task.name,
@@ -1577,21 +1605,7 @@ class _DownloadPageState extends State<DownloadPage> {
                               : (task.status == DownloadStatus.active ? statusColor : statusColor.withOpacity(0.6)),
                           ),
                         ),
-                        // Only show progress text for non-active status
-                        if (task.status != DownloadStatus.active && task.progress > 0)
-                          Positioned.fill(
-                            child: Align(
-                              alignment: Alignment.center,
-                              child: Text(
-                                '${(task.progress * 100).toInt()}%',
-                                style: TextStyle(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
+                        // No longer showing progress text on the progress bar
                       ],
                     ),
                     
@@ -1751,8 +1765,8 @@ class _DownloadPageState extends State<DownloadPage> {
                                   constraints: BoxConstraints(),
                                 ),
                               ),
-                            ] else if (task.status == DownloadStatus.stopped) ...[
-                              // Retry button
+                            ] else if (task.status == DownloadStatus.stopped && task.taskStatus != 'complete') ...[
+                              // Retry button - Don't show for completed tasks
                               Tooltip(
                                 message: '重试',
                                 child: IconButton(
