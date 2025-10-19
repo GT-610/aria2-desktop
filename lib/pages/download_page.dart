@@ -63,6 +63,7 @@ class DownloadTask {
   final List<String>? uris; // Download URIs
   final String? errorMessage; // Error message if any
   final DateTime? startTime; // Task start time
+  final String? bitfield; // Bitfield data for download status visualization
 
   DownloadTask({
     required this.id,
@@ -87,6 +88,7 @@ class DownloadTask {
     this.uris,
     this.errorMessage,
     this.startTime,
+    this.bitfield,
   });
 }
 
@@ -345,6 +347,12 @@ class _DownloadPageState extends State<DownloadPage> {
             errorMessage = taskData['errorMessage'] as String?;
           }
           
+          // Parse bitfield data
+          String? bitfield;
+          if (taskData.containsKey('bitfield')) {
+            bitfield = taskData['bitfield'] as String?;
+          }
+          
           // If there's no file name, use gid as the name
           if (name.isEmpty) {
             name = id.substring(0, 8);
@@ -375,6 +383,7 @@ class _DownloadPageState extends State<DownloadPage> {
             errorMessage: errorMessage,
             // We don't have exact start time from the API, so we'll leave it as null
             // and it can be set when needed
+            bitfield: bitfield,
           ));
         } catch (e) {
           print('Failed to parse task: $e');
@@ -709,7 +718,7 @@ class _DownloadPageState extends State<DownloadPage> {
                         TabBar(
                           tabs: const [
                             Tab(text: '总览'),
-                            Tab(text: '区块信息'),
+                            Tab(text: '下载状态'),
                             Tab(text: '文件列表'),
                           ],
                           indicatorSize: TabBarIndicatorSize.tab,
@@ -775,41 +784,10 @@ class _DownloadPageState extends State<DownloadPage> {
                                 ),
                               ),
                               
-                              // 区块信息标签页 - 占位符文本
+                              // 区块信息标签页 - 实现可视化展示
                               SingleChildScrollView(
                                 padding: EdgeInsets.all(16),
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.construction,
-                                        size: 64,
-                                        color: Colors.grey,
-                                      ),
-                                      SizedBox(height: 16),
-                                      Text(
-                                        '区块信息可视化功能正在开发中',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.grey[700],
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        '此功能将在未来版本中提供，届时您可以直观查看下载区块的完成状态。',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[600],
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                child: _buildBitfieldVisualization(currentTask),
                               ),
                                
                               // 文件信息标签页 - 显示在文件列表标签下
@@ -2140,5 +2118,262 @@ class _DownloadPageState extends State<DownloadPage> {
         );
       },
     );
+  }
+  
+  // 构建区块信息可视化界面
+  Widget _buildBitfieldVisualization(DownloadTask task) {
+    // 直接从任务对象获取bitfield
+    String? bitfield = task.bitfield;
+    
+    if (bitfield == null || bitfield.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.info_outline, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              '当前任务没有区块信息',
+              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8),
+            Text(
+              '任务可能尚未开始或没有可用的区块数据',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // 解析bitfield为区块状态数组
+    List<int> pieces = _parseHexBitfield(bitfield);
+    
+    // 计算统计信息
+    int totalPieces = pieces.length;
+    int completedPieces = pieces.where((piece) => piece == 15).length; // 完全下载完成 (f)
+    int partialPieces = pieces.where((piece) => piece > 0 && piece < 15).length; // 部分下载 (1-14)
+    int missingPieces = pieces.where((piece) => piece == 0).length; // 未下载 (0)
+    
+    // 计算完成百分比
+    double completionPercentage = totalPieces > 0 
+      ? ((completedPieces + partialPieces * 0.5) / totalPieces) * 100 
+      : 0;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 统计信息
+        Card(
+          elevation: 2,
+          margin: EdgeInsets.only(bottom: 16),
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('区块统计:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('总区块数:'),
+                    Text('$totalPieces'),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(width: 12, height: 12, color: Colors.green, margin: EdgeInsets.only(right: 8)),
+                        Text('已完成:'),
+                      ],
+                    ),
+                    Text('$completedPieces'),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(width: 12, height: 12, color: Colors.yellow, margin: EdgeInsets.only(right: 8)),
+                        Text('部分完成:'),
+                      ],
+                    ),
+                    Text('$partialPieces'),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(width: 12, height: 12, color: Colors.grey, margin: EdgeInsets.only(right: 8)),
+                        Text('未下载:'),
+                      ],
+                    ),
+                    Text('$missingPieces'),
+                  ],
+                ),
+                SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value: completionPercentage / 100,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                ),
+                SizedBox(height: 4),
+                Text('区块完成度: ${completionPercentage.toStringAsFixed(2)}%', textAlign: TextAlign.right),
+              ],
+            ),
+          ),
+        ),
+        
+        // 下载状态可视化网格
+        Text('下载状态分布:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        SizedBox(height: 12),
+        _buildPiecesGrid(pieces),
+        
+        // 图例说明
+        SizedBox(height: 16),
+        Card(
+          elevation: 1,
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('图例说明:', style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(width: 12, height: 12, color: Colors.green, margin: EdgeInsets.only(right: 8)),
+                    Text('完全下载完成 (f)'),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Container(width: 12, height: 12, color: Colors.lightGreen, margin: EdgeInsets.only(right: 8)),
+                    Text('高完成度 (8-b)'),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Container(width: 12, height: 12, color: Colors.yellow, margin: EdgeInsets.only(right: 8)),
+                    Text('中等完成度 (4-7)'),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Container(width: 12, height: 12, color: Colors.orange, margin: EdgeInsets.only(right: 8)),
+                    Text('低完成度 (1-3)'),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Container(width: 12, height: 12, color: Colors.grey, margin: EdgeInsets.only(right: 8)),
+                    Text('未下载 (0)'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  // 解析任务数据获取bitfield的备用方法（保留以兼容不同数据格式）
+  String? _parseBitfield(String? bittorrentInfo) {
+    if (bittorrentInfo != null && bittorrentInfo.isNotEmpty) {
+      try {
+        Map<String, dynamic> bittorrentData = json.decode(bittorrentInfo);
+        if (bittorrentData.containsKey('bitfield') && bittorrentData['bitfield'] is String) {
+          return bittorrentData['bitfield'] as String;
+        }
+        if (bittorrentData.containsKey('info') && bittorrentData['info'] is Map) {
+          Map<String, dynamic> info = bittorrentData['info'] as Map<String, dynamic>;
+          if (info.containsKey('bitfield') && info['bitfield'] is String) {
+            return info['bitfield'] as String;
+          }
+        }
+      } catch (e) {
+        print('解析bittorrentInfo中的bitfield失败: $e');
+      }
+    }
+    return null;
+  }
+  
+  // 解析十六进制bitfield为区块状态数组
+  List<int> _parseHexBitfield(String bitfield) {
+    List<int> pieces = [];
+    
+    // 每个字符代表一个区块的状态 (0-f)
+    for (int i = 0; i < bitfield.length; i++) {
+      String hexChar = bitfield[i];
+      try {
+        int pieceValue = int.parse(hexChar, radix: 16);
+        pieces.add(pieceValue);
+      } catch (e) {
+        // 如果解析失败，默认为未下载
+        pieces.add(0);
+      }
+    }
+    
+    return pieces;
+  }
+  
+  // 构建区块网格可视化
+  Widget _buildPiecesGrid(List<int> pieces) {
+    // 根据区块数量确定网格大小
+    int columns = pieces.length > 500 ? 50 : (pieces.length > 200 ? 30 : 20);
+    double pieceSize = pieces.length > 1000 ? 4.0 : (pieces.length > 500 ? 6.0 : 8.0);
+    
+    return Wrap(
+      spacing: 1.0,
+      runSpacing: 1.0,
+      children: List.generate(pieces.length, (index) {
+        return Container(
+          width: pieceSize,
+          height: pieceSize,
+          decoration: BoxDecoration(
+            color: _getPieceColor(pieces[index]),
+            border: Border.all(width: 0.5, color: Colors.black.withOpacity(0.1)),
+          ),
+        );
+      }),
+    );
+  }
+  
+  // 根据区块值获取对应的颜色
+  Color _getPieceColor(int pieceValue) {
+    switch (pieceValue) {
+      case 0:
+        return Colors.grey; // 未下载
+      case 1:
+      case 2:
+      case 3:
+        return Colors.orange; // 低完成度
+      case 4:
+      case 5:
+      case 6:
+      case 7:
+        return Colors.yellow; // 中等完成度
+      case 8:
+      case 9:
+      case 10:
+      case 11:
+        return Colors.lightGreen; // 高完成度
+      case 12:
+      case 13:
+      case 14:
+      case 15:
+        return Colors.green; // 完全下载完成
+      default:
+        return Colors.grey; // 默认未下载
+    }
   }
 }
