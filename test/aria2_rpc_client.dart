@@ -7,15 +7,24 @@ void main() async {
   // 定义请求对象
   final request = {  
   "jsonrpc": "2.0",  
-  "id": "qwer",  
-  "method": "aria2.tellActive",  
-  "params": ["token:test114514"]  
+  "id": "ID",  
+  "method": "aria2.addUri",  
+  "params": [  
+    "token:test114514",  
+    ["http://example.com/file.zip"],  
+    {  
+      "dir": "/path/to/download",  
+      "out": "filename.zip",  
+      "max-connection-per-server": "16",  
+      "split": "16"  
+    }  
+  ]  
 };
 
   try {
     // 发送请求
     final response = await http.post(
-      Uri.parse('http://172.21.160.1:6800/jsonrpc'),
+      Uri.parse('http://127.0.0.1:6800/jsonrpc'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(request),
     );

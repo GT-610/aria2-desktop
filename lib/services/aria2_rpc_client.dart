@@ -292,6 +292,26 @@ class Aria2RpcClient {
     final response = await callRpc('aria2.remove', [gid]);
     return response['result'] as String; // Returns the GID of the removed task
   }
+  
+  /// Add a download task with URI
+  Future<String> addUri(String uri, String directory) async {
+    // 构建下载参数
+    final downloadOptions = {
+      'dir': directory,
+    };
+    
+    // 构建请求参数 - [URL列表, 选项]
+    final params = [
+      [uri],  // URL列表，即使只有一个URL也需要是数组格式
+      downloadOptions  // 下载选项
+    ];
+    
+    // 调用RPC方法发送请求
+    final response = await callRpc('aria2.addUri', params);
+    
+    // 返回任务的GID
+    return response['result'] as String; // Returns the GID of the added task
+  }
 
   /// Close connection
   void close() {
