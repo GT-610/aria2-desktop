@@ -10,6 +10,7 @@ import '../services/instance_manager.dart';
 import '../services/aria2_rpc_client.dart';
 import '../models/aria2_instance.dart';
 import '../models/global_stat.dart';
+import '../components/download/add_task_dialog.dart';
 
 // Define download task status enum
 enum DownloadStatus {
@@ -1914,206 +1915,52 @@ class _DownloadPageState extends State<DownloadPage> {
   
   // 显示添加任务对话框
   void _showAddTaskDialog(BuildContext context) {
-    // 在对话框外部创建文本控制器，确保状态的持久性
-    TextEditingController saveLocationController = TextEditingController();
-    
     showDialog(
       context: context,
       builder: (context) {
-        // 使用StatefulBuilder来管理UI更新
-        return StatefulBuilder(
-          builder: (context, setState) {
-            // 选择保存位置的函数
-            Future<void> _selectSaveLocation() async {
-              try {
-                String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
-                  dialogTitle: '选择保存位置',
-                  initialDirectory: saveLocationController.text.isNotEmpty ? saveLocationController.text : null,
-                );
+        return AddTaskDialog(
+            onAddTask: (taskType, uri, downloadDir) async {
+            try {
+              // 获取实例管理器和活动实例
+              final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+              final activeInstance = instanceManager.activeInstance;
+              
+              if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
+                final client = Aria2RpcClient(activeInstance);
                 
-                if (selectedDirectory != null) {
-                  // 直接更新控制器文本，不需要通过setState
-                  saveLocationController.text = selectedDirectory;
-                  // 强制刷新UI以确保文本框显示最新内容
-                  setState(() {});
+                // 根据任务类型添加任务
+                switch (taskType) {
+                  case 'uri':
+                    if (uri.isNotEmpty) {
+                      await client.addUri(uri, downloadDir);
+                    }
+                    break;
+                  case 'torrent':
+                    // TODO: 实现种子文件上传逻辑
+                    print('添加种子任务，下载目录: $downloadDir');
+                    break;
+                  case 'metalink':
+                    // TODO: 实现Metalink文件上传逻辑
+                    print('添加Metalink任务，下载目录: $downloadDir');
+                    break;
                 }
-              } catch (e) {
-                print('选择目录失败: $e');
-                // 确保在正确的BuildContext中显示SnackBar
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('选择目录失败: $e')),
-                  );
-                }
+                
+                // 立即刷新任务列表
+                await _refreshTasks();
+                // 重置刷新计时器
+                _stopPeriodicRefresh();
+                _startPeriodicRefresh();
+                
+                client.close();
+              }
+            } catch (e) {
+              print('添加任务失败: $e');
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('添加任务失败: $e')),
+                );
               }
             }
-            
-            // 使用DefaultTabController来简化TabController的管理
-            return DefaultTabController(
-              length: 3,
-              initialIndex: 0,
-              child: AlertDialog(
-                title: const Text('添加任务'),
-                content: SizedBox(
-                  width: 500,
-                  height: 450,
-                  child: Column(
-                    children: [
-                      // 选项卡
-                      const TabBar(
-                        tabs: [
-                          Tab(text: 'URI'),
-                          Tab(text: '种子'),
-                          Tab(text: 'Metalink'),
-                        ],
-                        indicatorSize: TabBarIndicatorSize.tab,
-                      ),
-                      // 选项卡内容
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: TabBarView(
-                                children: [
-                                  // URI 选项卡内容
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Column(
-                                      children: [
-                                        TextField(
-                                          decoration: const InputDecoration(
-                                            labelText: 'URL或磁力链接',
-                                            hintText: '请输入下载链接...',
-                                            border: OutlineInputBorder(),
-                                          ),
-                                          maxLines: 3,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        TextButton(
-                                          onPressed: () {
-                                            // TODO: 实现从剪贴板粘贴功能
-                                          },
-                                          child: const Text('从剪贴板粘贴'),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        const Text('支持HTTP/HTTPS、FTP、SFTP、磁力链接等'),
-                                      ],
-                                    ),
-                                  ),
-                                  // 种子 选项卡内容
-                                  Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.file_open, size: 64),
-                                        const SizedBox(height: 16),
-                                        TextButton.icon(
-                                          onPressed: () {
-                                            // TODO: 实现选择种子文件功能
-                                          },
-                                          icon: const Icon(Icons.upload_file),
-                                          label: const Text('选择种子文件'),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        const Text('支持.torrent格式的种子文件'),
-                                      ],
-                                    ),
-                                  ),
-                                  // Metalink 选项卡内容
-                                  Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.file_open, size: 64),
-                                        const SizedBox(height: 16),
-                                        TextButton.icon(
-                                          onPressed: () {
-                                            // TODO: 实现选择Metalink文件功能
-                                          },
-                                          icon: const Icon(Icons.upload_file),
-                                          label: const Text('选择Metalink文件'),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        const Text('支持.metalink格式的文件'),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // 分隔线
-                            const Divider(),
-                            // 公共区域 - 不受选项卡影响
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // 保存位置
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: TextField(
-                                          controller: saveLocationController,
-                                          decoration: const InputDecoration(
-                                            labelText: '保存位置',
-                                            hintText: '默认下载目录',
-                                            border: OutlineInputBorder(),
-                                          ),
-                                          // 允许用户手动编辑路径
-                                          onChanged: (value) {
-                                            // 不需要特别处理，控制器已经同步更新
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      ElevatedButton(
-                                        onPressed: _selectSaveLocation,
-                                        child: const Icon(Icons.folder_open),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  // 高级选项开关
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text('显示高级选项'),
-                                      Switch(
-                                        value: false,
-                                        onChanged: (bool value) {
-                                          // TODO: 实现高级选项显示/隐藏逻辑
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('取消'),
-                  ),
-                  FilledButton(
-                    onPressed: () {
-                      // TODO: 根据当前选中的选项卡和保存位置实现添加任务功能
-                      print('保存位置: ${saveLocationController.text}');
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('确认'),
-                  ),
-                ],
-              ),
-            );
           },
         );
       },
