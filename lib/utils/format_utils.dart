@@ -1,3 +1,10 @@
+
+
+// 导入必要的库
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'dart:convert';
+
 // 格式化字节数显示
 String formatBytes(int bytes, {int decimals = 2}) {
   if (bytes <= 0) return '0 B';
@@ -138,8 +145,3 @@ Color getPieceColor(int pieceValue) {
       return Colors.grey; // 默认未下载
   }
 }
-
-// 导入必要的库
-import 'dart:math';
-import 'package:flutter/material.dart';
-import 'dart:convert';

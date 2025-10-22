@@ -11,6 +11,7 @@ import '../services/aria2_rpc_client.dart';
 import '../models/aria2_instance.dart';
 import '../models/global_stat.dart';
 import '../components/download/add_task_dialog.dart';
+import '../utils/format_utils.dart';
 
 // Define download task status enum
 enum DownloadStatus {
@@ -286,10 +287,10 @@ class _DownloadPageState extends State<DownloadPage> {
           double progress = totalLengthBytes > 0 ? completedLengthBytes / totalLengthBytes : 0.0;
           
           // Format display values
-          String size = _formatBytes(totalLengthBytes);
-          String completedSize = _formatBytes(completedLengthBytes);
-          String downloadSpeed = _formatBytes(downloadSpeedBytes) + '/s';
-          String uploadSpeed = _formatBytes(uploadSpeedBytes) + '/s';
+          String size = formatBytes(totalLengthBytes);
+          String completedSize = formatBytes(completedLengthBytes);
+          String downloadSpeed = formatBytes(downloadSpeedBytes) + '/s';
+          String uploadSpeed = formatBytes(uploadSpeedBytes) + '/s';
           
           // Get file name and store complete files info
           String name = '';
@@ -397,127 +398,7 @@ class _DownloadPageState extends State<DownloadPage> {
   }
   
   // Format byte size
-  String _formatBytes(int bytes, {int decimals = 2}) {
-    if (bytes <= 0) return '0 B';
-    
-    const suffixes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    int i = (bytes == 0 ? 0 : (log(bytes) / log(1024))).floor();
-    i = i.clamp(0, suffixes.length - 1);
-    
-    return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
-  }
-  
-  // Calculate and format remaining time
-  String _calculateRemainingTime(DownloadTask task) {
-    // Only calculate remaining time for active tasks
-    if (task.status != DownloadStatus.active) {
-      return '-';
-    }
-    
-    try {
-      // Extract numeric part from download speed string (e.g., "1.2 MB/s" -> 1.2 MB)
-      String speedStr = task.downloadSpeed;
-      if (speedStr.contains('/s')) {
-        speedStr = speedStr.replaceAll('/s', '').trim();
-      }
-      
-      // Parse speed value
-      double speedValue = 0;
-      String speedUnit = '';
-      
-      // Match number and unit
-      final speedMatch = RegExp(r'([\d.]+)\s*([BKMGT]B?)').firstMatch(speedStr);
-      if (speedMatch != null && speedMatch.groupCount >= 2) {
-        speedValue = double.tryParse(speedMatch.group(1)!) ?? 0;
-        speedUnit = speedMatch.group(2)!;
-        
-        // Convert speed to bytes per second
-        if (speedUnit.startsWith('KB')) {
-          speedValue *= 1024;
-        } else if (speedUnit.startsWith('MB')) {
-          speedValue *= 1024 * 1024;
-        } else if (speedUnit.startsWith('GB')) {
-          speedValue *= 1024 * 1024 * 1024;
-        } else if (speedUnit.startsWith('TB')) {
-          speedValue *= 1024 * 1024 * 1024 * 1024;
-        }
-      }
-      
-      // If speed is 0 or invalid, return '未知'
-      if (speedValue <= 0) {
-        return '未知';
-      }
-      
-      // Extract total size and completed size
-      String totalSizeStr = task.size;
-      String completedSizeStr = task.completedSize;
-      
-      // Parse total size
-      double totalSize = 0;
-      String totalUnit = '';
-      
-      final totalMatch = RegExp(r'([\d.]+)\s*([BKMGT]B?)').firstMatch(totalSizeStr);
-      if (totalMatch != null && totalMatch.groupCount >= 2) {
-        totalSize = double.tryParse(totalMatch.group(1)!) ?? 0;
-        totalUnit = totalMatch.group(2)!;
-        
-        // Convert to bytes
-        if (totalUnit.startsWith('KB')) {
-          totalSize *= 1024;
-        } else if (totalUnit.startsWith('MB')) {
-          totalSize *= 1024 * 1024;
-        } else if (totalUnit.startsWith('GB')) {
-          totalSize *= 1024 * 1024 * 1024;
-        } else if (totalUnit.startsWith('TB')) {
-          totalSize *= 1024 * 1024 * 1024 * 1024;
-        }
-      }
-      
-      // Parse completed size
-      double completedSize = 0;
-      String completedUnit = '';
-      
-      final completedMatch = RegExp(r'([\d.]+)\s*([BKMGT]B?)').firstMatch(completedSizeStr);
-      if (completedMatch != null && completedMatch.groupCount >= 2) {
-        completedSize = double.tryParse(completedMatch.group(1)!) ?? 0;
-        completedUnit = completedMatch.group(2)!;
-        
-        // Convert to bytes
-        if (completedUnit.startsWith('KB')) {
-          completedSize *= 1024;
-        } else if (completedUnit.startsWith('MB')) {
-          completedSize *= 1024 * 1024;
-        } else if (completedUnit.startsWith('GB')) {
-          completedSize *= 1024 * 1024 * 1024;
-        } else if (completedUnit.startsWith('TB')) {
-          completedSize *= 1024 * 1024 * 1024 * 1024;
-        }
-      }
-      
-      // Calculate remaining bytes
-      double remainingBytes = totalSize - completedSize;
-      
-      // Calculate remaining time in seconds
-      double remainingSeconds = remainingBytes / speedValue;
-      
-      // Format remaining time
-      if (remainingSeconds < 60) {
-        return '${remainingSeconds.ceil()}s';
-      } else if (remainingSeconds < 3600) {
-        int minutes = (remainingSeconds / 60).floor();
-        int seconds = (remainingSeconds % 60).floor();
-        return '${minutes}m ${seconds}s';
-      } else {
-        int hours = (remainingSeconds / 3600).floor();
-        int minutes = ((remainingSeconds % 3600) / 60).floor();
-        return '${hours}h ${minutes}m';
-      }
-    } catch (e) {
-      // If any error occurs during calculation, return '未知'
-      print('Error calculating remaining time: $e');
-      return '未知';
-    }
-  }
+
 
   // Parse single task data - now compatible with extended model
   // This function is now primarily used as a fallback when task isn't found in the main list
@@ -556,10 +437,10 @@ class _DownloadPageState extends State<DownloadPage> {
     double progress = totalLengthBytes > 0 ? completedLengthBytes / totalLengthBytes : 0.0;
     
     // Format display values
-    String size = _formatBytes(totalLengthBytes);
-    String completedSize = _formatBytes(completedLengthBytes);
-    String downloadSpeed = _formatBytes(downloadSpeedBytes) + '/s';
-    String uploadSpeed = _formatBytes(uploadSpeedBytes) + '/s';
+    String size = formatBytes(totalLengthBytes);
+    String completedSize = formatBytes(completedLengthBytes);
+    String downloadSpeed = formatBytes(downloadSpeedBytes) + '/s';
+    String uploadSpeed = formatBytes(uploadSpeedBytes) + '/s';
     
     // Get file name and store complete files info
     String name = '未知任务';
@@ -777,7 +658,7 @@ class _DownloadPageState extends State<DownloadPage> {
                                       Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text('剩余时间: ${_calculateRemainingTime(currentTask)}'),
+                                          Text('剩余时间: ${calculateRemainingTime(currentTask.progress, currentTask.downloadSpeed)}'),
                                           SizedBox(height: 8),
                                         ],
                                       ),
@@ -808,8 +689,8 @@ class _DownloadPageState extends State<DownloadPage> {
                                           final file = currentTask.files![index];
                                           final filePath = file['path'] as String? ?? '未知路径';
                                           final fileName = filePath.split('/').last.split('\\').last;
-                                          final fileSize = _formatBytes(int.tryParse(file['length'] as String? ?? '0') ?? 0);
-                                          final completedSize = _formatBytes(int.tryParse(file['completedLength'] as String? ?? '0') ?? 0);
+                                          final fileSize = formatBytes(int.tryParse(file['length'] as String? ?? '0') ?? 0);
+                                          final completedSize = formatBytes(int.tryParse(file['completedLength'] as String? ?? '0') ?? 0);
                                           final selected = (file['selected'] as String? ?? 'true') == 'true';
                                            
                                           return Container(
@@ -1620,7 +1501,7 @@ class _DownloadPageState extends State<DownloadPage> {
                             ),
                             // Size info with remaining time
                             Text(
-                              '${task.completedSize} / ${task.size} (${_calculateRemainingTime(task)})',
+                              '${task.completedSize} / ${task.size} (${calculateRemainingTime(task.progress, task.downloadSpeed)})',
                               style: TextStyle(
                                 color: colorScheme.onSurfaceVariant,
                                 fontSize: 13,
