@@ -4,8 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import '../../../models/aria2_instance.dart';
 
 class InstanceDialog extends StatefulWidget {
-  final Aria2Instance? instance; // 编辑时传入的实例
-  final void Function(Aria2Instance instance)? onSave; // 保存回调函数
+  final Aria2Instance? instance; // Instance to edit, null for new instance
+  final void Function(Aria2Instance instance)? onSave; // Save callback function
 
   const InstanceDialog({super.key, this.instance, this.onSave});
 
@@ -49,7 +49,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
     }
   }
 
-  // 验证Aria2可执行文件路径
+  // Validate Aria2 executable path
   Future<void> _validateAria2Path() async {
     if (_aria2Path == null || _aria2Path!.isEmpty) {
       setState(() => _isLocalAria2PathError = true);
@@ -149,21 +149,23 @@ class _InstanceDialogState extends State<InstanceDialog> {
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 600),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 对话框标题
-            Padding(
-              padding: const EdgeInsets.all(24).copyWith(bottom: 16),
-              child: Text(
-                widget.instance == null ? '添加实例' : '编辑实例',
-                style: theme.textTheme.headlineMedium,
-              ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 对话框标题
+          Padding(
+            padding: const EdgeInsets.all(24).copyWith(bottom: 16),
+            child: Text(
+              widget.instance == null ? '添加实例' : '编辑实例',
+              style: theme.textTheme.headlineMedium,
             ),
-
-            // 表单内容
-            Form(
+          ),
+          
+          // 可滚动的表单内容
+          SingleChildScrollView(
+            padding: EdgeInsets.zero,
+            child: Form(
               key: _formKey,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -171,6 +173,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+
                     // 实例名称
                   TextFormField(
                     initialValue: _name,
@@ -428,13 +431,14 @@ class _InstanceDialogState extends State<InstanceDialog> {
                 ),
               ),
             ),
+          ),
 
-            // 操作按钮
-              Padding(
-                padding: const EdgeInsets.all(24).copyWith(top: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
+          // 操作按钮
+          Padding(
+            padding: const EdgeInsets.all(24).copyWith(top: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
                     TextButton(
                       onPressed: () {
                         Navigator.of(context).pop();
@@ -458,7 +462,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                   ],
                 ),
               ),
-          ],
+        ],
         ),
       ),
     );

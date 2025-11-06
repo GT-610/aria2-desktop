@@ -118,7 +118,6 @@ class _MainWindowState extends State<MainWindow> {
 
   @override
   Widget build(BuildContext context) {
-    final instanceManager = Provider.of<InstanceManager>(context);
     
     List<Widget> _pages = [
       const DownloadPage(),
@@ -147,7 +146,7 @@ class _MainWindowState extends State<MainWindow> {
                   onDestinationSelected: _onItemTapped,
                   labelType: NavigationRailLabelType.selected,
                   backgroundColor: colorScheme.surfaceContainer,
-                  indicatorColor: colorScheme.surfaceVariant,
+                  indicatorColor: colorScheme.surfaceContainerHighest,
                   elevation: null,
                   leading: Container(
                     padding: const EdgeInsets.only(top: 16, bottom: 8),
@@ -209,19 +208,19 @@ class _MainWindowState extends State<MainWindow> {
                 Chip(
                   label: Text('总速度: ${_formatSpeed(_globalStat.downloadSpeed)}'),
                   avatar: const Icon(Icons.speed, size: 16),
-                  backgroundColor: colorScheme.surfaceVariant,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.all(4),
                 ),
                 Chip(
                   label: Text('活跃任务: ${_globalStat.activeTasks}'),
                   avatar: const Icon(Icons.task_alt, size: 16),
-                  backgroundColor: colorScheme.surfaceVariant,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.all(4),
                 ),
                 Chip(
                   label: Text('等待任务: ${_globalStat.waitingTasks}'),
                   avatar: const Icon(Icons.pending, size: 16),
-                  backgroundColor: colorScheme.surfaceVariant,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.all(4),
                 ),
               ],

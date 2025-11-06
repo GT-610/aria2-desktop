@@ -5,7 +5,7 @@ import '../../managers/instance_manager.dart';
 import 'components/instance_dialog.dart';
 import '../../services/aria2_rpc_client.dart';
 
-// 扩展InstanceManager以支持通知机制
+// Expand InstanceManager to support notification mechanism
 class NotifiableInstanceManager extends ChangeNotifier {
   final InstanceManager _manager = InstanceManager();
   List<Aria2Instance> _instances = [];
@@ -89,18 +89,18 @@ class NotifiableInstanceManager extends ChangeNotifier {
     }
   }
 
-  // 添加连接测试方法
+  // Add connection test method
   Future<bool> checkConnection(Aria2Instance instance) async {
     try {
       final client = Aria2RpcClient(instance);
-      // 先尝试基本连接
+      // First try basic connection
       final isConnected = await client.testConnection();
       
       if (isConnected) {
-        // 如果连接成功，尝试获取版本信息
+        // If connection is successful, try to get version info
         try {
           final version = await client.getVersion();
-          // 更新实例的版本信息
+          // Update instance version info
           final updatedInstance = instance.copyWith(version: version);
           await _manager.updateInstance(updatedInstance);
         } catch (e) {
@@ -116,7 +116,7 @@ class NotifiableInstanceManager extends ChangeNotifier {
     }
   }
 
-  // 更新实例状态
+  // Update instance status
   void updateInstanceStatus(String instanceId, ConnectionStatus status) {
     final index = _instances.indexWhere((instance) => instance.id == instanceId);
     if (index != -1) {
@@ -126,7 +126,7 @@ class NotifiableInstanceManager extends ChangeNotifier {
   }
 }
 
-// 包装组件，提供状态管理
+// Wrap widget with provider for state management
 class InstancePage extends StatelessWidget {
   const InstancePage({super.key});
 
@@ -214,7 +214,7 @@ class __InstancePageContentState extends State<_InstancePageContent> {
   Future<void> _handleSaveInstance(Aria2Instance instance) async {
     final manager = Provider.of<NotifiableInstanceManager>(context, listen: false);
     try {
-      // 显示连接测试动画
+      // Show connection test animation
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -233,27 +233,33 @@ class __InstancePageContentState extends State<_InstancePageContent> {
         ),
       );
 
-      // 测试连接
+      // Test connection
       final isConnected = await manager.checkConnection(instance);
-      Navigator.pop(context); // 关闭测试对话框
+      if (mounted) {
+        Navigator.pop(context);
+      }
 
-      // 保存实例
+      // Save instance
       if (instance.id.isEmpty) {
         await manager.addInstance(instance);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('添加实例${isConnected ? '成功' : '成功，但连接测试失败'}'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('添加实例${isConnected ? '成功' : '成功，但连接测试失败'}'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       } else {
         await manager.updateInstance(instance);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('更新实例${isConnected ? '成功' : '成功，但连接测试失败'}'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('更新实例${isConnected ? '成功' : '成功，但连接测试失败'}'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
       _showErrorDialog('保存失败', e.toString());
@@ -272,7 +278,7 @@ class __InstancePageContentState extends State<_InstancePageContent> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('删除实例成功'),
-          duration: const Duration(seconds: 2),
+          duration: Duration(seconds: 2),
         ),
       );
     } catch (e) {
@@ -293,7 +299,7 @@ class __InstancePageContentState extends State<_InstancePageContent> {
       });
 
       if (isActive) {
-        // 断开连接逻辑
+        // Disconnect logic
         await manager.disconnectInstance();
         
         if (mounted) {
@@ -306,17 +312,17 @@ class __InstancePageContentState extends State<_InstancePageContent> {
           );
         }
         
-        // 更新状态为已断开
+        // Update status to disconnected
         if (mounted) {
           manager.updateInstanceStatus(instance.id, ConnectionStatus.disconnected);
         }
       } else {
-        // 连接逻辑
-        // 先检查连接状态
+        // Connect logic
+        // First check connection status
         final canConnect = await manager.checkConnection(instance);
         
         if (canConnect) {
-          // 连接成功
+          // Connection successful
           final success = await manager.connectInstance(instance);
           
           if (mounted) {
@@ -336,7 +342,7 @@ class __InstancePageContentState extends State<_InstancePageContent> {
             manager.updateInstanceStatus(instance.id, ConnectionStatus.failed);
           }
         } else {
-          // 连接失败
+          // Connection failed
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -349,7 +355,7 @@ class __InstancePageContentState extends State<_InstancePageContent> {
             manager.updateInstanceStatus(instance.id, ConnectionStatus.failed);
           }
           
-          // 对于本地实例，尝试启动进程
+          // For local instances, try to start the process
           if (instance.type == InstanceType.local && mounted) {
             final shouldStartProcess = await showDialog<bool>(
               context: context,
@@ -389,7 +395,7 @@ class __InstancePageContentState extends State<_InstancePageContent> {
     }
   }
   
-  // 启动本地进程的辅助方法
+  // Helper method to start local process
   Future<void> _startLocalProcess(Aria2Instance instance, NotifiableInstanceManager manager) async {
     if (instance.type != InstanceType.local) return;
     
@@ -398,12 +404,12 @@ class __InstancePageContentState extends State<_InstancePageContent> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('正在启动本地进程...'),
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
       }
       
-      // 调用启动本地进程的方法
+      // Call method to start local process
       final processStarted = await manager.startLocalProcess(instance);
       
       if (!processStarted) {
@@ -411,7 +417,7 @@ class __InstancePageContentState extends State<_InstancePageContent> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('启动本地进程命令执行失败'),
-              duration: const Duration(seconds: 2),
+              duration: Duration(seconds: 2),
               backgroundColor: Colors.red,
             ),
           );
@@ -419,10 +425,10 @@ class __InstancePageContentState extends State<_InstancePageContent> {
         }
       }
       
-      // 等待进程启动
+      // Wait for process to start
       await Future.delayed(const Duration(seconds: 3));
       
-      // 尝试重新连接
+      // Try to reconnect
       if (mounted) {
         manager.updateInstanceStatus(instance.id, ConnectionStatus.connecting);
         final success = await manager.connectInstance(instance);
@@ -504,25 +510,6 @@ class __InstancePageContentState extends State<_InstancePageContent> {
     );
   }
 
-  Widget _getStatusIcon(ConnectionStatus status) {
-    switch (status) {
-      case ConnectionStatus.connected:
-        return Icon(Icons.check_circle, color: Colors.green);
-      case ConnectionStatus.connecting:
-        return const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        );
-      case ConnectionStatus.disconnected:
-        return Icon(Icons.circle_outlined, color: Colors.grey);
-      case ConnectionStatus.failed:
-        return Icon(Icons.error, color: Colors.red);
-      default:
-        return Icon(Icons.circle_outlined, color: Colors.grey);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -537,12 +524,12 @@ class __InstancePageContentState extends State<_InstancePageContent> {
             onRefresh: _refreshInstances,
             child: Column(
               children: [
-                // 实例操作工具栏 - Material You 风格增强版
+                // Instance operation toolbar
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: colorScheme.surface,
-                    border: Border(bottom: BorderSide(color: colorScheme.surfaceVariant)),
+                    border: Border(bottom: BorderSide(color: colorScheme.surfaceContainerHighest)),
                   ),
                   child: Row(
                     children: [
@@ -596,7 +583,7 @@ class __InstancePageContentState extends State<_InstancePageContent> {
                     ],
                   ),
                 ),
-                // 实例列表 - 整合两个页面的优势UI
+                // Instance list
                 Expanded(
                   child: instances.isEmpty
                       ? Center(
@@ -642,7 +629,7 @@ class __InstancePageContentState extends State<_InstancePageContent> {
                             return Card(
                               margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
                               elevation: isSelected ? 4 : 2,
-                              shadowColor: Colors.black.withOpacity(0.1),
+                              shadowColor: Colors.black.withValues(alpha: 0.1),
                               surfaceTintColor: colorScheme.surface,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -678,8 +665,8 @@ class __InstancePageContentState extends State<_InstancePageContent> {
                                                          (instance.status == ConnectionStatus.connected ? colorScheme.secondary : colorScheme.error),
                                                   boxShadow: [
                                                     BoxShadow(
-                                                      color: isActive ? colorScheme.primary.withOpacity(0.3) :
-                                                             (instance.status == ConnectionStatus.connected ? colorScheme.secondary.withOpacity(0.3) : colorScheme.error.withOpacity(0.3)),
+                                                      color: isActive ? colorScheme.primary.withValues(alpha: 0.3) :
+                                                             (instance.status == ConnectionStatus.connected ? colorScheme.secondary.withValues(alpha: 0.3) : colorScheme.error.withValues(alpha: 0.3)),
                                                       blurRadius: 4,
                                                       spreadRadius: 1,
                                                     ),
