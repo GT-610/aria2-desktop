@@ -57,8 +57,7 @@ class _InstanceListPageState extends State<InstanceListPage> {
       case ConnectionStatus.failed:
         return Icon(Icons.radio_button_checked, color: Colors.red);
       case ConnectionStatus.disconnected:
-      default:
-        return Icon(Icons.radio_button_unchecked, color: Colors.grey);
+      return Icon(Icons.radio_button_unchecked, color: Colors.grey);
     }
   }
   
@@ -87,8 +86,7 @@ class _InstanceListPageState extends State<InstanceListPage> {
           }
           return '连接失败';
       case ConnectionStatus.disconnected:
-      default:
-        return '未连接';
+      return '未连接';
     }
   }
   

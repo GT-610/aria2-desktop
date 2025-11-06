@@ -15,7 +15,7 @@ class _InstancePageState extends State<InstancePage> {
   List<Aria2Instance> _instances = [];
   Aria2Instance? _selectedInstance;
   bool _isLoading = true;
-  Map<String, bool> _instanceStatus = {}; // 存储实例在线状态
+  final Map<String, bool> _instanceStatus = {}; // 存储实例在线状态
 
   @override
   void initState() {
@@ -291,7 +291,7 @@ class _InstancePageState extends State<InstancePage> {
                             return Card(
                               margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
                               elevation: 2,
-                              shadowColor: Colors.black.withOpacity(0.1),
+                              shadowColor: Colors.black.withValues(alpha: 0.1),
                               surfaceTintColor: colorScheme.surface,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -320,8 +320,8 @@ class _InstancePageState extends State<InstancePage> {
                                                  (isOnline ? colorScheme.secondary : colorScheme.error),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: isActive ? colorScheme.primary.withOpacity(0.3) :
-                                                     (isOnline ? colorScheme.secondary.withOpacity(0.3) : colorScheme.error.withOpacity(0.3)),
+                                              color: isActive ? colorScheme.primary.withValues(alpha: 0.3) :
+                                                     (isOnline ? colorScheme.secondary.withValues(alpha: 0.3) : colorScheme.error.withValues(alpha: 0.3)),
                                               blurRadius: 4,
                                               spreadRadius: 1,
                                             ),

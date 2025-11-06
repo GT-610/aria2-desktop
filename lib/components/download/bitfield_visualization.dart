@@ -177,7 +177,6 @@ class BitfieldVisualization extends StatelessWidget {
   // 构建区块网格可视化
   Widget _buildPiecesGrid(List<int> pieces) {
     // 根据区块数量确定网格大小
-    int columns = pieces.length > 500 ? 50 : (pieces.length > 200 ? 30 : 20);
     double pieceSize = pieces.length > 1000 ? 4.0 : (pieces.length > 500 ? 6.0 : 8.0);
     
     return Wrap(

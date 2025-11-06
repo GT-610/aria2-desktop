@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/aria2_instance.dart';
@@ -15,7 +14,7 @@ class InstanceEditPage extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _InstanceEditPageState createState() => _InstanceEditPageState();
+  State<InstanceEditPage> createState() => _InstanceEditPageState();
 }
 
 class _InstanceEditPageState extends State<InstanceEditPage> {

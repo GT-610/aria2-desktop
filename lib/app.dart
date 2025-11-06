@@ -6,8 +6,6 @@ import 'pages/settings_page.dart';
 import 'models/global_stat.dart';
 import 'services/instance_manager.dart';
 import 'models/settings.dart';
-import 'services/aria2_rpc_client.dart';
-import 'models/aria2_instance.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

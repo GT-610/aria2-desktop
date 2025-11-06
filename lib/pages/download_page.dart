@@ -1,15 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/instance_manager.dart';
 import '../services/aria2_rpc_client.dart';
 import '../models/aria2_instance.dart';
-import '../models/global_stat.dart';
 import '../components/download/add_task_dialog.dart';
 import '../utils/format_utils.dart';
 
@@ -526,22 +523,9 @@ class _DownloadPageState extends State<DownloadPage> {
     );
   }
 
-  // 存储当前打开的任务详情对话框中的任务ID
-  String? _openedTaskDetailsId;
-  
-  // 更新任务详情的回调函数
-  void _updateTaskDetails() {
-    if (_openedTaskDetailsId != null) {
-      // 当主循环刷新任务列表后，我们可以在这里添加通知对话框更新的逻辑
-      // 由于我们使用Provider和StatefulBuilder，实际上不需要显式通知
-      // 对话框会通过StatefulBuilder自动获取最新数据
-    }
-  }
-  
   // Show task details dialog using main loop data - now displays extended information
   void _showTaskDetails(BuildContext context, DownloadTask task) {
     // 设置当前打开的任务ID
-    _openedTaskDetailsId = task.id;
     
     showDialog(
       context: context,
@@ -583,7 +567,6 @@ class _DownloadPageState extends State<DownloadPage> {
             return WillPopScope(
               onWillPop: () async {
                 disposeResources();
-                _openedTaskDetailsId = null;
                 return true;
               },
               child: DefaultTabController(
@@ -728,7 +711,6 @@ class _DownloadPageState extends State<DownloadPage> {
                     TextButton(
                       onPressed: () {
                         disposeResources();
-                        _openedTaskDetailsId = null;
                         Navigator.of(context).pop();
                       },
                       child: const Text('关闭'),
@@ -742,7 +724,6 @@ class _DownloadPageState extends State<DownloadPage> {
       },
     ).then((_) {
       // 对话框关闭时清除状态
-      _openedTaskDetailsId = null;
     });
   }
   
@@ -776,15 +757,6 @@ class _DownloadPageState extends State<DownloadPage> {
         );
         // Keep _instanceNames empty to avoid displaying incorrect instance information
       }
-    }
-  }
-  
-  // Called when instance list changes
-  void _onInstancesChanged() {
-    if (mounted) {
-      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-      _loadInstanceNames(instanceManager);
-      _refreshTasks();
     }
   }
   
@@ -978,8 +950,6 @@ class _DownloadPageState extends State<DownloadPage> {
     showDialog(
       context: context,
       builder: (context) {
-        final colorScheme = Theme.of(context).colorScheme;
-        
         return AlertDialog(
           title: const Text('选择分类方式'),
           content: Column(
@@ -1167,9 +1137,7 @@ class _DownloadPageState extends State<DownloadPage> {
         return '按类型';
       case CategoryType.byInstance:
         return '按实例';
-      default:
-        return '分类';
-    }
+      }
   }
   
   // Get instance ID list as filter options
@@ -2013,28 +1981,7 @@ class _DownloadPageState extends State<DownloadPage> {
       ],
     );
   }
-  
-  // 解析任务数据获取bitfield的备用方法（保留以兼容不同数据格式）
-  String? _parseBitfield(String? bittorrentInfo) {
-    if (bittorrentInfo != null && bittorrentInfo.isNotEmpty) {
-      try {
-        Map<String, dynamic> bittorrentData = json.decode(bittorrentInfo);
-        if (bittorrentData.containsKey('bitfield') && bittorrentData['bitfield'] is String) {
-          return bittorrentData['bitfield'] as String;
-        }
-        if (bittorrentData.containsKey('info') && bittorrentData['info'] is Map) {
-          Map<String, dynamic> info = bittorrentData['info'] as Map<String, dynamic>;
-          if (info.containsKey('bitfield') && info['bitfield'] is String) {
-            return info['bitfield'] as String;
-          }
-        }
-      } catch (e) {
-        print('解析bittorrentInfo中的bitfield失败: $e');
-      }
-    }
-    return null;
-  }
-  
+
   // 解析十六进制bitfield为区块状态数组
   List<int> _parseHexBitfield(String bitfield) {
     List<int> pieces = [];
@@ -2057,7 +2004,6 @@ class _DownloadPageState extends State<DownloadPage> {
   // 构建区块网格可视化
   Widget _buildPiecesGrid(List<int> pieces) {
     // 根据区块数量确定网格大小
-    int columns = pieces.length > 500 ? 50 : (pieces.length > 200 ? 30 : 20);
     double pieceSize = pieces.length > 1000 ? 4.0 : (pieces.length > 500 ? 6.0 : 8.0);
     
     return Wrap(
@@ -2069,7 +2015,7 @@ class _DownloadPageState extends State<DownloadPage> {
           height: pieceSize,
           decoration: BoxDecoration(
             color: _getPieceColor(pieces[index]),
-            border: Border.all(width: 0.5, color: Colors.black.withOpacity(0.1)),
+            border: Border.all(width: 0.5, color: Colors.black.withValues(alpha: 0.1)),
           ),
         );
       }),
