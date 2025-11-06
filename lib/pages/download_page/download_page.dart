@@ -1,18 +1,29 @@
+// Dart core imports
 import 'dart:async';
 import 'dart:io';
+
+// Flutter & third-party packages
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+// Services
 import '../../services/instance_manager.dart';
 import '../../services/aria2_rpc_client.dart';
+
+// Models
 import '../../models/aria2_instance.dart';
+import 'models/download_task.dart';
+
+// Page-specific components
 import 'components/add_task_dialog.dart';
 import 'components/task_action_dialogs.dart';
 import 'components/task_details_dialog.dart';
+
+// Utilities
 import '../../utils/format_utils.dart';
 import 'enums.dart';
 import 'utils/task_parser.dart';
-import 'models/download_task.dart';
 
 class DownloadPage extends StatefulWidget {
   const DownloadPage({super.key});
@@ -485,9 +496,6 @@ class _DownloadPageState extends State<DownloadPage> {
     );
   }
   
-  // Build dialog option
-  // 对话框选项构建功能已移至TaskActionDialogs组件中
-  
   // Build filter selector
   Widget _buildFilterSelector(ColorScheme colorScheme) {
     return Container(
@@ -548,7 +556,7 @@ class _DownloadPageState extends State<DownloadPage> {
                     const SizedBox(width: 8),
                   ],
                 );
-              }).toList()
+              })
             else
               ..._getFilterOptionsForCurrentCategory().map((option) {
                 final isSelected = _selectedFilter == option;
@@ -579,7 +587,7 @@ class _DownloadPageState extends State<DownloadPage> {
                     const SizedBox(width: 8),
                   ],
                 );
-              }).toList(),
+              }),
         ],
       ),
     );
@@ -627,12 +635,12 @@ class _DownloadPageState extends State<DownloadPage> {
     return Scaffold(
       body: Column(
         children: [
-          // Task action toolbar - Material You style
+          // Task action toolbar
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: colorScheme.surface,
-              border: Border(bottom: BorderSide(color: colorScheme.surfaceVariant)),
+              border: Border(bottom: BorderSide(color: colorScheme.surfaceContainerHighest)),
             ),
             child: Row(
               children: [
@@ -758,7 +766,7 @@ class _DownloadPageState extends State<DownloadPage> {
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
           elevation: 2,
-          shadowColor: Colors.black.withOpacity(0.1),
+          shadowColor: Colors.black.withValues(alpha: 0.1),
           surfaceTintColor: colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -784,7 +792,7 @@ class _DownloadPageState extends State<DownloadPage> {
                             margin: EdgeInsets.only(right: 8),
                             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.1),
+                              color: statusColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
@@ -816,7 +824,7 @@ class _DownloadPageState extends State<DownloadPage> {
                                 margin: EdgeInsets.only(right: 8),
                                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: colorScheme.secondary.withOpacity(0.1),
+                                  color: colorScheme.secondary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
