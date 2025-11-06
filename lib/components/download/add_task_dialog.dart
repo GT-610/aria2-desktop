@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'directory_picker.dart';
 
 // 添加任务对话框组件
 class AddTaskDialog extends StatelessWidget {
@@ -10,36 +11,18 @@ class AddTaskDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 在对话框外部创建文本控制器，确保状态的持久性
-    final TextEditingController saveLocationController = TextEditingController();
+    String saveLocation = '';
     final TextEditingController uriController = TextEditingController();
     bool showAdvancedOptions = false;
 
     // 使用StatefulBuilder来管理UI更新
     return StatefulBuilder(
       builder: (context, setState) {
-        // 选择保存位置的函数
-        Future<void> _selectSaveLocation() async {
-          try {
-            String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
-              dialogTitle: '选择保存位置',
-              initialDirectory: saveLocationController.text.isNotEmpty ? saveLocationController.text : null,
-            );
-            
-            if (selectedDirectory != null) {
-              // 直接更新控制器文本，不需要通过setState
-              saveLocationController.text = selectedDirectory;
-              // 强制刷新UI以确保文本框显示最新内容
-              setState(() {});
-            }
-          } catch (e) {
-            print('选择目录失败: $e');
-            // 确保在正确的BuildContext中显示SnackBar
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('选择目录失败: $e')),
-              );
-            }
-          }
+        // 更新保存位置的函数
+        void _onSaveLocationChanged(String newLocation) {
+          setState(() {
+            saveLocation = newLocation;
+          });
         }
 
         // 从剪贴板粘贴功能
@@ -96,7 +79,7 @@ class AddTaskDialog extends StatelessWidget {
 
         // 提交任务
         void _submitTask(String taskType) {
-          String downloadDir = saveLocationController.text;
+          String downloadDir = saveLocation;
           String uri = uriController.text;
           
           // 调用回调函数处理任务添加
@@ -202,29 +185,17 @@ class AddTaskDialog extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // 保存位置
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextField(
-                                      controller: saveLocationController,
-                                      decoration: const InputDecoration(
-                                        labelText: '保存位置',
-                                        hintText: '默认下载目录',
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      // 允许用户手动编辑路径
-                                      onChanged: (value) {
-                                        // 不需要特别处理，控制器已经同步更新
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  ElevatedButton(
-                                    onPressed: _selectSaveLocation,
-                                    child: const Icon(Icons.folder_open),
-                                  ),
-                                ],
+                              // 保存位置 - 使用可复用的DirectoryPicker组件
+                              DirectoryPicker(
+                                initialDirectory: saveLocation,
+                                onDirectoryChanged: _onSaveLocationChanged,
+                                onError: (error) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(error)),
+                                    );
+                                  }
+                                },
                               ),
                               const SizedBox(height: 12),
                               // 高级选项开关

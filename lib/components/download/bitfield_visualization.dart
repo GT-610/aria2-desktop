@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:aria2_desktop/models/download_task.dart';
 import 'package:aria2_desktop/utils/format_utils.dart';
 
-// 区块可视化组件
+/// Bitfield visualization component
+/// Used to display the download status of torrent pieces in a grid format
 class BitfieldVisualization extends StatelessWidget {
   final DownloadTask task;
 
@@ -10,7 +11,7 @@ class BitfieldVisualization extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 直接从任务对象获取bitfield
+    // Get bitfield directly from the task object
     String? bitfield = task.bitfield;
     
     if (bitfield == null || bitfield.isEmpty) {
@@ -21,13 +22,13 @@ class BitfieldVisualization extends StatelessWidget {
             Icon(Icons.info_outline, size: 64, color: Colors.grey),
             SizedBox(height: 16),
             Text(
-              '当前任务没有区块信息',
+              'No piece information available for this task',
               style: TextStyle(fontSize: 16, color: Colors.grey[700]),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 8),
             Text(
-              '任务可能尚未开始或没有可用的区块数据',
+              'The task may not have started or no piece data is available',
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
@@ -36,16 +37,16 @@ class BitfieldVisualization extends StatelessWidget {
       );
     }
     
-    // 解析bitfield为区块状态数组
+    // Parse bitfield into piece status array
     List<int> pieces = parseHexBitfield(bitfield);
     
-    // 计算统计信息
+    // Calculate statistics
     int totalPieces = pieces.length;
-    int completedPieces = pieces.where((piece) => piece == 15).length; // 完全下载完成 (f)
-    int partialPieces = pieces.where((piece) => piece > 0 && piece < 15).length; // 部分下载 (1-14)
-    int missingPieces = pieces.where((piece) => piece == 0).length; // 未下载 (0)
+    int completedPieces = pieces.where((piece) => piece == 15).length; // Fully downloaded (f)
+    int partialPieces = pieces.where((piece) => piece > 0 && piece < 15).length; // Partially downloaded (1-14)
+    int missingPieces = pieces.where((piece) => piece == 0).length; // Not downloaded (0)
     
-    // 计算完成百分比
+    // Calculate completion percentage
     double completionPercentage = totalPieces > 0 
       ? ((completedPieces + partialPieces * 0.5) / totalPieces) * 100 
       : 0;
@@ -53,7 +54,7 @@ class BitfieldVisualization extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 统计信息
+        // Statistics section
         Card(
           elevation: 2,
           margin: EdgeInsets.only(bottom: 16),
@@ -62,12 +63,12 @@ class BitfieldVisualization extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('区块统计:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text('Piece Statistics:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('总区块数:'),
+                    Text('Total Pieces:'),
                     Text('$totalPieces'),
                   ],
                 ),
@@ -77,7 +78,7 @@ class BitfieldVisualization extends StatelessWidget {
                     Row(
                       children: [
                         Container(width: 12, height: 12, color: Colors.green, margin: EdgeInsets.only(right: 8)),
-                        Text('已完成:'),
+                        Text('Completed:'),
                       ],
                     ),
                     Text('$completedPieces'),
@@ -89,7 +90,7 @@ class BitfieldVisualization extends StatelessWidget {
                     Row(
                       children: [
                         Container(width: 12, height: 12, color: Colors.yellow, margin: EdgeInsets.only(right: 8)),
-                        Text('部分完成:'),
+                        Text('Partial:'),
                       ],
                     ),
                     Text('$partialPieces'),
@@ -101,7 +102,7 @@ class BitfieldVisualization extends StatelessWidget {
                     Row(
                       children: [
                         Container(width: 12, height: 12, color: Colors.grey, margin: EdgeInsets.only(right: 8)),
-                        Text('未下载:'),
+                        Text('Missing:'),
                       ],
                     ),
                     Text('$missingPieces'),
@@ -114,18 +115,18 @@ class BitfieldVisualization extends StatelessWidget {
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                 ),
                 SizedBox(height: 4),
-                Text('区块完成度: ${completionPercentage.toStringAsFixed(2)}%', textAlign: TextAlign.right),
+                Text('Piece Completion: ${completionPercentage.toStringAsFixed(2)}%', textAlign: TextAlign.right),
               ],
             ),
           ),
         ),
         
-        // 下载状态可视化网格
-        Text('下载状态分布:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        // Download status visualization grid
+        Text('Download Status Distribution:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         SizedBox(height: 12),
         _buildPiecesGrid(pieces),
         
-        // 图例说明
+        // Legend explanation
         SizedBox(height: 16),
         Card(
           elevation: 1,
@@ -134,36 +135,36 @@ class BitfieldVisualization extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('图例说明:', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('Legend:', style: TextStyle(fontWeight: FontWeight.bold)),
                 SizedBox(height: 8),
                 Row(
                   children: [
                     Container(width: 12, height: 12, color: Colors.green, margin: EdgeInsets.only(right: 8)),
-                    Text('完全下载完成 (f)'),
+                    Text('Fully Downloaded (f)'),
                   ],
                 ),
                 Row(
                   children: [
                     Container(width: 12, height: 12, color: Colors.lightGreen, margin: EdgeInsets.only(right: 8)),
-                    Text('高完成度 (8-b)'),
+                    Text('High Completion (8-b)'),
                   ],
                 ),
                 Row(
                   children: [
                     Container(width: 12, height: 12, color: Colors.yellow, margin: EdgeInsets.only(right: 8)),
-                    Text('中等完成度 (4-7)'),
+                    Text('Medium Completion (4-7)'),
                   ],
                 ),
                 Row(
                   children: [
                     Container(width: 12, height: 12, color: Colors.orange, margin: EdgeInsets.only(right: 8)),
-                    Text('低完成度 (1-3)'),
+                    Text('Low Completion (1-3)'),
                   ],
                 ),
                 Row(
                   children: [
                     Container(width: 12, height: 12, color: Colors.grey, margin: EdgeInsets.only(right: 8)),
-                    Text('未下载 (0)'),
+                    Text('Not Downloaded (0)'),
                   ],
                 ),
               ],
@@ -174,9 +175,10 @@ class BitfieldVisualization extends StatelessWidget {
     );
   }
 
-  // 构建区块网格可视化
+  /// Build the piece grid visualization
+  /// Dynamically adjusts piece size based on the total number of pieces
   Widget _buildPiecesGrid(List<int> pieces) {
-    // 根据区块数量确定网格大小
+    // Determine grid size based on the number of pieces
     double pieceSize = pieces.length > 1000 ? 4.0 : (pieces.length > 500 ? 6.0 : 8.0);
     
     return Wrap(

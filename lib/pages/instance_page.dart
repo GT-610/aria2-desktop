@@ -346,7 +346,7 @@ class _InstancePageState extends State<InstancePage> {
                                                     instance.type == InstanceType.local ? '本地' : '远程',
                                                     style: const TextStyle(fontSize: 12),
                                                   ),
-                                                  backgroundColor: colorScheme.surfaceVariant,
+                                                  backgroundColor: colorScheme.surfaceContainerHighest,
                                                   padding: const EdgeInsets.all(0),
                                                   visualDensity: VisualDensity.compact,
                                                 ),
@@ -377,7 +377,7 @@ class _InstancePageState extends State<InstancePage> {
                                         },
                                         style: SegmentedButton.styleFrom(
                                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                                          backgroundColor: colorScheme.surfaceVariant,
+                                          backgroundColor: colorScheme.surfaceContainerHighest,
                                         ),
                                       ),
                                     ],

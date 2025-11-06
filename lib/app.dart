@@ -82,7 +82,7 @@ class _HomeWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     // Initialize instance manager
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    final settings = Provider.of<Settings>(context, listen: false);
+    // final settings = Provider.of<Settings>(context, listen: false);
     
     // Ensure settings are loaded
     final initializationFuture = Future(() async {
@@ -194,10 +194,10 @@ class _MainWindowState extends State<MainWindow> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainer,
-              border: Border(top: BorderSide(color: colorScheme.surfaceVariant)),
+              border: Border(top: BorderSide(color: colorScheme.surfaceContainerHighest)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   offset: const Offset(0, -1),
                   blurRadius: 2,
                 ),
@@ -234,7 +234,7 @@ class _MainWindowState extends State<MainWindow> {
 
   String _formatSpeed(int bytesPerSecond) {
     if (bytesPerSecond < 1024) {
-      return '${bytesPerSecond} B/s';
+      return '$bytesPerSecond B/s';
     } else if (bytesPerSecond < 1024 * 1024) {
       return '${(bytesPerSecond / 1024).toStringAsFixed(2)} KB/s';
     } else {
