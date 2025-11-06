@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,61 +10,9 @@ import '../components/download/add_task_dialog.dart';
 import '../utils/format_utils.dart';
 import 'download_page/enums.dart';
 import 'download_page/utils/task_parser.dart';
+import 'download_page/models/download_task.dart';
 
-// Enhanced Download task model with more detailed information
-class DownloadTask {
-  final String id;
-  final String name;
-  final DownloadStatus status;
-  final String? taskStatus; // Store original task status, e.g. 'paused'
-  final double progress;
-  final String downloadSpeed;
-  final String uploadSpeed;
-  final String size;
-  final String completedSize;
-  final bool isLocal;
-  final String instanceId; // Add instance ID field
-  final int? connections; // 连接数信息
-  final String? dir; // 下载路径
-  
-  // Extended detailed information
-  final int totalLengthBytes; // Raw bytes for accurate calculations
-  final int completedLengthBytes; // Raw bytes for accurate calculations
-  final int downloadSpeedBytes; // Raw bytes for accurate calculations
-  final int uploadSpeedBytes; // Raw bytes for accurate calculations
-  final List<Map<String, dynamic>>? files; // File list with detailed information
-  final String? bittorrentInfo; // Torrent info if available
-  final List<String>? uris; // Download URIs
-  final String? errorMessage; // Error message if any
-  final DateTime? startTime; // Task start time
-  final String? bitfield; // Bitfield data for download status visualization
-
-  DownloadTask({
-    required this.id,
-    required this.name,
-    required this.status,
-    this.taskStatus,
-    required this.progress,
-    required this.downloadSpeed,
-    required this.uploadSpeed,
-    required this.size,
-    required this.completedSize,
-    required this.isLocal,
-    required this.instanceId,
-    this.connections,
-    this.dir,
-    this.totalLengthBytes = 0,
-    this.completedLengthBytes = 0,
-    this.downloadSpeedBytes = 0,
-    this.uploadSpeedBytes = 0,
-    this.files,
-    this.bittorrentInfo,
-    this.uris,
-    this.errorMessage,
-    this.startTime,
-    this.bitfield,
-  });
-}
+// 使用统一的DownloadTask模型类
 
 class DownloadPage extends StatefulWidget {
   const DownloadPage({super.key});
@@ -242,69 +189,8 @@ class _DownloadPageState extends State<DownloadPage> {
   // Parse task list - now stores complete information in the model
   // Use TaskParser to parse tasks
   List<DownloadTask> _parseTasks(List tasks, DownloadStatus status, String instanceId, bool isLocal) {
-    // 将 TaskParser.parseTasks 返回的 List<models.DownloadTask> 转换为本地的 List<DownloadTask>
-    final parsed = TaskParser.parseTasks(tasks, status, instanceId, isLocal);
-    return parsed.map((modelTask) => DownloadTask(
-          id: modelTask.id,
-          name: modelTask.name,
-          status: modelTask.status,
-          taskStatus: modelTask.taskStatus,
-          progress: modelTask.progress,
-          downloadSpeed: modelTask.downloadSpeed,
-          uploadSpeed: modelTask.uploadSpeed,
-          size: modelTask.size,
-          completedSize: modelTask.completedSize,
-          isLocal: modelTask.isLocal,
-          instanceId: modelTask.instanceId,
-          connections: modelTask.connections,
-          dir: modelTask.dir,
-          totalLengthBytes: modelTask.totalLengthBytes,
-          completedLengthBytes: modelTask.completedLengthBytes,
-          downloadSpeedBytes: modelTask.downloadSpeedBytes,
-          uploadSpeedBytes: modelTask.uploadSpeedBytes,
-          files: modelTask.files,
-          bittorrentInfo: modelTask.bittorrentInfo,
-          uris: modelTask.uris,
-          errorMessage: modelTask.errorMessage,
-          startTime: modelTask.startTime,
-          bitfield: modelTask.bitfield,
-        )).toList();
-  }
-  
-  // Format byte size
-
-
-  // Parse single task data - now compatible with extended model
-  // This function is now primarily used as a fallback when task isn't found in the main list
-  DownloadTask _parseTask(Map<String, dynamic> taskData) {
-    // Use TaskParser to parse a single task with default values for instanceId and isLocal
-    // These default values will be updated based on instance when needed
-    final modelTask = TaskParser.parseTask(taskData, '', true);
-    return DownloadTask(
-      id: modelTask.id,
-      name: modelTask.name,
-      status: modelTask.status,
-      taskStatus: modelTask.taskStatus,
-      progress: modelTask.progress,
-      downloadSpeed: modelTask.downloadSpeed,
-      uploadSpeed: modelTask.uploadSpeed,
-      size: modelTask.size,
-      completedSize: modelTask.completedSize,
-      isLocal: modelTask.isLocal,
-      instanceId: modelTask.instanceId,
-      connections: modelTask.connections,
-      dir: modelTask.dir,
-      totalLengthBytes: modelTask.totalLengthBytes,
-      completedLengthBytes: modelTask.completedLengthBytes,
-      downloadSpeedBytes: modelTask.downloadSpeedBytes,
-      uploadSpeedBytes: modelTask.uploadSpeedBytes,
-      files: modelTask.files,
-      bittorrentInfo: modelTask.bittorrentInfo,
-      uris: modelTask.uris,
-      errorMessage: modelTask.errorMessage,
-      startTime: modelTask.startTime,
-      bitfield: modelTask.bitfield,
-    );
+    // Return the result parsed by TaskParser directly
+    return TaskParser.parseTasks(tasks, status, instanceId, isLocal);
   }
 
   // Show task details dialog using main loop data - now displays extended information

@@ -12,14 +12,14 @@ class TaskParser {
     for (var taskData in tasks) {
       if (taskData is Map) {
           try {
-            // 创建任务时直接传递正确的status
+            // Create task with correct status
             final taskDataMap = taskData as Map<String, dynamic>;
             final parsedTask = parseTask(taskDataMap, instanceId, isLocal);
-            // 创建一个新的任务对象，包含正确的status
+            // Create a new task object with the correct status
             final taskWithStatus = DownloadTask(
               id: parsedTask.id,
               name: parsedTask.name,
-              status: status, // 直接使用传入的status
+              status: status, // Use the status passed to the function
               taskStatus: parsedTask.taskStatus,
               progress: parsedTask.progress,
               downloadSpeed: parsedTask.downloadSpeed,
@@ -70,8 +70,8 @@ class TaskParser {
     // Format display values
     String size = formatBytes(totalLengthBytes);
     String completedSize = formatBytes(completedLengthBytes);
-    String downloadSpeed = formatBytes(downloadSpeedBytes) + '/s';
-    String uploadSpeed = formatBytes(uploadSpeedBytes) + '/s';
+    String downloadSpeed = '${formatBytes(downloadSpeedBytes)}/s';
+    String uploadSpeed = '${formatBytes(uploadSpeedBytes)}/s';
     
     // Get file name and store complete files info
     String name = '';
