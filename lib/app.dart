@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'pages/download_page.dart';
+import 'pages/download_page/download_page.dart';
 import 'pages/instance_list_page.dart';
 import 'pages/settings_page.dart';
 import 'models/global_stat.dart';

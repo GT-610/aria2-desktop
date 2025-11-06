@@ -3,16 +3,15 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../services/instance_manager.dart';
-import '../services/aria2_rpc_client.dart';
-import '../models/aria2_instance.dart';
-import 'download_page/components/add_task_dialog.dart';
-import '../utils/format_utils.dart';
-import 'download_page/enums.dart';
-import 'download_page/utils/task_parser.dart';
-import 'download_page/models/download_task.dart';
-
-// 使用统一的DownloadTask模型类
+import '../../services/instance_manager.dart';
+import '../../services/aria2_rpc_client.dart';
+import '../../models/aria2_instance.dart';
+import 'components/add_task_dialog.dart';
+import 'components/task_action_dialogs.dart';
+import '../../utils/format_utils.dart';
+import 'enums.dart';
+import 'utils/task_parser.dart';
+import 'models/download_task.dart';
 
 class DownloadPage extends StatefulWidget {
   const DownloadPage({super.key});
@@ -23,7 +22,7 @@ class DownloadPage extends StatefulWidget {
 
 class _DownloadPageState extends State<DownloadPage> {
   FilterOption _selectedFilter = FilterOption.all;
-  CategoryType _currentCategoryType = CategoryType.all; // 默认设置为'全部'
+  CategoryType _currentCategoryType = CategoryType.all;
 
   // Instance name mapping for displaying instance names
   Map<String, String> _instanceNames = {};
@@ -164,10 +163,9 @@ class _DownloadPageState extends State<DownloadPage> {
             print('Failed to get tasks from instance ${activeInstance.name}: $e');
           }
         } else if (activeInstance.status == ConnectionStatus.connecting) {
-          // 如果正在连接中，不重复尝试
+          // Do not try to connect if already connecting
         } else {
-          // 如果实例未连接且不是正在连接中，不尝试连接
-          // 避免自动连接行为
+          // Do not try to connect if not connected
         }
       }
       
@@ -195,14 +193,13 @@ class _DownloadPageState extends State<DownloadPage> {
 
   // Show task details dialog using main loop data - now displays extended information
   void _showTaskDetails(BuildContext context, DownloadTask task) {
-    // 设置当前打开的任务ID
     
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            // 从主循环的下载任务列表中查找当前任务的最新数据
+            // Get the latest task data from the main loop's task list
             DownloadTask getLatestTaskData() {
               // 优先从主循环的任务列表中查找
               final taskFromList = _downloadTasks.firstWhere(
@@ -241,7 +238,7 @@ class _DownloadPageState extends State<DownloadPage> {
               },
               child: DefaultTabController(
                 length: 3,
-                initialIndex: 0, // 默认选中第一个标签页（总览）
+                initialIndex: 0,
                 child: AlertDialog(
                   title: Text('任务详情 - ${currentTask.name}'),
                   content: SizedBox(
@@ -627,7 +624,7 @@ class _DownloadPageState extends State<DownloadPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // All option
-              _buildDialogOption(
+              TaskActionDialogs.buildDialogOption(
                 context,
                 '全部',
                 onTap: () {
@@ -640,7 +637,7 @@ class _DownloadPageState extends State<DownloadPage> {
               ),
               const SizedBox(height: 8),
               // By status
-              _buildDialogOption(
+              TaskActionDialogs.buildDialogOption(
                 context,
                 '按状态',
                 onTap: () {
@@ -653,7 +650,7 @@ class _DownloadPageState extends State<DownloadPage> {
               ),
               const SizedBox(height: 8),
               // By type
-              _buildDialogOption(
+              TaskActionDialogs.buildDialogOption(
                 context,
                 '按类型',
                 onTap: () {
@@ -666,7 +663,7 @@ class _DownloadPageState extends State<DownloadPage> {
               ),
               const SizedBox(height: 8),
               // By instance
-              _buildDialogOption(
+              TaskActionDialogs.buildDialogOption(
                 context,
                 '按实例',
                 onTap: () {
@@ -685,19 +682,7 @@ class _DownloadPageState extends State<DownloadPage> {
   }
   
   // Build dialog option
-  Widget _buildDialogOption(BuildContext context, String text, {required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Text(
-          text,
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-      ),
-    );
-  }
+  // 对话框选项构建功能已移至TaskActionDialogs组件中
   
   // Build filter selector
   Widget _buildFilterSelector(ColorScheme colorScheme) {
@@ -1308,128 +1293,12 @@ class _DownloadPageState extends State<DownloadPage> {
 
   // 显示继续对话框
   void _showResumeDialog(BuildContext context) {
-    // 获取已连接的实例列表
-    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    final connectedInstances = instanceManager.instances
-        .where((instance) => instance.status == ConnectionStatus.connected)
-        .toList();
-    
-    showDialog(
-      context: context,
-      builder: (context) {
-        final colorScheme = Theme.of(context).colorScheme;
-        
-        return AlertDialog(
-          title: const Text('继续任务'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 继续所有实例的任务
-              _buildDialogOption(
-                context,
-                '继续所有实例的任务',
-                onTap: () {
-                  print('继续所有实例的任务');
-                  Navigator.pop(context);
-                  // TODO: 实现继续所有实例任务的逻辑
-                },
-              ),
-              const SizedBox(height: 8),
-              // 分隔线
-              Container(height: 1, color: colorScheme.surfaceVariant),
-              const SizedBox(height: 8),
-              // 已连接实例列表
-              ...connectedInstances.map((instance) => Column(
-                children: [
-                  _buildDialogOption(
-                    context,
-                    '继续实例 "${instance.name}" 的任务',
-                    onTap: () {
-                      print('继续实例 ${instance.name} 的任务');
-                      Navigator.pop(context);
-                      // TODO: 实现继续指定实例任务的逻辑
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              )),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('取消'),
-            ),
-          ],
-        );
-      },
-    );
+    TaskActionDialogs.showTaskActionDialog(context, TaskActionType.resume);
   }
 
   // 显示暂停对话框
   void _showPauseDialog(BuildContext context) {
-    // 获取已连接的实例列表
-    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    final connectedInstances = instanceManager.instances
-        .where((instance) => instance.status == ConnectionStatus.connected)
-        .toList();
-    
-    showDialog(
-      context: context,
-      builder: (context) {
-        final colorScheme = Theme.of(context).colorScheme;
-        
-        return AlertDialog(
-          title: const Text('暂停任务'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 暂停所有实例的任务
-              _buildDialogOption(
-                context,
-                '暂停所有实例的任务',
-                onTap: () {
-                  print('暂停所有实例的任务');
-                  Navigator.pop(context);
-                  // TODO: 实现暂停所有实例任务的逻辑
-                },
-              ),
-              const SizedBox(height: 8),
-              // 分隔线
-              Container(height: 1, color: colorScheme.surfaceVariant),
-              const SizedBox(height: 8),
-              // 已连接实例列表
-              ...connectedInstances.map((instance) => Column(
-                children: [
-                  _buildDialogOption(
-                    context,
-                    '暂停实例 "${instance.name}" 的任务',
-                    onTap: () {
-                      print('暂停实例 ${instance.name} 的任务');
-                      Navigator.pop(context);
-                      // TODO: 实现暂停指定实例任务的逻辑
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              )),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('取消'),
-            ),
-          ],
-        );
-      },
-    );
+    TaskActionDialogs.showTaskActionDialog(context, TaskActionType.pause);
   }
   
   // 显示添加任务对话框
