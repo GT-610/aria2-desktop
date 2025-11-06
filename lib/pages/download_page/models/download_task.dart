@@ -1,4 +1,4 @@
-import '../enums/download_status.dart';
+import '../enums.dart';
 
 // Enhanced Download task model with more detailed information
 class DownloadTask {

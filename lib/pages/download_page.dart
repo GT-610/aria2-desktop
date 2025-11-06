@@ -9,32 +9,8 @@ import '../services/aria2_rpc_client.dart';
 import '../models/aria2_instance.dart';
 import '../components/download/add_task_dialog.dart';
 import '../utils/format_utils.dart';
-
-// Define download task status enum
-enum DownloadStatus {
-  active,   // Active
-  waiting,  // Waiting
-  stopped   // Stopped
-}
-
-// Define category type enum
-enum CategoryType {
-  all,      // All
-  byStatus, // By status
-  byType,   // By type
-  byInstance // By instance
-}
-
-// Define filter option enum
-enum FilterOption {
-  all,      // All items
-  active,   // Active status
-  waiting,  // Waiting status
-  stopped,  // Stopped status
-  local,    // Local type
-  remote,   // Remote type
-  instance, // Instance filter (dynamic)
-}
+import 'download_page/enums.dart';
+import 'download_page/utils/task_parser.dart';
 
 // Enhanced Download task model with more detailed information
 class DownloadTask {
@@ -264,134 +240,35 @@ class _DownloadPageState extends State<DownloadPage> {
   }
   
   // Parse task list - now stores complete information in the model
+  // Use TaskParser to parse tasks
   List<DownloadTask> _parseTasks(List tasks, DownloadStatus status, String instanceId, bool isLocal) {
-    List<DownloadTask> parsedTasks = [];
-    
-    for (var taskData in tasks) {
-      if (taskData is Map) {
-        try {
-          // Parse raw bytes data first for accurate calculations and storage
-          final totalLengthBytes = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 0;
-          final completedLengthBytes = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
-          final downloadSpeedBytes = int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0;
-          final uploadSpeedBytes = int.tryParse(taskData['uploadSpeed'] as String? ?? '0') ?? 0;
-          
-          // Basic fields
-          String id = taskData['gid'] as String? ?? '';
-          String? taskStatus = taskData['status'] as String?;
-          
-          // Calculate progress
-          double progress = totalLengthBytes > 0 ? completedLengthBytes / totalLengthBytes : 0.0;
-          
-          // Format display values
-          String size = formatBytes(totalLengthBytes);
-          String completedSize = formatBytes(completedLengthBytes);
-          String downloadSpeed = formatBytes(downloadSpeedBytes) + '/s';
-          String uploadSpeed = formatBytes(uploadSpeedBytes) + '/s';
-          
-          // Get file name and store complete files info
-          String name = '';
-          List<Map<String, dynamic>>? files;
-          
-          if (taskData.containsKey('files') && taskData['files'] is List && (taskData['files'] as List).isNotEmpty) {
-            // Store complete files information for detailed view
-            files = (taskData['files'] as List).map((file) {
-              if (file is Map) {
-                return <String, dynamic>{
-                  ...file,
-                  'path': file['path'] as String? ?? '',
-                  'length': file['length'] as String? ?? '0',
-                  'completedLength': file['completedLength'] as String? ?? '0',
-                  'selected': file['selected'] as String? ?? 'true',
-                };
-              }
-              return <String, dynamic>{};
-            }).toList();
-            
-            // Extract first file name for display
-            final firstFile = (taskData['files'] as List)[0];
-            if (firstFile is Map && firstFile.containsKey('path')) {
-              final path = firstFile['path'] as String;
-              name = path.split('/').last.split('\\').last;
-            }
-          }
-          
-          // Parse additional details for the extended model
-          int? connections = taskData.containsKey('connections') 
-            ? int.tryParse(taskData['connections'] as String? ?? '') ?? null
-            : null;
-          
-          String? dir = taskData['dir'] as String?;
-          
-          // Parse torrent info if available
-          String? bittorrentInfo;
-          if (taskData.containsKey('bittorrent') && taskData['bittorrent'] is Map) {
-            bittorrentInfo = json.encode(taskData['bittorrent']);
-          }
-          
-          // Parse URIs if available
-          List<String>? uris;
-          if (taskData.containsKey('uris') && taskData['uris'] is List) {
-            uris = (taskData['uris'] as List).expand((uriList) {
-              if (uriList is List) {
-                return uriList.whereType<Map>().map((uri) => uri['uri'] as String? ?? '').where((s) => s.isNotEmpty).cast<String>();
-              }
-              return <String>[];
-            }).toList();
-          }
-          
-          // Parse error message if any
-          String? errorMessage;
-          if (taskData.containsKey('errorMessage')) {
-            errorMessage = taskData['errorMessage'] as String?;
-          }
-          
-          // Parse bitfield data
-          String? bitfield;
-          if (taskData.containsKey('bitfield')) {
-            bitfield = taskData['bitfield'] as String?;
-          }
-          
-          // If there's no file name, use gid as the name
-          if (name.isEmpty) {
-            name = id.substring(0, 8);
-          }
-          
-          parsedTasks.add(DownloadTask(
-            id: id,
-            name: name,
-            status: status,
-            taskStatus: taskStatus,
-            progress: progress,
-            downloadSpeed: downloadSpeed,
-            uploadSpeed: uploadSpeed,
-            size: size,
-            completedSize: completedSize,
-            isLocal: isLocal,
-            instanceId: instanceId,
-            connections: connections,
-            dir: dir,
-            // Extended detailed information
-            totalLengthBytes: totalLengthBytes,
-            completedLengthBytes: completedLengthBytes,
-            downloadSpeedBytes: downloadSpeedBytes,
-            uploadSpeedBytes: uploadSpeedBytes,
-            files: files,
-            bittorrentInfo: bittorrentInfo,
-            uris: uris,
-            errorMessage: errorMessage,
-            // We don't have exact start time from the API, so we'll leave it as null
-            // and it can be set when needed
-            bitfield: bitfield,
-          ));
-        } catch (e) {
-          print('Failed to parse task: $e');
-          continue;
-        }
-      }
-    }
-    
-    return parsedTasks;
+    // 将 TaskParser.parseTasks 返回的 List<models.DownloadTask> 转换为本地的 List<DownloadTask>
+    final parsed = TaskParser.parseTasks(tasks, status, instanceId, isLocal);
+    return parsed.map((modelTask) => DownloadTask(
+          id: modelTask.id,
+          name: modelTask.name,
+          status: modelTask.status,
+          taskStatus: modelTask.taskStatus,
+          progress: modelTask.progress,
+          downloadSpeed: modelTask.downloadSpeed,
+          uploadSpeed: modelTask.uploadSpeed,
+          size: modelTask.size,
+          completedSize: modelTask.completedSize,
+          isLocal: modelTask.isLocal,
+          instanceId: modelTask.instanceId,
+          connections: modelTask.connections,
+          dir: modelTask.dir,
+          totalLengthBytes: modelTask.totalLengthBytes,
+          completedLengthBytes: modelTask.completedLengthBytes,
+          downloadSpeedBytes: modelTask.downloadSpeedBytes,
+          uploadSpeedBytes: modelTask.uploadSpeedBytes,
+          files: modelTask.files,
+          bittorrentInfo: modelTask.bittorrentInfo,
+          uris: modelTask.uris,
+          errorMessage: modelTask.errorMessage,
+          startTime: modelTask.startTime,
+          bitfield: modelTask.bitfield,
+        )).toList();
   }
   
   // Format byte size
@@ -400,126 +277,33 @@ class _DownloadPageState extends State<DownloadPage> {
   // Parse single task data - now compatible with extended model
   // This function is now primarily used as a fallback when task isn't found in the main list
   DownloadTask _parseTask(Map<String, dynamic> taskData) {
-    // Parse raw bytes data first for accurate calculations and storage
-    final totalLengthBytes = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 0;
-    final completedLengthBytes = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
-    final downloadSpeedBytes = int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0;
-    final uploadSpeedBytes = int.tryParse(taskData['uploadSpeed'] as String? ?? '0') ?? 0;
-    
-    // Parse basic info
-    final id = taskData['gid'] as String? ?? '';
-    
-    // Parse status
-    DownloadStatus status = DownloadStatus.waiting;
-    String? taskStatus = taskData['status'] as String?;
-    
-    if (taskStatus != null) {
-      switch (taskStatus) {
-        case 'active':
-          status = DownloadStatus.active;
-          break;
-        case 'waiting':
-        case 'paused':
-          status = DownloadStatus.waiting;
-          break;
-        case 'complete':
-        case 'error':
-        case 'removed':
-          status = DownloadStatus.stopped;
-          break;
-      }
-    }
-    
-    // Calculate progress
-    double progress = totalLengthBytes > 0 ? completedLengthBytes / totalLengthBytes : 0.0;
-    
-    // Format display values
-    String size = formatBytes(totalLengthBytes);
-    String completedSize = formatBytes(completedLengthBytes);
-    String downloadSpeed = formatBytes(downloadSpeedBytes) + '/s';
-    String uploadSpeed = formatBytes(uploadSpeedBytes) + '/s';
-    
-    // Get file name and store complete files info
-    String name = '未知任务';
-    List<Map<String, dynamic>>? files;
-    
-    if (taskData.containsKey('files') && taskData['files'] is List && (taskData['files'] as List).isNotEmpty) {
-      // Store complete files information for detailed view
-      files = (taskData['files'] as List).map((file) {
-        if (file is Map) {
-          return <String, dynamic>{
-            ...file,
-            'path': file['path'] as String? ?? '',
-            'length': file['length'] as String? ?? '0',
-            'completedLength': file['completedLength'] as String? ?? '0',
-            'selected': file['selected'] as String? ?? 'true',
-          };
-        }
-        return <String, dynamic>{};
-      }).toList();
-      
-      // Extract first file name for display
-      final firstFile = (taskData['files'] as List)[0];
-      if (firstFile is Map && firstFile.containsKey('path')) {
-        final path = firstFile['path'] as String;
-        name = path.split('/').last.split('\\').last;
-      }
-    }
-    
-    // Parse additional details
-    int? connections = taskData.containsKey('connections') 
-      ? int.tryParse(taskData['connections'] as String? ?? '') ?? null
-      : null;
-    
-    String? dir = taskData['dir'] as String?;
-    
-    // Parse torrent info if available
-    String? bittorrentInfo;
-    if (taskData.containsKey('bittorrent') && taskData['bittorrent'] is Map) {
-      bittorrentInfo = json.encode(taskData['bittorrent']);
-    }
-    
-    // Parse URIs if available
-    List<String>? uris;
-    if (taskData.containsKey('uris') && taskData['uris'] is List) {
-      uris = (taskData['uris'] as List).expand((uriList) {
-        if (uriList is List) {
-          return uriList.whereType<Map>().map((uri) => uri['uri'] as String? ?? '').where((s) => s.isNotEmpty).cast<String>();
-        }
-        return <String>[];
-      }).toList();
-    }
-    
-    // Parse error message if any
-    String? errorMessage;
-    if (taskData.containsKey('errorMessage')) {
-      errorMessage = taskData['errorMessage'] as String?;
-    }
-    
-    // Return parsed task object with all extended fields
+    // Use TaskParser to parse a single task with default values for instanceId and isLocal
+    // These default values will be updated based on instance when needed
+    final modelTask = TaskParser.parseTask(taskData, '', true);
     return DownloadTask(
-      id: id,
-      name: name,
-      status: status,
-      taskStatus: taskStatus,
-      progress: progress,
-      downloadSpeed: downloadSpeed,
-      uploadSpeed: uploadSpeed,
-      size: size,
-      completedSize: completedSize,
-      isLocal: true, // Default value, will be updated based on instance
-      instanceId: '', // Default value, will be updated based on instance
-      connections: connections,
-      dir: dir,
-      // Extended detailed information
-      totalLengthBytes: totalLengthBytes,
-      completedLengthBytes: completedLengthBytes,
-      downloadSpeedBytes: downloadSpeedBytes,
-      uploadSpeedBytes: uploadSpeedBytes,
-      files: files,
-      bittorrentInfo: bittorrentInfo,
-      uris: uris,
-      errorMessage: errorMessage,
+      id: modelTask.id,
+      name: modelTask.name,
+      status: modelTask.status,
+      taskStatus: modelTask.taskStatus,
+      progress: modelTask.progress,
+      downloadSpeed: modelTask.downloadSpeed,
+      uploadSpeed: modelTask.uploadSpeed,
+      size: modelTask.size,
+      completedSize: modelTask.completedSize,
+      isLocal: modelTask.isLocal,
+      instanceId: modelTask.instanceId,
+      connections: modelTask.connections,
+      dir: modelTask.dir,
+      totalLengthBytes: modelTask.totalLengthBytes,
+      completedLengthBytes: modelTask.completedLengthBytes,
+      downloadSpeedBytes: modelTask.downloadSpeedBytes,
+      uploadSpeedBytes: modelTask.uploadSpeedBytes,
+      files: modelTask.files,
+      bittorrentInfo: modelTask.bittorrentInfo,
+      uris: modelTask.uris,
+      errorMessage: modelTask.errorMessage,
+      startTime: modelTask.startTime,
+      bitfield: modelTask.bitfield,
     );
   }
 
