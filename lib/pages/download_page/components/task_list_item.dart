@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/download_task.dart';
-import '../utils/task_utils.dart';
 
 // Task list item component for displaying individual download tasks
 class TaskListItem extends StatelessWidget {

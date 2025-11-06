@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/instance_manager.dart';
 import '../services/aria2_rpc_client.dart';
 import '../models/aria2_instance.dart';
-import '../components/download/add_task_dialog.dart';
+import 'download_page/components/add_task_dialog.dart';
 import '../utils/format_utils.dart';
 import 'download_page/enums.dart';
 import 'download_page/utils/task_parser.dart';

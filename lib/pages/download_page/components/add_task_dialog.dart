@@ -243,7 +243,7 @@ class AddTaskDialog extends StatelessWidget {
               FilledButton(
                 onPressed: () {
                   // 根据当前选中的选项卡实现添加任务功能
-                  int currentTab = DefaultTabController.of(context)?.index ?? 0;
+                  int currentTab = DefaultTabController.of(context).index;
                   String taskType;
                   
                   switch (currentTab) {

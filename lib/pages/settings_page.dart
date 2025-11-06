@@ -65,7 +65,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       subtitle: const Text('设置应用随系统启动而运行'),
                       value: false,
                       onChanged: (value) {},
-                      activeColor: colorScheme.primary,
+                      activeThumbColor: colorScheme.primary,
+                      activeTrackColor: colorScheme.primary,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                     ),
                     const Divider(height: 1),
@@ -77,7 +78,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       subtitle: const Text('关闭窗口时最小化到系统托盘而不是退出'),
                       value: true,
                       onChanged: (value) {},
-                      activeColor: colorScheme.primary,
+                      activeThumbColor: colorScheme.primary,
+                      activeTrackColor: colorScheme.primary,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                     ),
                     const Divider(height: 1),
@@ -123,7 +125,7 @@ class _SettingsPageState extends State<SettingsPage> {
             Card(
               margin: const EdgeInsets.only(top: 12, bottom: 24),
               elevation: 2,
-              shadowColor: Colors.black.withOpacity(0.1),
+              shadowColor: Colors.black.withValues(alpha: 0.1),
               surfaceTintColor: colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -164,7 +166,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       value: true,
                       onChanged: (value) {},
-                      activeColor: colorScheme.primary,
+                      activeThumbColor: colorScheme.primary,
+                      activeTrackColor: colorScheme.primary,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                     ),
                     const Divider(height: 1),
@@ -243,19 +246,6 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
-  }
-  
-  // Get theme mode from string
-  ThemeMode _getThemeModeFromString(String mode) {
-    switch (mode) {
-      case 'light':
-        return ThemeMode.light;
-      case 'dark':
-        return ThemeMode.dark;
-      case 'system':
-      default:
-        return ThemeMode.system;
-    }
   }
   
   // Show appearance settings dialog

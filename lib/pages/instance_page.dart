@@ -244,7 +244,6 @@ class _InstancePageState extends State<InstancePage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        enabled: _selectedInstance != null,
                       ),
                       const SizedBox(width: 8),
                       OutlinedButton.icon(
@@ -257,7 +256,6 @@ class _InstancePageState extends State<InstancePage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        enabled: _selectedInstance != null,
                       ),
                     ],
                   ),
