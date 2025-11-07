@@ -1,12 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'directory_picker.dart';
+import '../../../utils/logging/log_extensions.dart';
 
 // 添加任务对话框组件
-class AddTaskDialog extends StatelessWidget {
+class AddTaskDialog extends StatefulWidget {
   final Function(String, String, String) onAddTask;
 
   const AddTaskDialog({super.key, required this.onAddTask});
+
+  @override
+  State<AddTaskDialog> createState() => _AddTaskDialogState();
+}
+
+class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
+  @override
+  void initState() {
+    super.initState();
+    initLogger();
+    logger.i('AddTaskDialog initialized');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +48,9 @@ class AddTaskDialog extends StatelessWidget {
             //   setState(() {});
             // }
             // 由于没有导入services包，这里先用占位符实现
-            print('从剪贴板粘贴功能需要实现');
+            logger.d('从剪贴板粘贴功能需要实现');
           } catch (e) {
-            print('粘贴失败: $e');
+            logger.e('粘贴失败', error: e);
           }
         }
 
@@ -51,11 +64,11 @@ class AddTaskDialog extends StatelessWidget {
             );
             
             if (result != null) {
-              print('选择的种子文件: ${result.files.single.path}');
+              logger.i('选择的种子文件: ${result.files.single.path}');
               // 这里应该实现上传种子文件的逻辑
             }
           } catch (e) {
-            print('选择种子文件失败: $e');
+            logger.e('选择种子文件失败', error: e);
           }
         }
 
@@ -69,11 +82,11 @@ class AddTaskDialog extends StatelessWidget {
             );
             
             if (result != null) {
-              print('选择的Metalink文件: ${result.files.single.path}');
+              logger.i('选择的Metalink文件: ${result.files.single.path}');
               // 这里应该实现上传Metalink文件的逻辑
             }
           } catch (e) {
-            print('选择Metalink文件失败: $e');
+            logger.e('选择Metalink文件失败', error: e);
           }
         }
 
@@ -83,7 +96,8 @@ class AddTaskDialog extends StatelessWidget {
           String uri = uriController.text;
           
           // 调用回调函数处理任务添加
-          onAddTask(taskType, uri, downloadDir);
+          logger.i('提交任务: 类型=$taskType, URI=$uri, 保存目录=$downloadDir');
+          widget.onAddTask(taskType, uri, downloadDir);
           
           // 关闭对话框
           Navigator.pop(context);

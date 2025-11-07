@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/aria2_instance.dart';
-import 'managers/instance_manager.dart';
+import '../../services/instance_manager.dart';
 import 'components/instance_dialog.dart';
+import 'components/instance_card.dart';
+import '../../utils/logging.dart';
 
 // Expand InstanceManager to support notification mechanism
-class NotifiableInstanceManager extends ChangeNotifier {
+class NotifiableInstanceManager extends ChangeNotifier with Loggable {
   final InstanceManager _manager = InstanceManager();
   List<Aria2Instance> _instances = [];
   Aria2Instance? _activeInstance;
+
+  NotifiableInstanceManager() {
+    initLogger();
+  }
 
   List<Aria2Instance> get instances => _instances;
   Aria2Instance? get activeInstance => _activeInstance;
@@ -56,34 +62,38 @@ class NotifiableInstanceManager extends ChangeNotifier {
     return await _manager.checkInstanceOnline(instance);
   }
 
-  // 启动本地进程
+  // Start local process
   Future<bool> startLocalProcess(Aria2Instance instance) async {
     if (instance.type != InstanceType.local) return false;
     
     try {
+      logger.i('Starting local process for instance: ${instance.name}');
       final success = await _manager.startLocalProcess(instance);
       if (success) {
         _loadInstances();
+        logger.i('Local process started successfully for instance: ${instance.name}');
       }
       return success;
     } catch (e) {
-      print('启动本地进程失败: $e');
+      logger.e('Failed to start local process', error: e);
       return false;
     }
   }
 
-  // 停止本地进程
+  // Stop local process
   Future<bool> stopLocalProcess(Aria2Instance instance) async {
     if (instance.type != InstanceType.local) return false;
     
     try {
+      logger.i('Stopping local process for instance: ${instance.name}');
       final success = await _manager.stopLocalProcess(instance);
       if (success) {
         _loadInstances();
+        logger.i('Local process stopped successfully for instance: ${instance.name}');
       }
       return success;
     } catch (e) {
-      print('停止本地进程失败: $e');
+      logger.e('Failed to stop local process', error: e);
       return false;
     }
   }
@@ -131,7 +141,7 @@ class _InstancePageContent extends StatefulWidget {
   __InstancePageContentState createState() => __InstancePageContentState();
 }
 
-class __InstancePageContentState extends State<_InstancePageContent> {
+class __InstancePageContentState extends State<_InstancePageContent> with Loggable {
   Aria2Instance? _selectedInstance;
   bool _isRefreshing = false;
   bool _isConnectionInProgress = false;
@@ -140,17 +150,26 @@ class __InstancePageContentState extends State<_InstancePageContent> {
   @override
   void initState() {
     super.initState();
+    initLogger();
+    logger.i('Instance page initialized');
   }
 
   Future<void> _refreshInstances() async {
+    logger.i('Refreshing instances list');
     setState(() {
       _isRefreshing = true;
     });
-    final manager = Provider.of<NotifiableInstanceManager>(context, listen: false);
-    await manager.initialize();
-    setState(() {
-      _isRefreshing = false;
-    });
+    try {
+      final manager = Provider.of<NotifiableInstanceManager>(context, listen: false);
+      await manager.initialize();
+      logger.d('Instances list refreshed successfully');
+    } catch (e) {
+      logger.e('Failed to refresh instances list', error: e);
+    } finally {
+      setState(() {
+        _isRefreshing = false;
+      });
+    }
   }
 
   void _showAddInstanceDialog() {
@@ -201,177 +220,161 @@ class __InstancePageContentState extends State<_InstancePageContent> {
   Future<void> _handleSaveInstance(Aria2Instance instance) async {
     final manager = Provider.of<NotifiableInstanceManager>(context, listen: false);
     try {
-      // Show connection test animation
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Dialog(
-          child: Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('正在测试连接...'),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      // Test connection
-      final isConnected = await manager.checkConnection(instance);
-      if (mounted) {
-        Navigator.pop(context);
-      }
+      logger.i('${instance.id.isEmpty ? 'Creating' : 'Updating'} instance: ${instance.name}');
 
       // Save instance
       if (instance.id.isEmpty) {
         await manager.addInstance(instance);
+        logger.i('Instance created: ${instance.name}');
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('添加实例${isConnected ? '成功' : '成功，但连接测试失败'}'),
+              content: const Text('实例添加成功'),
               duration: const Duration(seconds: 2),
             ),
           );
         }
       } else {
         await manager.updateInstance(instance);
+        logger.i('Instance updated: ${instance.name}');
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('更新实例${isConnected ? '成功' : '成功，但连接测试失败'}'),
+              content: const Text('实例更新成功'),
               duration: const Duration(seconds: 2),
             ),
           );
         }
       }
     } catch (e) {
-      _showErrorDialog('保存失败', e.toString());
+      logger.e('Failed to save instance', error: e);
+      _showErrorDialog('Save failed', e.toString());
     }
   }
 
   Future<void> _deleteInstance(String id) async {
     final manager = Provider.of<NotifiableInstanceManager>(context, listen: false);
     try {
+      logger.i('Deleting instance with id: $id');
       await manager.deleteInstance(id);
+      
       if (_selectedInstance?.id == id) {
         setState(() {
           _selectedInstance = null;
         });
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('删除实例成功'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      
+      logger.i('Instance deleted successfully: $id');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Instance deleted successfully'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
-      _showErrorDialog('删除失败', e.toString());
+      logger.e('Failed to delete instance: $id', error: e);
+      _showErrorDialog('Delete failed', e.toString());
     }
   }
 
   Future<void> _toggleConnection(Aria2Instance instance) async {
-    if (_isConnectionInProgress) return;
+    if (_isConnectionInProgress) {
+      logger.d('Connection operation already in progress, skipping');
+      return;
+    }
 
     final manager = Provider.of<NotifiableInstanceManager>(context, listen: false);
-    final isActive = manager.activeInstance?.id == instance.id;
-
+    
     try {
-      setState(() {
-        _isConnectionInProgress = true;
-        manager.updateInstanceStatus(instance.id, isActive ? ConnectionStatus.disconnected : ConnectionStatus.connecting);
-      });
+        final isActive = manager.activeInstance?.id == instance.id;
+        logger.i('${isActive ? 'Disconnecting from' : 'Connecting to'} instance: ${instance.name}');
+        
+        setState(() {
+          _isConnectionInProgress = true;
+          // 仅设置UI状态，实际状态在manager方法中处理
+          manager.updateInstanceStatus(instance.id, isActive ? ConnectionStatus.disconnected : ConnectionStatus.connecting);
+        });
 
-      if (isActive) {
-        // Disconnect logic
+        if (isActive) {
+        // Disconnect logic - 断开连接逻辑已在manager中处理状态更新
         await manager.disconnectInstance();
+        logger.i('Disconnected from instance: ${instance.name}');
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('已断开连接'),
+              content: const Text('Disconnected'),
               duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
             ),
           );
         }
-        
-        // Update status to disconnected
-        if (mounted) {
-          manager.updateInstanceStatus(instance.id, ConnectionStatus.disconnected);
-        }
       } else {
-        // Connect logic
-        // First check connection status
-        final canConnect = await manager.checkConnection(instance);
+        // Connect logic - 使用manager的connectInstance方法，它会处理连接测试和状态更新
+        final success = await manager.connectInstance(instance);
+        logger.d('Connect operation result for instance ${instance.name}: $success');
         
-        if (canConnect) {
-          // Connection successful
-          final success = await manager.connectInstance(instance);
-          
-          if (mounted) {
+        if (mounted) {
+          if (success) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(success ? '连接成功' : '连接失败，请检查配置'),
+                content: Text('Connection successful'),
                 duration: const Duration(seconds: 2),
                 behavior: SnackBarBehavior.floating,
-                backgroundColor: success ? Colors.green : Colors.red,
+                backgroundColor: Colors.green,
               ),
             );
-          }
-          
-          if (success && mounted) {
-            manager.updateInstanceStatus(instance.id, ConnectionStatus.connected);
-          } else if (mounted) {
-            manager.updateInstanceStatus(instance.id, ConnectionStatus.failed);
-          }
-        } else {
-          // Connection failed
-          if (mounted) {
+          } else {
+            // Connection failed - 保持本地进程启动功能
+            logger.w('Failed to connect to instance: ${instance.name}');
+            
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('无法连接到实例，请检查配置和网络'),
+                content: Text('Unable to connect to instance, please check configuration and network'),
                 duration: const Duration(seconds: 3),
                 behavior: SnackBarBehavior.floating,
                 backgroundColor: Colors.red,
               ),
             );
-            manager.updateInstanceStatus(instance.id, ConnectionStatus.failed);
-          }
-          
-          // For local instances, try to start the process
-          if (instance.type == InstanceType.local && mounted) {
-            final shouldStartProcess = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('启动本地进程'),
-                content: const Text('连接失败，是否尝试启动Aria2本地进程？'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: const Text('取消'),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: const Text('启动'),
-                  ),
-                ],
-              ),
-            ) ?? false;
             
-            if (shouldStartProcess && mounted) {
-              _startLocalProcess(instance, manager);
+            // For local instances, try to start the process
+            if (instance.type == InstanceType.local) {
+              final shouldStartProcess = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Start Local Process'),
+                  content: const Text('Connection failed, would you like to start Aria2 local process?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Start'),
+                    ),
+                  ],
+                ),
+              ) ?? false;
+              
+              if (shouldStartProcess) {
+                logger.d('User requested to start local process for instance: ${instance.name}');
+                _startLocalProcess(instance, manager);
+              }
             }
           }
         }
       }
     } catch (e) {
+      logger.e('Connection operation failed', error: e);
       if (mounted) {
         manager.updateInstanceStatus(instance.id, ConnectionStatus.failed);
-        _showErrorDialog('操作失败', e.toString());
+        _showErrorDialog('Operation failed', e.toString());
       }
     } finally {
       if (mounted) {
@@ -384,13 +387,18 @@ class __InstancePageContentState extends State<_InstancePageContent> {
   
   // Helper method to start local process
   Future<void> _startLocalProcess(Aria2Instance instance, NotifiableInstanceManager manager) async {
-    if (instance.type != InstanceType.local) return;
+    if (instance.type != InstanceType.local) {
+      logger.w('Attempted to start local process for non-local instance: ${instance.name}');
+      return;
+    }
     
     try {
+      logger.i('Starting local process for instance: ${instance.name}');
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('正在启动本地进程...'),
+            content: Text('Starting local process...'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -398,12 +406,15 @@ class __InstancePageContentState extends State<_InstancePageContent> {
       
       // Call method to start local process
       final processStarted = await manager.startLocalProcess(instance);
+      logger.d('Local process start command result: $processStarted');
       
       if (!processStarted) {
+        logger.w('Local process start command failed for instance: ${instance.name}');
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('启动本地进程命令执行失败'),
+              content: Text('Failed to execute local process start command'),
               duration: Duration(seconds: 2),
               backgroundColor: Colors.red,
             ),
@@ -413,17 +424,19 @@ class __InstancePageContentState extends State<_InstancePageContent> {
       }
       
       // Wait for process to start
+      logger.d('Waiting for process to start...');
       await Future.delayed(const Duration(seconds: 3));
       
       // Try to reconnect
       if (mounted) {
         manager.updateInstanceStatus(instance.id, ConnectionStatus.connecting);
         final success = await manager.connectInstance(instance);
+        logger.d('Reconnection attempt after process start: $success');
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(success ? '本地进程启动并连接成功' : '启动进程失败，请检查文件路径'),
+              content: Text(success ? 'Local process started and connected successfully' : 'Failed to start process, please check file path'),
               duration: const Duration(seconds: 2),
               backgroundColor: success ? Colors.green : Colors.red,
             ),
@@ -437,11 +450,13 @@ class __InstancePageContentState extends State<_InstancePageContent> {
         }
       }
     } catch (e) {
+      logger.e('Failed to start local process', error: e);
+      
       if (mounted) {
         manager.updateInstanceStatus(instance.id, ConnectionStatus.failed);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('启动本地进程失败: ${e.toString()}'),
+            content: Text('Failed to start local process: ${e.toString()}'),
             duration: const Duration(seconds: 3),
             backgroundColor: Colors.red,
           ),
@@ -451,7 +466,10 @@ class __InstancePageContentState extends State<_InstancePageContent> {
   }
 
   Future<void> _checkInstanceStatus(Aria2Instance instance) async {
-    if (_isStatusChecking[instance.id] == true) return;
+    if (_isStatusChecking[instance.id] == true) {
+      logger.d('Status check already in progress for instance: ${instance.name}, skipping');
+      return;
+    }
     
     final manager = Provider.of<NotifiableInstanceManager>(context, listen: false);
     
@@ -460,15 +478,21 @@ class __InstancePageContentState extends State<_InstancePageContent> {
     });
     
     try {
+      logger.i('Checking status for instance: ${instance.name}');
       manager.updateInstanceStatus(instance.id, ConnectionStatus.connecting);
+      
       final isOnline = await manager.checkConnection(instance);
+      logger.d('Status check result for instance ${instance.name}: ${isOnline ? 'online' : 'offline'}');
+      
       if (mounted) {
         manager.updateInstanceStatus(
           instance.id, 
           isOnline ? ConnectionStatus.connected : ConnectionStatus.disconnected
         );
       }
-    } catch (_) {
+    } catch (e) {
+      logger.e('Failed to check instance status', error: e);
+      
       if (mounted) {
         manager.updateInstanceStatus(instance.id, ConnectionStatus.failed);
       }
@@ -482,6 +506,8 @@ class __InstancePageContentState extends State<_InstancePageContent> {
   }
 
   void _showErrorDialog(String title, String message) {
+    logger.w('Showing error dialog: $title - $message');
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -490,7 +516,7 @@ class __InstancePageContentState extends State<_InstancePageContent> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('确定'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -613,194 +639,20 @@ class __InstancePageContentState extends State<_InstancePageContent> {
                             final isSelected = _selectedInstance?.id == instance.id;
                             final isChecking = _isStatusChecking[instance.id] == true;
 
-                            return Card(
-                              margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                              elevation: isSelected ? 4 : 2,
-                              shadowColor: Colors.black.withValues(alpha: 0.1),
-                              surfaceTintColor: colorScheme.surface,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: isSelected
-                                    ? BorderSide(color: colorScheme.primary, width: 2)
-                                    : BorderSide.none,
-                              ),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () {
-                                  setState(() {
-                                    _selectedInstance = instance;
-                                  });
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      // 实例名称和类型
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              // 状态指示器
-                                              Container(
-                                                width: 24,
-                                                height: 24,
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: isActive ? colorScheme.primary : 
-                                                         (instance.status == ConnectionStatus.connected ? colorScheme.secondary : colorScheme.error),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: isActive ? colorScheme.primary.withValues(alpha: 0.3) :
-                                                             (instance.status == ConnectionStatus.connected ? colorScheme.secondary.withValues(alpha: 0.3) : colorScheme.error.withValues(alpha: 0.3)),
-                                                      blurRadius: 4,
-                                                      spreadRadius: 1,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Text(
-                                                instance.name,
-                                                style: theme.textTheme.titleMedium,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Chip(
-                                                label: Text(
-                                                  instance.type == InstanceType.local ? '本地' : '远程',
-                                                  style: const TextStyle(fontSize: 12),
-                                                ),
-                                                backgroundColor: colorScheme.surfaceContainerHighest,
-                                                padding: const EdgeInsets.all(0),
-                                                visualDensity: VisualDensity.compact,
-                                              ),
-                                            ],
-                                          ),
-                                          if (isActive) ...[
-                                            Chip(
-                                              label: const Text('当前活跃'),
-                                              labelStyle: TextStyle(
-                                                color: colorScheme.onPrimary,
-                                                fontSize: 12,
-                                              ),
-                                              backgroundColor: colorScheme.primary,
-                                              padding: const EdgeInsets.all(0),
-                                              visualDensity: VisualDensity.compact,
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      // 实例详情
-                                      Text(
-                                        '${instance.protocol}://${instance.host}:${instance.port}',
-                                        style: TextStyle(
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                      if (instance.type == InstanceType.local && instance.aria2Path != null) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '路径: ${instance.aria2Path}',
-                                          style: theme.textTheme.bodySmall,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                      // 版本信息
-                                      if (instance.version != null && instance.version!.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '版本: ${instance.version}',
-                                          style: TextStyle(
-                                            color: colorScheme.tertiary,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                      // 错误信息
-                                      if (instance.errorMessage != null && instance.errorMessage!.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.warning,
-                                              size: 14,
-                                              color: colorScheme.error,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Expanded(
-                                              child: Text(
-                                                instance.errorMessage!,
-                                                style: TextStyle(
-                                                  color: colorScheme.error,
-                                                  fontSize: 12,
-                                                ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                      // 操作按钮
-                                      const SizedBox(height: 12),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
-                                        children: [
-                                          // 状态检查按钮
-                                          TextButton.icon(
-                                            onPressed: () => _checkInstanceStatus(instance),
-                                            icon: isChecking
-                                                ? const SizedBox(
-                                                    width: 16,
-                                                    height: 16,
-                                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                                  )
-                                                : Icon(
-                                                    Icons.check_circle_outline,
-                                                    size: 18,
-                                                    color: instance.status == ConnectionStatus.connected ? Colors.green : Colors.grey,
-                                                  ),
-                                            label: Text(
-                                              instance.status == ConnectionStatus.connected ? '已连接' : '检查状态',
-                                              style: TextStyle(
-                                                color: instance.status == ConnectionStatus.connected ? Colors.green : null,
-                                              ),
-                                            ),
-                                            style: TextButton.styleFrom(
-                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                            ),
-                                          ),
-                                          // 连接/断开按钮
-                                          SegmentedButton<String>(
-                                            segments: [
-                                              ButtonSegment(
-                                                value: isActive ? 'disconnect' : 'connect',
-                                                label: Text(
-                                                  isActive ? '断开' : '连接',
-                                                  style: _isConnectionInProgress && instance.id == manager.activeInstance?.id
-                                                      ? const TextStyle(color: Colors.grey)
-                                                      : null,
-                                                ),
-                                              ),
-                                            ],
-                                            selected: {isActive ? 'disconnect' : 'connect'},
-                                            onSelectionChanged: (newSelection) {
-                                              _toggleConnection(instance);
-                                            },
-                                            style: SegmentedButton.styleFrom(
-                                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                                              backgroundColor: colorScheme.surfaceContainerHighest,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                            return InstanceCard(
+                              key: ValueKey(instance.id),
+                              instance: instance,
+                              isActive: isActive,
+                              isSelected: isSelected,
+                              isChecking: isChecking,
+                              isConnectionInProgress: _isConnectionInProgress && isActive,
+                              onSelect: (selectedInstance) {
+                                setState(() {
+                                  _selectedInstance = selectedInstance;
+                                });
+                              },
+                              onCheckStatus: _checkInstanceStatus,
+                              onToggleConnection: _toggleConnection,
                             );
                           },
                         ),

@@ -1,27 +1,27 @@
 import 'package:logger/logger.dart';
 import 'log_config.dart';
 
-/// 日志管理器 - 单例模式
+/// Log Manager - Singleton Pattern
 class LogManager {
-  /// 私有构造函数
+  /// Private constructor
   LogManager._privateConstructor();
   
-  /// 单例实例
+  /// Singleton instance
   static final LogManager _instance = LogManager._privateConstructor();
   
-  /// 获取单例实例
+  /// Get singleton instance
   factory LogManager() => _instance;
   
-  /// 全局Logger实例
+  /// Global Logger instance
   Logger? _logger;
   
-  /// 获取Logger实例
+  /// Get Logger instance
   Logger get logger {
     _logger ??= _initLogger();
     return _logger!;
   }
   
-  /// 初始化Logger
+  /// Initialize Logger
   Logger _initLogger() {
     return Logger(
       level: LogConfig.logLevel,
@@ -33,17 +33,17 @@ class LogManager {
         printEmojis: LogConfig.printEmojis,
         dateTimeFormat: (DateTime time) => LogConfig.dateTimeFormat(time),
       ),
-      filter: ProductionFilter(), // 使用生产环境过滤器
+      filter: ProductionFilter(), // Use production environment filter
     );
   }
   
-  /// 重置Logger实例
+  /// Reset Logger instance
   void resetLogger() {
     _logger?.close();
     _logger = _initLogger();
   }
   
-  /// 设置日志级别
+  /// Set log level
   void setLogLevel(Level level) {
     Logger.level = level;
   }

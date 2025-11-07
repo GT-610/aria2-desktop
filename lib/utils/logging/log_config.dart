@@ -1,26 +1,26 @@
 import 'package:logger/logger.dart';
 
-/// 日志系统配置类
+/// Log system configuration class
 class LogConfig {
-  /// 日志级别配置
-  static const Level logLevel = Level.verbose;
+  /// Log level configuration
+  static const Level logLevel = Level.trace;
   
-  /// 是否在控制台显示颜色
+  /// Whether to display colors in the console
   static const bool useColors = true;
   
-  /// 是否显示方法调用信息
+  /// Number of method calls to display
   static const int methodCount = 2;
   
-  /// 错误时显示的方法调用信息数量
+  /// Number of method calls to display when an error occurs
   static const int errorMethodCount = 8;
   
-  /// 日志输出行宽
+  /// Log output line width
   static const int lineLength = 120;
   
-  /// 是否显示emoji
+  /// Whether to display emojis
   static const bool printEmojis = true;
   
-  /// 日期时间格式函数
+  /// DateTime format function
   static String Function(DateTime) dateTimeFormat = (DateTime time) {
     final now = DateTime.now();
     final diff = now.difference(time);

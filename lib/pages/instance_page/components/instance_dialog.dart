@@ -122,7 +122,6 @@ class _InstanceDialogState extends State<InstanceDialog> {
       port: _port,
       secret: _secret,
       aria2Path: _type == InstanceType.local ? _aria2Path : null,
-      isActive: widget.instance?.isActive ?? false,
     );
 
     // 如果提供了回调函数，使用回调函数

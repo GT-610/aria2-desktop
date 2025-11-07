@@ -1,50 +1,50 @@
 import 'package:logger/logger.dart';
 import 'log_manager.dart';
 
-/// 日志扩展类，提供更便捷的日志记录方法
+/// Log extension class that provides more convenient logging methods
 class AppLogger {
   final String _tag;
   final Logger _logger;
   
-  /// 创建带标签的日志实例
+  /// Create a tagged logger instance
   AppLogger(this._tag) : _logger = LogManager().logger;
   
-  /// 跟踪日志
+  /// Trace log
   void t(dynamic message) {
     _logger.t('[$_tag] $message');
   }
   
-  /// 调试日志
+  /// Debug log
   void d(dynamic message) {
     _logger.d('[$_tag] $message');
   }
   
-  /// 信息日志
+  /// Info log
   void i(dynamic message) {
     _logger.i('[$_tag] $message');
   }
   
-  /// 警告日志
+  /// Warning log
   void w(dynamic message, {dynamic error, StackTrace? stackTrace}) {
     _logger.w('[$_tag] $message', error: error, stackTrace: stackTrace);
   }
   
-  /// 错误日志
+  /// Error log
   void e(dynamic message, {dynamic error, StackTrace? stackTrace}) {
     _logger.e('[$_tag] $message', error: error, stackTrace: stackTrace);
   }
   
-  /// 致命错误日志
+  /// Fatal error log
   void f(dynamic message, {dynamic error, StackTrace? stackTrace}) {
     _logger.f('[$_tag] $message', error: error, stackTrace: stackTrace);
   }
 }
 
-/// 日志混入，方便页面或组件快速接入日志系统
+/// Log mixin for easy integration into pages or components
 mixin Loggable {
   late final AppLogger logger;
   
-  /// 初始化日志器
+  /// Initialize logger
   void initLogger() {
     logger = AppLogger(runtimeType.toString());
   }

@@ -15,7 +15,7 @@ String formatBytes(int bytes, {int decimals = 2}) {
   // 确保i不会超出suffixes的范围
   i = i.clamp(0, suffixes.length - 1);
   
-  return ((bytes / pow(1024, i)).toStringAsFixed(decimals)) + ' ' + suffixes[i];
+  return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
 }
 
 // 计算剩余时间
@@ -65,15 +65,18 @@ String calculateRemainingTime(double progress, String downloadSpeed) {
   } else if (remainingSeconds < 3600) {
     int minutes = remainingSeconds ~/ 60;
     int seconds = remainingSeconds % 60;
-    return '${minutes}分${seconds}秒';
+    return '$minutes分$seconds秒';
+
+
+
   } else if (remainingSeconds < 86400) {
     int hours = remainingSeconds ~/ 3600;
     int minutes = (remainingSeconds % 3600) ~/ 60;
-    return '${hours}小时${minutes}分';
+    return '$hours小时$minutes分';
   } else {
     int days = remainingSeconds ~/ 86400;
     int hours = (remainingSeconds % 86400) ~/ 3600;
-    return '${days}天${hours}小时';
+    return '$days天$hours小时';
   }
 }
 
