@@ -113,20 +113,6 @@ class _InstanceCardState extends State<InstanceCard> {
     );
   }
 
-  // 根据状态返回状态按钮文本
-  String _getStatusButtonText(ConnectionStatus status) {
-    switch (status) {
-      case ConnectionStatus.disconnected:
-        return '检查状态';
-      case ConnectionStatus.connecting:
-        return '连接中...';
-      case ConnectionStatus.connected:
-        return '已连接';
-      case ConnectionStatus.failed:
-        return '连接失败';
-    }
-  }
-
   // 根据状态返回操作按钮
   Widget _getStatusActionButton(ConnectionStatus status, bool isConnectionInProgress, BuildContext context, VoidCallback onPressed) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -222,7 +208,7 @@ class _InstanceCardState extends State<InstanceCard> {
                           color: _getStatusColor(widget.instance.status, colorScheme),
                           boxShadow: [
                             BoxShadow(
-                              color: _getStatusColor(widget.instance.status, colorScheme).withOpacity(0.3),
+                              color: _getStatusColor(widget.instance.status, colorScheme).withValues(alpha: 0.3),
                               blurRadius: 4,
                               spreadRadius: 1,
                             ),

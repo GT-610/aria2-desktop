@@ -25,8 +25,8 @@ class NotifiableInstanceManager extends ChangeNotifier with Loggable {
   }
 
   void _loadInstances() {
-    _instances = _manager.getInstances();
-    _activeInstance = _manager.getActiveInstance();
+    _instances = _manager.instances;
+    _activeInstance = _manager.activeInstance;
     notifyListeners();
   }
 
@@ -118,6 +118,7 @@ class NotifiableInstanceManager extends ChangeNotifier with Loggable {
   Aria2Instance? getInstanceById(String instanceId) {
     return _instances.firstWhere(
       (instance) => instance.id == instanceId,
+      // ignore: cast_from_null_always_fails
       orElse: () => null as Aria2Instance,
     );
   }
@@ -224,7 +225,9 @@ class __InstancePageContentState extends State<_InstancePageContent> with Loggab
 
       // Save instance
       if (instance.id.isEmpty) {
+        logger.d('开始调用addInstance方法添加新实例');
         await manager.addInstance(instance);
+        logger.d('addInstance方法调用完成');
         logger.i('Instance created: ${instance.name}');
         
         if (mounted) {
@@ -236,7 +239,9 @@ class __InstancePageContentState extends State<_InstancePageContent> with Loggab
           );
         }
       } else {
+        logger.d('开始调用updateInstance方法更新实例');
         await manager.updateInstance(instance);
+        logger.d('updateInstance方法调用完成');
         logger.i('Instance updated: ${instance.name}');
         
         if (mounted) {
@@ -250,6 +255,7 @@ class __InstancePageContentState extends State<_InstancePageContent> with Loggab
       }
     } catch (e) {
       logger.e('Failed to save instance', error: e);
+      logger.e('错误类型: ${e.runtimeType}');
       _showErrorDialog('Save failed', e.toString());
     }
   }
