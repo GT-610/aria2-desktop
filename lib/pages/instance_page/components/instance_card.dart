@@ -11,6 +11,8 @@ class InstanceCard extends StatefulWidget with Loggable {
   final Function(Aria2Instance) onSelect;
   final Function(Aria2Instance) onCheckStatus;
   final Function(Aria2Instance) onToggleConnection;
+  final Function(Aria2Instance) onEdit;
+  final Function(Aria2Instance) onDelete;
 
   InstanceCard({
     super.key,
@@ -22,6 +24,8 @@ class InstanceCard extends StatefulWidget with Loggable {
     required this.onSelect,
     required this.onCheckStatus,
     required this.onToggleConnection,
+    required this.onEdit,
+    required this.onDelete,
   }) {
     initLogger();
   }
@@ -208,7 +212,7 @@ class _InstanceCardState extends State<InstanceCard> {
                           color: _getStatusColor(widget.instance.status, colorScheme),
                           boxShadow: [
                             BoxShadow(
-                              color: _getStatusColor(widget.instance.status, colorScheme).withValues(alpha: 0.3),
+                              color: _getStatusColor(widget.instance.status, colorScheme).withOpacity(0.3),
                               blurRadius: 4,
                               spreadRadius: 1,
                             ),
@@ -312,6 +316,19 @@ class _InstanceCardState extends State<InstanceCard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  // 编辑按钮
+                  TextButton(
+                    onPressed: () => widget.onEdit(widget.instance),
+                    child: const Text('编辑'),
+                  ),
+                  // 删除按钮
+                  TextButton(
+                    onPressed: () => widget.onDelete(widget.instance),
+                    child: Text(
+                      '删除',
+                      style: TextStyle(color: colorScheme.error),
+                    ),
+                  ),
                   // 状态操作按钮 - 根据不同状态显示不同按钮
                   _getStatusActionButton(widget.instance.status, widget.isConnectionInProgress, context, () => widget.onToggleConnection(widget.instance)),
                 ],
