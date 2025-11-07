@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/aria2_instance.dart';
-import '../../managers/instance_manager.dart';
+import 'managers/instance_manager.dart';
 import 'components/instance_dialog.dart';
-import '../../services/aria2_rpc_client.dart';
 
 // Expand InstanceManager to support notification mechanism
 class NotifiableInstanceManager extends ChangeNotifier {
@@ -62,11 +61,11 @@ class NotifiableInstanceManager extends ChangeNotifier {
     if (instance.type != InstanceType.local) return false;
     
     try {
-      // 直接在NotifiableInstanceManager中实现本地进程启动逻辑
-      // 这里只是一个占位实现，实际功能在页面级别的_startLocalProcess方法中处理
-      // 主要用于提供API一致性
-      _loadInstances();
-      return true;
+      final success = await _manager.startLocalProcess(instance);
+      if (success) {
+        _loadInstances();
+      }
+      return success;
     } catch (e) {
       print('启动本地进程失败: $e');
       return false;
@@ -78,51 +77,39 @@ class NotifiableInstanceManager extends ChangeNotifier {
     if (instance.type != InstanceType.local) return false;
     
     try {
-      // 直接在NotifiableInstanceManager中实现本地进程停止逻辑
-      // 这里只是一个占位实现，实际功能在页面级别的处理逻辑中处理
-      // 主要用于提供API一致性
-      _loadInstances();
-      return true;
+      final success = await _manager.stopLocalProcess(instance);
+      if (success) {
+        _loadInstances();
+      }
+      return success;
     } catch (e) {
       print('停止本地进程失败: $e');
       return false;
     }
   }
 
-  // Add connection test method
+  // Add connection test method - now directly using manager's implementation
   Future<bool> checkConnection(Aria2Instance instance) async {
-    try {
-      final client = Aria2RpcClient(instance);
-      // First try basic connection
-      final isConnected = await client.testConnection();
-      
-      if (isConnected) {
-        // If connection is successful, try to get version info
-        try {
-          final version = await client.getVersion();
-          // Update instance version info
-          final updatedInstance = instance.copyWith(version: version);
-          await _manager.updateInstance(updatedInstance);
-        } catch (e) {
-          print('获取版本信息失败: $e');
-        }
-      }
-      
-      client.close();
-      return isConnected;
-    } catch (e) {
-      print('连接测试失败: $e');
-      return false;
-    }
+    return await _manager.checkConnection(instance);
   }
 
   // Update instance status
   void updateInstanceStatus(String instanceId, ConnectionStatus status) {
+    // Update in both local cache and manager
     final index = _instances.indexWhere((instance) => instance.id == instanceId);
     if (index != -1) {
       _instances[index] = _instances[index].copyWith(status: status);
+      _manager.updateInstanceInList(instanceId, status);
       notifyListeners();
     }
+  }
+  
+  // Get instance by ID
+  Aria2Instance? getInstanceById(String instanceId) {
+    return _instances.firstWhere(
+      (instance) => instance.id == instanceId,
+      orElse: () => null as Aria2Instance,
+    );
   }
 }
 

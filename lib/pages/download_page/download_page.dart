@@ -19,6 +19,7 @@ import 'models/download_task.dart';
 import 'components/add_task_dialog.dart';
 import 'components/task_action_dialogs.dart';
 import 'components/task_details_dialog.dart';
+import 'components/filter_selector.dart';
 
 // Utilities
 import '../../utils/format_utils.dart';
@@ -247,7 +248,7 @@ class _DownloadPageState extends State<DownloadPage> {
     return _instanceNames[instanceId] ?? '未知实例';
   }
   
-  // Get all instance IDs list
+  // 获取所有实例ID列表
   List<String> _getAllInstanceIds() {
     // 从任务中提取所有唯一的实例ID
     return _downloadTasks.map((task) => task.instanceId).toSet().toList();
@@ -387,244 +388,27 @@ class _DownloadPageState extends State<DownloadPage> {
     return filtered;
   }
   
-  // Get display text for filter option
-  String _getFilterText(FilterOption filter) {
-    switch (filter) {
-      case FilterOption.all:
-        return '全部';
-      case FilterOption.active:
-        return '下载中';
-      case FilterOption.waiting:
-        return '等待中';
-      case FilterOption.stopped:
-        return '已停止 / 已完成';
-      case FilterOption.local:
-        return '本地';
-      case FilterOption.remote:
-        return '远程';
-      case FilterOption.instance:
-        return '实例';
-    }
+
+  
+  // 处理分类变更
+  void _handleCategoryChanged(CategoryType newCategory) {
+    setState(() {
+      _currentCategoryType = newCategory;
+    });
   }
   
-  // Get color for filter option
-  Color _getFilterColor(FilterOption filter, ColorScheme colorScheme) {
-    switch (filter) {
-      case FilterOption.all:
-        return colorScheme.primaryContainer;
-      case FilterOption.active:
-        return colorScheme.primary;
-      case FilterOption.waiting:
-        return colorScheme.secondary;
-      case FilterOption.stopped:
-        return colorScheme.errorContainer;
-      case FilterOption.local:
-        return colorScheme.primary;
-      case FilterOption.remote:
-        return colorScheme.secondary;
-      case FilterOption.instance:
-        return colorScheme.tertiary;
-    }
+  // 处理筛选选项变更
+  void _handleFilterChanged(FilterOption newFilter) {
+    setState(() {
+      _selectedFilter = newFilter;
+    });
   }
   
-  // Show category selection dialog
-  void _showCategoryDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('选择分类方式'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // All option
-              TaskActionDialogs.buildDialogOption(
-                context,
-                '全部',
-                onTap: () {
-                  setState(() {
-                    _selectedFilter = FilterOption.all;
-                    _currentCategoryType = CategoryType.all;
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-              const SizedBox(height: 8),
-              // By status
-              TaskActionDialogs.buildDialogOption(
-                context,
-                '按状态',
-                onTap: () {
-                  setState(() {
-                    _currentCategoryType = CategoryType.byStatus;
-                    _selectedFilter = FilterOption.active; // Select the first option by default
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-              const SizedBox(height: 8),
-              // By type
-              TaskActionDialogs.buildDialogOption(
-                context,
-                '按类型',
-                onTap: () {
-                  setState(() {
-                    _currentCategoryType = CategoryType.byType;
-                    _selectedFilter = FilterOption.local; // Select first option by default
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-              const SizedBox(height: 8),
-              // By instance
-              TaskActionDialogs.buildDialogOption(
-                context,
-                '按实例',
-                onTap: () {
-                  setState(() {
-                    _currentCategoryType = CategoryType.byInstance;
-                    _selectedInstanceId = null; // Reset selected instance
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-  
-  // Build filter selector
-  Widget _buildFilterSelector(ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(bottom: BorderSide(color: colorScheme.surfaceVariant)),
-      ),
-      child: Row(
-        children: [
-          // Category button - always show this for switching categories
-          FilledButton.tonal(
-            onPressed: _showCategoryDialog,
-            style: FilledButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Row(
-              children: [
-                Text(_getCurrentCategoryText()),
-                const SizedBox(width: 4),
-                const Icon(Icons.arrow_drop_down),
-              ],
-            ),
-          ),
-          // Only show filter chips when not in 'all' category
-          if (_currentCategoryType != CategoryType.all) 
-            const SizedBox(width: 12),
-          // Dynamic filter chips based on selected category - only show when not in 'all' category
-          if (_currentCategoryType != CategoryType.all) 
-            // Special handling for instance category
-            if (_currentCategoryType == CategoryType.byInstance)
-              ..._getInstanceFilterOptions().map((instanceId) {
-                final isSelected = _selectedInstanceId == instanceId;
-                final instanceColor = colorScheme.tertiary;
-                
-                return Row(
-                  children: [
-                    FilterChip(
-                      label: Text(
-                        _getInstanceName(instanceId),
-                        style: TextStyle(
-                          color: instanceColor,
-                        ),
-                      ),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() {
-                          _selectedInstanceId = selected ? instanceId : null;
-                        });
-                      },
-                      selectedColor: instanceColor.withOpacity(0.1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                );
-              })
-            else
-              ..._getFilterOptionsForCurrentCategory().map((option) {
-                final isSelected = _selectedFilter == option;
-                final filterColor = _getFilterColor(option, colorScheme);
-                
-                return Row(
-                  children: [
-                    FilterChip(
-                      label: Text(
-                        _getFilterText(option),
-                        style: TextStyle(
-                          color: filterColor,
-                        ),
-                      ),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _selectedFilter = option;
-                          });
-                        }
-                      },
-                      selectedColor: filterColor.withOpacity(0.1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                );
-              }),
-        ],
-      ),
-    );
-  }
-  
-  // Get current category display text
-  String _getCurrentCategoryText() {
-    switch (_currentCategoryType) {
-      case CategoryType.all:
-        return '全部';
-      case CategoryType.byStatus:
-        return '按状态';
-      case CategoryType.byType:
-        return '按类型';
-      case CategoryType.byInstance:
-        return '按实例';
-      }
-  }
-  
-  // Get instance ID list as filter options
-  List<String> _getInstanceFilterOptions() {
-    return _getAllInstanceIds();
-  }
-  
-  // Get filter options based on current category
-  List<FilterOption> _getFilterOptionsForCurrentCategory() {
-    switch (_currentCategoryType) {
-      case CategoryType.byStatus:
-        return [FilterOption.active, FilterOption.waiting, FilterOption.stopped];
-      case CategoryType.byType:
-        return [FilterOption.local, FilterOption.remote];
-      case CategoryType.byInstance:
-        // For instance category, we will handle it separately in UI
-        return [FilterOption.instance];
-      default:
-        return [];
-    }
+  // 处理实例选择变更
+  void _handleInstanceSelected(String? instanceId) {
+    setState(() {
+      _selectedInstanceId = instanceId;
+    });
   }
   
   @override
@@ -709,7 +493,16 @@ class _DownloadPageState extends State<DownloadPage> {
             ),
           ),
           // Filter selector
-          _buildFilterSelector(colorScheme),
+          FilterSelector(
+            currentCategoryType: _currentCategoryType,
+            selectedFilter: _selectedFilter,
+            selectedInstanceId: _selectedInstanceId,
+            instanceNames: _instanceNames,
+            instanceIds: _getAllInstanceIds(),
+            onCategoryChanged: _handleCategoryChanged,
+            onFilterChanged: _handleFilterChanged,
+            onInstanceSelected: _handleInstanceSelected,
+          ),
           // Task list - Material You style
           Expanded(
             child: _buildTaskList(theme, colorScheme),
@@ -847,7 +640,7 @@ class _DownloadPageState extends State<DownloadPage> {
                                 margin: EdgeInsets.only(right: 8),
                                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: colorScheme.primary.withOpacity(0.1),
+                                  color: colorScheme.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
@@ -871,7 +664,7 @@ class _DownloadPageState extends State<DownloadPage> {
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.1),
+                            color: statusColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -895,12 +688,12 @@ class _DownloadPageState extends State<DownloadPage> {
                           value: task.progress,
                           borderRadius: BorderRadius.circular(10),
                           minHeight: 6,
-                          backgroundColor: colorScheme.surfaceVariant,
+                          backgroundColor: colorScheme.surfaceContainerHighest,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            // 暂停中任务使用黄色显示进度条
+                            // Use tertiary color for paused tasks
                             (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') 
                               ? colorScheme.tertiary 
-                              : (task.status == DownloadStatus.active ? statusColor : statusColor.withOpacity(0.6)),
+                              : (task.status == DownloadStatus.active ? statusColor : statusColor.withValues(alpha: 0.6)),
                           ),
                         ),
                         // No longer showing progress text on the progress bar
@@ -922,7 +715,7 @@ class _DownloadPageState extends State<DownloadPage> {
                               margin: EdgeInsets.only(bottom: 2),
                               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: colorScheme.tertiary.withOpacity(0.1),
+                                color: colorScheme.tertiary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(

@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/aria2_instance.dart';
+import '../../../models/aria2_instance.dart';
+import '../../../services/aria2_rpc_client.dart';
 
 class InstanceManager {
   static final InstanceManager _instance = InstanceManager._internal();
@@ -248,5 +249,76 @@ class InstanceManager {
     } catch (_) {
       return false;
     }
+  }
+
+  // Complete connection test with version check
+  Future<bool> checkConnection(Aria2Instance instance) async {
+    try {
+      final client = Aria2RpcClient(instance);
+      // First try basic connection
+      final isConnected = await client.testConnection();
+      
+      if (isConnected) {
+        // If connection is successful, try to get version info
+        try {
+          final version = await client.getVersion();
+          // Update instance version info
+          final updatedInstance = instance.copyWith(version: version);
+          await updateInstance(updatedInstance);
+        } catch (e) {
+          print('获取版本信息失败: $e');
+        }
+      }
+      
+      client.close();
+      return isConnected;
+    } catch (e) {
+      print('连接测试失败: $e');
+      return false;
+    }
+  }
+
+  // Start local process with enhanced functionality
+  Future<bool> startLocalProcess(Aria2Instance instance) async {
+    if (instance.type != InstanceType.local) return false;
+    
+    try {
+      await startLocalAria2(instance);
+      return true;
+    } catch (e) {
+      print('启动本地进程失败: $e');
+      return false;
+    }
+  }
+
+  // Stop local process
+  Future<bool> stopLocalProcess(Aria2Instance instance) async {
+    if (instance.type != InstanceType.local) return false;
+    
+    try {
+      if (instance.localProcess != null) {
+        await stopLocalAria2(instance);
+      }
+      return true;
+    } catch (e) {
+      print('停止本地进程失败: $e');
+      return false;
+    }
+  }
+
+  // Update instance status in the internal list
+  void updateInstanceInList(String instanceId, ConnectionStatus status) {
+    final index = _instances.indexWhere((instance) => instance.id == instanceId);
+    if (index != -1) {
+      _instances[index] = _instances[index].copyWith(status: status);
+    }
+  }
+
+  // Get instance by ID
+  Aria2Instance? getInstanceById(String instanceId) {
+    return _instances.firstWhere(
+      (instance) => instance.id == instanceId,
+      orElse: () => null as Aria2Instance,
+    );
   }
 }

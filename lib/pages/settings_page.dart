@@ -48,7 +48,7 @@ class _SettingsPageState extends State<SettingsPage> {
             Card(
               margin: const EdgeInsets.only(top: 12, bottom: 24),
               elevation: 2,
-              shadowColor: Colors.black.withOpacity(0.1),
+              shadowColor: Colors.black.withValues(alpha: 0.1),
               surfaceTintColor: colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -200,7 +200,7 @@ class _SettingsPageState extends State<SettingsPage> {
             Card(
               margin: const EdgeInsets.only(top: 12, bottom: 24),
               elevation: 2,
-              shadowColor: Colors.black.withOpacity(0.1),
+              shadowColor: Colors.black.withValues(alpha: 0.1),
               surfaceTintColor: colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
