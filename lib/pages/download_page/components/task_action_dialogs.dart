@@ -76,7 +76,7 @@ class TaskActionDialogs {
               ),
               const SizedBox(height: 8),
               // 分隔线
-              Container(height: 1, color: colorScheme.surfaceVariant),
+              Container(height: 1, color: colorScheme.surfaceContainerHighest),
               const SizedBox(height: 8),
               // 目标实例列表
               ...targetInstances.map((instance) => Column(

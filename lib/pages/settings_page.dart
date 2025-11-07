@@ -150,7 +150,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         onSelectionChanged: (newSelection) {},
                         style: SegmentedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
-                          backgroundColor: colorScheme.surfaceVariant,
+                          backgroundColor: colorScheme.surfaceContainerHighest,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -364,7 +364,7 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
               },
               style: SegmentedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
-                backgroundColor: colorScheme.surfaceVariant,
+                backgroundColor: colorScheme.surfaceContainerHighest,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -473,12 +473,12 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                     children: [
                       _buildColorSlider(
                         label: 'R',
-                        value: _selectedColor.red.toDouble(),
+                        value: ((_selectedColor.r * 255.0).round() & 0xff).toDouble(),
                         onChanged: (value) {
                           final newColor = Color.fromRGBO(
                             value.toInt(),
-                            _selectedColor.green,
-                            _selectedColor.blue,
+                            (_selectedColor.g * 255.0).round() & 0xff,
+                            (_selectedColor.b * 255.0).round() & 0xff,
                             1.0,
                           );
                           setState(() {
@@ -488,8 +488,8 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                         onChangeEnd: (value) {
                           final newColor = Color.fromRGBO(
                             value.toInt(),
-                            _selectedColor.green,
-                            _selectedColor.blue,
+                            (_selectedColor.g * 255.0).round() & 0xff,
+                            (_selectedColor.b * 255.0).round() & 0xff,
                             1.0,
                           );
                           widget.settings.setPrimaryColor(newColor, isCustom: true);
@@ -498,12 +498,12 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                       ),
                       _buildColorSlider(
                         label: 'G',
-                        value: _selectedColor.green.toDouble(),
+                        value: ((_selectedColor.g * 255.0).round() & 0xff).toDouble(),
                         onChanged: (value) {
                           final newColor = Color.fromRGBO(
-                            _selectedColor.red,
+                            (_selectedColor.r * 255.0).round() & 0xff,
                             value.toInt(),
-                            _selectedColor.blue,
+                            (_selectedColor.b * 255.0).round() & 0xff,
                             1.0,
                           );
                           setState(() {
@@ -512,9 +512,9 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                         },
                         onChangeEnd: (value) {
                           final newColor = Color.fromRGBO(
-                            _selectedColor.red,
+                            (_selectedColor.r * 255.0).round() & 0xff,
                             value.toInt(),
-                            _selectedColor.blue,
+                            (_selectedColor.b * 255.0).round() & 0xff,
                             1.0,
                           );
                           widget.settings.setPrimaryColor(newColor, isCustom: true);
@@ -523,11 +523,11 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                       ),
                       _buildColorSlider(
                         label: 'B',
-                        value: _selectedColor.blue.toDouble(),
+                        value: ((_selectedColor.b * 255.0).round() & 0xff).toDouble(),
                         onChanged: (value) {
                           final newColor = Color.fromRGBO(
-                            _selectedColor.red,
-                            _selectedColor.green,
+                            (_selectedColor.r * 255.0).round() & 0xff,
+                            (_selectedColor.g * 255.0).round() & 0xff,
                             value.toInt(),
                             1.0,
                           );
@@ -537,8 +537,8 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                         },
                         onChangeEnd: (value) {
                           final newColor = Color.fromRGBO(
-                            _selectedColor.red,
-                            _selectedColor.green,
+                            (_selectedColor.r * 255.0).round() & 0xff,
+                            (_selectedColor.g * 255.0).round() & 0xff,
                             value.toInt(),
                             1.0,
                           );
@@ -558,7 +558,7 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '颜色代码: #${_selectedColor.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
+                  '颜色代码: #${_selectedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
                   style: theme.textTheme.bodyMedium,
                 ),
                 TextButton(

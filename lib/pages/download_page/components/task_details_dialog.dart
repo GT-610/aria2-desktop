@@ -51,10 +51,10 @@ class TaskDetailsDialog {
             // 获取最新的任务数据
             final currentTask = getLatestTaskData();
                   
-            return WillPopScope(
-              onWillPop: () async {
+            return PopScope(
+              canPop: true,
+              onPopInvokedWithResult: (bool didPop, dynamic result) {
                 disposeResources();
-                return true;
               },
               child: DefaultTabController(
                 length: 3,

@@ -55,14 +55,14 @@ class Settings extends ChangeNotifier {
   // Update and save primary color setting
   Future<void> setPrimaryColor(Color color, {bool isCustom = false}) async {
     _primaryColor = color;
-    _customColorCode = isCustom ? color.value.toString() : null;
+    _customColorCode = isCustom ? color.toARGB32().toString() : null;
     notifyListeners();
     
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('primaryColor', color.value.toString());
+      await prefs.setString('primaryColor', color.toARGB32().toString());
       if (isCustom) {
-        await prefs.setString('customColorCode', color.value.toString());
+        await prefs.setString('customColorCode', color.toARGB32().toString());
       } else {
         await prefs.remove('customColorCode');
       }
