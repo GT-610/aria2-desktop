@@ -41,6 +41,8 @@ dependencies:
   # App information
   package_info_plus: ^9.0.0
 
+  logger: ^2.6.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
