@@ -81,17 +81,17 @@ class _InstanceCardState extends State<InstanceCard> {
         break;
       case ConnectionStatus.connecting:
         label = '连接中';
-        backgroundColor = colorScheme.primary.withOpacity(0.2);
+        backgroundColor = colorScheme.primary.withValues(alpha: 0.2);
         textColor = colorScheme.primary;
         break;
       case ConnectionStatus.connected:
         label = '已连接';
-        backgroundColor = colorScheme.secondary.withOpacity(0.2);
+        backgroundColor = colorScheme.secondary.withValues(alpha: 0.2);
         textColor = colorScheme.secondary;
         break;
       case ConnectionStatus.failed:
         label = '连接失败';
-        backgroundColor = colorScheme.error.withOpacity(0.2);
+        backgroundColor = colorScheme.error.withValues(alpha: 0.2);
         textColor = colorScheme.error;
         break;
     }
@@ -179,7 +179,7 @@ class _InstanceCardState extends State<InstanceCard> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
       elevation: widget.isSelected ? 4 : 2,
-      shadowColor: Colors.black.withOpacity(0.1),
+      shadowColor: Colors.black.withValues(alpha: 0.1),
       surfaceTintColor: colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -212,10 +212,10 @@ class _InstanceCardState extends State<InstanceCard> {
                           color: _getStatusColor(widget.instance.status, colorScheme),
                           boxShadow: [
                             BoxShadow(
-                              color: _getStatusColor(widget.instance.status, colorScheme).withOpacity(0.3),
-                              blurRadius: 4,
-                              spreadRadius: 1,
-                            ),
+                                color: _getStatusColor(widget.instance.status, colorScheme).withValues(alpha: 0.3),
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                              ),
                           ],
                         ),
                         child: _getStatusIcon(widget.instance.status),

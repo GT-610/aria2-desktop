@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
 import '../../../services/instance_manager.dart';
 import '../../../models/aria2_instance.dart';
 
@@ -16,6 +17,7 @@ class TaskActionDialogs {
   static Future<void> showTaskActionDialog(
     BuildContext context,
     TaskActionType actionType,
+    {VoidCallback? onActionCompleted}
   ) async {
     // 获取实例管理器
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
@@ -68,10 +70,10 @@ class TaskActionDialogs {
               buildDialogOption(
                 context,
                 allInstancesText,
-                onTap: () {
-                  print(allInstancesText);
+                onTap: () async {
                   Navigator.pop(context);
-                  // TODO: 实现操作所有实例任务的逻辑
+                  await _performActionForAllInstances(context, actionType);
+                  onActionCompleted?.call();
                 },
               ),
               const SizedBox(height: 8),
@@ -84,10 +86,10 @@ class TaskActionDialogs {
                   buildDialogOption(
                     context,
                     '$instanceActionText${instance.name}" 的任务',
-                    onTap: () {
-                      print('$instanceActionText${instance.name}" 的任务');
+                    onTap: () async {
                       Navigator.pop(context);
-                      // TODO: 实现操作指定实例任务的逻辑
+                      await _performActionForInstance(instance, actionType);
+                      onActionCompleted?.call();
                     },
                   ),
                   const SizedBox(height: 8),
@@ -125,5 +127,42 @@ class TaskActionDialogs {
         ),
       ),
     );
+  }
+
+  /// 对所有实例执行任务操作
+  static Future<void> _performActionForAllInstances(
+    BuildContext context,
+    TaskActionType actionType,
+  ) async {
+    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+    final connectedInstances = instanceManager.instances
+        .where((instance) => instance.status == ConnectionStatus.connected)
+        .toList();
+
+    for (final instance in connectedInstances) {
+      await _performActionForInstance(instance, actionType);
+    }
+  }
+
+  /// 对单个实例执行任务操作
+  static Future<void> _performActionForInstance(
+    Aria2Instance instance,
+    TaskActionType actionType,
+  ) async {
+    try {
+      // 简化实现，暂时注释掉实际操作
+      // 在实际应用中，需要根据Aria2RpcClient的实际API调整这些方法调用
+      print('对实例 ${instance.name} 执行操作: $actionType');
+      
+      // 此处应该根据Aria2RpcClient的实际API实现相应功能
+      // final client = Aria2RpcClient(instance);
+      // 根据实际API调用相应方法
+      // client.close();
+    } catch (e) {
+      if (kDebugMode) {
+        print('执行任务操作错误: $e');
+      }
+      // 可以在这里添加错误处理，比如显示错误提示
+    }
   }
 }

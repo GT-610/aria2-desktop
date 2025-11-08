@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'pages/download_page/download_page.dart';
 import 'pages/instance_page/instance_page.dart';
-import 'pages/settings_page.dart';
+import 'pages/settings_page/settings_page.dart';
 import 'models/global_stat.dart';
 import 'services/instance_manager.dart';
 import 'models/settings.dart';
