@@ -83,9 +83,14 @@ class DownloadTaskService {
     if (taskData['bittorrent']?['info']?['name'] != null) {
       name = taskData['bittorrent']['info']['name'];
     } else if (taskData['files'] is List && taskData['files'].isNotEmpty) {
-      name = taskData['files'][0]['path']?.split('/').last ?? '';
-    } else if (taskData['files'] is List && taskData['files'].isNotEmpty) {
-      name = taskData['files'][0]['path']?.split('\\').last ?? '';
+      final path = taskData['files'][0]['path'] ?? '';
+      if (path.contains('/')) {
+        name = path.split('/').last;
+      } else if (path.contains('\\')) {
+        name = path.split('\\').last;
+      } else {
+        name = path;
+      }
     }
 
     // Get download directory
@@ -168,10 +173,10 @@ class DownloadTaskService {
         onTaskUpdated();
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error pausing task: $e');
+        if (kDebugMode) {
+          print('Error pausing task: $e');
+        }
       }
-    }
   }
 
   /// Stop a download task
@@ -187,10 +192,10 @@ class DownloadTaskService {
         onTaskUpdated();
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error stopping task: $e');
+        if (kDebugMode) {
+          print('Error stopping task: $e');
+        }
       }
-    }
   }
 
   /// Resume a paused download task
@@ -206,10 +211,10 @@ class DownloadTaskService {
         onTaskUpdated();
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error resuming task: $e');
+        if (kDebugMode) {
+          print('Error resuming task: $e');
+        }
       }
-    }
   }
 
   /// Retry a failed download task
@@ -229,17 +234,17 @@ class DownloadTaskService {
         // In a real implementation, you might want to store and reuse the original URIs/magnet links
         // For now, this is a placeholder implementation
         if (kDebugMode) {
-          print('Retrying task: ${task.id}');
-        }
+            print('Retrying task: ${task.id}');
+          }
         
         client.close();
         onTaskUpdated();
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error retrying task: $e');
+        if (kDebugMode) {
+          print('Error retrying task: $e');
+        }
       }
-    }
   }
 
   /// Open the download directory of a task

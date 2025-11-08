@@ -4,27 +4,27 @@ import '../../../utils/logging.dart';
 import '../../../services/instance_manager.dart';
 import '../../../models/aria2_instance.dart';
 
-/// 任务操作类型枚举
+/// Task operation type enumeration
 enum TaskActionType {
   resume,
   pause,
   delete
 }
 
-/// 任务操作对话框组件类
+/// Task operation dialog component class
 class TaskActionDialogs {
   static final AppLogger _logger = AppLogger('TaskActionDialogs');
   
-  /// 显示任务操作对话框
+  /// Show task operation dialog
   static Future<void> showTaskActionDialog(
     BuildContext context,
     TaskActionType actionType,
     {VoidCallback? onActionCompleted}
   ) async {
-    // 获取实例管理器
+    // Get instance manager
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     
-    // 根据操作类型设置标题和按钮文本
+    // Set title and button text based on action type
     final String title;
     final String allInstancesText;
     final String instanceActionText;
@@ -68,7 +68,7 @@ class TaskActionDialogs {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 操作所有实例的任务
+              // Operate tasks for all instances
               buildDialogOption(
                 context,
                 allInstancesText,
@@ -79,10 +79,10 @@ class TaskActionDialogs {
                 },
               ),
               const SizedBox(height: 8),
-              // 分隔线
+              // Separator line
               Container(height: 1, color: colorScheme.surfaceContainerHighest),
               const SizedBox(height: 8),
-              // 目标实例列表
+              // Target instances list
               ...targetInstances.map((instance) => Column(
                 children: [
                   buildDialogOption(
@@ -112,7 +112,7 @@ class TaskActionDialogs {
     );
   }
 
-  /// 构建对话框选项
+  /// Build dialog option
   static Widget buildDialogOption(
     BuildContext context,
     String text,
@@ -131,7 +131,7 @@ class TaskActionDialogs {
     );
   }
 
-  /// 对所有实例执行任务操作
+  /// Perform action for all instances
   static Future<void> _performActionForAllInstances(
     BuildContext context,
     TaskActionType actionType,
@@ -146,23 +146,23 @@ class TaskActionDialogs {
     }
   }
 
-  /// 对单个实例执行任务操作
+  /// Perform action for single instance
   static Future<void> _performActionForInstance(
     Aria2Instance instance,
     TaskActionType actionType,
   ) async {
     try {
-      // 简化实现，暂时注释掉实际操作
-      // 在实际应用中，需要根据Aria2RpcClient的实际API调整这些方法调用
+      // Simplified implementation, actual operations commented out temporarily
+      // In actual application, adjust these method calls according to Aria2RpcClient's actual API
       _logger.d('对实例 ${instance.name} 执行操作: $actionType');
       
-      // 此处应该根据Aria2RpcClient的实际API实现相应功能
+      // Should implement corresponding functionality based on Aria2RpcClient's actual API here
       // final client = Aria2RpcClient(instance);
-      // 根据实际API调用相应方法
+      // Call corresponding method based on actual API
       // client.close();
     } catch (e) {
-      // 可以在这里添加错误处理，比如显示错误提示
-      _logger.e('执行任务操作错误', error: e);
+      // Can add error handling here, such as showing error messages
+      _logger.e('Error executing task operation', error: e);
     }
   }
 }

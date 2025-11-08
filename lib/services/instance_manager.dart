@@ -6,7 +6,7 @@ import '../models/aria2_instance.dart';
 import 'aria2_rpc_client.dart';
 import '../utils/logging.dart';
 
-/// 统一的实例管理服务类，合并了InstanceManager和NotifiableInstanceManager的功能
+/// Unified instance management service class, combining the functionality of InstanceManager and NotifiableInstanceManager
 class InstanceManager extends ChangeNotifier with Loggable {
   List<Aria2Instance> _instances = [];
   Aria2Instance? _activeInstance;
@@ -19,55 +19,55 @@ class InstanceManager extends ChangeNotifier with Loggable {
   List<Aria2Instance> get instances => _instances;
   Aria2Instance? get activeInstance => _activeInstance;
 
-  /// 初始化实例管理器
+  /// Initialize instance manager
   Future<void> initialize() async {
     try {
       await _loadInstances();
-      // 确保活动实例在初始化时不会触发自动连接
-      // 明确设置活动实例状态为未连接
+      // Ensure active instance doesn't trigger auto-connection during initialization
+      // Explicitly set active instance status to disconnected
       if (_activeInstance != null) {
         updateInstanceInList(_activeInstance!.id, ConnectionStatus.disconnected);
       }
-      logger.i('实例管理器初始化完成，共加载 ${_instances.length} 个实例');
+      logger.i('Instance manager initialization completed, loaded ${_instances.length} instances');
     } catch (e, stackTrace) {
-      logger.e('初始化实例管理器失败', error: e, stackTrace: stackTrace);
+      logger.e('Failed to initialize instance manager', error: e, stackTrace: stackTrace);
     }
     notifyListeners();
   }
 
-  /// 加载实例数据
+  /// Load instance data
   Future<void> _loadInstances() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final filePath = '${directory.path}/$_fileName';
       final file = File(filePath);
       
-      logger.d('加载实例数据: 从 $filePath 读取');
+      logger.d('Loading instance data: reading from $filePath');
       
       if (file.existsSync()) {
         final jsonString = await file.readAsString();
         final List<dynamic> jsonList = jsonDecode(jsonString);
-        // 加载实例并将所有实例状态设置为未连接
+        // Load instances and set all instance statuses to disconnected
         _instances = jsonList
             .map((e) => Aria2Instance.fromJson(e))
             .map((instance) => instance.copyWith(status: ConnectionStatus.disconnected))
             .toList();
         
-        logger.i('成功读取 ${_instances.length} 个实例');
+        logger.i('Successfully read ${_instances.length} instances');
         
-        // 不再设置活动实例，只有用户明确连接时才设置
+        // No longer set active instance, only set when user explicitly connects
         _activeInstance = null;
       } else {
-        logger.d('实例文件不存在，创建默认实例');
+        logger.d('Instance file does not exist, creating default instance');
         await _createDefaultInstance();
       }
     } catch (e, stackTrace) {
-      logger.e('加载实例数据失败', error: e, stackTrace: stackTrace);
+      logger.e('Failed to load instance data', error: e, stackTrace: stackTrace);
       await _createDefaultInstance();
     }
   }
 
-  /// 创建默认实例
+  /// Create default instance
   Future<void> _createDefaultInstance() async {
     _instances = [
       Aria2Instance(
@@ -78,70 +78,70 @@ class InstanceManager extends ChangeNotifier with Loggable {
         host: 'localhost',
         port: 6800,
         secret: '',
-        status: ConnectionStatus.disconnected, // 确保默认实例处于未连接状态
+        status: ConnectionStatus.disconnected, // Ensure default instance is in disconnected state
       ),
     ];
-    _activeInstance = null; // 不设置默认活动实例
+    _activeInstance = null; // Don't set default active instance
     await _saveInstances();
-    logger.i('已创建默认实例');
+    logger.i('Default instance created');
   }
 
-  /// 保存实例数据到文件 
+  /// Save instance data to file 
   Future<void> _saveInstances() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final filePath = '${directory.path}/$_fileName';
       final file = File(filePath);
       
-      logger.d('保存实例数据: 写入到 $filePath');
+      logger.d('Saving instance data: writing to $filePath');
       
       final jsonList = _instances.map((instance) => instance.toJson()).toList();
       final jsonString = jsonEncode(jsonList);
       
-      // 确保目录存在
+      // Ensure directory exists
       final dir = Directory(directory.path);
       if (!dir.existsSync()) {
-        logger.d('创建目录: ${directory.path}');
+        logger.d('Creating directory: ${directory.path}');
         await dir.create(recursive: true);
       }
       
       await file.writeAsString(jsonString);
-      logger.d('实例数据保存成功');
+      logger.d('Instance data saved successfully');
       
-      // 验证文件是否成功写入
+      // Verify file was successfully written
       if (!file.existsSync()) {
-        logger.w('警告: 文件写入后检查失败，文件不存在');
+        logger.w('Warning: File write verification failed, file does not exist');
       }
     } catch (e, stackTrace) {
-      logger.e('保存实例数据失败', error: e, stackTrace: stackTrace);
+      logger.e('Failed to save instance data', error: e, stackTrace: stackTrace);
     }
   }
 
-  /// 添加实例
+  /// Add instance
   Future<void> addInstance(Aria2Instance instance) async {
     try {
-      // 确保ID唯一
+      // Ensure ID is unique
       if (_instances.any((i) => i.id == instance.id)) {
         instance = instance.copyWith(id: DateTime.now().millisecondsSinceEpoch.toString());
-        logger.d('实例ID重复，生成新ID');
+        logger.d('Instance ID duplicate, generating new ID');
       }
       
-      // 确保实例状态为未连接
+      // Ensure instance status is disconnected
       final newInstance = instance.copyWith(status: ConnectionStatus.disconnected);
       
       _instances.add(newInstance);
       await _saveInstances();
-      logger.i('实例添加成功: ${newInstance.name}');
+      logger.i('Instance added successfully: ${newInstance.name}');
       
-      // 通知监听器
+      // Notify listeners
       notifyListeners();
     } catch (e, stackTrace) {
-      logger.e('添加实例失败', error: e, stackTrace: stackTrace);
-      throw Exception('添加实例失败: $e');
+      logger.e('Failed to add instance', error: e, stackTrace: stackTrace);
+      throw Exception('Failed to add instance: $e');
     }
   }
 
-  /// 更新实例
+  /// Update instance
   Future<void> updateInstance(Aria2Instance updatedInstance) async {
     try {
       final index = _instances.indexWhere((i) => i.id == updatedInstance.id);
@@ -154,23 +154,23 @@ class InstanceManager extends ChangeNotifier with Loggable {
         }
         
         await _saveInstances();
-        logger.i('实例更新成功: ${updatedInstance.name}');
+        logger.i('Instance updated successfully: ${updatedInstance.name}');
         notifyListeners();
       } else {
-        logger.w('找不到要更新的实例: ${updatedInstance.id}');
-        throw Exception('找不到要更新的实例');
+        logger.w('Cannot find instance to update: ${updatedInstance.id}');
+        throw Exception('Cannot find instance to update');
       }
     } catch (e, stackTrace) {
-      logger.e('更新实例失败', error: e, stackTrace: stackTrace);
+      logger.e('Failed to update instance', error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
 
-  /// 删除实例
+  /// Delete instance
   Future<void> deleteInstance(String instanceId) async {
     // Can't delete the last instance
     if (_instances.length <= 1) {
-      throw Exception('不能删除唯一的实例');
+      throw Exception('Cannot delete the only instance');
     }
     
     // If the active instance is being deleted, switch to another instance
@@ -184,7 +184,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     notifyListeners();
   }
 
-  /// 设置活动实例
+  /// Set active instance
   Future<void> setActiveInstance(String instanceId) async {
     // Stop local process of current active instance if it's local
     if (_activeInstance?.type == InstanceType.local && 
@@ -197,7 +197,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     notifyListeners();
   }
 
-  /// 检查实例连接状态
+  /// Check instance connection status
   Future<bool> checkConnection(Aria2Instance instance) async {
     try {
       final client = Aria2RpcClient(instance);
@@ -205,49 +205,52 @@ class InstanceManager extends ChangeNotifier with Loggable {
       client.close();
       return isConnected;
     } catch (e) {
-      logger.w('连接测试失败: $e');
+      logger.w('Connection test failed: $e');
       return false;
     }
   }
 
-  /// 连接到实例
+  /// Connect to instance
   Future<bool> connectInstance(Aria2Instance instance) async {
     try {
-      // 先断开当前活动实例（如果有）
+      // First disconnect current active instance if any
       if (_activeInstance != null) {
         await disconnectInstance();
       }
       
-      // 测试连接
+      // Test connection
       final canConnect = await checkConnection(instance);
       if (!canConnect) {
-        logger.w('连接测试失败，无法连接到实例: ${instance.name}');
+        logger.w('Connection test failed, cannot connect to instance: ${instance.name}');
         updateInstanceInList(instance.id, ConnectionStatus.failed);
         return false;
       }
       
-      // 直接设置活动实例，不再更新isActive属性
-      _activeInstance = instance;
+      // Update instance status to connected and set as active instance
+      final connectedInstance = instance.copyWith(status: ConnectionStatus.connected);
+      _activeInstance = connectedInstance;
       
-      // 更新实例状态为已连接
+      // Update status in instance list
       updateInstanceInList(instance.id, ConnectionStatus.connected);
       
+      logger.d('Instance connection status set - Active instance: ${_activeInstance?.name}, Status: ${_activeInstance?.status}');
+      
       await _saveInstances();
-      logger.i('成功连接到实例: ${instance.name}');
+      logger.i('Successfully connected to instance: ${instance.name}');
       notifyListeners();
       
       return true;
     } catch (e, stackTrace) {
-      logger.e('连接实例失败', error: e, stackTrace: stackTrace);
-      // 更新实例状态为失败
+      logger.e('Failed to connect to instance', error: e, stackTrace: stackTrace);
+      // Update instance status to failed
       updateInstanceInList(instance.id, ConnectionStatus.failed);
       return false;
     }
   }
 
-  /// 断开当前实例连接
+  /// Disconnect current instance
   Future<void> disconnectInstance() async {
-    // 先获取当前活动实例ID，用于更新状态
+    // First get current active instance ID for status update
     final activeInstanceId = _activeInstance?.id;
     
     // For local instances, stop the process
@@ -257,7 +260,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
       _activeInstance?.localProcess = null;
     }
     
-    // 更新活动实例的状态为未连接
+    // Update active instance status to disconnected
     if (activeInstanceId != null) {
       updateInstanceInList(activeInstanceId, ConnectionStatus.disconnected);
     }
@@ -267,20 +270,20 @@ class InstanceManager extends ChangeNotifier with Loggable {
     notifyListeners();
   }
 
-  /// 检查实例是否在线
+  /// Check if instance is online
   Future<bool> checkInstanceOnline(Aria2Instance instance) async {
     return await checkConnection(instance);
   }
 
-  /// 启动本地aria2进程
+  /// Start local aria2 process
   Future<bool> startLocalProcess(Aria2Instance instance) async {
     if (instance.type != InstanceType.local || instance.aria2Path == null) {
-      logger.w('尝试为非本地实例或路径未设置的实例启动本地进程');
+      logger.w('Attempting to start local process for non-local instance or instance with no path set');
       return false;
     }
     
     try {
-      logger.d('为实例启动本地进程: ${instance.name}');
+      logger.d('Starting local process for instance: ${instance.name}');
       // Build the command
       final List<String> args = [
         '--enable-rpc',
@@ -304,18 +307,18 @@ class InstanceManager extends ChangeNotifier with Loggable {
       final updatedInstance = instance.copyWith(localProcess: process);
       await updateInstance(updatedInstance);
       
-      logger.i('本地进程启动成功: ${instance.name}');
+      logger.i('Local process started successfully: ${instance.name}');
       return true;
     } catch (e, stackTrace) {
-      logger.e('启动本地进程失败', error: e, stackTrace: stackTrace);
+      logger.e('Failed to start local process', error: e, stackTrace: stackTrace);
       return false;
     }
   }
 
-  /// 停止本地aria2进程
+  /// Stop local aria2 process
   Future<bool> stopLocalProcess(Aria2Instance instance) async {
     if (instance.type != InstanceType.local || instance.localProcess == null) {
-      logger.w('尝试停止非本地实例或没有进程的实例');
+      logger.w('Attempting to stop non-local instance or instance with no process');
       return false;
     }
     
@@ -327,15 +330,15 @@ class InstanceManager extends ChangeNotifier with Loggable {
       final updatedInstance = instance.copyWith(localProcess: null);
       await updateInstance(updatedInstance);
       
-      logger.i('本地进程停止成功: ${instance.name}');
+      logger.i('Local process stopped successfully: ${instance.name}');
       return true;
     } catch (e, stackTrace) {
-      logger.e('停止本地进程失败', error: e, stackTrace: stackTrace);
+      logger.e('Failed to stop local process', error: e, stackTrace: stackTrace);
       return false;
     }
   }
 
-  /// 更新实例列表中的实例状态
+  /// Update instance status in instance list
   void updateInstanceInList(String instanceId, ConnectionStatus status) {
     final index = _instances.indexWhere((i) => i.id == instanceId);
     if (index != -1) {
@@ -344,22 +347,22 @@ class InstanceManager extends ChangeNotifier with Loggable {
     }
   }
 
-  /// 根据ID获取实例
+  /// Get instance by ID
   Aria2Instance? getInstanceById(String instanceId) {
     try {
       return _instances.firstWhere((instance) => instance.id == instanceId);
     } catch (e) {
-      logger.d('找不到ID为 $instanceId 的实例');
+      logger.d('Cannot find instance with ID $instanceId');
       return null;
     }
   }
 
-  /// 获取所有实例（兼容方法）
+  /// Get all instances (compatibility method)
   List<Aria2Instance> getInstances() {
     return _instances;
   }
 
-  /// 获取活动实例（兼容方法）
+  /// Get active instance (compatibility method)
   Aria2Instance? getActiveInstance() {
     return _activeInstance;
   }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/logging/log_extensions.dart';
 
-// 日志级别枚举
+// Log level enumeration
 enum LogLevel {
   debug,
   info,
@@ -11,20 +11,20 @@ enum LogLevel {
 }
 
 class Settings extends ChangeNotifier with Loggable {
-  // 全局设置
-  bool _autoStart = false; // 系统启动时自动运行
-  bool _minimizeToTray = true; // 最小化到系统托盘
+  // Global settings
+  bool _autoStart = false; // Auto-run on system startup
+  bool _minimizeToTray = true; // Minimize to system tray
   
-  // 外观设置
-  ThemeMode _themeMode = ThemeMode.system;
-  Color _primaryColor = Colors.blue; // 默认主题色
-  String? _customColorCode; // 自定义颜色代码
+  // Appearance settings
+  ThemeMode _themeMode = ThemeMode.system;// Appearance settings
+  // Default theme color
+  Color _primaryColor = Colors.blue; // Default theme color
+  String? _customColorCode; // Custom color code 
+  // Log settings
+  LogLevel _logLevel = LogLevel.info; // Log level
+  bool _saveLogsToFile = true; // Save logs to file
   
-  // 日志设置
-  LogLevel _logLevel = LogLevel.info; // 日志级别
-  bool _saveLogsToFile = true; // 保存日志到文件
-  
-  // 构造函数初始化
+  // Constructor initialization
   Settings() {
     initLogger();
     logger.i('Settings instance created');
@@ -40,17 +40,17 @@ class Settings extends ChangeNotifier with Loggable {
   bool get saveLogsToFile => _saveLogsToFile;
   String get logLevelString => _logLevel.name;
   
-  // 从SharedPreferences加载所有设置
+  // Load all settings from SharedPreferences
   Future<void> loadSettings() async {
     try {
       logger.i('Loading settings from storage...');
       final prefs = await SharedPreferences.getInstance();
       
-      // 全局设置
+      // Global settings
       _autoStart = prefs.getBool('autoStart') ?? false;
       _minimizeToTray = prefs.getBool('minimizeToTray') ?? true;
       
-      // 外观设置
+      // Appearance settings
       final themeModeValue = prefs.getString('themeMode');
       if (themeModeValue != null) {
         _themeMode = ThemeMode.values.firstWhere(
@@ -71,7 +71,7 @@ class Settings extends ChangeNotifier with Loggable {
       
       _customColorCode = prefs.getString('customColorCode');
       
-      // 日志设置
+      // Log settings
       final logLevelValue = prefs.getString('logLevel');
       if (logLevelValue != null) {
         _logLevel = LogLevel.values.firstWhere(
@@ -86,12 +86,12 @@ class Settings extends ChangeNotifier with Loggable {
       notifyListeners();
     } catch (e) {
       logger.e('Failed to load settings', error: e);
-      // 应用默认设置
+      // Apply default settings
       _applyDefaultSettings();
     }
   }
   
-  // 应用默认设置
+  // Apply default settings
   void _applyDefaultSettings() {
     logger.i('Applying default settings');
     _autoStart = false;
@@ -104,7 +104,7 @@ class Settings extends ChangeNotifier with Loggable {
     notifyListeners();
   }
   
-  // 异步保存设置的通用方法
+  // Generic method to save settings asynchronously
   Future<void> _saveSetting(String key, dynamic value) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -125,28 +125,28 @@ class Settings extends ChangeNotifier with Loggable {
     }
   }
   
-  // 系统启动时自动运行设置
+  // Auto-run on system startup setting
   Future<void> setAutoStart(bool value) async {
     _autoStart = value;
     notifyListeners();
     await _saveSetting('autoStart', value);
   }
   
-  // 最小化到系统托盘设置
+  // Minimize to system tray setting
   Future<void> setMinimizeToTray(bool value) async {
     _minimizeToTray = value;
     notifyListeners();
     await _saveSetting('minimizeToTray', value);
   }
   
-  // 主题模式设置
+  // Theme mode setting
   Future<void> setThemeMode(ThemeMode themeMode) async {
     _themeMode = themeMode;
     notifyListeners();
     await _saveSetting('themeMode', themeMode.name);
   }
   
-  // 主题色设置
+  // Theme color setting
   Future<void> setPrimaryColor(Color color, {bool isCustom = false}) async {
     _primaryColor = color;
     _customColorCode = isCustom ? color.toARGB32().toString() : null;
@@ -168,14 +168,14 @@ class Settings extends ChangeNotifier with Loggable {
     }
   }
   
-  // 日志级别设置
+  // Log level setting
   Future<void> setLogLevel(LogLevel level) async {
     _logLevel = level;
     notifyListeners();
     await _saveSetting('logLevel', level.name);
   }
   
-  // 保存日志到文件设置
+  // Save logs to file setting
   Future<void> setSaveLogsToFile(bool value) async {
     _saveLogsToFile = value;
     notifyListeners();

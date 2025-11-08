@@ -28,7 +28,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
   void initState() {
     super.initState();
     
-    // 如果是编辑模式，填充现有数据
+    // If in edit mode, fill with existing data
     if (widget.instance != null) {
       _name = widget.instance!.name;
       _type = widget.instance!.type;
@@ -38,7 +38,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
       _secret = widget.instance!.secret;
       _aria2Path = widget.instance!.aria2Path;
     } else {
-      // 默认值
+      // Default values
       _name = '';
       _type = InstanceType.local;
       _protocol = 'http';
@@ -65,7 +65,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
         return;
       }
 
-      // 在Windows上检查文件扩展名
+      // Check file extension on Windows
       if (Platform.isWindows && !_aria2Path!.toLowerCase().endsWith('.exe')) {
         setState(() => _isLocalAria2PathError = true);
         return;
@@ -77,7 +77,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
     }
   }
 
-  // 选择Aria2可执行文件
+  // Select Aria2 executable file
   Future<void> _selectAria2Path() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -95,7 +95,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
         }
       }
     } catch (e) {
-      // 显示错误提示给用户
+      // Show error message to user
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('选择文件失败: $e')),
@@ -104,17 +104,17 @@ class _InstanceDialogState extends State<InstanceDialog> {
     }
   }
 
-  // 提交表单
+  // Submit form
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // 对于本地实例，验证Aria2路径
+    // For local instances, validate Aria2 path
     if (_type == InstanceType.local) {
       await _validateAria2Path();
       if (_isLocalAria2PathError) return;
     }
 
-    // 创建或更新实例对象
+    // Create or update instance object
     final instance = Aria2Instance(
       id: widget.instance?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       name: _name,
@@ -126,14 +126,14 @@ class _InstanceDialogState extends State<InstanceDialog> {
       aria2Path: _type == InstanceType.local ? _aria2Path : null,
     );
 
-    // 如果提供了回调函数，使用回调函数
+    // If callback function is provided, use it
     if (widget.onSave != null) {
       widget.onSave!(instance);
       if (mounted) {
         Navigator.of(context).pop();
       }
     } else {
-      // 否则返回结果
+      // Otherwise return the result
       if (mounted) {
         Navigator.of(context).pop(instance);
       }
@@ -160,7 +160,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 对话框标题
+            // Dialog title
             Padding(
               padding: const EdgeInsets.all(24).copyWith(bottom: 16),
               child: Text(
@@ -182,7 +182,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // 实例名称
+                        // Instance name
                         TextFormField(
                           initialValue: _name,
                           decoration: InputDecoration(
@@ -211,7 +211,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                         ),
                         const SizedBox(height: 16),
 
-                        // 实例类型
+                        // Instance type
                         SegmentedButton<InstanceType>(
                           segments: const [
                             ButtonSegment(
@@ -229,7 +229,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                           onSelectionChanged: (newSelection) {
                             setState(() {
                               _type = newSelection.first;
-                              // 切换类型时重置一些默认值
+                              // Reset some default values when switching types
                               if (_type == InstanceType.local) {
                                 _host = 'localhost';
                                 _aria2Path = null;
@@ -239,7 +239,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                         ),
                         const SizedBox(height: 16),
 
-                        // 协议选择
+                        // Protocol selection
                         DropdownButtonFormField<String>(
                           initialValue: _protocol,
                           decoration: InputDecoration(
@@ -265,7 +265,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                         ),
                         const SizedBox(height: 16),
 
-                        // 主机地址
+                        // Host address
                         TextFormField(
                           initialValue: _host,
                           decoration: InputDecoration(
@@ -285,7 +285,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                             if (value == null || value.trim().isEmpty) {
                               return '请输入主机地址';
                             }
-                            // 简单的IP或域名验证
+                            // Simple IP or domain validation
                             final ipPattern = RegExp(r'^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$');
                             final domainPattern = RegExp(r'^([a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}$');
                             if (value != 'localhost' && !ipPattern.hasMatch(value) && !domainPattern.hasMatch(value)) {
@@ -297,7 +297,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                         ),
                         const SizedBox(height: 16),
 
-                        // 端口
+                        // Port
                         TextFormField(
                           initialValue: _port.toString(),
                           decoration: InputDecoration(
@@ -333,7 +333,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                         ),
                         const SizedBox(height: 16),
 
-                        // 密钥
+                        // Secret
                         TextFormField(
                           initialValue: _secret,
                           decoration: InputDecoration(
@@ -357,7 +357,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                         ),
                         const SizedBox(height: 16),
 
-                        // 本地实例的Aria2路径
+                        // Aria2 path for local instance
                         if (_type == InstanceType.local)
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -442,7 +442,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
               ),
             ),
 
-            // 操作按钮
+            // Action buttons
             Padding(
               padding: const EdgeInsets.all(24).copyWith(top: 8),
               child: Row(

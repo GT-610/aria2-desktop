@@ -1,36 +1,36 @@
 
 
-// 导入必要的库
+// Import necessary libraries
 import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'logging.dart';
 
-// 按惯例将dart标准库导入和第三方库导入分开;
+// By convention, separate dart standard library imports and third-party library imports;
 
-// 格式化工具类
+// Format utility class
 class FormatUtils {
   static final AppLogger _logger = AppLogger('FormatUtils');
 }
 
-// 格式化字节数显示
+// Format bytes for display
 String formatBytes(int bytes, {int decimals = 2}) {
   if (bytes <= 0) return '0 B';
   
   const suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   int i = (bytes == 0) ? 0 : (log(bytes) / log(1024)).floor();
   
-  // 确保i不会超出suffixes的范围
+  // Ensure i doesn't exceed the range of suffixes
   i = i.clamp(0, suffixes.length - 1);
   
   return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
 }
 
-// 计算剩余时间
+// Calculate remaining time
 String calculateRemainingTime(double progress, String downloadSpeed) {
   if (progress >= 1.0 || downloadSpeed == '0' || downloadSpeed.isEmpty) {
-    return '已完成';
+    return 'Completed';
   }
   
   // 解析下载速度
@@ -58,9 +58,9 @@ String calculateRemainingTime(double progress, String downloadSpeed) {
     }
   }
   
-  // 如果速度为0，返回未知
+  // If speed is 0, return unknown
   if (speedBytes == 0) {
-    return '未知';
+    return 'Unknown';
   }
   
   // 计算剩余秒数
@@ -68,39 +68,39 @@ String calculateRemainingTime(double progress, String downloadSpeed) {
   // 这里假设总大小为100%，实际应用中需要根据实际大小计算
   int remainingSeconds = (remainingPercentage / (speedBytes / 100)).toInt();
   
-  // 格式化剩余时间
+  // Format remaining time
   if (remainingSeconds < 60) {
-    return '$remainingSeconds秒';
+    return '${remainingSeconds}s';
   } else if (remainingSeconds < 3600) {
     int minutes = remainingSeconds ~/ 60;
     int seconds = remainingSeconds % 60;
-    return '$minutes分$seconds秒';
+    return '${minutes}m${seconds}s';
 
 
 
   } else if (remainingSeconds < 86400) {
     int hours = remainingSeconds ~/ 3600;
     int minutes = (remainingSeconds % 3600) ~/ 60;
-    return '$hours小时$minutes分';
+    return '${hours}h${minutes}m';
   } else {
     int days = remainingSeconds ~/ 86400;
     int hours = (remainingSeconds % 86400) ~/ 3600;
-    return '$days天$hours小时';
+    return '${days}d${hours}h';
   }
 }
 
-// 解析十六进制bitfield为区块状态数组
+// Parse hexadecimal bitfield into piece status array
 List<int> parseHexBitfield(String bitfield) {
   List<int> pieces = [];
   
-  // 每个字符代表一个区块的状态 (0-f)
+  // Each character represents a piece's status (0-f)
   for (int i = 0; i < bitfield.length; i++) {
     String hexChar = bitfield[i];
     try {
       int pieceValue = int.parse(hexChar, radix: 16);
       pieces.add(pieceValue);
     } catch (e) {
-      // 如果解析失败，默认为未下载
+      // If parsing fails, default to not downloaded
       pieces.add(0);
     }
   }
@@ -108,7 +108,7 @@ List<int> parseHexBitfield(String bitfield) {
   return pieces;
 }
 
-// 解析任务数据获取bitfield
+// Parse task data to get bitfield
 String? parseBitfield(String? bittorrentInfo) {
   if (bittorrentInfo != null && bittorrentInfo.isNotEmpty) {
     try {
@@ -123,37 +123,37 @@ String? parseBitfield(String? bittorrentInfo) {
         }
       }
     } catch (e) {
-      FormatUtils._logger.e('解析bittorrentInfo中的bitfield失败', error: e);
+      FormatUtils._logger.e('Failed to parse bitfield from bittorrentInfo', error: e);
     }
   }
   return null;
 }
 
-// 根据区块值获取对应的颜色
+// Get corresponding color based on piece value
 Color getPieceColor(int pieceValue) {
   switch (pieceValue) {
     case 0:
-      return Colors.grey; // 未下载
+      return Colors.grey; // Not downloaded
     case 1:
     case 2:
     case 3:
-      return Colors.orange; // 低完成度
+      return Colors.orange; // Low completion
     case 4:
     case 5:
     case 6:
     case 7:
-      return Colors.yellow; // 中等完成度
+      return Colors.yellow; // Medium completion
     case 8:
     case 9:
     case 10:
     case 11:
-      return Colors.lightGreen; // 高完成度
+      return Colors.lightGreen; // High completion
     case 12:
     case 13:
     case 14:
     case 15:
-      return Colors.green; // 完全下载完成
+      return Colors.green; // Fully downloaded
     default:
-      return Colors.grey; // 默认未下载
+      return Colors.grey; // Default not downloaded
   }
 }

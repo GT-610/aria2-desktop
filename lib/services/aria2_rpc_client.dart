@@ -205,22 +205,30 @@ class Aria2RpcClient with Loggable {
 
   /// Execute multiple RPC calls in one request
   Future<List<Map<String, dynamic>>> multicall(List<Map<String, dynamic>> calls) async {
-    // Format: [{"methodName": "aria2.getActive", "params": [...]}, ...]
-    final response = await callRpc('system.multicall', [calls]);
-    
-    // Process the results
-    final results = response['result'] as List<dynamic>;
-    return results.map((item) {
-      if (item is List && item.isNotEmpty) {
-        // aria2 returns results in format: [{"result": ...}] or [{"error": ...}]
-        if (item[0].containsKey('result')) {
-          return {'success': true, 'data': item[0]['result']};
-        } else if (item[0].containsKey('error')) {
-          return {'success': false, 'error': item[0]['error']};
-        }
+    try {
+      // Format: [{"methodName": "aria2.getActive", "params": [...]}, ...]
+      final response = await callRpc('system.multicall', [calls]);
+      
+      // Use original response for type checking directly
+      if (response.containsKey('result') && response['result'] is List<dynamic>) {
+        final results = response['result'] as List<dynamic>;
+        return results.map((item) {
+          try {
+            // Directly judge the content of the item without additional nesting levels
+            final isSuccess = item is List<dynamic>;
+            return {'success': isSuccess, 'data': item};
+          } catch (e) {
+            logger.e('Error processing multicall item', error: e);
+            return {'success': false, 'error': 'Error processing item: $e'};
+          }
+        }).toList();
       }
-      return {'success': false, 'error': 'Invalid response format'};
-    }).toList();
+      logger.e('Invalid multicall response format: $response');
+      return [];
+    } catch (e) {
+      logger.e('Multicall failed', error: e);
+      rethrow;
+    }
   }
 
   /// Get download status information
@@ -298,21 +306,21 @@ class Aria2RpcClient with Loggable {
   
   /// Add a download task with URI
   Future<String> addUri(String uri, String directory) async {
-    // 构建下载参数
+    // Build download parameters
     final downloadOptions = {
       'dir': directory,
     };
     
-    // 构建请求参数 - [URL列表, 选项]
+    // Build request parameters - [URL list, options]
     final params = [
-      [uri],  // URL列表，即使只有一个URL也需要是数组格式
-      downloadOptions  // 下载选项
+      [uri],  // URL list, even a single URL needs to be in array format
+      downloadOptions  // Download options
     ];
     
-    // 调用RPC方法发送请求
+    // Call RPC method to send request
     final response = await callRpc('aria2.addUri', params);
     
-    // 返回任务的GID
+    // Return task GID
     return response['result'] as String; // Returns the GID of the added task
   }
 

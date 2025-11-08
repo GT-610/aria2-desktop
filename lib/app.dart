@@ -72,7 +72,7 @@ class _ThemeProviderState extends State<_ThemeProvider> {
           ChangeNotifierProxyProvider<InstanceManager, DownloadDataService>(
             create: (context) => DownloadDataService(),
             update: (context, instanceManager, downloadDataService) {
-              // 确保DownloadDataService可以访问InstanceManager
+              // Ensure DownloadDataService can access InstanceManager
               return downloadDataService!;
             },
           ),

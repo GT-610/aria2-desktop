@@ -35,7 +35,7 @@ class InstanceCard extends StatefulWidget with Loggable {
 }
 
 class _InstanceCardState extends State<InstanceCard> {
-  // 根据状态返回颜色
+  // Return color based on status
   Color _getStatusColor(ConnectionStatus status, ColorScheme colorScheme) {
     switch (status) {
       case ConnectionStatus.disconnected:
@@ -49,7 +49,7 @@ class _InstanceCardState extends State<InstanceCard> {
     }
   }
 
-  // 根据状态返回图标
+  // Return icon based on status
   Widget _getStatusIcon(ConnectionStatus status) {
     switch (status) {
       case ConnectionStatus.disconnected:
@@ -67,7 +67,7 @@ class _InstanceCardState extends State<InstanceCard> {
     }
   }
 
-  // 根据状态返回状态标签
+  // Return status label based on status
   Chip _getStatusChip(ConnectionStatus status, ColorScheme colorScheme) {
     String label;
     Color backgroundColor;
@@ -117,7 +117,7 @@ class _InstanceCardState extends State<InstanceCard> {
     );
   }
 
-  // 根据状态返回操作按钮
+  // Return action button based on status
   Widget _getStatusActionButton(ConnectionStatus status, bool isConnectionInProgress, BuildContext context, VoidCallback onPressed) {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -197,13 +197,13 @@ class _InstanceCardState extends State<InstanceCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 实例名称和类型
+              // Instance name and type
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      // 状态指示器 - 清晰区分四种状态
+                      // Status indicator - clearly distinguish four states
                       Container(
                         width: 24,
                         height: 24,
@@ -237,7 +237,7 @@ class _InstanceCardState extends State<InstanceCard> {
                       ),
                     ],
                   ),
-                  // 状态标签 - 明确显示连接状态
+                  // Status label - clearly display connection status
                   Row(
                     children: [
                       _getStatusChip(widget.instance.status, colorScheme),
@@ -259,7 +259,7 @@ class _InstanceCardState extends State<InstanceCard> {
                 ],
               ),
               const SizedBox(height: 8),
-              // 实例详情
+              // Instance details
               Text(
                 '${widget.instance.protocol}://${widget.instance.host}:${widget.instance.port}',
                 style: TextStyle(
@@ -275,7 +275,7 @@ class _InstanceCardState extends State<InstanceCard> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
-              // 版本信息
+              // Version information
               if (widget.instance.version != null && widget.instance.version!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
@@ -286,7 +286,7 @@ class _InstanceCardState extends State<InstanceCard> {
                   ),
                 ),
               ],
-              // 错误信息
+              // Error information
               if (widget.instance.errorMessage != null && widget.instance.errorMessage!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Row(
@@ -311,7 +311,7 @@ class _InstanceCardState extends State<InstanceCard> {
                   ],
                 ),
               ],
-              // 操作按钮
+              // Action buttons
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

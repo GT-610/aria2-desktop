@@ -72,8 +72,10 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     instanceManager = Provider.of<InstanceManager>(context, listen: false);
     downloadDataService = Provider.of<DownloadDataService>(context, listen: false);
     
-    // Update the timer based on the active instance
-    _updateRefreshTimer();
+    // Load instance names when dependencies change
+    if (instanceManager != null) {
+      _loadInstanceNames(instanceManager!);
+    }
   }
   
   @override
@@ -107,28 +109,38 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   
   // Update the refresh timer based on the active instance
   void _updateRefreshTimer() {
-    if (instanceManager == null || downloadDataService == null) return;
+    if (instanceManager == null || downloadDataService == null || !mounted) return;
     
     final activeInstance = instanceManager!.activeInstance;
     
+    // Record debug information to help locate issues
+    logger.d('Updating refresh timer - Active instance: ${activeInstance?.name}, Status: ${activeInstance?.status}');
+    
     if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
       // Start or update the refresh timer with the active instance
-      downloadDataService!.startPeriodicRefresh(activeInstance);
-      // Force an immediate refresh
-      downloadDataService!.refreshTasks(activeInstance);
+      logger.d('Starting periodic refresh for instance: ${activeInstance.name}');
+      // Store timer reference for status tracking
+      _refreshTimer = downloadDataService!.startPeriodicRefresh(activeInstance);
+      // Force an immediate refresh only when the timer starts for the first time, avoiding triggering refresh on every UI update
+      if (_refreshTimer != null) {
+        logger.d('Performing initial refresh');
+        downloadDataService!.refreshTasks(activeInstance);
+      }
     } else {
       // Stop the refresh timer when there's no connected instance
+      logger.d('Stopping periodic refresh - No connected instance');
       downloadDataService!.stopPeriodicRefresh();
+      _refreshTimer = null; // Clear timer reference
     }
   }
 
   // Show task details dialog
   void _showTaskDetails(BuildContext context, DownloadTask task) {
-    // 从全局服务获取完整的任务信息
+    // Get complete task information from the global service
     logger.d('Show task details dialog for: ${task.name} (ID: ${task.id})');
     
-    // 这里可以实现任务详情对话框的显示逻辑
-    // 由于我们使用全局的DownloadDataService，对话框可以直接订阅服务获取最新数据
+    // Task details dialog display logic can be implemented here
+    // Since we're using the global DownloadDataService, the dialog can directly subscribe to the service for the latest data
   }
   
   // Load instance names
@@ -165,11 +177,11 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   }
   
   
-  // 获取所有实例ID列表
+  // Get all instance ID list
   List<String> _getAllInstanceIds() {
     if (downloadDataService == null) return [];
     
-    // 从任务中提取所有唯一的实例ID
+    // Extract all unique instance IDs from tasks
     return downloadDataService!.tasks.map((task) => task.instanceId).toSet().toList();
   }
 
@@ -179,7 +191,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     
     final activeInstance = instanceManager!.activeInstance;
     if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
-      // 直接刷新任务数据
+      // Directly refresh task data
       downloadDataService!.refreshTasks(activeInstance);
     }
   }
@@ -187,20 +199,23 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   // Store currently selected instance ID
   String? _selectedInstanceId;
   
+  // Store timer reference for checking timer status
+  Timer? _refreshTimer;
+  
   // Filter tasks based on selected criteria
   List<DownloadTask> _filterTasks() {
     if (downloadDataService == null) return [];
     
     List<DownloadTask> tasks = downloadDataService!.tasks;
     
-    // 如果是按实例筛选，使用_selectedInstanceId
+    // If filtering by instance, use _selectedInstanceId
     if (_currentCategoryType == CategoryType.byInstance && _selectedInstanceId != null) {
       tasks = tasks.where((task) => task.instanceId == _selectedInstanceId).toList();
     } else {
-      // 其他分类使用_selectedFilter
+      // Other categories use _selectedFilter
       switch (_selectedFilter) {
         case FilterOption.all:
-          // 全部任务，不过滤
+          // All tasks, no filtering
           break;
         case FilterOption.active:
           tasks = tasks.where((task) => task.status == DownloadStatus.active).toList();
@@ -218,7 +233,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
           tasks = tasks.where((task) => task.isLocal == false).toList();
           break;
         case FilterOption.instance:
-          // 实例筛选已经在上面处理
+          // Instance filtering is already handled above
           break;
       }
     }
@@ -228,37 +243,73 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   
 
   
-  // 处理分类变更
+  // Handle category changes
   void _handleCategoryChanged(CategoryType newCategory) {
     setState(() {
       _currentCategoryType = newCategory;
     });
   }
   
-  // 处理筛选选项变更
+  // Handle filter option changes
   void _handleFilterChanged(FilterOption newFilter) {
     setState(() {
       _selectedFilter = newFilter;
     });
   }
   
-  // 处理实例选择变更
+  // Handle instance selection changes
   void _handleInstanceSelected(String? instanceId) {
     setState(() {
       _selectedInstanceId = instanceId;
     });
   }
   
+  // Store the last active instance ID and status for detecting real changes
+  String? _lastActiveInstanceId;
+  ConnectionStatus? _lastActiveInstanceStatus;
+
   @override
   Widget build(BuildContext context) {
-    // 通过Provider获取DownloadDataService的最新数据，实现响应式更新
+    // Listen for InstanceManager changes to ensure immediate response when instance status changes
+    final instanceManager = context.watch<InstanceManager>();
+    
+    // Get the latest data from DownloadDataService via Provider for responsive updates
     final lastError = context.watch<DownloadDataService>().lastError;
     
-    // 显示错误信息
+    // Get current active instance information
+    final currentActiveInstance = instanceManager.activeInstance;
+    final currentInstanceId = currentActiveInstance?.id;
+    final currentInstanceStatus = currentActiveInstance?.status;
+    
+    // Only update the timer when the active instance truly changes (ID or status changes)
+    if (currentInstanceId != _lastActiveInstanceId || 
+        currentInstanceStatus != _lastActiveInstanceStatus) {
+      // Update recorded instance information
+      _lastActiveInstanceId = currentInstanceId;
+      _lastActiveInstanceStatus = currentInstanceStatus;
+      
+      // Update refresh timer
+      _updateRefreshTimer();
+    }
+    
+    // Display error message
     if (lastError != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('获取任务数据失败: $lastError')),
+        );
+      });
+    }
+    
+    // Display instance connection status hint
+    final activeInstance = instanceManager.activeInstance;
+    if (activeInstance == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('未连接到任何下载实例'),
+            duration: Duration(seconds: 2),
+          )
         );
       });
     }
@@ -301,7 +352,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     );
   }
 
-  // 显示继续对话框
+  // Show resume dialog
   void _showResumeDialog(BuildContext context) {
     TaskActionDialogs.showTaskActionDialog(
       context,
@@ -310,7 +361,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     );
   }
 
-  // 显示暂停对话框
+  // Show pause dialog
   void _showPauseDialog(BuildContext context) {
     TaskActionDialogs.showTaskActionDialog(
       context,
@@ -319,7 +370,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     );
   }
 
-  // 显示删除对话框
+  // Show delete dialog
   void _showDeleteDialog(BuildContext context) {
     TaskActionDialogs.showTaskActionDialog(
       context,
@@ -328,7 +379,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     );
   }
   
-  // 显示添加任务对话框
+  // Show add task dialog
   void _showAddTaskDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -336,14 +387,14 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
         return AddTaskDialog(
             onAddTask: (taskType, uri, downloadDir) async {
             try {
-              // 获取实例管理器和活动实例
+              // Get instance manager and active instance
               final instanceManager = Provider.of<InstanceManager>(context, listen: false);
               final activeInstance = instanceManager.activeInstance;
               
               if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
                 final client = Aria2RpcClient(activeInstance);
                 
-                // 根据任务类型添加任务
+                // Add task based on task type
                 switch (taskType) {
                   case 'uri':
                     if (uri.isNotEmpty) {
@@ -351,16 +402,16 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                     }
                     break;
                   case 'torrent':
-                    // TODO: 实现种子文件上传逻辑
+                    // TODO: Implement torrent file upload logic
                     logger.d('Adding torrent task, download directory: $downloadDir');
                     break;
                   case 'metalink':
-                    // TODO: 实现Metalink文件上传逻辑
+                    // TODO: Implement Metalink file upload logic
                     logger.d('Adding metalink task, download directory: $downloadDir');
                     break;
                 }
                 
-                // 立即刷新任务列表并重置计时器
+                // Immediately refresh task list and reset timer
                 _refreshTasksAndRestartTimer();
                 
                 client.close();

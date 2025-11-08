@@ -7,50 +7,51 @@ import '../models/aria2_instance.dart';
 import 'aria2_rpc_client.dart';
 import '../utils/logging.dart';
 
-/// 统一的下载任务数据服务
-/// 负责定时从Aria2获取任务数据，进行统一数据封装和缓存
+/// Unified download task data service
+/// Responsible for periodically fetching task data from Aria2, performing unified data encapsulation and caching
 class DownloadDataService extends ChangeNotifier with Loggable {
-  // 移除单例模式，使用Provider管理实例生命周期
+  // Use Provider to manage instance lifecycle
   DownloadDataService() {
     initLogger();
-    logger.d('DownloadDataService 初始化');
+    logger.i('Service initialization completed');
   }
 
-  // 定时刷新的定时器
+  // Timer for periodic refresh
   Timer? _refreshTimer;
   
-  // 任务数据缓存
+  // Task data cache
   List<DownloadTask> _tasks = [];
   bool _isRefreshing = false;
   String? _lastError;
   
-  // 刷新间隔（毫秒）
+  // Refresh interval (milliseconds)
   int _refreshInterval = 1000;
 
-  // 获取任务列表
+  // Get task list
   List<DownloadTask> get tasks => _tasks;
   bool get isRefreshing => _isRefreshing;
   String? get lastError => _lastError;
 
-  /// 设置刷新间隔
+  /// Set refresh interval
   void setRefreshInterval(int milliseconds) {
     _refreshInterval = milliseconds;
     _restartTimer();
   }
 
-  /// 开始定时刷新
-  void startPeriodicRefresh(Aria2Instance? instance) {
+  /// Start periodic refresh
+  Timer? startPeriodicRefresh(Aria2Instance? instance) {
     _restartTimer(instance);
+    return _refreshTimer;
   }
 
-  /// 停止定时刷新
+  /// Stop periodic refresh
   void stopPeriodicRefresh() {
     _refreshTimer?.cancel();
     _refreshTimer = null;
-    logger.d('下载数据刷新定时器已停止');
+    logger.d('Timer stopped');
   }
 
-  /// 手动刷新任务数据
+  /// Manually refresh task data
   Future<void> refreshTasks(Aria2Instance? instance) async {
     if (_isRefreshing || instance == null) return;
     
@@ -60,24 +61,24 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       
       final newTasks = await _fetchTasks(instance);
       
-      // 更新缓存并通知监听器
+      // Update cache and notify listeners
       if (newTasks != null) {
         _tasks = newTasks;
         notifyListeners();
       }
     } catch (e, stackTrace) {
       _lastError = e.toString();
-      logger.e('刷新任务数据失败', error: e, stackTrace: stackTrace);
+      logger.e('Failed to refresh tasks', error: e, stackTrace: stackTrace);
     } finally {
       _isRefreshing = false;
     }
   }
 
-  /// 根据实例获取任务数据
+  /// Get task data by instance
   Future<List<DownloadTask>?> _fetchTasks(Aria2Instance instance) async {
-    // 确保实例状态是已连接
+    // Ensure instance status is connected
     if (instance.status != ConnectionStatus.connected) {
-      logger.w('实例 ${instance.name} 未连接，跳过任务获取');
+      logger.w('Instance not connected, skipping task fetch: ${instance.name}');
       return null;
     }
     
@@ -85,21 +86,20 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     try {
       List<DownloadTask> allTasks = [];
       
-      // 创建RPC客户端
+      // Create RPC client
       client = Aria2RpcClient(instance);
       
-      // 使用getDownloadStatus方法获取所有任务
+      // Use getDownloadStatus method to get all tasks
       final results = await client.getDownloadStatus();
-      
+  
       if (results.isEmpty) {
-        logger.w('获取任务数据返回空结果');
+        logger.d('Task data is empty');
         return allTasks;
       }
       
-      // 处理活动任务
+      // Process active tasks
       if (results[0]['success'] && results[0]['data'] is List) {
         final activeTasks = results[0]['data'] as List;
-        logger.d('获取到 ${activeTasks.length} 个活动任务');
         allTasks.addAll(TaskParser.parseTasks(
           activeTasks, 
           DownloadStatus.active, 
@@ -108,10 +108,9 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         ));
       }
       
-      // 处理等待任务
+      // Process waiting tasks
       if (results.length > 1 && results[1]['success'] && results[1]['data'] is List) {
         final waitingTasks = results[1]['data'] as List;
-        logger.d('获取到 ${waitingTasks.length} 个等待任务');
         allTasks.addAll(TaskParser.parseTasks(
           waitingTasks, 
           DownloadStatus.waiting, 
@@ -120,10 +119,9 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         ));
       }
       
-      // 处理已停止任务
+      // Process stopped tasks
       if (results.length > 2 && results[2]['success'] && results[2]['data'] is List) {
         final stoppedTasks = results[2]['data'] as List;
-        logger.d('获取到 ${stoppedTasks.length} 个已停止任务');
         allTasks.addAll(TaskParser.parseTasks(
           stoppedTasks, 
           DownloadStatus.stopped, 
@@ -132,42 +130,41 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         ));
       }
       
-      logger.d('总共获取到 ${allTasks.length} 个任务');
+      logger.d('Task fetch completed: ${allTasks.length} total');
       
       return allTasks;
     } catch (e, stackTrace) {
-      logger.e('从实例 ${instance.name} 获取任务数据失败', error: e, stackTrace: stackTrace);
+      logger.e('Failed to fetch tasks: ${instance.name}', error: e, stackTrace: stackTrace);
       return null;
     } finally {
-      // 确保客户端被关闭
+      // Ensure client is closed
       client?.close();
     }
   }
 
-  /// 重启定时器
+  /// Restart timer
   void _restartTimer([Aria2Instance? instance]) {
-    // 先取消现有的定时器
+    // First cancel existing timer
     stopPeriodicRefresh();
     
-    // 如果提供了实例且实例已连接，则启动新的定时器
+    // If an instance is provided and it's connected, start a new timer
     if (instance != null && instance.status == ConnectionStatus.connected) {
+      logger.i('Preparing to start timer: ${instance.name}, fixed interval ${_refreshInterval}ms');
       _refreshTimer = Timer.periodic(
         Duration(milliseconds: _refreshInterval),
-        (_) {
-          // 避免在定时器回调中捕获定时器本身的错误
-          if (_isRefreshing) {
-            logger.d('任务刷新正在进行中，跳过本次定时刷新');
-            return;
+        (timer) {
+          // Avoid catching errors from the timer itself in the timer callback
+          if (timer.isActive && !_isRefreshing) {
+            logger.d('Timer triggered task refresh');
+            refreshTasks(instance);
           }
-          
-          refreshTasks(instance);
         }
       );
-      logger.d('下载数据刷新定时器已启动，实例: ${instance.name}，间隔: ${_refreshInterval}ms');
+      logger.i('Timer started successfully: ${instance.name}, interval ${_refreshInterval}ms');
     }
   }
 
-  /// 过滤任务
+  /// Filter tasks
   List<DownloadTask> filterTasks({
     DownloadStatus? status,
     String? instanceId,
@@ -181,12 +178,12 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     }).toList();
   }
 
-  /// 根据ID获取任务
+  /// Get task by ID
   DownloadTask? getTaskById(String taskId) {
     try {
       return _tasks.firstWhere((task) => task.id == taskId);
     } catch (e) {
-      logger.w('未找到ID为 $taskId 的任务');
+      logger.d('Task not found: $taskId');
       return null;
     }
   }

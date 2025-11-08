@@ -330,7 +330,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
     );
   }
   
-  // 显示错误提示
+  // Show error message
   void _showErrorSnackBar(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -343,7 +343,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
     }
   }
   
-  // 显示信息提示
+  // Show information message
   void _showInfoSnackBar(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

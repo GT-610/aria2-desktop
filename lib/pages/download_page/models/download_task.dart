@@ -13,8 +13,8 @@ class DownloadTask {
   final String completedSize;
   final bool isLocal;
   final String instanceId; // Add instance ID field
-  final int? connections; // 连接数信息
-  final String? dir; // 下载路径
+  final int? connections; // Connection count information
+  final String? dir; // Download path
   
   // Extended detailed information
   final int totalLengthBytes; // Raw bytes for accurate calculations

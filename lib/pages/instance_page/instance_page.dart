@@ -114,7 +114,6 @@ class _InstancePageState extends State<InstancePage> {
         );
       }
     } catch (e) {
-      // 移除logger.e调用
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -155,12 +154,12 @@ class _InstancePageState extends State<InstancePage> {
     }
   }
 
-  // 处理编辑实例
+  // Handle edit instance
   void _handleEditInstance(Aria2Instance instance) {
     _openInstanceDialog(instance: instance);
   }
 
-  // 处理删除实例
+  // Handle delete instance
   Future<void> _handleDeleteInstance(Aria2Instance instance) async {
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     final confirmed = await showDialog<bool>(
@@ -183,7 +182,7 @@ class _InstancePageState extends State<InstancePage> {
 
     if (confirmed == true) {
       try {
-        // 如果是当前活跃实例，先断开连接
+        // If it's the current active instance, disconnect first
         if (instanceManager.activeInstance?.id == instance.id) {
           await instanceManager.disconnectInstance();
         }
@@ -208,7 +207,7 @@ class _InstancePageState extends State<InstancePage> {
     }
   }
 
-  // 打开编辑或添加实例对话框
+  // Open edit or add instance dialog
   void _openInstanceDialog({Aria2Instance? instance}) async {
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     final result = await showDialog<Aria2Instance>(
@@ -221,7 +220,7 @@ class _InstancePageState extends State<InstancePage> {
     if (result != null) {
       try {
         if (instance != null) {
-          // 更新现有实例
+          // Update existing instance
           await instanceManager.updateInstance(result);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -229,7 +228,7 @@ class _InstancePageState extends State<InstancePage> {
             );
           }
         } else {
-          // 添加新实例
+          // Add new instance
           await instanceManager.addInstance(result);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -238,7 +237,6 @@ class _InstancePageState extends State<InstancePage> {
           }
         }
       } catch (e) {
-        // 移除logger.e调用
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -259,11 +257,11 @@ class _InstancePageState extends State<InstancePage> {
     );
   }
 
-  // 连接实例
+  // Connect to instance
   Future<void> _handleConnectInstance(Aria2Instance instance) async {
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     try {
-      // 如果是本地实例，先启动本地进程
+      // If it's a local instance, start local process first
       if (instance.type == InstanceType.local) {
         final startSuccess = await instanceManager.startLocalProcess(instance);
         if (!startSuccess && mounted) {
@@ -293,7 +291,6 @@ class _InstancePageState extends State<InstancePage> {
         }
       }
     } catch (e) {
-      // 移除logger.e调用
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -305,7 +302,7 @@ class _InstancePageState extends State<InstancePage> {
     }
   }
 
-  // 断开连接
+  // Disconnect
   Future<void> _handleDisconnectInstance() async {
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     try {
@@ -317,7 +314,6 @@ class _InstancePageState extends State<InstancePage> {
         );
       }
     } catch (e) {
-      // 移除logger.e调用
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

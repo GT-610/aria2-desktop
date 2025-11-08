@@ -3,7 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'directory_picker.dart';
 import '../../../utils/logging/log_extensions.dart';
 
-// 添加任务对话框组件
+// Add task dialog component
 class AddTaskDialog extends StatefulWidget {
   final Function(String, String, String) onAddTask;
 
@@ -23,38 +23,38 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
 
   @override
   Widget build(BuildContext context) {
-    // 在对话框外部创建文本控制器，确保状态的持久性
+    // Create text controller outside the dialog to ensure state persistence
     String saveLocation = '';
     final TextEditingController uriController = TextEditingController();
     bool showAdvancedOptions = false;
 
-    // 使用StatefulBuilder来管理UI更新
+    // Use StatefulBuilder to manage UI updates
     return StatefulBuilder(
       builder: (context, setState) {
-        // 更新保存位置的函数
+        // Function to update save location
         void onSaveLocationChanged(String newLocation) {
           setState(() {
             saveLocation = newLocation;
           });
         }
 
-        // 从剪贴板粘贴功能
+        // Paste from clipboard functionality
         Future<void> pasteFromClipboard() async {
           try {
-            // 注意：这里需要导入services包来使用Clipboard
+            // Note: Need to import services package to use Clipboard
             // final data = await Clipboard.getData(Clipboard.kTextPlain);
             // if (data != null && data.text != null) {
             //   uriController.text = data.text!;
             //   setState(() {});
             // }
-            // 由于没有导入services包，这里先用占位符实现
+            // Since services package is not imported, use placeholder implementation here
             logger.d('从剪贴板粘贴功能需要实现');
           } catch (e) {
-            logger.e('粘贴失败', error: e);
+            logger.e('Failed to paste', error: e);
           }
         }
 
-        // 选择种子文件
+        // Select torrent file
         Future<void> selectTorrentFile() async {
           try {
             FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -64,15 +64,15 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
             );
             
             if (result != null) {
-              logger.i('选择的种子文件: ${result.files.single.path}');
-              // 这里应该实现上传种子文件的逻辑
+              logger.i('Selected torrent file: ${result.files.single.path}');
+              // Seed file upload logic should be implemented here
             }
           } catch (e) {
-            logger.e('选择种子文件失败', error: e);
+            logger.e('Failed to select torrent file', error: e);
           }
         }
 
-        // 选择Metalink文件
+        // Select Metalink file
         Future<void> selectMetalinkFile() async {
           try {
             FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -82,28 +82,28 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
             );
             
             if (result != null) {
-              logger.i('选择的Metalink文件: ${result.files.single.path}');
-              // 这里应该实现上传Metalink文件的逻辑
+              logger.i('Selected Metalink file: ${result.files.single.path}');
+              // Metalink file upload logic should be implemented here
             }
           } catch (e) {
-            logger.e('选择Metalink文件失败', error: e);
+            logger.e('Failed to select Metalink file', error: e);
           }
         }
 
-        // 提交任务
+        // Submit task
         void submitTask(String taskType) {
           String downloadDir = saveLocation;
           String uri = uriController.text;
           
-          // 调用回调函数处理任务添加
-          logger.i('提交任务: 类型=$taskType, URI=$uri, 保存目录=$downloadDir');
+          // Call callback function to handle task addition
+          logger.i('Submit task: type=$taskType, URI=$uri, save directory=$downloadDir');
           widget.onAddTask(taskType, uri, downloadDir);
           
-          // 关闭对话框
+          // Close dialog
           Navigator.pop(context);
         }
 
-        // 使用DefaultTabController来简化TabController的管理
+        // Use DefaultTabController to simplify TabController management
         return DefaultTabController(
           length: 3,
           initialIndex: 0,
@@ -114,7 +114,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
               height: 450,
               child: Column(
                 children: [
-                  // 选项卡
+                  // Tabs
                   const TabBar(
                     tabs: [
                       Tab(text: 'URI'),
@@ -123,14 +123,14 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                     ],
                     indicatorSize: TabBarIndicatorSize.tab,
                   ),
-                  // 选项卡内容
+                  // Tab content
                   Expanded(
                     child: Column(
                       children: [
                         Expanded(
                           child: TabBarView(
                             children: [
-                              // URI 选项卡内容
+                              // URI tab content
                               Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: Column(
@@ -154,7 +154,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                   ],
                                 ),
                               ),
-                              // 种子 选项卡内容
+                              // Torrent tab content
                               Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -171,7 +171,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                   ],
                                 ),
                               ),
-                              // Metalink 选项卡内容
+                              // Metalink tab content
                               Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -191,15 +191,15 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                             ],
                           ),
                         ),
-                        // 分隔线
+                        // Divider
                         const Divider(),
-                        // 公共区域 - 不受选项卡影响
+                        // Common area - not affected by tabs
                         Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // 保存位置 - 使用可复用的DirectoryPicker组件
+                              // Save location - using reusable DirectoryPicker component
                               DirectoryPicker(
                                 initialDirectory: saveLocation,
                                 onDirectoryChanged: onSaveLocationChanged,
@@ -212,7 +212,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                 },
                               ),
                               const SizedBox(height: 12),
-                              // 高级选项开关
+                              // Advanced options switch
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
@@ -227,13 +227,13 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                   ),
                                 ],
                               ),
-                              // 高级选项（隐藏状态）
+                              // Advanced options (hidden state)
                               if (showAdvancedOptions)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 12.0),
                                   child: Column(
                                     children: [
-                                      // 这里可以添加更多高级选项
+                                      // More advanced options can be added here
                                       Text('高级选项将在这里显示'),
                                     ],
                                   ),
@@ -256,7 +256,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
               ),
               FilledButton(
                 onPressed: () {
-                  // 根据当前选中的选项卡实现添加任务功能
+                  // Implement add task functionality based on currently selected tab
                   int currentTab = DefaultTabController.of(context).index;
                   String taskType;
                   

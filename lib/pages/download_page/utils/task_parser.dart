@@ -9,12 +9,20 @@ class TaskParser {
   static final AppLogger _logger = AppLogger('TaskParser');
   // Parse a list of tasks
   static List<DownloadTask> parseTasks(List tasks, DownloadStatus status, String instanceId, bool isLocal) {
-    List<DownloadTask> parsedTasks = [];
+    List<DownloadTask> parsedTasks = [];  
     
-    for (var taskData in tasks) {
+    // Handle nested array structure: if tasks is a nested array (tasks[0] is also an array), use tasks[0] as the task list
+    List taskList = tasks;
+    if (tasks.isNotEmpty && tasks[0] is List) {
+      // Only output detailed information in debug mode
+      _logger.d('Data structure optimization: Processing nested array');
+      taskList = tasks[0];
+    }
+
+    for (var taskData in taskList) {
       if (taskData is Map) {
           try {
-            // Create task with correct status
+            // Convert task data format
             final taskDataMap = taskData as Map<String, dynamic>;
             final parsedTask = parseTask(taskDataMap, instanceId, isLocal);
             // Create a new task object with the correct status
@@ -45,7 +53,8 @@ class TaskParser {
             );
             parsedTasks.add(taskWithStatus);
           } catch (e) {
-            _logger.e('Failed to parse task', error: e);
+            // Use a more concise error log format and only record necessary error information
+            _logger.w('Failed to parse task', error: e.toString().substring(0, 100));
             continue;
           }
         }
@@ -54,15 +63,15 @@ class TaskParser {
     return parsedTasks;
   }
 
-  // Parse a single task
+  // Parse a single download task data
   static DownloadTask parseTask(Map<String, dynamic> taskData, String instanceId, bool isLocal) {
-    // Parse raw bytes data first for accurate calculations and storage
+    // Parse raw bytes data for calculations
     final totalLengthBytes = int.tryParse(taskData['totalLength'] as String? ?? '0') ?? 0;
     final completedLengthBytes = int.tryParse(taskData['completedLength'] as String? ?? '0') ?? 0;
     final downloadSpeedBytes = int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0;
     final uploadSpeedBytes = int.tryParse(taskData['uploadSpeed'] as String? ?? '0') ?? 0;
     
-    // Basic fields
+    // Basic fields parsing
     String id = taskData['gid'] as String? ?? '';
     String? taskStatus = taskData['status'] as String?;
     
@@ -75,7 +84,7 @@ class TaskParser {
     String downloadSpeed = '${formatBytes(downloadSpeedBytes)}/s';
     String uploadSpeed = '${formatBytes(uploadSpeedBytes)}/s';
     
-    // Get file name and store complete files info
+    // Get file name and file list
     String name = '';
     List<Map<String, dynamic>>? files;
     
@@ -102,20 +111,20 @@ class TaskParser {
       }
     }
     
-    // Parse additional details for the extended model
+    // Parse extended properties
     int? connections = taskData.containsKey('connections') 
       ? int.tryParse(taskData['connections'] as String? ?? '')
       : null;
     
     String? dir = taskData['dir'] as String?;
     
-    // Parse torrent info if available
+    // Parse BT metadata
     String? bittorrentInfo;
     if (taskData.containsKey('bittorrent') && taskData['bittorrent'] is Map) {
       bittorrentInfo = json.encode(taskData['bittorrent']);
     }
     
-    // Parse URIs if available
+    // Parse download links
     List<String>? uris;
     if (taskData.containsKey('uris') && taskData['uris'] is List) {
       uris = (taskData['uris'] as List).expand((uriList) {
@@ -126,10 +135,14 @@ class TaskParser {
       }).toList();
     }
     
-    // Parse error message if any
+    // Parse error message
     String? errorMessage;
     if (taskData.containsKey('errorMessage')) {
       errorMessage = taskData['errorMessage'] as String?;
+      // Only log warning when there is an error message
+      if (errorMessage != null && errorMessage.isNotEmpty) {
+        _logger.w('Task[${id.substring(0, 8)}] error: ${errorMessage.substring(0, 80)}');
+      }
     }
     
     // Parse bitfield data

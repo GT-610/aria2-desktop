@@ -5,9 +5,9 @@ import '../models/download_task.dart';
 import '../utils/task_utils.dart';
 import '../enums.dart';
 
-/// 任务详情对话框组件
+/// Task details dialog component
 class TaskDetailsDialog {
-  /// 显示任务详情对话框
+  /// Show task details dialog
   static Future<void> showTaskDetailsDialog(
     BuildContext context,
     DownloadTask initialTask,
@@ -21,7 +21,7 @@ class TaskDetailsDialog {
           builder: (context, setState) {
             // Get the latest task data from the main loop's task list
             DownloadTask getLatestTaskData() {
-              // 优先从主循环的任务列表中查找
+              // First try to find in the main loop's task list
               final taskFromList = allTasks.firstWhere(
                 (t) => t.id == initialTask.id,
                 orElse: () => initialTask, // 如果找不到，使用传入的task作为默认值
@@ -29,18 +29,18 @@ class TaskDetailsDialog {
               return taskFromList;
             }
             
-            // 创建一个每秒刷新一次的定时器，与主循环的刷新频率保持一致
-            // 这样详情页面可以实时显示最新的任务状态
+            // Create a timer that refreshes every second, consistent with the main loop's refresh frequency
+            // This allows the details page to display the latest task status in real-time
             Timer? refreshTimer;
             refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
               if (context.mounted) {
                 setState(() {
-                  // 触发重建，从主循环获取最新数据
+                  // Trigger rebuild to get latest data from main loop
                 });
               }
             });
             
-            // 添加对话框关闭时的清理操作
+            // Add cleanup operation when dialog is closed
             void disposeResources() {
               if (refreshTimer != null) {
                 refreshTimer!.cancel();
@@ -48,7 +48,7 @@ class TaskDetailsDialog {
               }
             }
             
-            // 获取最新的任务数据
+            // Get latest task data
             final currentTask = getLatestTaskData();
                   
             return PopScope(
@@ -66,7 +66,7 @@ class TaskDetailsDialog {
                     height: 450,
                     child: Column(
                       children: [
-                        // 标签栏
+                        // Tab bar
                         TabBar(
                           tabs: const [
                             Tab(text: '总览'),
@@ -75,17 +75,17 @@ class TaskDetailsDialog {
                           ],
                           indicatorSize: TabBarIndicatorSize.tab,
                         ),
-                        // 标签页内容
+                        // Tab content
                         Expanded(
                           child: TabBarView(
                             children: [
-                              // 总览标签页 - 显示扩展的详细信息
+                              // Overview tab - show extended details
                               SingleChildScrollView(
                                 padding: EdgeInsets.all(8),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // 基本信息
+                                    // Basic information
                                     Text('任务ID: ${currentTask.id}'),
                                     SizedBox(height: 8),
                                     Row(
@@ -104,17 +104,17 @@ class TaskDetailsDialog {
                                     SizedBox(height: 8),
                                     Text('进度: ${(currentTask.progress * 100).toStringAsFixed(2)}%'),
                                     SizedBox(height: 12),
-                                    // 速度信息
+                                    // Speed information
                                     Text('下载速度: ${currentTask.downloadSpeed} (${currentTask.downloadSpeedBytes} 字节/秒)'),
                                     SizedBox(height: 8),
                                     Text('上传速度: ${currentTask.uploadSpeed} (${currentTask.uploadSpeedBytes} 字节/秒)'),
                                     SizedBox(height: 12),
-                                    // 其他信息
+                                    // Other information
                                     Text('连接数: ${currentTask.connections ?? '--'}'),
                                     SizedBox(height: 8),
                                     Text('下载路径: ${currentTask.dir ?? '--'}'),
                                     SizedBox(height: 8),
-                                    // 显示错误信息（如果有）
+                                    // Show error message if any
                                     if (currentTask.errorMessage != null && currentTask.errorMessage!.isNotEmpty) 
                                       Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,7 +123,7 @@ class TaskDetailsDialog {
                                           SizedBox(height: 8),
                                         ],
                                       ),
-                                    // 计算并显示剩余时间
+                                    // Calculate and show remaining time
                                     if (currentTask.status == DownloadStatus.active && currentTask.downloadSpeedBytes > 0)
                                       Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,13 +136,13 @@ class TaskDetailsDialog {
                                 ),
                               ),
                                
-                              // 区块信息标签页 - 实现可视化展示
+                              // Block information tab - implement visual display
                               SingleChildScrollView(
                                 padding: EdgeInsets.all(16),
                                 child: _buildBitfieldVisualization(currentTask),
                               ),
                                 
-                              // 文件信息标签页 - 显示在文件列表标签下
+                              // File information tab - display under file list tab
                               SingleChildScrollView(
                                 padding: EdgeInsets.all(8),
                                 child: Column(
@@ -210,13 +210,13 @@ class TaskDetailsDialog {
         );
       },
     ).then((_) {
-      // 对话框关闭时清除状态
+      // Clear state when dialog is closed
     });
   }
   
-  // 构建区块可视化
+  // Build bitfield visualization
   static Widget _buildBitfieldVisualization(DownloadTask task) {
-    // 直接从任务对象获取bitfield
+    // Get bitfield directly from task object
     String? bitfield = task.bitfield;
     
     if (bitfield == null || bitfield.isEmpty) {
@@ -242,16 +242,16 @@ class TaskDetailsDialog {
       );
     }
     
-    // 解析bitfield为区块状态数组
+    // Parse bitfield into piece status array
     List<int> pieces = _parseHexBitfield(bitfield);
     
-    // 计算统计信息
+    // Calculate statistics
     int totalPieces = pieces.length;
     int completedPieces = pieces.where((piece) => piece == 15).length; // 完全下载完成 (f)
     int partialPieces = pieces.where((piece) => piece > 0 && piece < 15).length; // 部分下载 (1-14)
     int missingPieces = pieces.where((piece) => piece == 0).length; // 未下载 (0)
     
-    // 计算完成百分比
+    // Calculate completion percentage
     double completionPercentage = totalPieces > 0 
       ? ((completedPieces + partialPieces * 0.5) / totalPieces) * 100 
       : 0;
@@ -259,7 +259,7 @@ class TaskDetailsDialog {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 统计信息
+        // Statistics
         Card(
           elevation: 2,
           margin: EdgeInsets.only(bottom: 16),
@@ -326,12 +326,12 @@ class TaskDetailsDialog {
           ),
         ),
         
-        // 下载状态可视化网格
+        // Download status visual grid
         Text('下载状态分布:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         SizedBox(height: 12),
         _buildPiecesGrid(pieces),
         
-        // 图例说明
+        // Legend explanation
         SizedBox(height: 16),
         Card(
           elevation: 1,
@@ -380,18 +380,18 @@ class TaskDetailsDialog {
     );
   }
 
-  // 解析十六进制bitfield为区块状态数组
+  // Parse hexadecimal bitfield into piece status array
   static List<int> _parseHexBitfield(String bitfield) {
     List<int> pieces = [];
     
-    // 每个字符代表一个区块的状态 (0-f)
+    // Each character represents a piece's status (0-f)
     for (int i = 0; i < bitfield.length; i++) {
       String hexChar = bitfield[i];
       try {
         int pieceValue = int.parse(hexChar, radix: 16);
         pieces.add(pieceValue);
       } catch (e) {
-        // 如果解析失败，默认为未下载
+        // If parsing fails, default to not downloaded
         pieces.add(0);
       }
     }
@@ -399,9 +399,9 @@ class TaskDetailsDialog {
     return pieces;
   }
   
-  // 构建区块网格可视化
+  // Build pieces grid visualization
   static Widget _buildPiecesGrid(List<int> pieces) {
-    // 根据区块数量确定网格大小
+    // Determine grid size based on number of pieces
     double pieceSize = pieces.length > 1000 ? 4.0 : (pieces.length > 500 ? 6.0 : 8.0);
     
     return Wrap(
@@ -420,7 +420,7 @@ class TaskDetailsDialog {
     );
   }
   
-  // 根据区块值获取对应的颜色
+  // Get corresponding color based on piece value
   static Color _getPieceColor(int pieceValue) {
     switch (pieceValue) {
       case 0:

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../enums.dart';
 import 'task_action_dialogs.dart';
 
-/// 筛选器选择器组件，负责显示和管理下载任务的筛选选项
+/// Filter selector component, responsible for displaying and managing download task filter options
 class FilterSelector extends StatelessWidget {
   final CategoryType currentCategoryType;
   final FilterOption selectedFilter;
@@ -37,7 +37,7 @@ class FilterSelector extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // 分类按钮 - 始终显示，用于切换分类方式
+          // Category button - always displayed, used to switch category methods
           FilledButton.tonal(
             onPressed: () => _showCategoryDialog(context),
             style: FilledButton.styleFrom(
@@ -53,12 +53,12 @@ class FilterSelector extends StatelessWidget {
               ],
             ),
           ),
-          // 只有在非'all'分类时才显示筛选标签
+          // Only display filter tags when not in 'all' category
           if (currentCategoryType != CategoryType.all) 
             const SizedBox(width: 12),
-          // 根据当前分类动态显示筛选标签
+          // Dynamically display filter tags based on current category
           if (currentCategoryType != CategoryType.all) 
-            // 特殊处理实例分类
+            // Special handling for instance category
             if (currentCategoryType == CategoryType.byInstance)
               ..._getInstanceFilterOptions().map((instanceId) {
                 final isSelected = selectedInstanceId == instanceId;
@@ -121,7 +121,7 @@ class FilterSelector extends StatelessWidget {
     );
   }
 
-  // 显示分类选择对话框
+  // Show category selection dialog
   void _showCategoryDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -132,7 +132,7 @@ class FilterSelector extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 全部选项
+              // All options
               TaskActionDialogs.buildDialogOption(
                 context,
                 '全部',
@@ -142,35 +142,35 @@ class FilterSelector extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 8),
-              // 按状态
+              // By status
               TaskActionDialogs.buildDialogOption(
                 context,
                 '按状态',
                 onTap: () {
                   onCategoryChanged(CategoryType.byStatus);
-                  onFilterChanged(FilterOption.active); // 默认选择第一个选项
+                  onFilterChanged(FilterOption.active);
                   Navigator.pop(context);
                 },
               ),
               const SizedBox(height: 8),
-              // 按类型
+              // By type
               TaskActionDialogs.buildDialogOption(
                 context,
                 '按类型',
                 onTap: () {
                   onCategoryChanged(CategoryType.byType);
-                  onFilterChanged(FilterOption.local); // 默认选择第一个选项
+                  onFilterChanged(FilterOption.local);
                   Navigator.pop(context);
                 },
               ),
               const SizedBox(height: 8),
-              // 按实例
+              // By instance
               TaskActionDialogs.buildDialogOption(
                 context,
                 '按实例',
                 onTap: () {
                   onCategoryChanged(CategoryType.byInstance);
-                  onInstanceSelected(null); // 重置选中的实例
+                  onInstanceSelected(null); // reset selected instance
                   Navigator.pop(context);
                 },
               ),
@@ -181,7 +181,7 @@ class FilterSelector extends StatelessWidget {
     );
   }
 
-  // 获取当前分类显示文本
+  // Get current category display text
   String _getCurrentCategoryText() {
     switch (currentCategoryType) {
       case CategoryType.all:
@@ -195,12 +195,12 @@ class FilterSelector extends StatelessWidget {
     }
   }
 
-  // 获取实例ID列表作为筛选选项
+  // Get instance ID list as filter options
   List<String> _getInstanceFilterOptions() {
     return instanceIds;
   }
 
-  // 根据当前分类获取筛选选项
+  // Get filter options based on current category
   List<FilterOption> _getFilterOptionsForCurrentCategory() {
     switch (currentCategoryType) {
       case CategoryType.byStatus:
@@ -214,7 +214,7 @@ class FilterSelector extends StatelessWidget {
     }
   }
 
-  // 获取筛选选项显示文本
+  // Get filter option display text
   String _getFilterText(FilterOption filter) {
     switch (filter) {
       case FilterOption.all:
@@ -234,7 +234,7 @@ class FilterSelector extends StatelessWidget {
     }
   }
 
-  // 获取筛选选项颜色
+  // Get filter option color
   Color _getFilterColor(FilterOption filter, ColorScheme colorScheme) {
     switch (filter) {
       case FilterOption.all:
