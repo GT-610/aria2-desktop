@@ -3,6 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../../models/settings.dart';
 import './components/appearance_dialog.dart';
+import '../../utils/logging/log_extensions.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -11,13 +12,33 @@ class SettingsPage extends StatefulWidget {
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class _SettingsPageState extends State<SettingsPage> with Loggable {
   String _version = '';
+  bool _isLoading = true;
   
   @override
   void initState() {
     super.initState();
+    initLogger();
     _loadVersionInfo();
+    _loadSettings();
+  }
+  
+  Future<void> _loadSettings() async {
+    try {
+      logger.i('Loading settings in settings page');
+      await Provider.of<Settings>(context, listen: false).loadSettings();
+      logger.i('Settings loaded successfully');
+    } catch (e) {
+      logger.e('Failed to load settings', error: e);
+      _showErrorSnackBar('加载设置失败');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
   
   Future<void> _loadVersionInfo() async {
@@ -29,6 +50,12 @@ class _SettingsPageState extends State<SettingsPage> {
   
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    
     final settings = Provider.of<Settings>(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -64,9 +91,17 @@ class _SettingsPageState extends State<SettingsPage> {
                         style: theme.textTheme.bodyLarge,
                       ),
                       subtitle: const Text('设置应用随系统启动而运行'),
-                      value: false,
-                      onChanged: (value) {},
-                      activeThumbColor: colorScheme.primary,
+                      value: settings.autoStart,
+                      onChanged: (value) async {
+                        try {
+                          await settings.setAutoStart(value);
+                          logger.i('Auto-start setting changed to: $value');
+                        } catch (e) {
+                          logger.e('Failed to save auto-start setting', error: e);
+                          _showErrorSnackBar('保存设置失败');
+                        }
+                      },
+                      activeThumbColor: Colors.white,
                       activeTrackColor: colorScheme.primary,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                     ),
@@ -77,9 +112,17 @@ class _SettingsPageState extends State<SettingsPage> {
                         style: theme.textTheme.bodyLarge,
                       ),
                       subtitle: const Text('关闭窗口时最小化到系统托盘而不是退出'),
-                      value: true,
-                      onChanged: (value) {},
-                      activeThumbColor: colorScheme.primary,
+                      value: settings.minimizeToTray,
+                      onChanged: (value) async {
+                        try {
+                          await settings.setMinimizeToTray(value);
+                          logger.i('Minimize to tray setting changed to: $value');
+                        } catch (e) {
+                          logger.e('Failed to save minimize to tray setting', error: e);
+                          _showErrorSnackBar('保存设置失败');
+                        }
+                      },
+                      activeThumbColor: Colors.white,
                       activeTrackColor: colorScheme.primary,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                     ),
@@ -147,8 +190,20 @@ class _SettingsPageState extends State<SettingsPage> {
                           ButtonSegment(value: 'warning', label: Text('Warning')),
                           ButtonSegment(value: 'error', label: Text('Error')),
                         ],
-                        selected: {'info'},
-                        onSelectionChanged: (newSelection) {},
+                        selected: {settings.logLevelString},
+                        onSelectionChanged: (newSelection) async {
+                          if (newSelection.isNotEmpty) {
+                            final value = newSelection.first;
+                            try {
+                              final logLevel = LogLevel.values.firstWhere((e) => e.name == value);
+                              await settings.setLogLevel(logLevel);
+                              logger.i('Log level changed to: $value');
+                            } catch (e) {
+                              logger.e('Failed to save log level setting', error: e);
+                              _showErrorSnackBar('保存设置失败');
+                            }
+                          }
+                        },
                         style: SegmentedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
                           backgroundColor: colorScheme.surfaceContainerHighest,
@@ -165,9 +220,17 @@ class _SettingsPageState extends State<SettingsPage> {
                         '保存日志到文件',
                         style: theme.textTheme.bodyLarge,
                       ),
-                      value: true,
-                      onChanged: (value) {},
-                      activeThumbColor: colorScheme.primary,
+                      value: settings.saveLogsToFile,
+                      onChanged: (value) async {
+                        try {
+                          await settings.setSaveLogsToFile(value);
+                          logger.i('Save logs to file setting changed to: $value');
+                        } catch (e) {
+                          logger.e('Failed to save save logs setting', error: e);
+                          _showErrorSnackBar('保存设置失败');
+                        }
+                      },
+                      activeThumbColor: Colors.white,
                       activeTrackColor: colorScheme.primary,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                     ),
@@ -175,7 +238,15 @@ class _SettingsPageState extends State<SettingsPage> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: FilledButton.icon(
-                        onPressed: () {},
+                        onPressed: () async {
+                          try {
+                            logger.i('Attempting to open log directory');
+                            _showInfoSnackBar('此功能将在后续版本中实现');
+                          } catch (e) {
+                            logger.e('Failed to open log directory', error: e);
+                            _showErrorSnackBar('无法打开日志目录');
+                          }
+                        },
                         icon: const Icon(Icons.file_open),
                         label: const Text('查看日志文件'),
                         style: FilledButton.styleFrom(
@@ -257,5 +328,31 @@ class _SettingsPageState extends State<SettingsPage> {
         return AppearanceDialog(settings: settings);
       },
     );
+  }
+  
+  // 显示错误提示
+  void _showErrorSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+  
+  // 显示信息提示
+  void _showInfoSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.blue,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 }

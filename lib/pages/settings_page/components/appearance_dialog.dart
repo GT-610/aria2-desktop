@@ -101,7 +101,13 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                     _selectedThemeMode = newSelection.first;
                   });
                   final themeMode = _getThemeModeFromString(newSelection.first);
-                  widget.settings.setThemeMode(themeMode);
+                  try {
+                    widget.settings.setThemeMode(themeMode);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('设置主题模式失败: $e')),
+                    );
+                  }
                 }
               },
               style: SegmentedButton.styleFrom(
@@ -146,7 +152,13 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                       setState(() {
                         _selectedColor = color;
                       });
-                      widget.settings.setPrimaryColor(color, isCustom: false);
+                      try {
+                        widget.settings.setPrimaryColor(color, isCustom: false);
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('设置主题色失败: $e')),
+                        );
+                      }
                     },
                     child: Container(
                       width: 40,
@@ -191,19 +203,7 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                           border: Border.all(color: colorScheme.outline),
                         ),
                       ),
-                      if (widget.settings.customColorCode != null)
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: colorScheme.onSurface,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        ),
+
                     ],
                   ),
                 ),
@@ -234,7 +234,13 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                             (_selectedColor.b * 255.0).round() & 0xff,
                             1.0,
                           );
+                          try {
                           widget.settings.setPrimaryColor(newColor, isCustom: true);
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('设置自定义主题色失败: $e')),
+                          );
+                        }
                         },
                         activeColor: Colors.red,
                       ),
