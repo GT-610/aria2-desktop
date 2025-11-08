@@ -5,6 +5,7 @@ import 'pages/instance_page/instance_page.dart';
 import 'pages/settings_page/settings_page.dart';
 import 'models/global_stat.dart';
 import 'services/instance_manager.dart';
+import 'services/download_data_service.dart';
 import 'models/settings.dart';
 
 class MyApp extends StatelessWidget {
@@ -68,6 +69,13 @@ class _ThemeProviderState extends State<_ThemeProvider> {
       home: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => InstanceManager()),
+          ChangeNotifierProxyProvider<InstanceManager, DownloadDataService>(
+            create: (context) => DownloadDataService(),
+            update: (context, instanceManager, downloadDataService) {
+              // 确保DownloadDataService可以访问InstanceManager
+              return downloadDataService!;
+            },
+          ),
         ],
         child: const _HomeWrapper(),
       ),
