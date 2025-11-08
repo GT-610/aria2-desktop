@@ -10,13 +10,13 @@ class TaskToolbar extends StatelessWidget {
   final VoidCallback onSearch;
 
   const TaskToolbar({
-    Key? key,
+    super.key,
     required this.onAddTask,
     required this.onPauseAll,
     required this.onResumeAll,
     required this.onDeleteAll,
     required this.onSearch,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -87,10 +87,12 @@ class _InstanceDialogState extends State<InstanceDialog> {
       );
 
       if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _aria2Path = result.files.first.path!;
-        });
-        await _validateAria2Path();
+        if (mounted) {
+          setState(() {
+            _aria2Path = result.files.first.path!;
+          });
+          await _validateAria2Path();
+        }
       }
     } catch (e) {
       // 显示错误提示给用户
@@ -127,10 +129,14 @@ class _InstanceDialogState extends State<InstanceDialog> {
     // 如果提供了回调函数，使用回调函数
     if (widget.onSave != null) {
       widget.onSave!(instance);
-      Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     } else {
       // 否则返回结果
-      Navigator.of(context).pop(instance);
+      if (mounted) {
+        Navigator.of(context).pop(instance);
+      }
     }
   }
 
@@ -444,23 +450,25 @@ class _InstanceDialogState extends State<InstanceDialog> {
                 children: [
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context).pop();
+                      if (mounted) {
+                        Navigator.of(context).pop();
+                      }
                     },
-                    child: const Text('取消'),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
+                    child: const Text('取消'),
                   ),
                   const SizedBox(width: 8),
                   FilledButton(
                     onPressed: _submit,
-                    child: Text(widget.instance == null ? '添加' : '保存'),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
+                    child: Text(widget.instance == null ? '添加' : '保存'),
                   ),
                 ],
               ),

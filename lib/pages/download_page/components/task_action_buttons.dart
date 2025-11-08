@@ -11,14 +11,14 @@ class TaskActionButtons extends StatelessWidget {
   final VoidCallback onShowDetails;
 
   const TaskActionButtons({
-    Key? key,
+    super.key,
     required this.task,
     required this.onStart,
     required this.onPause,
     required this.onRemove,
     required this.onOpenFolder,
     required this.onShowDetails,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -1,9 +1,18 @@
 
 
 // 导入必要的库
-import 'dart:math';
-import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'logging.dart';
+
+// 按惯例将dart标准库导入和第三方库导入分开;
+
+// 格式化工具类
+class FormatUtils {
+  static final AppLogger _logger = AppLogger('FormatUtils');
+}
 
 // 格式化字节数显示
 String formatBytes(int bytes, {int decimals = 2}) {
@@ -114,7 +123,7 @@ String? parseBitfield(String? bittorrentInfo) {
         }
       }
     } catch (e) {
-      print('解析bittorrentInfo中的bitfield失败: $e');
+      FormatUtils._logger.e('解析bittorrentInfo中的bitfield失败', error: e);
     }
   }
   return null;

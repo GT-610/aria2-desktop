@@ -7,6 +7,7 @@ import 'task_list_item.dart';
 
 // Models
 import '../models/download_task.dart';
+import '../../../models/aria2_instance.dart';
 
 // Services
 import '../../../services/instance_manager.dart';
@@ -19,12 +20,12 @@ class TaskListView extends StatelessWidget {
   final VoidCallback onTaskUpdated;
 
   const TaskListView({
-    Key? key,
+    super.key,
     required this.tasks,
     required this.instanceNames,
     required this.onTaskTap,
     required this.onTaskUpdated,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +35,7 @@ class TaskListView extends StatelessWidget {
     // Check if there are any connected instances
     final instanceManager = context.read<InstanceManager>();
     final hasConnectedInstances = instanceManager.instances.any((instance) => 
-      instance.status == 1 // 1 represents connected status
+      instance.status == ConnectionStatus.connected
     );
     
     // If no connected instances, show special prompt

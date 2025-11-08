@@ -119,13 +119,13 @@ class _MainWindowState extends State<MainWindow> {
   @override
   Widget build(BuildContext context) {
     
-    List<Widget> _pages = [
+    List<Widget> pages = [
       const DownloadPage(),
       const InstancePage(),
       const SettingsPage(),
     ];
 
-    void _onItemTapped(int index) {
+    void onItemTapped(int index) {
       setState(() {
         _selectedIndex = index;
       });
@@ -143,7 +143,7 @@ class _MainWindowState extends State<MainWindow> {
                 // Side navigation rail
                 NavigationRail(
                   selectedIndex: _selectedIndex,
-                  onDestinationSelected: _onItemTapped,
+                  onDestinationSelected: onItemTapped,
                   labelType: NavigationRailLabelType.selected,
                   backgroundColor: colorScheme.surfaceContainer,
                   indicatorColor: colorScheme.surfaceContainerHighest,
@@ -183,7 +183,7 @@ class _MainWindowState extends State<MainWindow> {
                 ),
                 // Main content area
                 Expanded(
-                  child: _pages[_selectedIndex],
+                  child: pages[_selectedIndex],
                 ),
               ],
             ),

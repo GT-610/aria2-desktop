@@ -162,7 +162,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
       }
     } catch (e, stackTrace) {
       logger.e('更新实例失败', error: e, stackTrace: stackTrace);
-      throw e;
+      rethrow;
     }
   }
 

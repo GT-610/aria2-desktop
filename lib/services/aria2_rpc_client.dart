@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
 import '../models/aria2_instance.dart';
+import '../utils/logging.dart';
 
 // Custom exception classes
 class ConnectionFailedException implements Exception {
@@ -17,7 +18,7 @@ class UnauthorizedException implements Exception {
 }
 
 /// Aria2 RPC client service
-class Aria2RpcClient {
+class Aria2RpcClient with Loggable {
   final Aria2Instance instance;
   final http.Client? _httpClient;
   WebSocket? _webSocket;
@@ -36,6 +37,8 @@ class Aria2RpcClient {
   Aria2RpcClient._(this.instance, {required bool isWebSocket}) : 
     _isWebSocket = isWebSocket,
     _httpClient = isWebSocket ? null : http.Client() {
+    initLogger();
+  
     if (_isWebSocket) {
       _initWebSocket();
     }
@@ -169,18 +172,18 @@ class Aria2RpcClient {
       }
     } catch (e) {
       // Handle parsing errors
-      print('Failed to parse WebSocket message: $e');
+      logger.e('Failed to parse WebSocket message', error: e);
     }
   }
 
   /// Handle WebSocket errors
-  void _handleWebSocketError(error) {
+  void _handleWebSocketError(dynamic error) {
     // Complete all pending requests with error
     final errorToThrow = error is TimeoutException || error is SocketException
         ? ConnectionFailedException()
         : error;
 
-    for (final completer in _pendingRequests.values) {
+    for (final Completer<Map<String, dynamic>> completer in _pendingRequests.values) {
       if (!completer.isCompleted) {
         completer.completeError(errorToThrow);
       }

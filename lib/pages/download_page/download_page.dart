@@ -23,6 +23,7 @@ import 'components/task_toolbar.dart';
 // Utilities
 import 'enums.dart';
 import 'utils/task_parser.dart';
+import '../../utils/logging.dart';
 
 class DownloadPage extends StatefulWidget {
   const DownloadPage({super.key});
@@ -31,7 +32,7 @@ class DownloadPage extends StatefulWidget {
   State<DownloadPage> createState() => _DownloadPageState();
 }
 
-class _DownloadPageState extends State<DownloadPage> {
+class _DownloadPageState extends State<DownloadPage> with Loggable {
   FilterOption _selectedFilter = FilterOption.all;
   CategoryType _currentCategoryType = CategoryType.all;
 
@@ -50,6 +51,8 @@ class _DownloadPageState extends State<DownloadPage> {
   @override
   void initState() {
     super.initState();
+    // Initialize logger
+    initLogger();
     // Load instance names and initialize
     _initialize();
     
@@ -60,6 +63,8 @@ class _DownloadPageState extends State<DownloadPage> {
     
     // Start periodic refresh (every 1 second)
     _startPeriodicRefresh();
+    
+    logger.d('DownloadPage initialized');
   }
   
   // Initialize
@@ -137,41 +142,41 @@ class _DownloadPageState extends State<DownloadPage> {
             if (response.containsKey('result') && response['result'] is List) {
               final result = response['result'] as List;
               
-              // Print debug information: structure and content of result
-              print('result结构: $result');
-              print('result长度: ${result.length}');
+              // Log information: structure and content of result
+              logger.d('Task result structure received');
+              logger.d('Task result length: ${result.length}' );
               
               // Parse active tasks - handle three-layer nested array structure [[[]], [[]], [[...]]]
-              if (result.length > 0 && result[0] is List && (result[0] as List).isNotEmpty && (result[0] as List)[0] is List) {
+              if (result.isNotEmpty && result[0] is List && (result[0] as List).isNotEmpty && (result[0] as List)[0] is List) {
                 final activeTasks = (result[0] as List)[0] as List;
-                print('活跃任务数量: ${activeTasks.length}');
+                logger.d('Active tasks count: ${activeTasks.length}');
                 allTasks.addAll(_parseTasks(activeTasks, DownloadStatus.active, activeInstance.id, activeInstance.type == InstanceType.local));
               }
               
               // Parse waiting tasks
               if (result.length > 1 && result[1] is List && (result[1] as List).isNotEmpty && (result[1] as List)[0] is List) {
                 final waitingTasks = (result[1] as List)[0] as List;
-                print('等待任务数量: ${waitingTasks.length}');
+                logger.d('Waiting tasks count: ${waitingTasks.length}');
                 allTasks.addAll(_parseTasks(waitingTasks, DownloadStatus.waiting, activeInstance.id, activeInstance.type == InstanceType.local));
               }
               
               // Parse stopped tasks
               if (result.length > 2 && result[2] is List && (result[2] as List).isNotEmpty && (result[2] as List)[0] is List) {
                 final stoppedTasks = (result[2] as List)[0] as List;
-                print('已停止任务数量: ${stoppedTasks.length}');
+                logger.d('Stopped tasks count: ${stoppedTasks.length}');
                 if (stoppedTasks.isNotEmpty) {
-                  print('第一个已停止任务数据: ${stoppedTasks[0]}');
+                  logger.d('First stopped task data available');
                 }
                 final parsedStoppedTasks = _parseTasks(stoppedTasks, DownloadStatus.stopped, activeInstance.id, activeInstance.type == InstanceType.local);
-                print('解析后的已停止任务数量: ${parsedStoppedTasks.length}');
+                logger.d('Parsed stopped tasks count: ${parsedStoppedTasks.length}');
                 allTasks.addAll(parsedStoppedTasks);
               }
             }
             
             // Close client
             client.close();
-          } catch (e) {
-            print('Failed to get tasks from instance ${activeInstance.name}: $e');
+          } catch (e, stackTrace) {
+            logger.e('Failed to get tasks from instance ${activeInstance.name}', error: e, stackTrace: stackTrace);
           }
         } else if (activeInstance.status == ConnectionStatus.connecting) {
           // Do not try to connect if already connecting
@@ -190,8 +195,8 @@ class _DownloadPageState extends State<DownloadPage> {
         // 注意：由于我们使用StatefulBuilder，实际上StatefulBuilder会自动重建
         // 当主循环调用setState时，整个页面会重建，包括打开的对话框
       }
-    } catch (e) {
-      print('Failed to refresh tasks: $e');
+    } catch (e, stackTrace) {
+      logger.e('Failed to refresh tasks', error: e, stackTrace: stackTrace);
     }
   }
   
@@ -205,7 +210,7 @@ class _DownloadPageState extends State<DownloadPage> {
   // Show task details dialog - to be implemented
   void _showTaskDetails(BuildContext context, DownloadTask task) {
     // This function is a placeholder and will be implemented in future updates
-    print('Show task details dialog for: ${task.name}');
+    logger.d('Show task details dialog for: ${task.name}');
   }
   
   // Load instance names
@@ -226,8 +231,8 @@ class _DownloadPageState extends State<DownloadPage> {
           _instanceNames = instanceMap;
         });
       }
-    } catch (e) {
-      print('Failed to load instance names: $e');
+    } catch (e, stackTrace) {
+      logger.e('Failed to load instance names', error: e, stackTrace: stackTrace);
       // Notify user when error occurs
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -410,11 +415,11 @@ class _DownloadPageState extends State<DownloadPage> {
                     break;
                   case 'torrent':
                     // TODO: 实现种子文件上传逻辑
-                    print('添加种子任务，下载目录: $downloadDir');
+                    logger.d('Adding torrent task, download directory: $downloadDir');
                     break;
                   case 'metalink':
                     // TODO: 实现Metalink文件上传逻辑
-                    print('添加Metalink任务，下载目录: $downloadDir');
+                    logger.d('Adding metalink task, download directory: $downloadDir');
                     break;
                 }
                 
@@ -423,11 +428,11 @@ class _DownloadPageState extends State<DownloadPage> {
                 
                 client.close();
               }
-            } catch (e) {
-              print('添加任务失败: $e');
+            } catch (e, stackTrace) {
+              logger.e('Failed to add task', error: e, stackTrace: stackTrace);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('添加任务失败: $e')),
+                  SnackBar(content: Text('Failed to add task: $e')),
                 );
               }
             }

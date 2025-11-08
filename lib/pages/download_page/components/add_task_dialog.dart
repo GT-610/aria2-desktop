@@ -32,14 +32,14 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
     return StatefulBuilder(
       builder: (context, setState) {
         // 更新保存位置的函数
-        void _onSaveLocationChanged(String newLocation) {
+        void onSaveLocationChanged(String newLocation) {
           setState(() {
             saveLocation = newLocation;
           });
         }
 
         // 从剪贴板粘贴功能
-        Future<void> _pasteFromClipboard() async {
+        Future<void> pasteFromClipboard() async {
           try {
             // 注意：这里需要导入services包来使用Clipboard
             // final data = await Clipboard.getData(Clipboard.kTextPlain);
@@ -55,7 +55,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
         }
 
         // 选择种子文件
-        Future<void> _selectTorrentFile() async {
+        Future<void> selectTorrentFile() async {
           try {
             FilePickerResult? result = await FilePicker.platform.pickFiles(
               type: FileType.custom,
@@ -73,7 +73,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
         }
 
         // 选择Metalink文件
-        Future<void> _selectMetalinkFile() async {
+        Future<void> selectMetalinkFile() async {
           try {
             FilePickerResult? result = await FilePicker.platform.pickFiles(
               type: FileType.custom,
@@ -91,7 +91,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
         }
 
         // 提交任务
-        void _submitTask(String taskType) {
+        void submitTask(String taskType) {
           String downloadDir = saveLocation;
           String uri = uriController.text;
           
@@ -146,7 +146,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                     ),
                                     const SizedBox(height: 8),
                                     TextButton(
-                                      onPressed: _pasteFromClipboard,
+                                      onPressed: pasteFromClipboard,
                                       child: const Text('从剪贴板粘贴'),
                                     ),
                                     const SizedBox(height: 16),
@@ -162,7 +162,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                     const Icon(Icons.file_open, size: 64),
                                     const SizedBox(height: 16),
                                     TextButton.icon(
-                                      onPressed: _selectTorrentFile,
+                                      onPressed: selectTorrentFile,
                                       icon: const Icon(Icons.upload_file),
                                       label: const Text('选择种子文件'),
                                     ),
@@ -179,7 +179,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                     const Icon(Icons.file_open, size: 64),
                                     const SizedBox(height: 16),
                                     TextButton.icon(
-                                      onPressed: _selectMetalinkFile,
+                                      onPressed: selectMetalinkFile,
                                       icon: const Icon(Icons.upload_file),
                                       label: const Text('选择Metalink文件'),
                                     ),
@@ -202,7 +202,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                               // 保存位置 - 使用可复用的DirectoryPicker组件
                               DirectoryPicker(
                                 initialDirectory: saveLocation,
-                                onDirectoryChanged: _onSaveLocationChanged,
+                                onDirectoryChanged: onSaveLocationChanged,
                                 onError: (error) {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -274,7 +274,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                       taskType = 'uri';
                   }
                   
-                  _submitTask(taskType);
+                  submitTask(taskType);
                 },
                 child: const Text('确认'),
               ),

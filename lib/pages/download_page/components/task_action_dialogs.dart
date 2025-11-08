@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart';
+import '../../../utils/logging.dart';
 import '../../../services/instance_manager.dart';
 import '../../../models/aria2_instance.dart';
 
@@ -13,6 +13,8 @@ enum TaskActionType {
 
 /// 任务操作对话框组件类
 class TaskActionDialogs {
+  static final AppLogger _logger = AppLogger('TaskActionDialogs');
+  
   /// 显示任务操作对话框
   static Future<void> showTaskActionDialog(
     BuildContext context,
@@ -152,17 +154,15 @@ class TaskActionDialogs {
     try {
       // 简化实现，暂时注释掉实际操作
       // 在实际应用中，需要根据Aria2RpcClient的实际API调整这些方法调用
-      print('对实例 ${instance.name} 执行操作: $actionType');
+      _logger.d('对实例 ${instance.name} 执行操作: $actionType');
       
       // 此处应该根据Aria2RpcClient的实际API实现相应功能
       // final client = Aria2RpcClient(instance);
       // 根据实际API调用相应方法
       // client.close();
     } catch (e) {
-      if (kDebugMode) {
-        print('执行任务操作错误: $e');
-      }
       // 可以在这里添加错误处理，比如显示错误提示
+      _logger.e('执行任务操作错误', error: e);
     }
   }
 }

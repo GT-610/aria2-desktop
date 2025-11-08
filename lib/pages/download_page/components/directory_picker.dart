@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../../utils/logging.dart';
 
 /// Reusable directory picker component
 /// Used to select file save location, supporting both text editing and directory browsing
@@ -17,10 +18,10 @@ class DirectoryPicker extends StatefulWidget {
   final String dialogTitle;
   
   /// Directory path change callback
-  final Function(String) onDirectoryChanged;
+  final ValueChanged<String> onDirectoryChanged;
   
   /// Directory selection error callback
-  final Function(String)? onError;
+  final ValueChanged<String>? onError;
 
   const DirectoryPicker({
     super.key,
@@ -36,13 +37,14 @@ class DirectoryPicker extends StatefulWidget {
   State<DirectoryPicker> createState() => _DirectoryPickerState();
 }
 
-class _DirectoryPickerState extends State<DirectoryPicker> {
+class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
   late TextEditingController _directoryController;
 
   @override
   void initState() {
     super.initState();
     _directoryController = TextEditingController(text: widget.initialDirectory);
+    initLogger();
   }
 
   @override
@@ -63,11 +65,12 @@ class _DirectoryPickerState extends State<DirectoryPicker> {
         _updateDirectory(selectedDirectory);
       }
     } catch (e) {
-      print('Failed to select directory: $e');
+      logger.e('Failed to select directory', error: e);
+      final mountedContext = context;
       if (widget.onError != null) {
         widget.onError!('Failed to select directory: $e');
-      } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      } else if (mountedContext.mounted) {
+        ScaffoldMessenger.of(mountedContext).showSnackBar(
           SnackBar(content: Text('Failed to select directory: $e')),
         );
       }

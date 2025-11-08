@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../utils/logging.dart';
 import '../models/download_task.dart';
 
 // Utility class for task operations
 class TaskUtils {
+  static final AppLogger _logger = AppLogger('TaskUtils');
   // Calculate remaining time based on progress and download speed
   static String calculateRemainingTime(double progress, String downloadSpeed) {
     // Implementation will be added later
@@ -16,9 +18,11 @@ class TaskUtils {
     try {
       // Check if task has download directory information
       if (task.dir == null || task.dir!.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cannot get download directory information')),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Cannot get download directory information')),
+          );
+        }
         return;
       }
 
@@ -26,9 +30,11 @@ class TaskUtils {
       
       // Ensure path exists
       if (!Directory(directoryPath).existsSync()) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Download directory does not exist')),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Download directory does not exist')),
+          );
+        }
         return;
       }
 
@@ -43,16 +49,20 @@ class TaskUtils {
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Cannot open download directory')),
-          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Cannot open download directory')),
+            );
+          }
         }
       }
     } catch (e) {
-      print('Error opening directory: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error opening directory: $e')),
-      );
+      _logger.e('Error opening directory', error: e);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening directory: $e')),
+        );
+      }
     }
   }
 

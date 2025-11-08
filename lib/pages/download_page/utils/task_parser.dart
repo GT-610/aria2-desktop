@@ -2,9 +2,11 @@ import 'dart:convert';
 import '../enums.dart';
 import '../models/download_task.dart';
 import '../../../utils/format_utils.dart';
+import '../../../utils/logging.dart';
 
 // Utility class for parsing task data from RPC responses
 class TaskParser {
+  static final AppLogger _logger = AppLogger('TaskParser');
   // Parse a list of tasks
   static List<DownloadTask> parseTasks(List tasks, DownloadStatus status, String instanceId, bool isLocal) {
     List<DownloadTask> parsedTasks = [];
@@ -43,7 +45,7 @@ class TaskParser {
             );
             parsedTasks.add(taskWithStatus);
           } catch (e) {
-            print('Failed to parse task: $e');
+            _logger.e('Failed to parse task', error: e);
             continue;
           }
         }
@@ -102,7 +104,7 @@ class TaskParser {
     
     // Parse additional details for the extended model
     int? connections = taskData.containsKey('connections') 
-      ? int.tryParse(taskData['connections'] as String? ?? '') ?? null
+      ? int.tryParse(taskData['connections'] as String? ?? '')
       : null;
     
     String? dir = taskData['dir'] as String?;

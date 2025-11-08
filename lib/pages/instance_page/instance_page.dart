@@ -162,6 +162,7 @@ class _InstancePageState extends State<InstancePage> {
 
   // 处理删除实例
   Future<void> _handleDeleteInstance(Aria2Instance instance) async {
+    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -182,8 +183,6 @@ class _InstancePageState extends State<InstancePage> {
 
     if (confirmed == true) {
       try {
-        final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-        
         // 如果是当前活跃实例，先断开连接
         if (instanceManager.activeInstance?.id == instance.id) {
           await instanceManager.disconnectInstance();
@@ -211,6 +210,7 @@ class _InstancePageState extends State<InstancePage> {
 
   // 打开编辑或添加实例对话框
   void _openInstanceDialog({Aria2Instance? instance}) async {
+    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     final result = await showDialog<Aria2Instance>(
       context: context,
       builder: (context) => InstanceDialog(
@@ -220,8 +220,6 @@ class _InstancePageState extends State<InstancePage> {
 
     if (result != null) {
       try {
-        final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-        
         if (instance != null) {
           // 更新现有实例
           await instanceManager.updateInstance(result);
@@ -263,9 +261,8 @@ class _InstancePageState extends State<InstancePage> {
 
   // 连接实例
   Future<void> _handleConnectInstance(Aria2Instance instance) async {
+    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     try {
-      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-      
       // 如果是本地实例，先启动本地进程
       if (instance.type == InstanceType.local) {
         final startSuccess = await instanceManager.startLocalProcess(instance);
@@ -310,8 +307,8 @@ class _InstancePageState extends State<InstancePage> {
 
   // 断开连接
   Future<void> _handleDisconnectInstance() async {
+    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     try {
-      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
       await instanceManager.disconnectInstance();
       
       if (mounted) {

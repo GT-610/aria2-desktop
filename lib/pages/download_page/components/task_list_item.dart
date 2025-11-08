@@ -22,7 +22,7 @@ class TaskListItem extends StatelessWidget {
   final Function(DownloadTask) onOpenDirectory;
 
   const TaskListItem({
-    Key? key,
+    super.key,
     required this.task,
     required this.instanceNames,
     required this.onTap,
@@ -30,7 +30,7 @@ class TaskListItem extends StatelessWidget {
     this.isSelected = false,
     required this.onTaskUpdated,
     required this.onOpenDirectory,
-  }) : super(key: key);
+  });
 
   // Get instance name by ID
   String _getInstanceName(String instanceId) {
