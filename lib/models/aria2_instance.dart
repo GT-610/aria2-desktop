@@ -26,7 +26,6 @@ class Aria2Instance {
   String? aria2Path;
   String? version;
   String? errorMessage;
-  bool isActive;
   ConnectionStatus status;
   Process? localProcess;
 
@@ -41,7 +40,6 @@ class Aria2Instance {
     this.aria2Path,
     this.version,
     this.errorMessage,
-    this.isActive = false,
     this.status = ConnectionStatus.disconnected,
     this.localProcess,
   });
@@ -59,7 +57,6 @@ class Aria2Instance {
       aria2Path: json['aria2Path'],
       version: json['version'],
       errorMessage: json['errorMessage'],
-      isActive: json['isActive'] ?? false,
       status: json.containsKey('status') ? ConnectionStatus.values.byName(json['status']) : ConnectionStatus.disconnected,
     );
   }
@@ -77,7 +74,6 @@ class Aria2Instance {
       'aria2Path': aria2Path,
       'version': version,
       'errorMessage': errorMessage,
-      'isActive': isActive,
       'status': status.name,
     };
   }
@@ -99,7 +95,6 @@ class Aria2Instance {
     String? aria2Path,
     String? version,
     String? errorMessage,
-    bool? isActive,
     ConnectionStatus? status,
     Process? localProcess,
   }) {
@@ -114,7 +109,6 @@ class Aria2Instance {
       aria2Path: aria2Path ?? this.aria2Path,
       version: version ?? this.version,
       errorMessage: errorMessage ?? this.errorMessage,
-      isActive: isActive ?? this.isActive,
       status: status ?? this.status,
       localProcess: localProcess ?? this.localProcess,
     );

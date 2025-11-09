@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'pages/download_page.dart';
-import 'pages/instance_list_page.dart';
-import 'pages/settings_page.dart';
+import 'pages/download_page/download_page.dart';
+import 'pages/instance_page/instance_page.dart';
+import 'pages/settings_page/settings_page.dart';
 import 'models/global_stat.dart';
 import 'services/instance_manager.dart';
+import 'services/download_data_service.dart';
 import 'models/settings.dart';
-import 'services/aria2_rpc_client.dart';
-import 'models/aria2_instance.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -70,6 +69,13 @@ class _ThemeProviderState extends State<_ThemeProvider> {
       home: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => InstanceManager()),
+          ChangeNotifierProxyProvider<InstanceManager, DownloadDataService>(
+            create: (context) => DownloadDataService(),
+            update: (context, instanceManager, downloadDataService) {
+              // Ensure DownloadDataService can access InstanceManager
+              return downloadDataService!;
+            },
+          ),
         ],
         child: const _HomeWrapper(),
       ),
@@ -84,7 +90,7 @@ class _HomeWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     // Initialize instance manager
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    final settings = Provider.of<Settings>(context, listen: false);
+    // final settings = Provider.of<Settings>(context, listen: false);
     
     // Ensure settings are loaded
     final initializationFuture = Future(() async {
@@ -120,15 +126,14 @@ class _MainWindowState extends State<MainWindow> {
 
   @override
   Widget build(BuildContext context) {
-    final instanceManager = Provider.of<InstanceManager>(context);
     
-    List<Widget> _pages = [
+    List<Widget> pages = [
       const DownloadPage(),
-      InstanceListPage(instanceManager: instanceManager),
+      const InstancePage(),
       const SettingsPage(),
     ];
 
-    void _onItemTapped(int index) {
+    void onItemTapped(int index) {
       setState(() {
         _selectedIndex = index;
       });
@@ -146,10 +151,10 @@ class _MainWindowState extends State<MainWindow> {
                 // Side navigation rail
                 NavigationRail(
                   selectedIndex: _selectedIndex,
-                  onDestinationSelected: _onItemTapped,
+                  onDestinationSelected: onItemTapped,
                   labelType: NavigationRailLabelType.selected,
                   backgroundColor: colorScheme.surfaceContainer,
-                  indicatorColor: colorScheme.surfaceVariant,
+                  indicatorColor: colorScheme.surfaceContainerHighest,
                   elevation: null,
                   leading: Container(
                     padding: const EdgeInsets.only(top: 16, bottom: 8),
@@ -186,7 +191,7 @@ class _MainWindowState extends State<MainWindow> {
                 ),
                 // Main content area
                 Expanded(
-                  child: _pages[_selectedIndex],
+                  child: pages[_selectedIndex],
                 ),
               ],
             ),
@@ -196,10 +201,10 @@ class _MainWindowState extends State<MainWindow> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainer,
-              border: Border(top: BorderSide(color: colorScheme.surfaceVariant)),
+              border: Border(top: BorderSide(color: colorScheme.surfaceContainerHighest)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   offset: const Offset(0, -1),
                   blurRadius: 2,
                 ),
@@ -211,19 +216,19 @@ class _MainWindowState extends State<MainWindow> {
                 Chip(
                   label: Text('总速度: ${_formatSpeed(_globalStat.downloadSpeed)}'),
                   avatar: const Icon(Icons.speed, size: 16),
-                  backgroundColor: colorScheme.surfaceVariant,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.all(4),
                 ),
                 Chip(
                   label: Text('活跃任务: ${_globalStat.activeTasks}'),
                   avatar: const Icon(Icons.task_alt, size: 16),
-                  backgroundColor: colorScheme.surfaceVariant,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.all(4),
                 ),
                 Chip(
                   label: Text('等待任务: ${_globalStat.waitingTasks}'),
                   avatar: const Icon(Icons.pending, size: 16),
-                  backgroundColor: colorScheme.surfaceVariant,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.all(4),
                 ),
               ],
@@ -236,7 +241,7 @@ class _MainWindowState extends State<MainWindow> {
 
   String _formatSpeed(int bytesPerSecond) {
     if (bytesPerSecond < 1024) {
-      return '${bytesPerSecond} B/s';
+      return '$bytesPerSecond B/s';
     } else if (bytesPerSecond < 1024 * 1024) {
       return '${(bytesPerSecond / 1024).toStringAsFixed(2)} KB/s';
     } else {

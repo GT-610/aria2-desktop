@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:aria2_desktop/utils/logging.dart';
 
 /// Aria2 RPC通信测试程序
 /// 功能：发送getVersion请求到Aria2 RPC服务并显示响应
 void main() async {
+  final logger = AppLogger('Aria2RpcClientTest');
   // 定义请求对象
   final request = {  
   "jsonrpc": "2.0",  
@@ -29,17 +31,16 @@ void main() async {
       body: jsonEncode(request),
     );
 
-    // 打印响应
-    print('状态码: ${response.statusCode}');
-    print('\n');
+    // 记录响应
+    logger.i('状态码: ${response.statusCode}');
     
-    // 解析并打印JSON响应
+    // 解析并记录JSON响应
     final responseData = jsonDecode(response.body);
-    print('响应数据:');
-    print(jsonEncode(responseData));
+    logger.i('响应数据:');
+    logger.i(jsonEncode(responseData));
     
   } catch (e) {
     // 错误处理
-    print('请求失败: $e');
+    logger.e('请求失败', error: e);
   }
 }
