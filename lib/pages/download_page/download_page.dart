@@ -20,6 +20,8 @@ import 'components/task_action_dialogs.dart';
 import 'components/filter_selector.dart';
 import 'components/task_list_view.dart';
 import 'components/task_toolbar.dart';
+import 'components/task_details_dialog.dart';
+import 'services/download_task_service.dart';
 
 // Utilities
 import 'enums.dart';
@@ -139,8 +141,16 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     // Get complete task information from the global service
     logger.d('Show task details dialog for: ${task.name} (ID: ${task.id})');
     
-    // Task details dialog display logic can be implemented here
-    // Since we're using the global DownloadDataService, the dialog can directly subscribe to the service for the latest data
+    // Get all tasks from the downloadDataService
+    final allTasks = downloadDataService?.tasks ?? [];
+    
+    // Show the task details dialog
+    TaskDetailsDialog.showTaskDetailsDialog(
+      context,
+      task,
+      allTasks,
+      DownloadTaskService.getStatusInfo,
+    );
   }
   
   // Load instance names
