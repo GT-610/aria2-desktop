@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'directory_picker.dart';
 import '../../../utils/logging/log_extensions.dart';
@@ -41,14 +42,12 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
         // Paste from clipboard functionality
         Future<void> pasteFromClipboard() async {
           try {
-            // Note: Need to import services package to use Clipboard
-            // final data = await Clipboard.getData(Clipboard.kTextPlain);
-            // if (data != null && data.text != null) {
-            //   uriController.text = data.text!;
-            //   setState(() {});
-            // }
-            // Since services package is not imported, use placeholder implementation here
-            logger.d('从剪贴板粘贴功能需要实现');
+            final data = await Clipboard.getData(Clipboard.kTextPlain);
+            if (data != null && data.text != null) {
+              uriController.text = data.text!;
+              setState(() {});
+            }
+            logger.d('从剪贴板粘贴功能已实现');
           } catch (e) {
             logger.e('Failed to paste', error: e);
           }

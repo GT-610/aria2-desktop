@@ -311,19 +311,6 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       });
     }
     
-    // Display instance connection status hint
-    final activeInstance = instanceManager.activeInstance;
-    if (activeInstance == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('未连接到任何下载实例'),
-            duration: Duration(seconds: 2),
-          )
-        );
-      });
-    }
-    
     return Scaffold(
       body: Column(
         children: [
@@ -408,7 +395,13 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                 switch (taskType) {
                   case 'uri':
                     if (uri.isNotEmpty) {
-                      await client.addUri(uri, downloadDir);
+                      // Split URI by newlines to support multiple URLs
+                      final uris = uri.split('\n').map((u) => u.trim()).where((u) => u.isNotEmpty).toList();
+                      
+                      // Add each URI as a separate download task
+                      for (final singleUri in uris) {
+                        await client.addUri(singleUri, downloadDir);
+                      }
                     }
                     break;
                   case 'torrent':
@@ -425,12 +418,26 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                 _refreshTasksAndRestartTimer();
                 
                 client.close();
+                
+                // Show success message
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('任务添加成功')),
+                  );
+                }
+              } else {
+                // Show error message when no active instance
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('当前没有连接的实例')),
+                  );
+                }
               }
             } catch (e, stackTrace) {
               logger.e('Failed to add task', error: e, stackTrace: stackTrace);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to add task: $e')),
+                  SnackBar(content: Text('添加任务失败: $e')),
                 );
               }
             }
