@@ -1,4 +1,4 @@
-import 'dart:convert' show jsonDecode, jsonEncode;
+import 'dart:convert' show jsonDecode, jsonEncode, utf8;
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
@@ -284,35 +284,98 @@ class InstanceManager extends ChangeNotifier with Loggable {
     
     try {
       logger.d('Starting local process for instance: ${instance.name}');
-      // Build the command
+      
+      // Build the command with comprehensive arguments
       final List<String> args = [
         '--enable-rpc',
         '--rpc-listen-all=true',
         '--rpc-allow-origin-all',
         '--rpc-listen-port=${instance.port}',
+        '--rpc-save-upload-metadata=true',
+        '--rpc-max-request-size=10M',
+        '--continue=true',
+        '--max-concurrent-downloads=5',
+        '--max-connection-per-server=16',
+        '--min-split-size=10M',
+        '--split=10',
+        '--max-overall-download-limit=0',
+        '--max-overall-upload-limit=0',
+        '--max-download-limit=0',
+        '--max-upload-limit=0',
+        '--file-allocation=prealloc',
+        '--disk-cache=64M',
+        '--allow-overwrite=true',
+        '--allow-piece-length-change=true',
+        '--auto-file-renaming=true',
+        '--check-integrity=true',
+        '--remote-time=true',
+        '--follow-torrent=mem',
+        '--seed-time=0',
+        '--bt-enable-lpd=true',
+        '--bt-max-peers=100',
+        '--bt-require-crypto=true',
+        '--bt-save-metadata=true',
+        '--bt-seed-unverified=true',
+        '--listen-port=6881-6999',
+        '--dht-listen-port=6881-6999',
       ];
       
       if (instance.secret.isNotEmpty) {
         args.add('--rpc-secret=${instance.secret}');
       }
       
+      // Add log file argument
+      final logDirectory = await getApplicationDocumentsDirectory();
+      final logFilePath = '${logDirectory.path}/aria2_${instance.id}_${DateTime.now().millisecondsSinceEpoch}.log';
+      args.add('--log-level=info');
+      args.add('--log=$logFilePath');
+      
       // Start the process
       final process = await Process.start(
         instance.aria2Path!,
         args,
         runInShell: true,
+        mode: ProcessStartMode.detachedWithStdio,
       );
+      
+      // Monitor process exit
+      process.exitCode.then((exitCode) {
+        logger.w('Local Aria2 process exited with code: $exitCode, instance: ${instance.name}');
+        // If the process exited unexpectedly, update instance status
+        if (exitCode != 0) {
+          final currentInstance = getInstanceById(instance.id);
+          if (currentInstance != null && currentInstance.status == ConnectionStatus.connected) {
+            updateInstanceInList(instance.id, ConnectionStatus.failed);
+          }
+        }
+      });
+      
+      // Monitor stdout and stderr
+      _monitorProcessOutput(process, instance.name);
       
       // Update instance with process reference
       final updatedInstance = instance.copyWith(localProcess: process);
       await updateInstance(updatedInstance);
       
-      logger.i('Local process started successfully: ${instance.name}');
+      logger.i('Local process started successfully: ${instance.name}, PID: ${process.pid}');
       return true;
     } catch (e, stackTrace) {
       logger.e('Failed to start local process', error: e, stackTrace: stackTrace);
       return false;
     }
+  }
+  
+  /// Monitor process output
+  void _monitorProcessOutput(Process process, String instanceName) {
+    // Monitor stdout
+    process.stdout.transform(utf8.decoder).listen((data) {
+      logger.d('Aria2 [$instanceName] stdout: $data');
+    });
+    
+    // Monitor stderr
+    process.stderr.transform(utf8.decoder).listen((data) {
+      logger.e('Aria2 [$instanceName] stderr: $data');
+    });
   }
 
   /// Stop local aria2 process

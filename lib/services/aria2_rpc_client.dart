@@ -17,6 +17,23 @@ class UnauthorizedException implements Exception {
   String toString() => '认证未通过';
 }
 
+// Aria2 event types
+enum Aria2Event {
+  onDownloadStart,
+  onDownloadPause,
+  onDownloadStop,
+  onDownloadComplete,
+  onDownloadError,
+  onBtDownloadComplete,
+  onDownloadMetadata,
+  onDownloadPrepare,
+  onBtAnnounce,
+  onBtScrape,
+}
+
+// Event callback typedef
+typedef Aria2EventCallback = void Function(String gid);
+
 /// Aria2 RPC client service
 class Aria2RpcClient with Loggable {
   final Aria2Instance instance;
@@ -24,6 +41,9 @@ class Aria2RpcClient with Loggable {
   WebSocket? _webSocket;
   final Map<String, Completer<Map<String, dynamic>>> _pendingRequests = {};
   bool _isWebSocket = false;
+  
+  // Event callbacks
+  final Map<Aria2Event, List<Aria2EventCallback>> _eventCallbacks = {};
 
   /// Factory method to create appropriate client based on protocol
   factory Aria2RpcClient(Aria2Instance instance) {
@@ -39,6 +59,11 @@ class Aria2RpcClient with Loggable {
     _httpClient = isWebSocket ? null : http.Client() {
     initLogger();
   
+    // Initialize event callbacks map
+    for (var event in Aria2Event.values) {
+      _eventCallbacks[event] = [];
+    }
+    
     if (_isWebSocket) {
       _initWebSocket();
     }
@@ -157,6 +182,7 @@ class Aria2RpcClient with Loggable {
       final requestId = data['id']?.toString();
 
       if (requestId != null && _pendingRequests.containsKey(requestId)) {
+        // Handle response to a request
         final completer = _pendingRequests[requestId]!;
         _pendingRequests.remove(requestId);
 
@@ -169,10 +195,97 @@ class Aria2RpcClient with Loggable {
         } else {
           completer.complete(data);
         }
+      } else if (data.containsKey('method')) {
+        // Handle notification
+        _handleNotification(data);
       }
     } catch (e) {
       // Handle parsing errors
       logger.e('Failed to parse WebSocket message', error: e);
+    }
+  }
+
+  /// Handle Aria2 notifications
+  void _handleNotification(Map<String, dynamic> notification) {
+    final method = notification['method'] as String;
+    final params = notification['params'] as List<dynamic>;
+    
+    // Extract GID from params
+    String gid = '';
+    if (params.isNotEmpty) {
+      final firstParam = params[0] as Map<String, dynamic>;
+      gid = firstParam['gid'] as String;
+    }
+    
+    logger.d('Received Aria2 notification: $method, GID: $gid');
+    
+    // Map method name to Aria2Event enum
+    Aria2Event? event;
+    switch (method) {
+      case 'aria2.onDownloadStart':
+        event = Aria2Event.onDownloadStart;
+        break;
+      case 'aria2.onDownloadPause':
+        event = Aria2Event.onDownloadPause;
+        break;
+      case 'aria2.onDownloadStop':
+        event = Aria2Event.onDownloadStop;
+        break;
+      case 'aria2.onDownloadComplete':
+        event = Aria2Event.onDownloadComplete;
+        break;
+      case 'aria2.onDownloadError':
+        event = Aria2Event.onDownloadError;
+        break;
+      case 'aria2.onBtDownloadComplete':
+        event = Aria2Event.onBtDownloadComplete;
+        break;
+      case 'aria2.onDownloadMetadata':
+        event = Aria2Event.onDownloadMetadata;
+        break;
+      case 'aria2.onDownloadPrepare':
+        event = Aria2Event.onDownloadPrepare;
+        break;
+      case 'aria2.onBtAnnounce':
+        event = Aria2Event.onBtAnnounce;
+        break;
+      case 'aria2.onBtScrape':
+        event = Aria2Event.onBtScrape;
+        break;
+    }
+    
+    // Call callbacks if event is recognized
+    if (event != null) {
+      _triggerEvent(event, gid);
+    }
+  }
+
+  /// Trigger event callbacks
+  void _triggerEvent(Aria2Event event, String gid) {
+    final callbacks = _eventCallbacks[event] ?? [];
+    for (final callback in callbacks) {
+      try {
+        callback(gid);
+      } catch (e) {
+        logger.e('Error in event callback', error: e);
+      }
+    }
+  }
+
+  /// Subscribe to Aria2 event
+  void on(Aria2Event event, Aria2EventCallback callback) {
+    _eventCallbacks[event]?.add(callback);
+  }
+
+  /// Unsubscribe from Aria2 event
+  void off(Aria2Event event, Aria2EventCallback callback) {
+    _eventCallbacks[event]?.remove(callback);
+  }
+
+  /// Clear all event callbacks
+  void clearEventCallbacks() {
+    for (var event in Aria2Event.values) {
+      _eventCallbacks[event]?.clear();
     }
   }
 
@@ -333,6 +446,9 @@ class Aria2RpcClient with Loggable {
     } else {
       _httpClient?.close();
     }
+    
+    // Clear all event callbacks
+    clearEventCallbacks();
   }
 
   /// Build request body
