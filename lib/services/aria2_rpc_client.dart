@@ -417,21 +417,47 @@ class Aria2RpcClient with Loggable {
     return response['result'] as String; // Returns the GID of the removed task
   }
   
-  /// Add a download task with URI
-  Future<String> addUri(String uri, String directory) async {
-    // Build download parameters
-    final downloadOptions = {
-      'dir': directory,
-    };
-    
+  /// Add a download task with URI(s)
+  Future<String> addUri(List<String> uris, Map<String, dynamic> options) async {
     // Build request parameters - [URL list, options]
     final params = [
-      [uri],  // URL list, even a single URL needs to be in array format
-      downloadOptions  // Download options
+      uris,  // URL list
+      options  // Download options
     ];
     
     // Call RPC method to send request
     final response = await callRpc('aria2.addUri', params);
+    
+    // Return task GID
+    return response['result'] as String; // Returns the GID of the added task
+  }
+
+  /// Add a download task with torrent file
+  Future<String> addTorrent(String torrentContent, Map<String, dynamic> options) async {
+    // Build request parameters - [torrent content, uris, options]
+    final params = [
+      torrentContent,  // Base64 encoded torrent content
+      [],  // List of webseed URIs (optional)
+      options  // Download options
+    ];
+    
+    // Call RPC method to send request
+    final response = await callRpc('aria2.addTorrent', params);
+    
+    // Return task GID
+    return response['result'] as String; // Returns the GID of the added task
+  }
+
+  /// Add a download task with metalink file
+  Future<String> addMetalink(String metalinkContent, Map<String, dynamic> options) async {
+    // Build request parameters - [metalink content, options]
+    final params = [
+      metalinkContent,  // Base64 encoded metalink content
+      options  // Download options
+    ];
+    
+    // Call RPC method to send request
+    final response = await callRpc('aria2.addMetalink', params);
     
     // Return task GID
     return response['result'] as String; // Returns the GID of the added task

@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -6,7 +8,7 @@ import '../../../utils/logging/log_extensions.dart';
 
 // Add task dialog component
 class AddTaskDialog extends StatefulWidget {
-  final Function(String, String, String) onAddTask;
+  final Future<void> Function(String, String, String, String?) onAddTask;
 
   const AddTaskDialog({super.key, required this.onAddTask});
 
@@ -15,6 +17,13 @@ class AddTaskDialog extends StatefulWidget {
 }
 
 class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
+  // State variables
+  String saveLocation = '';
+  final TextEditingController uriController = TextEditingController();
+  bool showAdvancedOptions = false;
+  String? selectedTorrentFilePath;
+  String? selectedMetalinkFilePath;
+
   @override
   void initState() {
     super.initState();
@@ -24,11 +33,6 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
 
   @override
   Widget build(BuildContext context) {
-    // Create text controller outside the dialog to ensure state persistence
-    String saveLocation = '';
-    final TextEditingController uriController = TextEditingController();
-    bool showAdvancedOptions = false;
-
     // Use StatefulBuilder to manage UI updates
     return StatefulBuilder(
       builder: (context, setState) {
@@ -63,8 +67,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
             );
             
             if (result != null) {
-              logger.i('Selected torrent file: ${result.files.single.path}');
-              // Seed file upload logic should be implemented here
+              final filePath = result.files.single.path;
+              logger.i('Selected torrent file: $filePath');
+              setState(() {
+                selectedTorrentFilePath = filePath;
+              });
             }
           } catch (e) {
             logger.e('Failed to select torrent file', error: e);
@@ -81,8 +88,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
             );
             
             if (result != null) {
-              logger.i('Selected Metalink file: ${result.files.single.path}');
-              // Metalink file upload logic should be implemented here
+              final filePath = result.files.single.path;
+              logger.i('Selected Metalink file: $filePath');
+              setState(() {
+                selectedMetalinkFilePath = filePath;
+              });
             }
           } catch (e) {
             logger.e('Failed to select Metalink file', error: e);
@@ -90,13 +100,25 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
         }
 
         // Submit task
-        void submitTask(String taskType) {
+        Future<void> submitTask(String taskType) async {
           String downloadDir = saveLocation;
           String uri = uriController.text;
+          String? fileContent;
+          
+          // Read file content if needed
+          if (taskType == 'torrent' && selectedTorrentFilePath != null) {
+            final file = File(selectedTorrentFilePath!);
+            final bytes = await file.readAsBytes();
+            fileContent = base64Encode(bytes);
+          } else if (taskType == 'metalink' && selectedMetalinkFilePath != null) {
+            final file = File(selectedMetalinkFilePath!);
+            final bytes = await file.readAsBytes();
+            fileContent = base64Encode(bytes);
+          }
           
           // Call callback function to handle task addition
-          logger.i('Submit task: type=$taskType, URI=$uri, save directory=$downloadDir');
-          widget.onAddTask(taskType, uri, downloadDir);
+          logger.i('Submit task: type=$taskType, URI=$uri, save directory=$downloadDir, hasFileContent=${fileContent != null}');
+          widget.onAddTask(taskType, uri, downloadDir, fileContent);
           
           // Close dialog
           Navigator.pop(context);
@@ -154,7 +176,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                 ),
                               ),
                               // Torrent tab content
-                              Center(
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -166,12 +189,23 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                       label: const Text('选择种子文件'),
                                     ),
                                     const SizedBox(height: 16),
+                                    if (selectedTorrentFilePath != null)
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text(
+                                          '已选择: ${selectedTorrentFilePath!.split(Platform.pathSeparator).last}',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ),
+                                    const SizedBox(height: 16),
                                     const Text('支持.torrent格式的种子文件'),
                                   ],
                                 ),
                               ),
                               // Metalink tab content
-                              Center(
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -182,6 +216,16 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                       icon: const Icon(Icons.upload_file),
                                       label: const Text('选择Metalink文件'),
                                     ),
+                                    const SizedBox(height: 16),
+                                    if (selectedMetalinkFilePath != null)
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text(
+                                          '已选择: ${selectedMetalinkFilePath!.split(Platform.pathSeparator).last}',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ),
                                     const SizedBox(height: 16),
                                     const Text('支持.metalink格式的文件'),
                                   ],

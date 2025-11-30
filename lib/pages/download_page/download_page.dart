@@ -382,7 +382,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       context: context,
       builder: (context) {
         return AddTaskDialog(
-            onAddTask: (taskType, uri, downloadDir) async {
+            onAddTask: (taskType, uri, downloadDir, fileContent) async {
             try {
               // Get instance manager and active instance
               final instanceManager = Provider.of<InstanceManager>(context, listen: false);
@@ -391,6 +391,11 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
               if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
                 final client = Aria2RpcClient(activeInstance);
                 
+                // Build download options
+                final options = {
+                  'dir': downloadDir,
+                };
+                
                 // Add task based on task type
                 switch (taskType) {
                   case 'uri':
@@ -398,19 +403,21 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                       // Split URI by newlines to support multiple URLs
                       final uris = uri.split('\n').map((u) => u.trim()).where((u) => u.isNotEmpty).toList();
                       
-                      // Add each URI as a separate download task
-                      for (final singleUri in uris) {
-                        await client.addUri(singleUri, downloadDir);
-                      }
+                      // Add URI task
+                      await client.addUri(uris, options);
                     }
                     break;
                   case 'torrent':
-                    // TODO: Implement torrent file upload logic
-                    logger.d('Adding torrent task, download directory: $downloadDir');
+                    if (fileContent != null) {
+                      // Add torrent task with base64 encoded content
+                      await client.addTorrent(fileContent, options);
+                    }
                     break;
                   case 'metalink':
-                    // TODO: Implement Metalink file upload logic
-                    logger.d('Adding metalink task, download directory: $downloadDir');
+                    if (fileContent != null) {
+                      // Add metalink task with base64 encoded content
+                      await client.addMetalink(fileContent, options);
+                    }
                     break;
                 }
                 
