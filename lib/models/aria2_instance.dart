@@ -3,7 +3,8 @@ import 'dart:io';
 /// Instance type enum
 enum InstanceType {
   local,
-  remote
+  remote,
+  builtin
 }
 
 /// Connection status enum

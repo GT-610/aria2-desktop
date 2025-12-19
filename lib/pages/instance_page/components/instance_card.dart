@@ -228,10 +228,14 @@ class _InstanceCardState extends State<InstanceCard> {
                       const SizedBox(width: 8),
                       Chip(
                         label: Text(
-                          widget.instance.type == InstanceType.local ? '本地' : '远程',
+                          widget.instance.type == InstanceType.builtin ? '内建' : widget.instance.type == InstanceType.local ? '本地' : '远程',
                           style: const TextStyle(fontSize: 12),
                         ),
-                        backgroundColor: colorScheme.surfaceContainerHighest,
+                        backgroundColor: widget.instance.type == InstanceType.builtin ? colorScheme.primary.withValues(alpha: 0.2) : colorScheme.surfaceContainerHighest,
+                        labelStyle: TextStyle(
+                          color: widget.instance.type == InstanceType.builtin ? colorScheme.primary : null,
+                          fontSize: 12,
+                        ),
                         padding: const EdgeInsets.all(0),
                         visualDensity: VisualDensity.compact,
                       ),
@@ -316,19 +320,22 @@ class _InstanceCardState extends State<InstanceCard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // 编辑按钮
-                  TextButton(
-                    onPressed: () => widget.onEdit(widget.instance),
-                    child: const Text('编辑'),
-                  ),
-                  // 删除按钮
-                  TextButton(
-                    onPressed: () => widget.onDelete(widget.instance),
-                    child: Text(
-                      '删除',
-                      style: TextStyle(color: colorScheme.error),
+                  // 编辑和删除按钮 - 仅对非内建实例显示
+                  if (widget.instance.type != InstanceType.builtin) ...[
+                    // 编辑按钮
+                    TextButton(
+                      onPressed: () => widget.onEdit(widget.instance),
+                      child: const Text('编辑'),
                     ),
-                  ),
+                    // 删除按钮
+                    TextButton(
+                      onPressed: () => widget.onDelete(widget.instance),
+                      child: Text(
+                        '删除',
+                        style: TextStyle(color: colorScheme.error),
+                      ),
+                    ),
+                  ],
                   // 状态操作按钮 - 根据不同状态显示不同按钮
                   _getStatusActionButton(widget.instance.status, widget.isConnectionInProgress, context, () => widget.onToggleConnection(widget.instance)),
                 ],

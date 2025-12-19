@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import '../../../models/aria2_instance.dart';
 
 class InstanceDialog extends StatefulWidget {
@@ -21,8 +19,6 @@ class _InstanceDialogState extends State<InstanceDialog> {
   late String _host;
   late int _port;
   late String _secret;
-  String? _aria2Path;
-  bool _isLocalAria2PathError = false;
 
   @override
   void initState() {
@@ -36,83 +32,20 @@ class _InstanceDialogState extends State<InstanceDialog> {
       _host = widget.instance!.host;
       _port = widget.instance!.port;
       _secret = widget.instance!.secret;
-      _aria2Path = widget.instance!.aria2Path;
     } else {
       // Default values
       _name = '';
-      _type = InstanceType.local;
+      _type = InstanceType.remote; // Default to remote instance
       _protocol = 'http';
       _host = 'localhost';
       _port = 6800;
       _secret = '';
-      _aria2Path = null;
-    }
-  }
-
-  // Validate Aria2 executable path
-  Future<void> _validateAria2Path() async {
-    if (_aria2Path == null || _aria2Path!.isEmpty) {
-      setState(() => _isLocalAria2PathError = true);
-      return;
-    }
-
-    try {
-      final file = File(_aria2Path!);
-      final exists = await file.exists();
-      
-      if (!exists) {
-        setState(() => _isLocalAria2PathError = true);
-        return;
-      }
-
-      // Check file extension on Windows
-      if (Platform.isWindows && !_aria2Path!.toLowerCase().endsWith('.exe')) {
-        setState(() => _isLocalAria2PathError = true);
-        return;
-      }
-
-      setState(() => _isLocalAria2PathError = false);
-    } catch (_) {
-      setState(() => _isLocalAria2PathError = true);
-    }
-  }
-
-  // Select Aria2 executable file
-  Future<void> _selectAria2Path() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: Platform.isWindows ? ['exe'] : [],
-        dialogTitle: '选择Aria2可执行文件',
-      );
-
-      if (result != null && result.files.isNotEmpty) {
-        if (mounted) {
-          setState(() {
-            _aria2Path = result.files.first.path!;
-          });
-          await _validateAria2Path();
-        }
-      }
-    } catch (e) {
-      // Show error message to user
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('选择文件失败: $e')),
-        );
-      }
     }
   }
 
   // Submit form
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
-
-    // For local instances, validate Aria2 path
-    if (_type == InstanceType.local) {
-      await _validateAria2Path();
-      if (_isLocalAria2PathError) return;
-    }
 
     // Create or update instance object
     final instance = Aria2Instance(
@@ -123,7 +56,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
       host: _host,
       port: _port,
       secret: _secret,
-      aria2Path: _type == InstanceType.local ? _aria2Path : null,
+      aria2Path: null, // No aria2Path needed for remote or built-in instances
     );
 
     // If callback function is provided, use it
@@ -211,32 +144,31 @@ class _InstanceDialogState extends State<InstanceDialog> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Instance type
-                        SegmentedButton<InstanceType>(
-                          segments: const [
-                            ButtonSegment(
-                              value: InstanceType.local,
-                              label: Text('本地实例'),
-                              icon: Icon(Icons.computer),
-                            ),
-                            ButtonSegment(
-                              value: InstanceType.remote,
-                              label: Text('远程实例'),
-                              icon: Icon(Icons.cloud_outlined),
-                            ),
-                          ],
-                          selected: {_type},
-                          onSelectionChanged: (newSelection) {
-                            setState(() {
-                              _type = newSelection.first;
-                              // Reset some default values when switching types
-                              if (_type == InstanceType.local) {
-                                _host = 'localhost';
-                                _aria2Path = null;
-                              }
-                            });
-                          },
-                        ),
+                        // Instance type (fixed to remote for new instances)
+                        if (widget.instance == null) 
+                          Row(
+                            children: [
+                              Icon(Icons.cloud_outlined, color: colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text('远程实例', style: theme.textTheme.bodyLarge),
+                            ],
+                          )
+                        else if (widget.instance!.type == InstanceType.builtin)
+                          Row(
+                            children: [
+                              Icon(Icons.lock, color: colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text('内建实例', style: theme.textTheme.bodyLarge),
+                            ],
+                          )
+                        else
+                          Row(
+                            children: [
+                              Icon(Icons.cloud_outlined, color: colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text('远程实例', style: theme.textTheme.bodyLarge),
+                            ],
+                          ),
                         const SizedBox(height: 16),
 
                         // Protocol selection
@@ -356,85 +288,6 @@ class _InstanceDialogState extends State<InstanceDialog> {
                           autocorrect: false,
                         ),
                         const SizedBox(height: 16),
-
-                        // Aria2 path for local instance
-                        if (_type == InstanceType.local)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Aria2 可执行文件路径',
-                                style: theme.textTheme.labelLarge,
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      initialValue: _aria2Path,
-                                      decoration: InputDecoration(
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        filled: true,
-                                        fillColor: colorScheme.surfaceContainerHighest,
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: BorderSide(color: colorScheme.primary, width: 2),
-                                        ),
-                                        errorText: _isLocalAria2PathError
-                                            ? '请选择有效的Aria2可执行文件'
-                                            : null,
-                                        helperText: _aria2Path == null || _aria2Path!.isEmpty ? '请点击浏览选择aria2c.exe' : null,
-                                      ),
-                                      readOnly: true,
-                                      onTap: _selectAria2Path,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  FilledButton.icon(
-                                    onPressed: _selectAria2Path,
-                                    icon: const Icon(Icons.file_open),
-                                    label: const Text('浏览'),
-                                    style: FilledButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 12),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Card(
-                                elevation: 0,
-                                color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.info_outline, color: colorScheme.primary),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          '本地实例需要安装Aria2。请确保aria2c.exe可执行文件正确无误。',
-                                          style: TextStyle(
-                                            color: colorScheme.primary,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-                          ),
                       ],
                     ),
                   ),

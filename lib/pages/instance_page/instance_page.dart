@@ -261,20 +261,6 @@ class _InstancePageState extends State<InstancePage> {
   Future<void> _handleConnectInstance(Aria2Instance instance) async {
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     try {
-      // If it's a local instance, start local process first
-      if (instance.type == InstanceType.local) {
-        final startSuccess = await instanceManager.startLocalProcess(instance);
-        if (!startSuccess && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('启动本地aria2进程失败'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
-        }
-      }
-
       final connectSuccess = await instanceManager.connectInstance(instance);
       if (mounted) {
         if (connectSuccess) {

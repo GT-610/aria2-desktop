@@ -23,6 +23,25 @@ class InstanceManager extends ChangeNotifier with Loggable {
   Future<void> initialize() async {
     try {
       await _loadInstances();
+      
+      // Ensure built-in instance always exists
+      final hasBuiltinInstance = _instances.any((instance) => instance.id == 'builtin');
+      if (!hasBuiltinInstance) {
+        // Add built-in instance
+        _instances.insert(0, Aria2Instance(
+          id: 'builtin', // Fixed ID for built-in instance
+          name: '内建实例',
+          type: InstanceType.builtin,
+          protocol: 'http',
+          host: 'localhost',
+          port: 6800,
+          secret: '',
+          status: ConnectionStatus.disconnected,
+        ));
+        await _saveInstances();
+        logger.i('Added missing built-in instance');
+      }
+      
       // Ensure active instance doesn't trigger auto-connection during initialization
       // Explicitly set active instance status to disconnected
       if (_activeInstance != null) {
@@ -71,9 +90,9 @@ class InstanceManager extends ChangeNotifier with Loggable {
   Future<void> _createDefaultInstance() async {
     _instances = [
       Aria2Instance(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: '默认实例',
-        type: InstanceType.local,
+        id: 'builtin', // Fixed ID for built-in instance
+        name: '内建实例',
+        type: InstanceType.builtin,
         protocol: 'http',
         host: 'localhost',
         port: 6800,
@@ -83,7 +102,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     ];
     _activeInstance = null; // Don't set default active instance
     await _saveInstances();
-    logger.i('Default instance created');
+    logger.i('Built-in instance created');
   }
 
   /// Save instance data to file 
@@ -120,6 +139,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
   /// Add instance
   Future<void> addInstance(Aria2Instance instance) async {
     try {
+      // Only allow adding remote instances
+      if (instance.type != InstanceType.remote) {
+        throw Exception('只能添加远程实例');
+      }
+      
       // Ensure ID is unique
       if (_instances.any((i) => i.id == instance.id)) {
         instance = instance.copyWith(id: DateTime.now().millisecondsSinceEpoch.toString());
@@ -144,6 +168,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
   /// Update instance
   Future<void> updateInstance(Aria2Instance updatedInstance) async {
     try {
+      // Can't update built-in instance
+      if (updatedInstance.id == 'builtin') {
+        throw Exception('不能编辑内建实例');
+      }
+      
       final index = _instances.indexWhere((i) => i.id == updatedInstance.id);
       if (index != -1) {
         _instances[index] = updatedInstance;
@@ -168,6 +197,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
   /// Delete instance
   Future<void> deleteInstance(String instanceId) async {
+    // Can't delete built-in instance
+    if (instanceId == 'builtin') {
+      throw Exception('不能删除内建实例');
+    }
+    
     // Can't delete the last instance
     if (_instances.length <= 1) {
       throw Exception('Cannot delete the only instance');
