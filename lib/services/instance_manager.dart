@@ -1,7 +1,6 @@
 import 'dart:convert' show jsonDecode, jsonEncode, utf8;
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 import '../models/aria2_instance.dart';
 import 'aria2_rpc_client.dart';
 import '../utils/logging.dart';
@@ -20,6 +19,23 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
   List<Aria2Instance> get instances => _instances;
   Aria2Instance? get activeInstance => _activeInstance;
+
+  /// Get program data directory
+  Directory _getDataDirectory() {
+    // Get the executable path
+    String executablePath = Platform.resolvedExecutable;
+    Directory executableDir = Directory(executablePath).parent;
+    
+    // Data directory: data/config relative to executable
+    String dataDirPath = '${executableDir.path}/data';
+    Directory dataDir = Directory(dataDirPath);
+    if (!dataDir.existsSync()) {
+      logger.d('Creating data directory: $dataDirPath');
+      dataDir.createSync(recursive: true);
+    }
+    
+    return dataDir;
+  }
 
   /// Initialize instance manager
   Future<void> initialize() async {
@@ -59,8 +75,13 @@ class InstanceManager extends ChangeNotifier with Loggable {
   /// Load instance data
   Future<void> _loadInstances() async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/$_fileName';
+      final dataDir = _getDataDirectory();
+      final configDir = Directory('${dataDir.path}/config');
+      if (!configDir.existsSync()) {
+        logger.d('Creating config directory: ${configDir.path}');
+        configDir.createSync(recursive: true);
+      }
+      final filePath = '${configDir.path}/$_fileName';
       final file = File(filePath);
       
       logger.d('Loading instance data: reading from $filePath');
@@ -110,21 +131,19 @@ class InstanceManager extends ChangeNotifier with Loggable {
   /// Save instance data to file 
   Future<void> _saveInstances() async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/$_fileName';
+      final dataDir = _getDataDirectory();
+      final configDir = Directory('${dataDir.path}/config');
+      if (!configDir.existsSync()) {
+        logger.d('Creating config directory: ${configDir.path}');
+        await configDir.create(recursive: true);
+      }
+      final filePath = '${configDir.path}/$_fileName';
       final file = File(filePath);
       
       logger.d('Saving instance data: writing to $filePath');
       
       final jsonList = _instances.map((instance) => instance.toJson()).toList();
       final jsonString = jsonEncode(jsonList);
-      
-      // Ensure directory exists
-      final dir = Directory(directory.path);
-      if (!dir.existsSync()) {
-        logger.d('Creating directory: ${directory.path}');
-        await dir.create(recursive: true);
-      }
       
       await file.writeAsString(jsonString);
       logger.d('Instance data saved successfully');
@@ -399,8 +418,13 @@ class InstanceManager extends ChangeNotifier with Loggable {
       }
       
       // Add log file argument
-      final logDirectory = await getApplicationDocumentsDirectory();
-      final logFilePath = '${logDirectory.path}/aria2_${instance.id}_${DateTime.now().millisecondsSinceEpoch}.log';
+      final dataDir = _getDataDirectory();
+      final logDir = Directory('${dataDir.path}/log');
+      if (!logDir.existsSync()) {
+        logger.d('Creating log directory: ${logDir.path}');
+        logDir.createSync(recursive: true);
+      }
+      final logFilePath = '${logDir.path}/aria2_${instance.id}_${DateTime.now().millisecondsSinceEpoch}.log';
       args.add('--log-level=info');
       args.add('--log=$logFilePath');
       
