@@ -5,12 +5,14 @@ import 'package:path_provider/path_provider.dart';
 import '../models/aria2_instance.dart';
 import 'aria2_rpc_client.dart';
 import '../utils/logging.dart';
+import 'builtin_instance_service.dart';
 
 /// Unified instance management service class, combining the functionality of InstanceManager and NotifiableInstanceManager
 class InstanceManager extends ChangeNotifier with Loggable {
   List<Aria2Instance> _instances = [];
   Aria2Instance? _activeInstance;
   final String _fileName = 'aria2_instances.json';
+  final BuiltinInstanceService _builtinInstanceService = BuiltinInstanceService();
   
   InstanceManager() {
     initLogger();
@@ -226,6 +228,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
       _activeInstance?.localProcess?.kill();
     }
     
+    // Stop built-in instance process if it's currently active
+    if (_activeInstance?.type == InstanceType.builtin) {
+      await _builtinInstanceService.stopInstance();
+    }
+    
     _activeInstance = _instances.firstWhere((i) => i.id == instanceId);
     await _saveInstances();
     notifyListeners();
@@ -252,10 +259,30 @@ class InstanceManager extends ChangeNotifier with Loggable {
         await disconnectInstance();
       }
       
+      // If it's a built-in instance, start the process first
+      if (instance.type == InstanceType.builtin) {
+        logger.i('Connecting to built-in instance, starting Aria2 process...');
+        final isStarted = await _builtinInstanceService.startInstance();
+        if (!isStarted) {
+          logger.e('Failed to start built-in Aria2 instance');
+          updateInstanceInList(instance.id, ConnectionStatus.failed);
+          return false;
+        }
+        
+        // Give some time for the process to start
+        await Future.delayed(const Duration(seconds: 1));
+      }
+      
       // Test connection
       final canConnect = await checkConnection(instance);
       if (!canConnect) {
         logger.w('Connection test failed, cannot connect to instance: ${instance.name}');
+        
+        // If it's a built-in instance, stop the process if it was started
+        if (instance.type == InstanceType.builtin) {
+          await _builtinInstanceService.stopInstance();
+        }
+        
         updateInstanceInList(instance.id, ConnectionStatus.failed);
         return false;
       }
@@ -276,6 +303,12 @@ class InstanceManager extends ChangeNotifier with Loggable {
       return true;
     } catch (e, stackTrace) {
       logger.e('Failed to connect to instance', error: e, stackTrace: stackTrace);
+      
+      // If it's a built-in instance, stop the process if it was started
+      if (instance.type == InstanceType.builtin) {
+        await _builtinInstanceService.stopInstance();
+      }
+      
       // Update instance status to failed
       updateInstanceInList(instance.id, ConnectionStatus.failed);
       return false;
@@ -286,12 +319,19 @@ class InstanceManager extends ChangeNotifier with Loggable {
   Future<void> disconnectInstance() async {
     // First get current active instance ID for status update
     final activeInstanceId = _activeInstance?.id;
+    final activeInstanceType = _activeInstance?.type;
     
     // For local instances, stop the process
-    if (_activeInstance?.type == InstanceType.local && 
+    if (activeInstanceType == InstanceType.local && 
         _activeInstance?.localProcess != null) {
       _activeInstance?.localProcess?.kill();
       _activeInstance?.localProcess = null;
+    }
+    
+    // For built-in instances, stop the Aria2 process
+    if (activeInstanceType == InstanceType.builtin) {
+      logger.i('Disconnecting built-in instance, stopping Aria2 process...');
+      await _builtinInstanceService.stopInstance();
     }
     
     // Update active instance status to disconnected
