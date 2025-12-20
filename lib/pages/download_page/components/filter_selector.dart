@@ -226,7 +226,7 @@ class FilterSelector extends StatelessWidget {
       case FilterOption.stopped:
         return '已停止 / 已完成';
       case FilterOption.local:
-        return '本地';
+        return '内建';
       case FilterOption.remote:
         return '远程';
       case FilterOption.instance:

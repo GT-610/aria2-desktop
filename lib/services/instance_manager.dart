@@ -1,45 +1,92 @@
-import 'dart:convert' show jsonDecode, jsonEncode, utf8;
+import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/scheduler.dart';
 import '../models/aria2_instance.dart';
 import 'aria2_rpc_client.dart';
 import '../utils/logging.dart';
+import 'builtin_instance_service.dart';
 
 /// Unified instance management service class, combining the functionality of InstanceManager and NotifiableInstanceManager
 class InstanceManager extends ChangeNotifier with Loggable {
   List<Aria2Instance> _instances = [];
-  Aria2Instance? _activeInstance;
   final String _fileName = 'aria2_instances.json';
+  final BuiltinInstanceService _builtinInstanceService = BuiltinInstanceService();
   
   InstanceManager() {
     initLogger();
   }
 
   List<Aria2Instance> get instances => _instances;
-  Aria2Instance? get activeInstance => _activeInstance;
+  
+  /// Get active instance (deprecated, kept for compatibility)
+  Aria2Instance? get activeInstance => null;
+
+  /// Get program data directory
+  Directory _getDataDirectory() {
+    // Get the executable path
+    String executablePath = Platform.resolvedExecutable;
+    Directory executableDir = Directory(executablePath).parent;
+    
+    // Data directory: data/config relative to executable
+    String dataDirPath = '${executableDir.path}/data';
+    Directory dataDir = Directory(dataDirPath);
+    if (!dataDir.existsSync()) {
+      logger.d('Creating data directory: $dataDirPath');
+      dataDir.createSync(recursive: true);
+    }
+    
+    return dataDir;
+  }
 
   /// Initialize instance manager
   Future<void> initialize() async {
     try {
       await _loadInstances();
-      // Ensure active instance doesn't trigger auto-connection during initialization
-      // Explicitly set active instance status to disconnected
-      if (_activeInstance != null) {
-        updateInstanceInList(_activeInstance!.id, ConnectionStatus.disconnected);
+      
+      // Ensure built-in instance always exists
+      final hasBuiltinInstance = _instances.any((instance) => instance.id == 'builtin');
+      if (!hasBuiltinInstance) {
+        // Add built-in instance
+        _instances.insert(0, Aria2Instance(
+          id: 'builtin', // Fixed ID for built-in instance
+          name: '内建实例',
+          type: InstanceType.builtin,
+          protocol: 'http',
+          host: '127.0.0.1',
+          port: 16800,
+          secret: '',
+          status: ConnectionStatus.disconnected,
+        ));
+        await _saveInstances();
+        logger.i('Added missing built-in instance');
       }
+      
+      // Automatically connect to built-in instance on startup
+      final builtinInstance = _instances.firstWhere((instance) => instance.id == 'builtin');
+      await connectInstance(builtinInstance);
+      
       logger.i('Instance manager initialization completed, loaded ${_instances.length} instances');
+
     } catch (e, stackTrace) {
       logger.e('Failed to initialize instance manager', error: e, stackTrace: stackTrace);
     }
-    notifyListeners();
+    // Schedule notifyListeners to run after the current frame is built
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   /// Load instance data
   Future<void> _loadInstances() async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/$_fileName';
+      final dataDir = _getDataDirectory();
+      final configDir = Directory('${dataDir.path}/config');
+      if (!configDir.existsSync()) {
+        logger.d('Creating config directory: ${configDir.path}');
+        configDir.createSync(recursive: true);
+      }
+      final filePath = '${configDir.path}/$_fileName';
       final file = File(filePath);
       
       logger.d('Loading instance data: reading from $filePath');
@@ -54,9 +101,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
             .toList();
         
         logger.i('Successfully read ${_instances.length} instances');
-        
-        // No longer set active instance, only set when user explicitly connects
-        _activeInstance = null;
       } else {
         logger.d('Instance file does not exist, creating default instance');
         await _createDefaultInstance();
@@ -71,39 +115,36 @@ class InstanceManager extends ChangeNotifier with Loggable {
   Future<void> _createDefaultInstance() async {
     _instances = [
       Aria2Instance(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: '默认实例',
-        type: InstanceType.local,
+        id: 'builtin', // Fixed ID for built-in instance
+        name: '内建实例',
+        type: InstanceType.builtin,
         protocol: 'http',
-        host: 'localhost',
-        port: 6800,
+        host: '127.0.0.1',
+        port: 16800,
         secret: '',
         status: ConnectionStatus.disconnected, // Ensure default instance is in disconnected state
       ),
     ];
-    _activeInstance = null; // Don't set default active instance
     await _saveInstances();
-    logger.i('Default instance created');
+    logger.i('Built-in instance created');
   }
 
   /// Save instance data to file 
   Future<void> _saveInstances() async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/$_fileName';
+      final dataDir = _getDataDirectory();
+      final configDir = Directory('${dataDir.path}/config');
+      if (!configDir.existsSync()) {
+        logger.d('Creating config directory: ${configDir.path}');
+        await configDir.create(recursive: true);
+      }
+      final filePath = '${configDir.path}/$_fileName';
       final file = File(filePath);
       
       logger.d('Saving instance data: writing to $filePath');
       
       final jsonList = _instances.map((instance) => instance.toJson()).toList();
       final jsonString = jsonEncode(jsonList);
-      
-      // Ensure directory exists
-      final dir = Directory(directory.path);
-      if (!dir.existsSync()) {
-        logger.d('Creating directory: ${directory.path}');
-        await dir.create(recursive: true);
-      }
       
       await file.writeAsString(jsonString);
       logger.d('Instance data saved successfully');
@@ -120,6 +161,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
   /// Add instance
   Future<void> addInstance(Aria2Instance instance) async {
     try {
+      // Only allow adding remote instances
+      if (instance.type != InstanceType.remote) {
+        throw Exception('只能添加远程实例');
+      }
+      
       // Ensure ID is unique
       if (_instances.any((i) => i.id == instance.id)) {
         instance = instance.copyWith(id: DateTime.now().millisecondsSinceEpoch.toString());
@@ -144,14 +190,14 @@ class InstanceManager extends ChangeNotifier with Loggable {
   /// Update instance
   Future<void> updateInstance(Aria2Instance updatedInstance) async {
     try {
+      // Can't update built-in instance
+      if (updatedInstance.id == 'builtin') {
+        throw Exception('不能编辑内建实例');
+      }
+      
       final index = _instances.indexWhere((i) => i.id == updatedInstance.id);
       if (index != -1) {
         _instances[index] = updatedInstance;
-        
-        // Update active instance reference if it's being updated
-        if (_activeInstance?.id == updatedInstance.id) {
-          _activeInstance = updatedInstance;
-        }
         
         await _saveInstances();
         logger.i('Instance updated successfully: ${updatedInstance.name}');
@@ -168,15 +214,14 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
   /// Delete instance
   Future<void> deleteInstance(String instanceId) async {
+    // Can't delete built-in instance
+    if (instanceId == 'builtin') {
+      throw Exception('不能删除内建实例');
+    }
+    
     // Can't delete the last instance
     if (_instances.length <= 1) {
       throw Exception('Cannot delete the only instance');
-    }
-    
-    // If the active instance is being deleted, switch to another instance
-    if (_activeInstance?.id == instanceId) {
-      final newActive = _instances.firstWhere((i) => i.id != instanceId);
-      await setActiveInstance(newActive.id);
     }
     
     _instances.removeWhere((i) => i.id == instanceId);
@@ -184,17 +229,10 @@ class InstanceManager extends ChangeNotifier with Loggable {
     notifyListeners();
   }
 
-  /// Set active instance
+  /// Set active instance (deprecated, kept for compatibility)
   Future<void> setActiveInstance(String instanceId) async {
-    // Stop local process of current active instance if it's local
-    if (_activeInstance?.type == InstanceType.local && 
-        _activeInstance?.localProcess != null) {
-      _activeInstance?.localProcess?.kill();
-    }
-    
-    _activeInstance = _instances.firstWhere((i) => i.id == instanceId);
-    await _saveInstances();
-    notifyListeners();
+    // No longer manage active instances, kept for compatibility
+    await Future.delayed(Duration.zero);
   }
 
   /// Check instance connection status
@@ -213,27 +251,50 @@ class InstanceManager extends ChangeNotifier with Loggable {
   /// Connect to instance
   Future<bool> connectInstance(Aria2Instance instance) async {
     try {
-      // First disconnect current active instance if any
-      if (_activeInstance != null) {
-        await disconnectInstance();
+      // If it's a built-in instance, start the process first
+      if (instance.type == InstanceType.builtin) {
+        logger.i('Connecting to built-in instance, starting Aria2 process...');
+        final isStarted = await _builtinInstanceService.startInstance();
+        if (!isStarted) {
+          logger.e('Failed to start built-in Aria2 instance');
+          updateInstanceInList(instance.id, ConnectionStatus.failed);
+          return false;
+        }
+        
+        // Give some time for the process to start
+        await Future.delayed(const Duration(seconds: 1));
       }
       
       // Test connection
       final canConnect = await checkConnection(instance);
       if (!canConnect) {
         logger.w('Connection test failed, cannot connect to instance: ${instance.name}');
+        
+        // If it's a built-in instance, stop the process if it was started
+        if (instance.type == InstanceType.builtin) {
+          await _builtinInstanceService.stopInstance();
+        }
+        
         updateInstanceInList(instance.id, ConnectionStatus.failed);
         return false;
       }
       
-      // Update instance status to connected and set as active instance
-      final connectedInstance = instance.copyWith(status: ConnectionStatus.connected);
-      _activeInstance = connectedInstance;
+      // Create RPC client to get version information
+      final client = Aria2RpcClient(instance);
+      String? version;
+      try {
+        version = await client.getVersion();
+        logger.i('Aria2 version: $version');
+      } catch (e) {
+        logger.w('Failed to get Aria2 version: $e');
+      } finally {
+        client.close();
+      }
       
       // Update status in instance list
-      updateInstanceInList(instance.id, ConnectionStatus.connected);
+      updateInstanceInList(instance.id, ConnectionStatus.connected, version: version);
       
-      logger.d('Instance connection status set - Active instance: ${_activeInstance?.name}, Status: ${_activeInstance?.status}');
+      logger.d('Instance connection status set - Instance: ${instance.name}, Status: ${ConnectionStatus.connected}');
       
       await _saveInstances();
       logger.i('Successfully connected to instance: ${instance.name}');
@@ -242,31 +303,29 @@ class InstanceManager extends ChangeNotifier with Loggable {
       return true;
     } catch (e, stackTrace) {
       logger.e('Failed to connect to instance', error: e, stackTrace: stackTrace);
+      
+      // If it's a built-in instance, stop the process if it was started
+      if (instance.type == InstanceType.builtin) {
+        await _builtinInstanceService.stopInstance();
+      }
+      
       // Update instance status to failed
       updateInstanceInList(instance.id, ConnectionStatus.failed);
       return false;
     }
   }
 
-  /// Disconnect current instance
-  Future<void> disconnectInstance() async {
-    // First get current active instance ID for status update
-    final activeInstanceId = _activeInstance?.id;
-    
-    // For local instances, stop the process
-    if (_activeInstance?.type == InstanceType.local && 
-        _activeInstance?.localProcess != null) {
-      _activeInstance?.localProcess?.kill();
-      _activeInstance?.localProcess = null;
+  /// Disconnect instance
+  Future<void> disconnectInstance(Aria2Instance instance) async {
+    // For built-in instances, stop the Aria2 process
+    if (instance.type == InstanceType.builtin) {
+      logger.i('Disconnecting built-in instance, stopping Aria2 process...');
+      await _builtinInstanceService.stopInstance();
     }
     
-    // Update active instance status to disconnected
-    if (activeInstanceId != null) {
-      updateInstanceInList(activeInstanceId, ConnectionStatus.disconnected);
-    }
+    // Update instance status to disconnected
+    updateInstanceInList(instance.id, ConnectionStatus.disconnected);
     
-    // Clear active instance
-    _activeInstance = null;
     notifyListeners();
   }
 
@@ -275,138 +334,18 @@ class InstanceManager extends ChangeNotifier with Loggable {
     return await checkConnection(instance);
   }
 
-  /// Start local aria2 process
-  Future<bool> startLocalProcess(Aria2Instance instance) async {
-    if (instance.type != InstanceType.local || instance.aria2Path == null) {
-      logger.w('Attempting to start local process for non-local instance or instance with no path set');
-      return false;
-    }
-    
-    try {
-      logger.d('Starting local process for instance: ${instance.name}');
-      
-      // Build the command with comprehensive arguments
-      final List<String> args = [
-        '--enable-rpc',
-        '--rpc-listen-all=true',
-        '--rpc-allow-origin-all',
-        '--rpc-listen-port=${instance.port}',
-        '--rpc-save-upload-metadata=true',
-        '--rpc-max-request-size=10M',
-        '--continue=true',
-        '--max-concurrent-downloads=5',
-        '--max-connection-per-server=16',
-        '--min-split-size=10M',
-        '--split=10',
-        '--max-overall-download-limit=0',
-        '--max-overall-upload-limit=0',
-        '--max-download-limit=0',
-        '--max-upload-limit=0',
-        '--file-allocation=prealloc',
-        '--disk-cache=64M',
-        '--allow-overwrite=true',
-        '--allow-piece-length-change=true',
-        '--auto-file-renaming=true',
-        '--check-integrity=true',
-        '--remote-time=true',
-        '--follow-torrent=mem',
-        '--seed-time=0',
-        '--bt-enable-lpd=true',
-        '--bt-max-peers=100',
-        '--bt-require-crypto=true',
-        '--bt-save-metadata=true',
-        '--bt-seed-unverified=true',
-        '--listen-port=6881-6999',
-        '--dht-listen-port=6881-6999',
-      ];
-      
-      if (instance.secret.isNotEmpty) {
-        args.add('--rpc-secret=${instance.secret}');
-      }
-      
-      // Add log file argument
-      final logDirectory = await getApplicationDocumentsDirectory();
-      final logFilePath = '${logDirectory.path}/aria2_${instance.id}_${DateTime.now().millisecondsSinceEpoch}.log';
-      args.add('--log-level=info');
-      args.add('--log=$logFilePath');
-      
-      // Start the process
-      final process = await Process.start(
-        instance.aria2Path!,
-        args,
-        runInShell: true,
-        mode: ProcessStartMode.detachedWithStdio,
-      );
-      
-      // Monitor process exit
-      process.exitCode.then((exitCode) {
-        logger.w('Local Aria2 process exited with code: $exitCode, instance: ${instance.name}');
-        // If the process exited unexpectedly, update instance status
-        if (exitCode != 0) {
-          final currentInstance = getInstanceById(instance.id);
-          if (currentInstance != null && currentInstance.status == ConnectionStatus.connected) {
-            updateInstanceInList(instance.id, ConnectionStatus.failed);
-          }
-        }
-      });
-      
-      // Monitor stdout and stderr
-      _monitorProcessOutput(process, instance.name);
-      
-      // Update instance with process reference
-      final updatedInstance = instance.copyWith(localProcess: process);
-      await updateInstance(updatedInstance);
-      
-      logger.i('Local process started successfully: ${instance.name}, PID: ${process.pid}');
-      return true;
-    } catch (e, stackTrace) {
-      logger.e('Failed to start local process', error: e, stackTrace: stackTrace);
-      return false;
-    }
-  }
-  
-  /// Monitor process output
-  void _monitorProcessOutput(Process process, String instanceName) {
-    // Monitor stdout
-    process.stdout.transform(utf8.decoder).listen((data) {
-      logger.d('Aria2 [$instanceName] stdout: $data');
-    });
-    
-    // Monitor stderr
-    process.stderr.transform(utf8.decoder).listen((data) {
-      logger.e('Aria2 [$instanceName] stderr: $data');
-    });
-  }
-
-  /// Stop local aria2 process
-  Future<bool> stopLocalProcess(Aria2Instance instance) async {
-    if (instance.type != InstanceType.local || instance.localProcess == null) {
-      logger.w('Attempting to stop non-local instance or instance with no process');
-      return false;
-    }
-    
-    try {
-      // Kill the process
-      instance.localProcess?.kill();
-      
-      // Update instance
-      final updatedInstance = instance.copyWith(localProcess: null);
-      await updateInstance(updatedInstance);
-      
-      logger.i('Local process stopped successfully: ${instance.name}');
-      return true;
-    } catch (e, stackTrace) {
-      logger.e('Failed to stop local process', error: e, stackTrace: stackTrace);
-      return false;
-    }
-  }
-
   /// Update instance status in instance list
-  void updateInstanceInList(String instanceId, ConnectionStatus status) {
+  void updateInstanceInList(String instanceId, ConnectionStatus status, {String? version}) {
     final index = _instances.indexWhere((i) => i.id == instanceId);
     if (index != -1) {
-      _instances[index] = _instances[index].copyWith(status: status);
-      notifyListeners();
+      _instances[index] = _instances[index].copyWith(
+        status: status,
+        version: version,
+      );
+      // Schedule notifyListeners to run after the current frame is built
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
     }
   }
 
@@ -425,8 +364,8 @@ class InstanceManager extends ChangeNotifier with Loggable {
     return _instances;
   }
 
-  /// Get active instance (compatibility method)
+  /// Get active instance (deprecated, kept for compatibility)
   Aria2Instance? getActiveInstance() {
-    return _activeInstance;
+    return null; // No longer manage active instances
   }
 }

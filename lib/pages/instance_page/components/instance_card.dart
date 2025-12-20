@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../models/aria2_instance.dart';
 import '../../../../utils/logging.dart';
+import '../../builtin_instance_settings_page.dart';
 
 class InstanceCard extends StatefulWidget with Loggable {
   final Aria2Instance instance;
-  final bool isActive;
   final bool isSelected;
   final bool isChecking;
   final bool isConnectionInProgress;
@@ -17,7 +17,6 @@ class InstanceCard extends StatefulWidget with Loggable {
   InstanceCard({
     super.key,
     required this.instance,
-    required this.isActive,
     required this.isSelected,
     required this.isChecking,
     required this.isConnectionInProgress,
@@ -121,6 +120,32 @@ class _InstanceCardState extends State<InstanceCard> {
   Widget _getStatusActionButton(ConnectionStatus status, bool isConnectionInProgress, BuildContext context, VoidCallback onPressed) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    // For builtin instance, only show connect button when disconnected or failed
+    if (widget.instance.type == InstanceType.builtin) {
+      switch (status) {
+        case ConnectionStatus.disconnected:
+          return FilledButton(
+            onPressed: onPressed,
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.primary,
+            ),
+            child: const Text('连接'),
+          );
+        case ConnectionStatus.failed:
+          return FilledButton(
+            onPressed: onPressed,
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.error,
+            ),
+            child: const Text('重新连接'),
+          );
+        // Hide button for connecting and connected states
+        default:
+          return const SizedBox.shrink();
+      }
+    }
+
+    // For non-builtin instances, show normal action buttons
     switch (status) {
       case ConnectionStatus.disconnected:
         return FilledButton(
@@ -228,58 +253,40 @@ class _InstanceCardState extends State<InstanceCard> {
                       const SizedBox(width: 8),
                       Chip(
                         label: Text(
-                          widget.instance.type == InstanceType.local ? '本地' : '远程',
+                          widget.instance.type == InstanceType.builtin ? '内建' : '远程',
                           style: const TextStyle(fontSize: 12),
                         ),
-                        backgroundColor: colorScheme.surfaceContainerHighest,
+                        backgroundColor: widget.instance.type == InstanceType.builtin ? colorScheme.primary.withValues(alpha: 0.2) : colorScheme.surfaceContainerHighest,
+                        labelStyle: TextStyle(
+                          color: widget.instance.type == InstanceType.builtin ? colorScheme.primary : null,
+                          fontSize: 12,
+                        ),
                         padding: const EdgeInsets.all(0),
                         visualDensity: VisualDensity.compact,
                       ),
                     ],
                   ),
                   // Status label - clearly display connection status
-                  Row(
-                    children: [
-                      _getStatusChip(widget.instance.status, colorScheme),
-                      if (widget.isActive) ...[
-                        const SizedBox(width: 8),
-                        Chip(
-                          label: const Text('当前活跃'),
-                          labelStyle: TextStyle(
-                            color: colorScheme.onPrimary,
-                            fontSize: 12,
-                          ),
-                          backgroundColor: colorScheme.primary,
-                          padding: const EdgeInsets.all(0),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ],
-                    ],
-                  ),
+                  _getStatusChip(widget.instance.status, colorScheme),
+
                 ],
               ),
               const SizedBox(height: 8),
               // Instance details
-              Text(
-                '${widget.instance.protocol}://${widget.instance.host}:${widget.instance.port}',
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              if (widget.instance.type == InstanceType.local && widget.instance.aria2Path != null) ...[
-                const SizedBox(height: 4),
+              if (widget.instance.type != InstanceType.builtin) ...[
                 Text(
-                  '路径: ${widget.instance.aria2Path}',
-                  style: theme.textTheme.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  '${widget.instance.protocol}://${widget.instance.host}:${widget.instance.port}',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
-              // Version information
-              if (widget.instance.version != null && widget.instance.version!.isNotEmpty) ...[
-                const SizedBox(height: 4),
+              // Version information for builtin instance
+              if (widget.instance.type == InstanceType.builtin) ...[
                 Text(
-                  '版本: ${widget.instance.version}',
+                  widget.instance.version != null && widget.instance.version!.isNotEmpty
+                      ? 'Aria2 版本: ${widget.instance.version}'
+                      : '获取版本中...',
                   style: TextStyle(
                     color: colorScheme.tertiary,
                     fontSize: 12,
@@ -316,19 +323,37 @@ class _InstanceCardState extends State<InstanceCard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // 编辑按钮
-                  TextButton(
-                    onPressed: () => widget.onEdit(widget.instance),
-                    child: const Text('编辑'),
-                  ),
-                  // 删除按钮
-                  TextButton(
-                    onPressed: () => widget.onDelete(widget.instance),
-                    child: Text(
-                      '删除',
-                      style: TextStyle(color: colorScheme.error),
+                  // Settings button - only for builtin instance
+                  if (widget.instance.type == InstanceType.builtin) ...[
+                    TextButton(
+                      onPressed: () {
+                        // Navigate to builtin instance settings page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const BuiltinInstanceSettingsPage(),
+                          ),
+                        );
+                      },
+                      child: const Text('设置'),
                     ),
-                  ),
+                  ],
+                  // 编辑和删除按钮 - 仅对非内建实例显示
+                  if (widget.instance.type != InstanceType.builtin) ...[
+                    // 编辑按钮
+                    TextButton(
+                      onPressed: () => widget.onEdit(widget.instance),
+                      child: const Text('编辑'),
+                    ),
+                    // 删除按钮
+                    TextButton(
+                      onPressed: () => widget.onDelete(widget.instance),
+                      child: Text(
+                        '删除',
+                        style: TextStyle(color: colorScheme.error),
+                      ),
+                    ),
+                  ],
                   // 状态操作按钮 - 根据不同状态显示不同按钮
                   _getStatusActionButton(widget.instance.status, widget.isConnectionInProgress, context, () => widget.onToggleConnection(widget.instance)),
                 ],

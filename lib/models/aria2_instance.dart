@@ -1,9 +1,7 @@
-import 'dart:io';
-
 /// Instance type enum
 enum InstanceType {
-  local,
-  remote
+  remote,
+  builtin
 }
 
 /// Connection status enum
@@ -23,11 +21,9 @@ class Aria2Instance {
   String host;
   int port;
   String secret;
-  String? aria2Path;
   String? version;
   String? errorMessage;
   ConnectionStatus status;
-  Process? localProcess;
 
   Aria2Instance({
     required this.id,
@@ -37,11 +33,9 @@ class Aria2Instance {
     required this.host,
     required this.port,
     this.secret = '',
-    this.aria2Path,
     this.version,
     this.errorMessage,
     this.status = ConnectionStatus.disconnected,
-    this.localProcess,
   });
 
   // Create instance from JSON
@@ -54,7 +48,6 @@ class Aria2Instance {
       host: json['host'],
       port: json['port'],
       secret: json['secret'] ?? '',
-      aria2Path: json['aria2Path'],
       version: json['version'],
       errorMessage: json['errorMessage'],
       status: json.containsKey('status') ? ConnectionStatus.values.byName(json['status']) : ConnectionStatus.disconnected,
@@ -71,7 +64,6 @@ class Aria2Instance {
       'host': host,
       'port': port,
       'secret': secret,
-      'aria2Path': aria2Path,
       'version': version,
       'errorMessage': errorMessage,
       'status': status.name,
@@ -92,11 +84,9 @@ class Aria2Instance {
     String? host,
     int? port,
     String? secret,
-    String? aria2Path,
     String? version,
     String? errorMessage,
     ConnectionStatus? status,
-    Process? localProcess,
   }) {
     return Aria2Instance(
       id: id ?? this.id,
@@ -106,11 +96,9 @@ class Aria2Instance {
       host: host ?? this.host,
       port: port ?? this.port,
       secret: secret ?? this.secret,
-      aria2Path: aria2Path ?? this.aria2Path,
       version: version ?? this.version,
       errorMessage: errorMessage ?? this.errorMessage,
       status: status ?? this.status,
-      localProcess: localProcess ?? this.localProcess,
     );
   }
 }
