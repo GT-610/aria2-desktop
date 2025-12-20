@@ -344,6 +344,11 @@ class Settings extends ChangeNotifier with Loggable {
     }
   }
   
+  /// Public method to save all settings
+  Future<void> saveAllSettings() async {
+    await _saveAllSettings();
+  }
+  
   // Auto-run on system startup setting
   Future<void> setAutoStart(bool value) async {
     _autoStart = value;
