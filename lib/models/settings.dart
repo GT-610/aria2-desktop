@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../utils/logging/log_extensions.dart';
 import 'dart:convert' show jsonDecode, jsonEncode;
 
@@ -126,7 +127,10 @@ class Settings extends ChangeNotifier with Loggable {
         _applyDefaultSettings();
       }
       
-      notifyListeners();
+      // Schedule notifyListeners to run after the current frame is built
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
     } catch (e) {
       logger.e('Failed to load settings', error: e);
       // Apply default settings
@@ -144,7 +148,10 @@ class Settings extends ChangeNotifier with Loggable {
     _customColorCode = null;
     _logLevel = LogLevel.info;
     _saveLogsToFile = true;
-    notifyListeners();
+    // Schedule notifyListeners to run after the current frame is built
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
   
   // Save all settings to JSON file
@@ -157,7 +164,7 @@ class Settings extends ChangeNotifier with Loggable {
         'autoStart': _autoStart,
         'minimizeToTray': _minimizeToTray,
         'themeMode': _themeMode.name,
-        'primaryColor': _primaryColor.value.toString(),
+        'primaryColor': _primaryColor.toARGB32().toString(),
         'customColorCode': _customColorCode,
         'logLevel': _logLevel.name,
         'saveLogsToFile': _saveLogsToFile,
@@ -196,7 +203,7 @@ class Settings extends ChangeNotifier with Loggable {
   // Theme color setting
   Future<void> setPrimaryColor(Color color, {bool isCustom = false}) async {
     _primaryColor = color;
-    _customColorCode = isCustom ? color.value.toString() : null;
+    _customColorCode = isCustom ? color.toARGB32().toString() : null;
     notifyListeners();
     await _saveAllSettings();
     

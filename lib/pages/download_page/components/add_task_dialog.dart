@@ -121,7 +121,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
           widget.onAddTask(taskType, uri, downloadDir, fileContent);
           
           // Close dialog
-          Navigator.pop(context);
+          if (mounted) {
+            Navigator.pop(this.context);
+          }
         }
 
         // Use DefaultTabController to simplify TabController management

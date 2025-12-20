@@ -56,7 +56,6 @@ class _InstanceDialogState extends State<InstanceDialog> {
       host: _host,
       port: _port,
       secret: _secret,
-      aria2Path: null, // No aria2Path needed for remote or built-in instances
     );
 
     // If callback function is provided, use it

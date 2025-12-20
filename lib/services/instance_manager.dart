@@ -1,6 +1,7 @@
-import 'dart:convert' show jsonDecode, jsonEncode, utf8;
+import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import '../models/aria2_instance.dart';
 import 'aria2_rpc_client.dart';
 import '../utils/logging.dart';
@@ -69,7 +70,10 @@ class InstanceManager extends ChangeNotifier with Loggable {
     } catch (e, stackTrace) {
       logger.e('Failed to initialize instance manager', error: e, stackTrace: stackTrace);
     }
-    notifyListeners();
+    // Schedule notifyListeners to run after the current frame is built
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   /// Load instance data
@@ -241,12 +245,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
   /// Set active instance
   Future<void> setActiveInstance(String instanceId) async {
-    // Stop local process of current active instance if it's local
-    if (_activeInstance?.type == InstanceType.local && 
-        _activeInstance?.localProcess != null) {
-      _activeInstance?.localProcess?.kill();
-    }
-    
     // Stop built-in instance process if it's currently active
     if (_activeInstance?.type == InstanceType.builtin) {
       await _builtinInstanceService.stopInstance();
@@ -340,13 +338,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
     final activeInstanceId = _activeInstance?.id;
     final activeInstanceType = _activeInstance?.type;
     
-    // For local instances, stop the process
-    if (activeInstanceType == InstanceType.local && 
-        _activeInstance?.localProcess != null) {
-      _activeInstance?.localProcess?.kill();
-      _activeInstance?.localProcess = null;
-    }
-    
     // For built-in instances, stop the Aria2 process
     if (activeInstanceType == InstanceType.builtin) {
       logger.i('Disconnecting built-in instance, stopping Aria2 process...');
@@ -368,143 +359,15 @@ class InstanceManager extends ChangeNotifier with Loggable {
     return await checkConnection(instance);
   }
 
-  /// Start local aria2 process
-  Future<bool> startLocalProcess(Aria2Instance instance) async {
-    if (instance.type != InstanceType.local || instance.aria2Path == null) {
-      logger.w('Attempting to start local process for non-local instance or instance with no path set');
-      return false;
-    }
-    
-    try {
-      logger.d('Starting local process for instance: ${instance.name}');
-      
-      // Build the command with comprehensive arguments
-      final List<String> args = [
-        '--enable-rpc',
-        '--rpc-listen-all=true',
-        '--rpc-allow-origin-all',
-        '--rpc-listen-port=${instance.port}',
-        '--rpc-save-upload-metadata=true',
-        '--rpc-max-request-size=10M',
-        '--continue=true',
-        '--max-concurrent-downloads=5',
-        '--max-connection-per-server=16',
-        '--min-split-size=10M',
-        '--split=10',
-        '--max-overall-download-limit=0',
-        '--max-overall-upload-limit=0',
-        '--max-download-limit=0',
-        '--max-upload-limit=0',
-        '--file-allocation=prealloc',
-        '--disk-cache=64M',
-        '--allow-overwrite=true',
-        '--allow-piece-length-change=true',
-        '--auto-file-renaming=true',
-        '--check-integrity=true',
-        '--remote-time=true',
-        '--follow-torrent=mem',
-        '--seed-time=0',
-        '--bt-enable-lpd=true',
-        '--bt-max-peers=100',
-        '--bt-require-crypto=true',
-        '--bt-save-metadata=true',
-        '--bt-seed-unverified=true',
-        '--listen-port=6881-6999',
-        '--dht-listen-port=6881-6999',
-      ];
-      
-      if (instance.secret.isNotEmpty) {
-        args.add('--rpc-secret=${instance.secret}');
-      }
-      
-      // Add log file argument
-      final dataDir = _getDataDirectory();
-      final logDir = Directory('${dataDir.path}/log');
-      if (!logDir.existsSync()) {
-        logger.d('Creating log directory: ${logDir.path}');
-        logDir.createSync(recursive: true);
-      }
-      final logFilePath = '${logDir.path}/aria2_${instance.id}_${DateTime.now().millisecondsSinceEpoch}.log';
-      args.add('--log-level=info');
-      args.add('--log=$logFilePath');
-      
-      // Start the process
-      final process = await Process.start(
-        instance.aria2Path!,
-        args,
-        runInShell: false,
-        mode: ProcessStartMode.normal,
-      );
-      
-      // Monitor process exit
-      process.exitCode.then((exitCode) {
-        logger.w('Local Aria2 process exited with code: $exitCode, instance: ${instance.name}');
-        // If the process exited unexpectedly, update instance status
-        if (exitCode != 0) {
-          final currentInstance = getInstanceById(instance.id);
-          if (currentInstance != null && currentInstance.status == ConnectionStatus.connected) {
-            updateInstanceInList(instance.id, ConnectionStatus.failed);
-          }
-        }
-      });
-      
-      // Monitor stdout and stderr
-      _monitorProcessOutput(process, instance.name);
-      
-      // Update instance with process reference
-      final updatedInstance = instance.copyWith(localProcess: process);
-      await updateInstance(updatedInstance);
-      
-      logger.i('Local process started successfully: ${instance.name}, PID: ${process.pid}');
-      return true;
-    } catch (e, stackTrace) {
-      logger.e('Failed to start local process', error: e, stackTrace: stackTrace);
-      return false;
-    }
-  }
-  
-  /// Monitor process output
-  void _monitorProcessOutput(Process process, String instanceName) {
-    // Monitor stdout
-    process.stdout.transform(utf8.decoder).listen((data) {
-      logger.d('Aria2 [$instanceName] stdout: $data');
-    });
-    
-    // Monitor stderr
-    process.stderr.transform(utf8.decoder).listen((data) {
-      logger.e('Aria2 [$instanceName] stderr: $data');
-    });
-  }
-
-  /// Stop local aria2 process
-  Future<bool> stopLocalProcess(Aria2Instance instance) async {
-    if (instance.type != InstanceType.local || instance.localProcess == null) {
-      logger.w('Attempting to stop non-local instance or instance with no process');
-      return false;
-    }
-    
-    try {
-      // Kill the process
-      instance.localProcess?.kill();
-      
-      // Update instance
-      final updatedInstance = instance.copyWith(localProcess: null);
-      await updateInstance(updatedInstance);
-      
-      logger.i('Local process stopped successfully: ${instance.name}');
-      return true;
-    } catch (e, stackTrace) {
-      logger.e('Failed to stop local process', error: e, stackTrace: stackTrace);
-      return false;
-    }
-  }
-
   /// Update instance status in instance list
   void updateInstanceInList(String instanceId, ConnectionStatus status) {
     final index = _instances.indexWhere((i) => i.id == instanceId);
     if (index != -1) {
       _instances[index] = _instances[index].copyWith(status: status);
-      notifyListeners();
+      // Schedule notifyListeners to run after the current frame is built
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
     }
   }
 

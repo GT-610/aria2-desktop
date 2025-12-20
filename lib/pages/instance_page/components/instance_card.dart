@@ -228,7 +228,7 @@ class _InstanceCardState extends State<InstanceCard> {
                       const SizedBox(width: 8),
                       Chip(
                         label: Text(
-                          widget.instance.type == InstanceType.builtin ? '内建' : widget.instance.type == InstanceType.local ? '本地' : '远程',
+                          widget.instance.type == InstanceType.builtin ? '内建' : '远程',
                           style: const TextStyle(fontSize: 12),
                         ),
                         backgroundColor: widget.instance.type == InstanceType.builtin ? colorScheme.primary.withValues(alpha: 0.2) : colorScheme.surfaceContainerHighest,
@@ -270,15 +270,6 @@ class _InstanceCardState extends State<InstanceCard> {
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              if (widget.instance.type == InstanceType.local && widget.instance.aria2Path != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  '路径: ${widget.instance.aria2Path}',
-                  style: theme.textTheme.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
               // Version information
               if (widget.instance.version != null && widget.instance.version!.isNotEmpty) ...[
                 const SizedBox(height: 4),

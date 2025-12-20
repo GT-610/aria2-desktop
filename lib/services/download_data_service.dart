@@ -104,7 +104,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
           activeTasks, 
           DownloadStatus.active, 
           instance.id, 
-          instance.type == InstanceType.local || instance.type == InstanceType.builtin
+          instance.type == InstanceType.builtin
         ));
       }
       
@@ -115,7 +115,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
           waitingTasks, 
           DownloadStatus.waiting, 
           instance.id, 
-          instance.type == InstanceType.local || instance.type == InstanceType.builtin
+          instance.type == InstanceType.builtin
         ));
       }
       
@@ -126,7 +126,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
           stoppedTasks, 
           DownloadStatus.stopped, 
           instance.id, 
-          instance.type == InstanceType.local || instance.type == InstanceType.builtin
+          instance.type == InstanceType.builtin
         ));
       }
       

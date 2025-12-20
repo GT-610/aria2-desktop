@@ -83,33 +83,39 @@ class _ThemeProviderState extends State<_ThemeProvider> {
   }
 }
 
-class _HomeWrapper extends StatelessWidget {
+class _HomeWrapper extends StatefulWidget {
   const _HomeWrapper();
 
   @override
-  Widget build(BuildContext context) {
+  State<_HomeWrapper> createState() => _HomeWrapperState();
+}
+
+class _HomeWrapperState extends State<_HomeWrapper> {
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
     // Initialize instance manager
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    // final settings = Provider.of<Settings>(context, listen: false);
-    
-    // Ensure settings are loaded
-    final initializationFuture = Future(() async {
-      // Wait for instance manager initialization
-      await instanceManager.initialize();
-      // Removed auto-connect functionality
+    await instanceManager.initialize();
+    setState(() {
+      _isInitialized = true;
     });
-    
-    return FutureBuilder(
-      future: initializationFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        return const MainWindow();
-      },
-    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return const MainWindow();
   }
 }
 
