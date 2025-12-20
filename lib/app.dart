@@ -7,6 +7,7 @@ import 'models/global_stat.dart';
 import 'services/instance_manager.dart';
 import 'services/download_data_service.dart';
 import 'models/settings.dart';
+import 'models/aria2_instance.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -103,6 +104,36 @@ class _HomeWrapperState extends State<_HomeWrapper> {
     // Initialize instance manager
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     await instanceManager.initialize();
+    
+    // Check if built-in instance failed to connect
+    final builtinInstance = instanceManager.instances.firstWhere(
+      (instance) => instance.id == 'builtin',
+      orElse: () => throw Exception('Built-in instance not found')
+    );
+    
+    if (builtinInstance.status == ConnectionStatus.failed) {
+      // Show error dialog for built-in instance connection failure
+      if (mounted) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('内建实例连接失败'),
+            content: const Text('内建实例连接失败，仅远程功能可用'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('确定'),
+              ),
+            ],
+          ),
+        );
+      }
+      
+      // Disable built-in instance for this session
+      // This is handled by the failed status
+    }
+    
     setState(() {
       _isInitialized = true;
     });

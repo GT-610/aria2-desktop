@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../models/aria2_instance.dart';
 import '../../../../utils/logging.dart';
+import '../../builtin_instance_settings_page.dart';
 
 class InstanceCard extends StatefulWidget with Loggable {
   final Aria2Instance instance;
@@ -121,6 +122,32 @@ class _InstanceCardState extends State<InstanceCard> {
   Widget _getStatusActionButton(ConnectionStatus status, bool isConnectionInProgress, BuildContext context, VoidCallback onPressed) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    // For builtin instance, only show connect button when disconnected or failed
+    if (widget.instance.type == InstanceType.builtin) {
+      switch (status) {
+        case ConnectionStatus.disconnected:
+          return FilledButton(
+            onPressed: onPressed,
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.primary,
+            ),
+            child: const Text('连接'),
+          );
+        case ConnectionStatus.failed:
+          return FilledButton(
+            onPressed: onPressed,
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.error,
+            ),
+            child: const Text('重新连接'),
+          );
+        // Hide button for connecting and connected states
+        default:
+          return const SizedBox.shrink();
+      }
+    }
+
+    // For non-builtin instances, show normal action buttons
     switch (status) {
       case ConnectionStatus.disconnected:
         return FilledButton(
@@ -264,17 +291,20 @@ class _InstanceCardState extends State<InstanceCard> {
               ),
               const SizedBox(height: 8),
               // Instance details
-              Text(
-                '${widget.instance.protocol}://${widget.instance.host}:${widget.instance.port}',
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              // Version information
-              if (widget.instance.version != null && widget.instance.version!.isNotEmpty) ...[
-                const SizedBox(height: 4),
+              if (widget.instance.type != InstanceType.builtin) ...[
                 Text(
-                  '版本: ${widget.instance.version}',
+                  '${widget.instance.protocol}://${widget.instance.host}:${widget.instance.port}',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              // Version information for builtin instance
+              if (widget.instance.type == InstanceType.builtin) ...[
+                Text(
+                  widget.instance.version != null && widget.instance.version!.isNotEmpty
+                      ? 'Aria2 版本: ${widget.instance.version}'
+                      : '获取版本中...',
                   style: TextStyle(
                     color: colorScheme.tertiary,
                     fontSize: 12,
@@ -311,6 +341,21 @@ class _InstanceCardState extends State<InstanceCard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  // Settings button - only for builtin instance
+                  if (widget.instance.type == InstanceType.builtin) ...[
+                    TextButton(
+                      onPressed: () {
+                        // Navigate to builtin instance settings page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const BuiltinInstanceSettingsPage(),
+                          ),
+                        );
+                      },
+                      child: const Text('设置'),
+                    ),
+                  ],
                   // 编辑和删除按钮 - 仅对非内建实例显示
                   if (widget.instance.type != InstanceType.builtin) ...[
                     // 编辑按钮

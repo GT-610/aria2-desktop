@@ -27,6 +27,39 @@ class Settings extends ChangeNotifier with Loggable {
   LogLevel _logLevel = LogLevel.info; // Log level
   bool _saveLogsToFile = true; // Save logs to file
   
+  // Built-in Aria2 instance settings
+  // Connection settings
+  int _rpcListenPort = 6800; // RPC listen port
+  String _rpcSecret = ''; // RPC secret
+  
+  // Transfer settings
+  int _maxConcurrentDownloads = 5; // Max concurrent downloads
+  int _maxConnectionPerServer = 16; // Max connections per server
+  int _split = 16; // Split downloads into N parts
+  bool _continueDownloads = true; // Continue downloads
+  
+  // Speed settings
+  int _maxOverallDownloadLimit = 0; // Global download speed limit (0 = unlimited)
+  int _maxOverallUploadLimit = 0; // Global upload speed limit (0 = unlimited)
+  
+  // BT settings
+  bool _btSaveMetadata = true; // Save BT metadata
+  bool _btForceEncryption = false; // Force BT encryption
+  bool _btLoadSavedMetadata = true; // Load saved BT metadata
+  bool _keepSeeding = false; // Keep seeding after download completion
+  double _seedRatio = 1.0; // Seed ratio
+  int _seedTime = 60; // Seed time in minutes
+  String _btExcludeTracker = ''; // Exclude trackers
+  
+  // Advanced settings
+  String _allProxy = ''; // All proxy setting
+  String _noProxy = ''; // No proxy setting
+  int _dhtListenPort = 26701; // DHT listen port
+  bool _enableDht6 = true; // Enable DHT6
+  bool _autoFileRenaming = true; // Auto rename files
+  bool _allowOverwrite = false; // Allow overwrite
+  String _userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // User agent
+  
   // Settings file name
   final String _settingsFileName = 'settings.json';
   
@@ -73,6 +106,39 @@ class Settings extends ChangeNotifier with Loggable {
   LogLevel get logLevel => _logLevel;
   bool get saveLogsToFile => _saveLogsToFile;
   String get logLevelString => _logLevel.name;
+  
+  // Built-in Aria2 instance getters
+  // Connection settings
+  int get rpcListenPort => _rpcListenPort;
+  String get rpcSecret => _rpcSecret;
+  
+  // Transfer settings
+  int get maxConcurrentDownloads => _maxConcurrentDownloads;
+  int get maxConnectionPerServer => _maxConnectionPerServer;
+  int get split => _split;
+  bool get continueDownloads => _continueDownloads;
+  
+  // Speed settings
+  int get maxOverallDownloadLimit => _maxOverallDownloadLimit;
+  int get maxOverallUploadLimit => _maxOverallUploadLimit;
+  
+  // BT settings
+  bool get btSaveMetadata => _btSaveMetadata;
+  bool get btForceEncryption => _btForceEncryption;
+  bool get btLoadSavedMetadata => _btLoadSavedMetadata;
+  bool get keepSeeding => _keepSeeding;
+  double get seedRatio => _seedRatio;
+  int get seedTime => _seedTime;
+  String get btExcludeTracker => _btExcludeTracker;
+  
+  // Advanced settings
+  String get allProxy => _allProxy;
+  String get noProxy => _noProxy;
+  int get dhtListenPort => _dhtListenPort;
+  bool get enableDht6 => _enableDht6;
+  bool get autoFileRenaming => _autoFileRenaming;
+  bool get allowOverwrite => _allowOverwrite;
+  String get userAgent => _userAgent;
   
   // Load all settings from JSON file
   Future<void> loadSettings() async {
@@ -121,6 +187,39 @@ class Settings extends ChangeNotifier with Loggable {
         
         _saveLogsToFile = settingsMap['saveLogsToFile'] ?? true;
         
+        // Built-in Aria2 instance settings
+        // Connection settings
+        _rpcListenPort = settingsMap['rpcListenPort'] ?? 6800;
+        _rpcSecret = settingsMap['rpcSecret'] ?? '';
+        
+        // Transfer settings
+        _maxConcurrentDownloads = settingsMap['maxConcurrentDownloads'] ?? 5;
+        _maxConnectionPerServer = settingsMap['maxConnectionPerServer'] ?? 16;
+        _split = settingsMap['split'] ?? 16;
+        _continueDownloads = settingsMap['continueDownloads'] ?? true;
+        
+        // Speed settings
+        _maxOverallDownloadLimit = settingsMap['maxOverallDownloadLimit'] ?? 0;
+        _maxOverallUploadLimit = settingsMap['maxOverallUploadLimit'] ?? 0;
+        
+        // BT settings
+        _btSaveMetadata = settingsMap['btSaveMetadata'] ?? true;
+        _btForceEncryption = settingsMap['btForceEncryption'] ?? false;
+        _btLoadSavedMetadata = settingsMap['btLoadSavedMetadata'] ?? true;
+        _keepSeeding = settingsMap['keepSeeding'] ?? false;
+        _seedRatio = settingsMap['seedRatio'] ?? 1.0;
+        _seedTime = settingsMap['seedTime'] ?? 60;
+        _btExcludeTracker = settingsMap['btExcludeTracker'] ?? '';
+        
+        // Advanced settings
+        _allProxy = settingsMap['allProxy'] ?? '';
+        _noProxy = settingsMap['noProxy'] ?? '';
+        _dhtListenPort = settingsMap['dhtListenPort'] ?? 26701;
+        _enableDht6 = settingsMap['enableDht6'] ?? true;
+        _autoFileRenaming = settingsMap['autoFileRenaming'] ?? true;
+        _allowOverwrite = settingsMap['allowOverwrite'] ?? false;
+        _userAgent = settingsMap['userAgent'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        
         logger.i('Settings loaded successfully from $filePath');
       } else {
         logger.d('Settings file does not exist, applying default settings');
@@ -148,6 +247,39 @@ class Settings extends ChangeNotifier with Loggable {
     _customColorCode = null;
     _logLevel = LogLevel.info;
     _saveLogsToFile = true;
+    
+    // Built-in Aria2 instance settings defaults
+    // Connection settings
+    _rpcListenPort = 6800;
+    _rpcSecret = '';
+    
+    // Transfer settings
+    _maxConcurrentDownloads = 5;
+    _maxConnectionPerServer = 16;
+    _split = 16;
+    _continueDownloads = true;
+    
+    // Speed settings
+    _maxOverallDownloadLimit = 0;
+    _maxOverallUploadLimit = 0;
+    
+    // BT settings
+    _btSaveMetadata = true;
+    _btForceEncryption = false;
+    _btLoadSavedMetadata = true;
+    _keepSeeding = false;
+    _seedRatio = 1.0;
+    _seedTime = 60;
+    _btExcludeTracker = '';
+    
+    // Advanced settings
+    _allProxy = '';
+    _noProxy = '';
+    _dhtListenPort = 26701;
+    _enableDht6 = true;
+    _autoFileRenaming = true;
+    _allowOverwrite = false;
+    _userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
     // Schedule notifyListeners to run after the current frame is built
     SchedulerBinding.instance.addPostFrameCallback((_) {
       notifyListeners();
@@ -168,6 +300,39 @@ class Settings extends ChangeNotifier with Loggable {
         'customColorCode': _customColorCode,
         'logLevel': _logLevel.name,
         'saveLogsToFile': _saveLogsToFile,
+        
+        // Built-in Aria2 instance settings
+        // Connection settings
+        'rpcListenPort': _rpcListenPort,
+        'rpcSecret': _rpcSecret,
+        
+        // Transfer settings
+        'maxConcurrentDownloads': _maxConcurrentDownloads,
+        'maxConnectionPerServer': _maxConnectionPerServer,
+        'split': _split,
+        'continueDownloads': _continueDownloads,
+        
+        // Speed settings
+        'maxOverallDownloadLimit': _maxOverallDownloadLimit,
+        'maxOverallUploadLimit': _maxOverallUploadLimit,
+        
+        // BT settings
+        'btSaveMetadata': _btSaveMetadata,
+        'btForceEncryption': _btForceEncryption,
+        'btLoadSavedMetadata': _btLoadSavedMetadata,
+        'keepSeeding': _keepSeeding,
+        'seedRatio': _seedRatio,
+        'seedTime': _seedTime,
+        'btExcludeTracker': _btExcludeTracker,
+        
+        // Advanced settings
+        'allProxy': _allProxy,
+        'noProxy': _noProxy,
+        'dhtListenPort': _dhtListenPort,
+        'enableDht6': _enableDht6,
+        'autoFileRenaming': _autoFileRenaming,
+        'allowOverwrite': _allowOverwrite,
+        'userAgent': _userAgent,
       };
       
       final jsonString = jsonEncode(settingsMap);
@@ -224,6 +389,144 @@ class Settings extends ChangeNotifier with Loggable {
   // Save logs to file setting
   Future<void> setSaveLogsToFile(bool value) async {
     _saveLogsToFile = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  // Built-in Aria2 instance setters
+  // Connection settings
+  Future<void> setRpcListenPort(int port) async {
+    _rpcListenPort = port;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setRpcSecret(String secret) async {
+    _rpcSecret = secret;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  // Transfer settings
+  Future<void> setMaxConcurrentDownloads(int value) async {
+    _maxConcurrentDownloads = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setMaxConnectionPerServer(int value) async {
+    _maxConnectionPerServer = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setSplit(int value) async {
+    _split = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setContinueDownloads(bool value) async {
+    _continueDownloads = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  // Speed settings
+  Future<void> setMaxOverallDownloadLimit(int limit) async {
+    _maxOverallDownloadLimit = limit;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setMaxOverallUploadLimit(int limit) async {
+    _maxOverallUploadLimit = limit;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  // BT settings
+  Future<void> setBtSaveMetadata(bool value) async {
+    _btSaveMetadata = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setBtForceEncryption(bool value) async {
+    _btForceEncryption = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setBtLoadSavedMetadata(bool value) async {
+    _btLoadSavedMetadata = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setKeepSeeding(bool value) async {
+    _keepSeeding = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setSeedRatio(double ratio) async {
+    _seedRatio = ratio;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setSeedTime(int minutes) async {
+    _seedTime = minutes;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setBtExcludeTracker(String trackers) async {
+    _btExcludeTracker = trackers;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  // Advanced settings
+  Future<void> setAllProxy(String proxy) async {
+    _allProxy = proxy;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setNoProxy(String noProxy) async {
+    _noProxy = noProxy;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setDhtListenPort(int port) async {
+    _dhtListenPort = port;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setEnableDht6(bool value) async {
+    _enableDht6 = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setAutoFileRenaming(bool value) async {
+    _autoFileRenaming = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setAllowOverwrite(bool value) async {
+    _allowOverwrite = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+  
+  Future<void> setUserAgent(String userAgent) async {
+    _userAgent = userAgent;
     notifyListeners();
     await _saveAllSettings();
   }

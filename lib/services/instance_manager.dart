@@ -61,11 +61,10 @@ class InstanceManager extends ChangeNotifier with Loggable {
         logger.i('Added missing built-in instance');
       }
       
-      // Ensure active instance doesn't trigger auto-connection during initialization
-      // Explicitly set active instance status to disconnected
-      if (_activeInstance != null) {
-        updateInstanceInList(_activeInstance!.id, ConnectionStatus.disconnected);
-      }
+      // Automatically connect to built-in instance on startup
+      final builtinInstance = _instances.firstWhere((instance) => instance.id == 'builtin');
+      await connectInstance(builtinInstance);
+      
       logger.i('Instance manager initialization completed, loaded ${_instances.length} instances');
     } catch (e, stackTrace) {
       logger.e('Failed to initialize instance manager', error: e, stackTrace: stackTrace);
@@ -304,12 +303,27 @@ class InstanceManager extends ChangeNotifier with Loggable {
         return false;
       }
       
+      // Create RPC client to get version information
+      final client = Aria2RpcClient(instance);
+      String? version;
+      try {
+        version = await client.getVersion();
+        logger.i('Aria2 version: $version');
+      } catch (e) {
+        logger.w('Failed to get Aria2 version: $e');
+      } finally {
+        client.close();
+      }
+      
       // Update instance status to connected and set as active instance
-      final connectedInstance = instance.copyWith(status: ConnectionStatus.connected);
+      final connectedInstance = instance.copyWith(
+        status: ConnectionStatus.connected,
+        version: version
+      );
       _activeInstance = connectedInstance;
       
       // Update status in instance list
-      updateInstanceInList(instance.id, ConnectionStatus.connected);
+      updateInstanceInList(instance.id, ConnectionStatus.connected, version: version);
       
       logger.d('Instance connection status set - Active instance: ${_activeInstance?.name}, Status: ${_activeInstance?.status}');
       
@@ -360,10 +374,13 @@ class InstanceManager extends ChangeNotifier with Loggable {
   }
 
   /// Update instance status in instance list
-  void updateInstanceInList(String instanceId, ConnectionStatus status) {
+  void updateInstanceInList(String instanceId, ConnectionStatus status, {String? version}) {
     final index = _instances.indexWhere((i) => i.id == instanceId);
     if (index != -1) {
-      _instances[index] = _instances[index].copyWith(status: status);
+      _instances[index] = _instances[index].copyWith(
+        status: status,
+        version: version,
+      );
       // Schedule notifyListeners to run after the current frame is built
       SchedulerBinding.instance.addPostFrameCallback((_) {
         notifyListeners();
