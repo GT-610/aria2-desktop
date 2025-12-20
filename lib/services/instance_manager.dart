@@ -432,8 +432,8 @@ class InstanceManager extends ChangeNotifier with Loggable {
       final process = await Process.start(
         instance.aria2Path!,
         args,
-        runInShell: true,
-        mode: ProcessStartMode.detachedWithStdio,
+        runInShell: false,
+        mode: ProcessStartMode.normal,
       );
       
       // Monitor process exit

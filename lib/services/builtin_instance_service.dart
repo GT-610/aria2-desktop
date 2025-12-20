@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import '../models/aria2_instance.dart';
 import '../utils/logging.dart';
@@ -84,7 +83,7 @@ class BuiltinInstanceService with Loggable {
       }
 
       // Check if process is already running
-      if (_aria2Process != null && _aria2Process!.pid != null) {
+      if (_aria2Process != null) {
         logger.w('Built-in Aria2 process is already running, PID: ${_aria2Process!.pid}');
         return true;
       }
@@ -140,8 +139,8 @@ class BuiltinInstanceService with Loggable {
       _aria2Process = await Process.start(
         _aria2cPath!,
         args,
-        runInShell: true,
-        mode: ProcessStartMode.detachedWithStdio,
+        runInShell: false,
+        mode: ProcessStartMode.normal,
       );
 
       logger.i('Built-in Aria2 instance started successfully, PID: ${_aria2Process!.pid}');
@@ -167,7 +166,7 @@ class BuiltinInstanceService with Loggable {
   /// Stop the built-in Aria2 instance
   Future<bool> stopInstance() async {
     try {
-      if (_aria2Process == null || _aria2Process!.pid == null) {
+      if (_aria2Process == null) {
         logger.w('Built-in Aria2 process is not running');
         return true;
       }
@@ -189,7 +188,7 @@ class BuiltinInstanceService with Loggable {
 
   /// Check if the built-in instance is running
   bool isRunning() {
-    return _aria2Process != null && _aria2Process!.pid != null;
+    return _aria2Process != null;
   }
 
   /// Get the PID of the running Aria2 process
