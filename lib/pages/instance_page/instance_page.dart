@@ -40,7 +40,6 @@ class _InstancePageState extends State<InstancePage> {
   Widget _buildInstanceListView() {
     final instanceManager = Provider.of<InstanceManager>(context);
     final instances = instanceManager.instances;
-    final activeInstance = instanceManager.activeInstance;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -70,11 +69,9 @@ class _InstancePageState extends State<InstancePage> {
             itemCount: instances.length,
             itemBuilder: (context, index) {
               final instance = instances[index];
-              final isActive = activeInstance?.id == instance.id;
               
               return InstanceCard(
                 instance: instance,
-                isActive: isActive,
                 isSelected: _selectedInstance?.id == instance.id,
                 isChecking: _isChecking,
                 isConnectionInProgress: _isConnectionInProgress,
@@ -138,10 +135,14 @@ class _InstancePageState extends State<InstancePage> {
       });
       
       final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-      final isActive = instanceManager.activeInstance?.id == instance.id;
       
-      if (isActive) {
-        await _handleDisconnectInstance();
+      if (instance.status == ConnectionStatus.connected) {
+        await instanceManager.disconnectInstance(instance);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('已断开连接')),
+          );
+        }
       } else {
         await _handleConnectInstance(instance);
       }
@@ -182,9 +183,9 @@ class _InstancePageState extends State<InstancePage> {
 
     if (confirmed == true) {
       try {
-        // If it's the current active instance, disconnect first
-        if (instanceManager.activeInstance?.id == instance.id) {
-          await instanceManager.disconnectInstance();
+        // 如果实例已连接，先断开连接
+        if (instance.status == ConnectionStatus.connected) {
+          await instanceManager.disconnectInstance(instance);
         }
         
         await instanceManager.deleteInstance(instance.id);
@@ -288,26 +289,5 @@ class _InstancePageState extends State<InstancePage> {
     }
   }
 
-  // Disconnect
-  Future<void> _handleDisconnectInstance() async {
-    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    try {
-      await instanceManager.disconnectInstance();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已断开连接')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('断开连接失败: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
+  
 }

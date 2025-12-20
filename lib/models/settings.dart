@@ -29,7 +29,7 @@ class Settings extends ChangeNotifier with Loggable {
   
   // Built-in Aria2 instance settings
   // Connection settings
-  int _rpcListenPort = 6800; // RPC listen port
+  int _rpcListenPort = 16800; // RPC listen port
   String _rpcSecret = ''; // RPC secret
   
   // Transfer settings
@@ -189,7 +189,7 @@ class Settings extends ChangeNotifier with Loggable {
         
         // Built-in Aria2 instance settings
         // Connection settings
-        _rpcListenPort = settingsMap['rpcListenPort'] ?? 6800;
+        _rpcListenPort = settingsMap['rpcListenPort'] ?? 16800;
         _rpcSecret = settingsMap['rpcSecret'] ?? '';
         
         // Transfer settings
@@ -250,7 +250,7 @@ class Settings extends ChangeNotifier with Loggable {
     
     // Built-in Aria2 instance settings defaults
     // Connection settings
-    _rpcListenPort = 6800;
+    _rpcListenPort = 16800;
     _rpcSecret = '';
     
     // Transfer settings

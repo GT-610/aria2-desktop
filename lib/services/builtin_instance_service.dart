@@ -91,9 +91,9 @@ class BuiltinInstanceService with Loggable {
       // Build command arguments
       final List<String> args = [
         '--enable-rpc',
-        '--rpc-listen-all=true',
+        '--rpc-listen-all=false',
         '--rpc-allow-origin-all',
-        '--rpc-listen-port=6800',
+        '--rpc-listen-port=16800',
         '--rpc-save-upload-metadata=true',
         '--rpc-max-request-size=10M',
         '--continue=true',
@@ -218,8 +218,8 @@ class BuiltinInstanceService with Loggable {
       name: '内建实例',
       type: InstanceType.builtin,
       protocol: 'http',
-      host: 'localhost',
-      port: 6800,
+      host: '127.0.0.1',
+      port: 16800,
       secret: '',
       status: ConnectionStatus.disconnected,
     );

@@ -63,7 +63,7 @@ class _BuiltinInstanceSettingsPageState extends State<BuiltinInstanceSettingsPag
                       'RPC监听端口',
                       settings.rpcListenPort.toString(),
                       (value) {
-                        final port = int.tryParse(value) ?? 6800;
+                        final port = int.tryParse(value) ?? 16800;
                         settings.setRpcListenPort(port);
                         _hasChanges = true;
                       },

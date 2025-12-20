@@ -5,7 +5,6 @@ import '../../builtin_instance_settings_page.dart';
 
 class InstanceCard extends StatefulWidget with Loggable {
   final Aria2Instance instance;
-  final bool isActive;
   final bool isSelected;
   final bool isChecking;
   final bool isConnectionInProgress;
@@ -18,7 +17,6 @@ class InstanceCard extends StatefulWidget with Loggable {
   InstanceCard({
     super.key,
     required this.instance,
-    required this.isActive,
     required this.isSelected,
     required this.isChecking,
     required this.isConnectionInProgress,
@@ -269,24 +267,8 @@ class _InstanceCardState extends State<InstanceCard> {
                     ],
                   ),
                   // Status label - clearly display connection status
-                  Row(
-                    children: [
-                      _getStatusChip(widget.instance.status, colorScheme),
-                      if (widget.isActive) ...[
-                        const SizedBox(width: 8),
-                        Chip(
-                          label: const Text('当前活跃'),
-                          labelStyle: TextStyle(
-                            color: colorScheme.onPrimary,
-                            fontSize: 12,
-                          ),
-                          backgroundColor: colorScheme.primary,
-                          padding: const EdgeInsets.all(0),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ],
-                    ],
-                  ),
+                  _getStatusChip(widget.instance.status, colorScheme),
+
                 ],
               ),
               const SizedBox(height: 8),

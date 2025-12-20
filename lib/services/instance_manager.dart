@@ -10,7 +10,6 @@ import 'builtin_instance_service.dart';
 /// Unified instance management service class, combining the functionality of InstanceManager and NotifiableInstanceManager
 class InstanceManager extends ChangeNotifier with Loggable {
   List<Aria2Instance> _instances = [];
-  Aria2Instance? _activeInstance;
   final String _fileName = 'aria2_instances.json';
   final BuiltinInstanceService _builtinInstanceService = BuiltinInstanceService();
   
@@ -19,7 +18,9 @@ class InstanceManager extends ChangeNotifier with Loggable {
   }
 
   List<Aria2Instance> get instances => _instances;
-  Aria2Instance? get activeInstance => _activeInstance;
+  
+  /// Get active instance (deprecated, kept for compatibility)
+  Aria2Instance? get activeInstance => null;
 
   /// Get program data directory
   Directory _getDataDirectory() {
@@ -52,8 +53,8 @@ class InstanceManager extends ChangeNotifier with Loggable {
           name: '内建实例',
           type: InstanceType.builtin,
           protocol: 'http',
-          host: 'localhost',
-          port: 6800,
+          host: '127.0.0.1',
+          port: 16800,
           secret: '',
           status: ConnectionStatus.disconnected,
         ));
@@ -66,6 +67,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
       await connectInstance(builtinInstance);
       
       logger.i('Instance manager initialization completed, loaded ${_instances.length} instances');
+
     } catch (e, stackTrace) {
       logger.e('Failed to initialize instance manager', error: e, stackTrace: stackTrace);
     }
@@ -99,9 +101,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
             .toList();
         
         logger.i('Successfully read ${_instances.length} instances');
-        
-        // No longer set active instance, only set when user explicitly connects
-        _activeInstance = null;
       } else {
         logger.d('Instance file does not exist, creating default instance');
         await _createDefaultInstance();
@@ -120,13 +119,12 @@ class InstanceManager extends ChangeNotifier with Loggable {
         name: '内建实例',
         type: InstanceType.builtin,
         protocol: 'http',
-        host: 'localhost',
-        port: 6800,
+        host: '127.0.0.1',
+        port: 16800,
         secret: '',
         status: ConnectionStatus.disconnected, // Ensure default instance is in disconnected state
       ),
     ];
-    _activeInstance = null; // Don't set default active instance
     await _saveInstances();
     logger.i('Built-in instance created');
   }
@@ -201,11 +199,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
       if (index != -1) {
         _instances[index] = updatedInstance;
         
-        // Update active instance reference if it's being updated
-        if (_activeInstance?.id == updatedInstance.id) {
-          _activeInstance = updatedInstance;
-        }
-        
         await _saveInstances();
         logger.i('Instance updated successfully: ${updatedInstance.name}');
         notifyListeners();
@@ -231,27 +224,15 @@ class InstanceManager extends ChangeNotifier with Loggable {
       throw Exception('Cannot delete the only instance');
     }
     
-    // If the active instance is being deleted, switch to another instance
-    if (_activeInstance?.id == instanceId) {
-      final newActive = _instances.firstWhere((i) => i.id != instanceId);
-      await setActiveInstance(newActive.id);
-    }
-    
     _instances.removeWhere((i) => i.id == instanceId);
     await _saveInstances();
     notifyListeners();
   }
 
-  /// Set active instance
+  /// Set active instance (deprecated, kept for compatibility)
   Future<void> setActiveInstance(String instanceId) async {
-    // Stop built-in instance process if it's currently active
-    if (_activeInstance?.type == InstanceType.builtin) {
-      await _builtinInstanceService.stopInstance();
-    }
-    
-    _activeInstance = _instances.firstWhere((i) => i.id == instanceId);
-    await _saveInstances();
-    notifyListeners();
+    // No longer manage active instances, kept for compatibility
+    await Future.delayed(Duration.zero);
   }
 
   /// Check instance connection status
@@ -270,11 +251,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
   /// Connect to instance
   Future<bool> connectInstance(Aria2Instance instance) async {
     try {
-      // First disconnect current active instance if any
-      if (_activeInstance != null) {
-        await disconnectInstance();
-      }
-      
       // If it's a built-in instance, start the process first
       if (instance.type == InstanceType.builtin) {
         logger.i('Connecting to built-in instance, starting Aria2 process...');
@@ -315,17 +291,10 @@ class InstanceManager extends ChangeNotifier with Loggable {
         client.close();
       }
       
-      // Update instance status to connected and set as active instance
-      final connectedInstance = instance.copyWith(
-        status: ConnectionStatus.connected,
-        version: version
-      );
-      _activeInstance = connectedInstance;
-      
       // Update status in instance list
       updateInstanceInList(instance.id, ConnectionStatus.connected, version: version);
       
-      logger.d('Instance connection status set - Active instance: ${_activeInstance?.name}, Status: ${_activeInstance?.status}');
+      logger.d('Instance connection status set - Instance: ${instance.name}, Status: ${ConnectionStatus.connected}');
       
       await _saveInstances();
       logger.i('Successfully connected to instance: ${instance.name}');
@@ -346,25 +315,17 @@ class InstanceManager extends ChangeNotifier with Loggable {
     }
   }
 
-  /// Disconnect current instance
-  Future<void> disconnectInstance() async {
-    // First get current active instance ID for status update
-    final activeInstanceId = _activeInstance?.id;
-    final activeInstanceType = _activeInstance?.type;
-    
+  /// Disconnect instance
+  Future<void> disconnectInstance(Aria2Instance instance) async {
     // For built-in instances, stop the Aria2 process
-    if (activeInstanceType == InstanceType.builtin) {
+    if (instance.type == InstanceType.builtin) {
       logger.i('Disconnecting built-in instance, stopping Aria2 process...');
       await _builtinInstanceService.stopInstance();
     }
     
-    // Update active instance status to disconnected
-    if (activeInstanceId != null) {
-      updateInstanceInList(activeInstanceId, ConnectionStatus.disconnected);
-    }
+    // Update instance status to disconnected
+    updateInstanceInList(instance.id, ConnectionStatus.disconnected);
     
-    // Clear active instance
-    _activeInstance = null;
     notifyListeners();
   }
 
@@ -403,8 +364,8 @@ class InstanceManager extends ChangeNotifier with Loggable {
     return _instances;
   }
 
-  /// Get active instance (compatibility method)
+  /// Get active instance (deprecated, kept for compatibility)
   Aria2Instance? getActiveInstance() {
-    return _activeInstance;
+    return null; // No longer manage active instances
   }
 }
