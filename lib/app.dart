@@ -192,7 +192,6 @@ class _MainWindowState extends State<MainWindow> {
                   labelType: NavigationRailLabelType.selected,
                   backgroundColor: colorScheme.surfaceContainer,
                   indicatorColor: colorScheme.surfaceContainerHighest,
-                  elevation: null,
                   leading: Container(
                     padding: const EdgeInsets.only(top: 16, bottom: 8),
                     alignment: Alignment.center,
@@ -241,9 +240,10 @@ class _MainWindowState extends State<MainWindow> {
               border: Border(top: BorderSide(color: colorScheme.surfaceContainerHighest)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: colorScheme.shadow,
                   offset: const Offset(0, -1),
-                  blurRadius: 2,
+                  blurRadius: 3,
+                  spreadRadius: 0,
                 ),
               ],
             ),
@@ -254,19 +254,19 @@ class _MainWindowState extends State<MainWindow> {
                   label: Text('总速度: ${_formatSpeed(_globalStat.downloadSpeed)}'),
                   avatar: const Icon(Icons.speed, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 ),
                 Chip(
                   label: Text('活跃任务: ${_globalStat.activeTasks}'),
                   avatar: const Icon(Icons.task_alt, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 ),
                 Chip(
                   label: Text('等待任务: ${_globalStat.waitingTasks}'),
                   avatar: const Icon(Icons.pending, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 ),
               ],
             ),

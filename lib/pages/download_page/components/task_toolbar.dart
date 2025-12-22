@@ -23,7 +23,7 @@ class TaskToolbar extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         border: Border(bottom: BorderSide(color: colorScheme.surfaceContainerHighest)),
@@ -37,11 +37,11 @@ class TaskToolbar extends StatelessWidget {
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           OutlinedButton.icon(
             onPressed: onPauseAll,
             icon: const Icon(Icons.pause),
@@ -49,11 +49,11 @@ class TaskToolbar extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           OutlinedButton.icon(
             onPressed: onResumeAll,
             icon: const Icon(Icons.play_arrow),
@@ -61,11 +61,11 @@ class TaskToolbar extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           OutlinedButton.icon(
             onPressed: onDeleteAll,
             icon: const Icon(Icons.delete),
@@ -73,7 +73,7 @@ class TaskToolbar extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
           ),
@@ -83,8 +83,9 @@ class TaskToolbar extends StatelessWidget {
             icon: const Icon(Icons.search),
             style: IconButton.styleFrom(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
+              padding: const EdgeInsets.all(12),
             ),
           ),
         ],

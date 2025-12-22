@@ -68,19 +68,19 @@ class TaskListItem extends StatelessWidget {
     final (statusText, statusColor) = DownloadTaskService.getStatusInfo(task, colorScheme);
     
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.1),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 1,
+      shadowColor: colorScheme.shadow,
       surfaceTintColor: colorScheme.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         onLongPress: onLongPress,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -92,11 +92,11 @@ class TaskListItem extends StatelessWidget {
                   // Progress percentage - styled like download speed
                   if (task.progress > 0)
                     Container(
-                      margin: EdgeInsets.only(right: 8),
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
                         children: [
@@ -104,7 +104,7 @@ class TaskListItem extends StatelessWidget {
                             '${(task.progress * 100).toInt()}%',
                             style: TextStyle(
                               color: statusColor,
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -124,21 +124,21 @@ class TaskListItem extends StatelessWidget {
                       children: [
                         // Upload speed
                         Container(
-                          margin: EdgeInsets.only(right: 8),
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: colorScheme.secondary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            color: colorScheme.secondary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.upload, size: 12, color: colorScheme.secondary),
-                              SizedBox(width: 4),
+                              Icon(Icons.upload, size: 14, color: colorScheme.secondary),
+                              const SizedBox(width: 4),
                               Text(
                                 task.uploadSpeed,
                                 style: TextStyle(
                                   color: colorScheme.secondary,
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -147,21 +147,21 @@ class TaskListItem extends StatelessWidget {
                         ),
                         // Download speed
                         Container(
-                          margin: EdgeInsets.only(right: 8),
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            color: colorScheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.download, size: 12, color: colorScheme.primary),
-                              SizedBox(width: 4),
+                              Icon(Icons.download, size: 14, color: colorScheme.primary),
+                              const SizedBox(width: 4),
                               Text(
                                 task.downloadSpeed,
                                 style: TextStyle(
                                   color: colorScheme.primary,
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -172,10 +172,10 @@ class TaskListItem extends StatelessWidget {
                     ),
                   // Status label
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       statusText,
@@ -196,14 +196,14 @@ class TaskListItem extends StatelessWidget {
                 children: [
                   LinearProgressIndicator(
                     value: task.progress,
-                    borderRadius: BorderRadius.circular(10),
-                    minHeight: 6,
+                    borderRadius: BorderRadius.circular(12),
+                    minHeight: 8,
                     backgroundColor: colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       // Use tertiary color for paused tasks
                       (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') 
                         ? colorScheme.tertiary 
-                        : (task.status == DownloadStatus.active ? statusColor : statusColor.withValues(alpha: 0.6)),
+                        : (task.status == DownloadStatus.active ? statusColor : statusColor.withOpacity(0.6)),
                     ),
                   ),
                 ],
@@ -221,17 +221,17 @@ class TaskListItem extends StatelessWidget {
                     children: [
                       // Instance name
                       Container(
-                        margin: EdgeInsets.only(bottom: 2),
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        margin: const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: colorScheme.tertiary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          color: colorScheme.tertiary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
                           _getInstanceName(task.instanceId),
                           style: TextStyle(
                             color: colorScheme.tertiary,
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
