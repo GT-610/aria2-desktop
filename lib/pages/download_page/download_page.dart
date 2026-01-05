@@ -96,24 +96,24 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     }
   }
   
-  // Update the refresh timer based on the active instance
+  // Update the refresh timer based on the connected instance
   void _updateRefreshTimer() {
     if (instanceManager == null || downloadDataService == null || !mounted) return;
     
-    final activeInstance = instanceManager!.activeInstance;
+    final connectedInstance = instanceManager!.getConnectedInstance();
     
     // Record debug information to help locate issues
-    logger.d('Updating refresh timer - Active instance: ${activeInstance?.name}, Status: ${activeInstance?.status}');
+    logger.d('Updating refresh timer - Connected instance: ${connectedInstance?.name}, Status: ${connectedInstance?.status}');
     
-    if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
-      // Start or update the refresh timer with the active instance
-      logger.d('Starting periodic refresh for instance: ${activeInstance.name}');
+    if (connectedInstance != null) {
+      // Start or update the refresh timer with the connected instance
+      logger.d('Starting periodic refresh for instance: ${connectedInstance.name}');
       // Store timer reference for status tracking
-      _refreshTimer = downloadDataService!.startPeriodicRefresh(activeInstance);
+      _refreshTimer = downloadDataService!.startPeriodicRefresh(connectedInstance);
       // Force an immediate refresh only when the timer starts for the first time, avoiding triggering refresh on every UI update
       if (_refreshTimer != null) {
         logger.d('Performing initial refresh');
-        downloadDataService!.refreshTasks(activeInstance);
+        downloadDataService!.refreshTasks(connectedInstance);
       }
     } else {
       // Stop the refresh timer when there's no connected instance
@@ -186,10 +186,10 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   void _refreshTasksAndRestartTimer() {
     if (instanceManager == null || downloadDataService == null) return;
     
-    final activeInstance = instanceManager!.activeInstance;
-    if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
+    final connectedInstance = instanceManager!.getConnectedInstance();
+    if (connectedInstance != null) {
       // Directly refresh task data
-      downloadDataService!.refreshTasks(activeInstance);
+      downloadDataService!.refreshTasks(connectedInstance);
     }
   }
 
@@ -261,9 +261,9 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     });
   }
   
-  // Store the last active instance ID and status for detecting real changes
-  String? _lastActiveInstanceId;
-  ConnectionStatus? _lastActiveInstanceStatus;
+  // Store the last connected instance ID and status for detecting real changes
+  String? _lastConnectedInstanceId;
+  ConnectionStatus? _lastConnectedInstanceStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -273,17 +273,17 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     // Get the latest data from DownloadDataService via Provider for responsive updates
     final lastError = context.watch<DownloadDataService>().lastError;
     
-    // Get current active instance information
-    final currentActiveInstance = instanceManager.activeInstance;
-    final currentInstanceId = currentActiveInstance?.id;
-    final currentInstanceStatus = currentActiveInstance?.status;
+    // Get current connected instance information
+    final currentConnectedInstance = instanceManager.getConnectedInstance();
+    final currentInstanceId = currentConnectedInstance?.id;
+    final currentInstanceStatus = currentConnectedInstance?.status;
     
-    // Only update the timer when the active instance truly changes (ID or status changes)
-    if (currentInstanceId != _lastActiveInstanceId || 
-        currentInstanceStatus != _lastActiveInstanceStatus) {
+    // Only update the timer when the connected instance truly changes (ID or status changes)
+    if (currentInstanceId != _lastConnectedInstanceId || 
+        currentInstanceStatus != _lastConnectedInstanceStatus) {
       // Update recorded instance information
-      _lastActiveInstanceId = currentInstanceId;
-      _lastActiveInstanceStatus = currentInstanceStatus;
+      _lastConnectedInstanceId = currentInstanceId;
+      _lastConnectedInstanceStatus = currentInstanceStatus;
       
       // Update refresh timer
       _updateRefreshTimer();
@@ -371,12 +371,12 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
         return AddTaskDialog(
             onAddTask: (taskType, uri, downloadDir, fileContent) async {
             try {
-              // Get instance manager and active instance
+              // Get instance manager and connected instance
               final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-              final activeInstance = instanceManager.activeInstance;
+              final connectedInstance = instanceManager.getConnectedInstance();
               
-              if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
-                final client = Aria2RpcClient(activeInstance);
+              if (connectedInstance != null) {
+                final client = Aria2RpcClient(connectedInstance);
                 
                 // Build download options
                 final options = {

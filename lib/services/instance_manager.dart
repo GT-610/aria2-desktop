@@ -19,8 +19,19 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
   List<Aria2Instance> get instances => _instances;
   
-  /// Get active instance (deprecated, kept for compatibility)
-  Aria2Instance? get activeInstance => null;
+  /// Get the first connected instance
+  Aria2Instance? getConnectedInstance() {
+    try {
+      return _instances.firstWhere((instance) => instance.status == ConnectionStatus.connected);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get all connected instances
+  List<Aria2Instance> getConnectedInstances() {
+    return _instances.where((instance) => instance.status == ConnectionStatus.connected).toList();
+  }
 
   /// Get program data directory
   Directory _getDataDirectory() {
@@ -229,12 +240,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
     notifyListeners();
   }
 
-  /// Set active instance (deprecated, kept for compatibility)
-  Future<void> setActiveInstance(String instanceId) async {
-    // No longer manage active instances, kept for compatibility
-    await Future.delayed(Duration.zero);
-  }
-
   /// Check instance connection status
   Future<bool> checkConnection(Aria2Instance instance) async {
     try {
@@ -363,13 +368,4 @@ class InstanceManager extends ChangeNotifier with Loggable {
     }
   }
 
-  /// Get all instances (compatibility method)
-  List<Aria2Instance> getInstances() {
-    return _instances;
-  }
-
-  /// Get active instance (deprecated, kept for compatibility)
-  Aria2Instance? getActiveInstance() {
-    return null; // No longer manage active instances
-  }
 }

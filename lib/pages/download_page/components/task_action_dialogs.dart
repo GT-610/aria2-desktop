@@ -35,25 +35,19 @@ class TaskActionDialogs {
         title = '继续任务';
         allInstancesText = '继续所有实例的任务';
         instanceActionText = '继续实例 "';
-        targetInstances = instanceManager.instances
-            .where((instance) => instance.status == ConnectionStatus.connected)
-            .toList();
+        targetInstances = instanceManager.getConnectedInstances();
         break;
       case TaskActionType.pause:
         title = '暂停任务';
         allInstancesText = '暂停所有实例的任务';
         instanceActionText = '暂停实例 "';
-        targetInstances = instanceManager.instances
-            .where((instance) => instance.status == ConnectionStatus.connected)
-            .toList();
+        targetInstances = instanceManager.getConnectedInstances();
         break;
       case TaskActionType.delete:
         title = '删除任务';
         allInstancesText = '删除所有实例的任务';
         instanceActionText = '删除实例 "';
-        targetInstances = instanceManager.instances
-            .where((instance) => instance.status == ConnectionStatus.connected)
-            .toList();
+        targetInstances = instanceManager.getConnectedInstances();
         break;
     }
     
@@ -137,9 +131,7 @@ class TaskActionDialogs {
     TaskActionType actionType,
   ) async {
     final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    final connectedInstances = instanceManager.instances
-        .where((instance) => instance.status == ConnectionStatus.connected)
-        .toList();
+    final connectedInstances = instanceManager.getConnectedInstances();
 
     for (final instance in connectedInstances) {
       await _performActionForInstance(instance, actionType);
