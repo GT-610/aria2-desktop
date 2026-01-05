@@ -36,7 +36,7 @@ typedef Aria2EventCallback = void Function(String gid);
 /// Aria2 RPC client service
 class Aria2RpcClient with Loggable {
   final Aria2Instance instance;
-  final http.Client? _httpClient;
+  http.Client? _httpClient;
   WebSocket? _webSocket;
   final Map<String, Completer<Map<String, dynamic>>> _pendingRequests = {};
   bool _isWebSocket = false;
@@ -468,9 +468,9 @@ class Aria2RpcClient with Loggable {
       _pendingRequests.clear();
     } else {
       _httpClient?.close();
+      _httpClient = null;
     }
     
-    // Clear all event callbacks
     clearEventCallbacks();
   }
 

@@ -49,10 +49,10 @@ class InstanceManager extends ChangeNotifier with Loggable {
       if (!hasBuiltinInstance) {
         // Add built-in instance
         _instances.insert(0, Aria2Instance(
-          id: 'builtin', // Fixed ID for built-in instance
+          id: 'builtin',
           name: '内建实例',
           type: InstanceType.builtin,
-          protocol: 'http',
+          protocol: 'ws',
           host: '127.0.0.1',
           port: 16800,
           secret: '',
@@ -115,14 +115,14 @@ class InstanceManager extends ChangeNotifier with Loggable {
   Future<void> _createDefaultInstance() async {
     _instances = [
       Aria2Instance(
-        id: 'builtin', // Fixed ID for built-in instance
+        id: 'builtin',
         name: '内建实例',
         type: InstanceType.builtin,
-        protocol: 'http',
+        protocol: 'ws',
         host: '127.0.0.1',
         port: 16800,
         secret: '',
-        status: ConnectionStatus.disconnected, // Ensure default instance is in disconnected state
+        status: ConnectionStatus.disconnected,
       ),
     ];
     await _saveInstances();

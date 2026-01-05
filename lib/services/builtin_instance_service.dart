@@ -34,16 +34,8 @@ class BuiltinInstanceService with Loggable {
     String executablePath = Platform.resolvedExecutable;
     Directory executableDir = Directory(executablePath).parent;
 
-    // For development, we'll use the test path from Motrix
-    // For production, we'll use the data/core directory
-    String coreDirPath;
-    if (kDebugMode) {
-      // Development path: use Motrix's test files
-      coreDirPath = r'd:\Data\Code\aria2-desktop\.trae\references\Motrix\extra\win32\x64\engine';
-    } else {
-      // Production path: data/core relative to executable
-      coreDirPath = '${executableDir.path}/data/core';
-    }
+    // Use data/core directory relative to executable
+    String coreDirPath = '${executableDir.path}/data/core';
 
     // Ensure core directory exists
     Directory coreDir = Directory(coreDirPath);
@@ -80,6 +72,8 @@ class BuiltinInstanceService with Loggable {
   /// Start the built-in Aria2 instance
   Future<bool> startInstance() async {
     try {
+      _isConnected = false;
+      
       // Check if built-in files exist
       if (!checkBuiltinFiles()) {
         logger.e('Built-in Aria2 files are missing, cannot start instance');
@@ -222,8 +216,10 @@ class BuiltinInstanceService with Loggable {
   void onConnected() {
     _isConnected = true;
     _stdoutSubscription?.cancel();
+    _stderrSubscription?.cancel();
     _stdoutSubscription = null;
-    logger.i('Built-in instance connected, stdout monitoring stopped');
+    _stderrSubscription = null;
+    logger.i('Built-in instance connected, output monitoring stopped');
   }
 
   /// Get the built-in instance configuration
