@@ -293,6 +293,10 @@ class InstanceManager extends ChangeNotifier with Loggable {
       
       // Update status in instance list
       updateInstanceInList(instance.id, ConnectionStatus.connected, version: version);
+
+      if (instance.type == InstanceType.builtin) {
+        _builtinInstanceService.onConnected();
+      }
       
       logger.d('Instance connection status set - Instance: ${instance.name}, Status: ${ConnectionStatus.connected}');
       

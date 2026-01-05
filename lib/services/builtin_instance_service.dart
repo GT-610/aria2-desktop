@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -12,6 +13,9 @@ class BuiltinInstanceService with Loggable {
   String? _aria2ConfPath;
   String? _sessionPath;
   String? _logPath;
+  bool _isConnected = false;
+  StreamSubscription<String>? _stdoutSubscription;
+  StreamSubscription<String>? _stderrSubscription;
 
   /// Singleton instance
   factory BuiltinInstanceService() {
@@ -173,12 +177,15 @@ class BuiltinInstanceService with Loggable {
 
       logger.i('Stopping built-in Aria2 instance, PID: ${_aria2Process!.pid}');
 
-      // Kill the process
+      await _stdoutSubscription?.cancel();
+      await _stderrSubscription?.cancel();
+
       _aria2Process!.kill();
       await _aria2Process!.exitCode.timeout(const Duration(seconds: 5));
 
       logger.i('Built-in Aria2 instance stopped successfully');
       _aria2Process = null;
+      _isConnected = false;
       return true;
     } catch (e, stackTrace) {
       logger.e('Failed to stop built-in Aria2 instance', error: e, stackTrace: stackTrace);
@@ -200,15 +207,23 @@ class BuiltinInstanceService with Loggable {
   void _monitorProcessOutput() {
     if (_aria2Process == null) return;
 
-    // Monitor stdout
-    _aria2Process!.stdout.transform(utf8.decoder).listen((data) {
-      logger.d('Aria2 [builtin] stdout: $data');
+    _stdoutSubscription = _aria2Process!.stdout.transform(utf8.decoder).listen((data) {
+      if (!_isConnected) {
+        logger.d('Aria2 [builtin] stdout: $data');
+      }
     });
 
-    // Monitor stderr
-    _aria2Process!.stderr.transform(utf8.decoder).listen((data) {
+    _stderrSubscription = _aria2Process!.stderr.transform(utf8.decoder).listen((data) {
       logger.e('Aria2 [builtin] stderr: $data');
     });
+  }
+
+  /// Called when connection to Aria2 is successful
+  void onConnected() {
+    _isConnected = true;
+    _stdoutSubscription?.cancel();
+    _stdoutSubscription = null;
+    logger.i('Built-in instance connected, stdout monitoring stopped');
   }
 
   /// Get the built-in instance configuration
