@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:http/http.dart';
 import '../models/aria2_instance.dart';
 import '../utils/logging.dart';
 
@@ -126,11 +125,9 @@ class Aria2RpcClient with Loggable {
       if (e is TimeoutException) {
         throw ConnectionFailedException();
       }
-      // SocketException usually indicates network connection issue
-      if (e is SocketException || e is ClientException) {
+      if (e is SocketException) {
         throw ConnectionFailedException();
       }
-      // Re-throw other exceptions, including UnauthorizedException
       rethrow;
     }
   }

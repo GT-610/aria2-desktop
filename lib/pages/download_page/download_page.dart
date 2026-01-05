@@ -50,19 +50,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   @override
   void initState() {
     super.initState();
-    // Initialize logger
     initLogger();
-    
-    // Get service instances
-    instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    downloadDataService = Provider.of<DownloadDataService>(context, listen: false);
-    
-    // Load instance names
-    _loadInstanceNames(instanceManager!);
-    
-    // Listen for changes in the instance manager
-    instanceManager?.addListener(_handleInstanceChanges);
-    
     logger.d('DownloadPage initialized');
   }
   
@@ -70,14 +58,13 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   void didChangeDependencies() {
     super.didChangeDependencies();
     
-    // Get service instances again in case dependencies change
     instanceManager = Provider.of<InstanceManager>(context, listen: false);
     downloadDataService = Provider.of<DownloadDataService>(context, listen: false);
     
-    // Load instance names when dependencies change
-    if (instanceManager != null) {
-      _loadInstanceNames(instanceManager!);
-    }
+    _loadInstanceNames(instanceManager!);
+    instanceManager?.addListener(_handleInstanceChanges);
+    
+    logger.d('DownloadPage initialized');
   }
   
   @override
