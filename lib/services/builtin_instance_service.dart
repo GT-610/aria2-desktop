@@ -147,6 +147,7 @@ class BuiltinInstanceService with Loggable {
       _aria2Process!.exitCode.then((exitCode) {
         logger.w('Built-in Aria2 process exited with code: $exitCode');
         _aria2Process = null;
+        _isConnected = false;
       });
 
       // Monitor stdout and stderr in debug mode
@@ -208,7 +209,9 @@ class BuiltinInstanceService with Loggable {
     });
 
     _stderrSubscription = _aria2Process!.stderr.transform(utf8.decoder).listen((data) {
-      logger.e('Aria2 [builtin] stderr: $data');
+      if (!_isConnected) {
+        logger.e('Aria2 [builtin] stderr: $data');
+      }
     });
   }
 
@@ -228,7 +231,7 @@ class BuiltinInstanceService with Loggable {
       id: 'builtin',
       name: '内建实例',
       type: InstanceType.builtin,
-      protocol: 'http',
+      protocol: 'ws',
       host: '127.0.0.1',
       port: 16800,
       secret: '',

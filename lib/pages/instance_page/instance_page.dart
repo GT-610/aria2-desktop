@@ -38,7 +38,7 @@ class _InstancePageState extends State<InstancePage> {
   }
 
   Widget _buildInstanceListView() {
-    final instanceManager = Provider.of<InstanceManager>(context);
+    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
     final instances = instanceManager.instances;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
