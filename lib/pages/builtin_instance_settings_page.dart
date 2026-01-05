@@ -671,7 +671,9 @@ class _BuiltinInstanceSettingsPageState extends State<BuiltinInstanceSettingsPag
             onPressed: () async {
               Navigator.pop(context); // 关闭对话框
               await _saveAndApplySettings(settings);
-              Navigator.pop(this.context); // 返回上一页
+              if (mounted) {
+                Navigator.pop(this.context); // 返回上一页
+              }
             },
             child: const Text('保存并应用'),
           ),
@@ -679,7 +681,9 @@ class _BuiltinInstanceSettingsPageState extends State<BuiltinInstanceSettingsPag
             onPressed: () async {
               Navigator.pop(context); // 关闭对话框
               await _saveSettings(settings);
-              Navigator.pop(this.context); // 返回上一页
+              if (mounted) {
+                Navigator.pop(this.context); // 返回上一页
+              }
             },
             child: const Text('保存'),
           ),

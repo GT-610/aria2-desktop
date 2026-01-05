@@ -95,7 +95,7 @@ class TaskListItem extends StatelessWidget {
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: statusColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
@@ -127,7 +127,7 @@ class TaskListItem extends StatelessWidget {
                           margin: const EdgeInsets.only(right: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: colorScheme.secondary.withOpacity(0.1),
+                            color: colorScheme.secondary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
@@ -150,7 +150,7 @@ class TaskListItem extends StatelessWidget {
                           margin: const EdgeInsets.only(right: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: colorScheme.primary.withOpacity(0.1),
+                            color: colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
@@ -174,7 +174,7 @@ class TaskListItem extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
@@ -203,7 +203,7 @@ class TaskListItem extends StatelessWidget {
                       // Use tertiary color for paused tasks
                       (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') 
                         ? colorScheme.tertiary 
-                        : (task.status == DownloadStatus.active ? statusColor : statusColor.withOpacity(0.6)),
+                        : (task.status == DownloadStatus.active ? statusColor : statusColor.withValues(alpha: 0.6)),
                     ),
                   ),
                 ],
@@ -224,7 +224,7 @@ class TaskListItem extends StatelessWidget {
                         margin: const EdgeInsets.only(bottom: 4),
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: colorScheme.tertiary.withOpacity(0.1),
+                          color: colorScheme.tertiary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(

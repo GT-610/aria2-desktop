@@ -215,12 +215,12 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                     children: [
                       _buildColorSlider(
                         label: 'R',
-                        value: ((_selectedColor.red * 255.0).round() & 0xff).toDouble(),
+                        value: ((_selectedColor.r * 255.0).round() & 0xff).toDouble(),
                         onChanged: (value) {
                           final newColor = Color.fromRGBO(
                             value.toInt(),
-                            (_selectedColor.green * 255.0).round() & 0xff,
-                            (_selectedColor.blue * 255.0).round() & 0xff,
+                            (_selectedColor.g * 255.0).round() & 0xff,
+                            (_selectedColor.b * 255.0).round() & 0xff,
                             1.0,
                           );
                           setState(() {
@@ -230,8 +230,8 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                         onChangeEnd: (value) {
                           final newColor = Color.fromRGBO(
                             value.toInt(),
-                            (_selectedColor.green * 255.0).round() & 0xff,
-                            (_selectedColor.blue * 255.0).round() & 0xff,
+                            (_selectedColor.g * 255.0).round() & 0xff,
+                            (_selectedColor.b * 255.0).round() & 0xff,
                             1.0,
                           );
                           try {
@@ -246,12 +246,12 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                       ),
                       _buildColorSlider(
                         label: 'G',
-                        value: ((_selectedColor.green * 255.0).round() & 0xff).toDouble(),
+                        value: ((_selectedColor.g * 255.0).round() & 0xff).toDouble(),
                         onChanged: (value) {
                           final newColor = Color.fromRGBO(
-                            (_selectedColor.red * 255.0).round() & 0xff,
+                            (_selectedColor.r * 255.0).round() & 0xff,
                             value.toInt(),
-                            (_selectedColor.blue * 255.0).round() & 0xff,
+                            (_selectedColor.b * 255.0).round() & 0xff,
                             1.0,
                           );
                           setState(() {
@@ -260,9 +260,9 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                         },
                         onChangeEnd: (value) {
                           final newColor = Color.fromRGBO(
-                            (_selectedColor.red * 255.0).round() & 0xff,
+                            (_selectedColor.r * 255.0).round() & 0xff,
                             value.toInt(),
-                            (_selectedColor.blue * 255.0).round() & 0xff,
+                            (_selectedColor.b * 255.0).round() & 0xff,
                             1.0,
                           );
                           widget.settings.setPrimaryColor(newColor, isCustom: true);
@@ -271,11 +271,11 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                       ),
                       _buildColorSlider(
                         label: 'B',
-                        value: ((_selectedColor.blue * 255.0).round() & 0xff).toDouble(),
+                        value: ((_selectedColor.b * 255.0).round() & 0xff).toDouble(),
                         onChanged: (value) {
                           final newColor = Color.fromRGBO(
-                            (_selectedColor.red * 255.0).round() & 0xff,
-                            (_selectedColor.green * 255.0).round() & 0xff,
+                            (_selectedColor.r * 255.0).round() & 0xff,
+                            (_selectedColor.g * 255.0).round() & 0xff,
                             value.toInt(),
                             1.0,
                           );
@@ -285,8 +285,8 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                         },
                         onChangeEnd: (value) {
                           final newColor = Color.fromRGBO(
-                            (_selectedColor.red * 255.0).round() & 0xff,
-                            (_selectedColor.green * 255.0).round() & 0xff,
+                            (_selectedColor.r * 255.0).round() & 0xff,
+                            (_selectedColor.g * 255.0).round() & 0xff,
                             value.toInt(),
                             1.0,
                           );
