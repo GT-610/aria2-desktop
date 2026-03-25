@@ -156,7 +156,9 @@ class Aria2RpcClient with Loggable {
           rethrow;
         }
         logger.w('WebSocket attempt ${attempt + 1} failed, retrying: $e');
+        _webSocket?.close();
         _webSocket = null;
+        _pendingRequests.clear();
         await Future.delayed(const Duration(milliseconds: 100));
       }
     }
@@ -421,7 +423,14 @@ class Aria2RpcClient with Loggable {
     final response = await callRpc('aria2.remove', [gid]);
     return response['result'] as String; // Returns the GID of the removed task
   }
-  
+
+  /// Remove a download result from stopped list
+  /// Only works for stopped/completed tasks, not active ones
+  Future<String> removeDownloadResult(String gid) async {
+    final response = await callRpc('aria2.removeDownloadResult', [gid]);
+    return response['result'] as String;
+  }
+
   /// Add a download task with URI(s)
   Future<String> addUri(List<String> uris, Map<String, dynamic> options) async {
     // Build request parameters - [URL list, options]

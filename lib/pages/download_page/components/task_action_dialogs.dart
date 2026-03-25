@@ -183,7 +183,11 @@ class TaskActionDialogs {
               }
               break;
             case TaskActionType.delete:
-              await client.removeTask(task.id);
+              if (task.status == DownloadStatus.stopped) {
+                await client.removeDownloadResult(task.id);
+              } else {
+                await client.removeTask(task.id);
+              }
               successCount++;
               break;
           }
