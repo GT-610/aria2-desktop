@@ -57,13 +57,14 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     instanceManager = Provider.of<InstanceManager>(context, listen: false);
     downloadDataService = Provider.of<DownloadDataService>(context, listen: false);
-    
+
     _loadInstanceNames(instanceManager!);
+    instanceManager?.removeListener(_handleInstanceChanges);
     instanceManager?.addListener(_handleInstanceChanges);
-    
+
     logger.d('DownloadPage initialized');
   }
   
