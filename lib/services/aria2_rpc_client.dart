@@ -134,23 +134,33 @@ class Aria2RpcClient with Loggable {
 
   /// WebSocket RPC implementation
   Future<Map<String, dynamic>> _callWebSocketRpc(String method, List<dynamic> params) async {
-    try {
-      await _initWebSocket();
-      final requestId = DateTime.now().millisecondsSinceEpoch.toString();
-      final requestBody = _buildRequestBody(method, params, requestId);
+    const maxRetries = 2;
 
-      final completer = Completer<Map<String, dynamic>>();
-      _pendingRequests[requestId] = completer;
+    for (int attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        await _initWebSocket();
+        final requestId = DateTime.now().millisecondsSinceEpoch.toString();
+        final requestBody = _buildRequestBody(method, params, requestId);
 
-      _webSocket!.add(jsonEncode(requestBody));
+        final completer = Completer<Map<String, dynamic>>();
+        _pendingRequests[requestId] = completer;
 
-      return await completer.future.timeout(const Duration(seconds: 10));
-    } catch (e) {
-      if (e is TimeoutException || e is SocketException) {
-        throw ConnectionFailedException();
+        _webSocket!.add(jsonEncode(requestBody));
+
+        return await completer.future.timeout(const Duration(seconds: 10));
+      } catch (e) {
+        if (attempt == maxRetries) {
+          if (e is TimeoutException || e is SocketException) {
+            throw ConnectionFailedException();
+          }
+          rethrow;
+        }
+        logger.w('WebSocket attempt ${attempt + 1} failed, retrying: $e');
+        _webSocket = null;
+        await Future.delayed(const Duration(milliseconds: 100));
       }
-      rethrow;
     }
+    throw ConnectionFailedException();
   }
 
   /// Initialize WebSocket connection
@@ -158,6 +168,9 @@ class Aria2RpcClient with Loggable {
     if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
       return;
     }
+
+    _webSocket?.close();
+    _webSocket = null;
 
     try {
       _webSocket = await WebSocket.connect(buildRpcUrl())
@@ -168,6 +181,7 @@ class Aria2RpcClient with Loggable {
         onDone: _handleWebSocketDone,
       );
     } catch (e) {
+      _webSocket = null;
       throw ConnectionFailedException();
     }
   }
@@ -179,7 +193,6 @@ class Aria2RpcClient with Loggable {
       final requestId = data['id']?.toString();
 
       if (requestId != null && _pendingRequests.containsKey(requestId)) {
-        // Handle response to a request
         final completer = _pendingRequests[requestId]!;
         _pendingRequests.remove(requestId);
 
@@ -193,11 +206,9 @@ class Aria2RpcClient with Loggable {
           completer.complete(data);
         }
       } else if (data.containsKey('method')) {
-        // Handle notification
         _handleNotification(data);
       }
     } catch (e) {
-      // Handle parsing errors
       logger.e('Failed to parse WebSocket message', error: e);
     }
   }
@@ -206,17 +217,15 @@ class Aria2RpcClient with Loggable {
   void _handleNotification(Map<String, dynamic> notification) {
     final method = notification['method'] as String;
     final params = notification['params'] as List<dynamic>;
-    
-    // Extract GID from params
+
     String gid = '';
     if (params.isNotEmpty) {
       final firstParam = params[0] as Map<String, dynamic>;
       gid = firstParam['gid'] as String;
     }
-    
+
     logger.d('Received Aria2 notification: $method, GID: $gid');
-    
-    // Map method name to Aria2Event enum
+
     Aria2Event? event;
     switch (method) {
       case 'aria2.onDownloadStart':
@@ -250,8 +259,7 @@ class Aria2RpcClient with Loggable {
         event = Aria2Event.onBtScrape;
         break;
     }
-    
-    // Call callbacks if event is recognized
+
     if (event != null) {
       _triggerEvent(event, gid);
     }

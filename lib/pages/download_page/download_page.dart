@@ -69,14 +69,14 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   
   @override
   void dispose() {
-    // Remove listener to avoid memory leaks
     if (instanceManager != null) {
       instanceManager!.removeListener(_handleInstanceChanges);
     }
-    
-    // Stop the refresh timer when disposing
+
     downloadDataService?.stopPeriodicRefresh();
-    
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+
     super.dispose();
   }
   

@@ -83,50 +83,58 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       logger.w('Instance not connected, skipping task fetch: ${instance.name}');
       return null;
     }
-    
+
+    final instanceId = instance.id;
+    final isLocal = instance.type == InstanceType.builtin;
+
     try {
       List<DownloadTask> allTasks = [];
-      
+
       final client = _getClient(instance);
       final results = await client.getDownloadStatus();
-  
+
+      if (instance.status != ConnectionStatus.connected) {
+        logger.w('Instance disconnected during fetch, aborting');
+        return null;
+      }
+
       if (results.isEmpty) {
         logger.d('Task data is empty');
         return allTasks;
       }
-      
+
       if (results[0]['success'] && results[0]['data'] is List) {
         final activeTasks = results[0]['data'] as List;
         allTasks.addAll(TaskParser.parseTasks(
-          activeTasks, 
-          DownloadStatus.active, 
-          instance.id, 
-          instance.type == InstanceType.builtin
+          activeTasks,
+          DownloadStatus.active,
+          instanceId,
+          isLocal,
         ));
       }
-      
+
       if (results.length > 1 && results[1]['success'] && results[1]['data'] is List) {
         final waitingTasks = results[1]['data'] as List;
         allTasks.addAll(TaskParser.parseTasks(
-          waitingTasks, 
-          DownloadStatus.waiting, 
-          instance.id, 
-          instance.type == InstanceType.builtin
+          waitingTasks,
+          DownloadStatus.waiting,
+          instanceId,
+          isLocal,
         ));
       }
-      
+
       if (results.length > 2 && results[2]['success'] && results[2]['data'] is List) {
         final stoppedTasks = results[2]['data'] as List;
         allTasks.addAll(TaskParser.parseTasks(
-          stoppedTasks, 
-          DownloadStatus.stopped, 
-          instance.id, 
-          instance.type == InstanceType.builtin
+          stoppedTasks,
+          DownloadStatus.stopped,
+          instanceId,
+          isLocal,
         ));
       }
-      
+
       logger.d('Task fetch completed: ${allTasks.length} total');
-      
+
       return allTasks;
     } catch (e, stackTrace) {
       logger.e('Failed to fetch tasks: ${instance.name}', error: e, stackTrace: stackTrace);
