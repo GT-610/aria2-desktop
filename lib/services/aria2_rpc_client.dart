@@ -136,11 +136,12 @@ class Aria2RpcClient with Loggable {
   /// WebSocket RPC implementation
   Future<Map<String, dynamic>> _callWebSocketRpc(String method, List<dynamic> params) async {
     const maxRetries = 2;
+    String? requestId;
 
     for (int attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         await _initWebSocket();
-        final requestId = DateTime.now().millisecondsSinceEpoch.toString();
+        requestId = DateTime.now().millisecondsSinceEpoch.toString();
         final requestBody = _buildRequestBody(method, params, requestId);
 
         final completer = Completer<Map<String, dynamic>>();
@@ -150,6 +151,10 @@ class Aria2RpcClient with Loggable {
 
         return await completer.future.timeout(const Duration(seconds: 10));
       } catch (e) {
+        // Clean up current request from pending before rethrowing
+        if (requestId != null) {
+          _pendingRequests.remove(requestId);
+        }
         if (attempt == maxRetries) {
           if (e is TimeoutException || e is SocketException) {
             throw ConnectionFailedException();

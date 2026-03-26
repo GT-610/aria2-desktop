@@ -72,7 +72,17 @@ class InstanceManager extends ChangeNotifier with Loggable {
         await _saveInstances();
         logger.i('Added missing built-in instance');
       }
-      
+
+      // Migrate builtin instance protocol from http to ws
+      final builtinIndex = _instances.indexWhere((i) => i.id == 'builtin');
+      if (builtinIndex != -1 &&
+          _instances[builtinIndex].protocol == 'http' &&
+          _instances[builtinIndex].type == InstanceType.builtin) {
+        _instances[builtinIndex] = _instances[builtinIndex].copyWith(protocol: 'ws');
+        await _saveInstances();
+        logger.i('Migrated builtin instance protocol from http to ws');
+      }
+
       // Automatically connect to built-in instance on startup
       final builtinInstance = _instances.firstWhere((instance) => instance.id == 'builtin');
       await connectInstance(builtinInstance);
