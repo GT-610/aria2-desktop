@@ -170,14 +170,16 @@ class TaskActionDialogs {
         try {
           switch (actionType) {
             case TaskActionType.resume:
-              if (task.status == DownloadStatus.waiting) {
+              if (task.status == DownloadStatus.waiting &&
+                  task.taskStatus == 'paused') {
                 await client.unpauseTask(task.id);
                 successCount++;
               }
               break;
             case TaskActionType.pause:
-              if (task.status == DownloadStatus.active ||
-                  task.status == DownloadStatus.waiting) {
+              if ((task.status == DownloadStatus.active ||
+                      task.status == DownloadStatus.waiting) &&
+                  task.taskStatus != 'paused') {
                 await client.pauseTask(task.id);
                 successCount++;
               }

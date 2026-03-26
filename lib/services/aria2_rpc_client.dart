@@ -125,7 +125,8 @@ class Aria2RpcClient with Loggable {
       if (e is TimeoutException) {
         throw ConnectionFailedException();
       }
-      if (e is SocketException) {
+      // http package wraps SocketException as ClientException
+      if (e is SocketException || e is http.ClientException) {
         throw ConnectionFailedException();
       }
       rethrow;
