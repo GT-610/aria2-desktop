@@ -30,7 +30,8 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   String? get lastError => _lastError;
 
   Aria2RpcClient _getClient(Aria2Instance instance) {
-    final key = '${instance.id}_${instance.host}_${instance.port}';
+    final key =
+        '${instance.id}_${instance.protocol}_${instance.host}_${instance.port}_${instance.secret}';
     return _clientCache.putIfAbsent(key, () => Aria2RpcClient(instance));
   }
 

@@ -159,6 +159,12 @@ class Aria2RpcClient with Loggable {
         logger.w('WebSocket attempt ${attempt + 1} failed, retrying: $e');
         _webSocket?.close();
         _webSocket = null;
+        // Complete pending requests with error before clearing
+        for (final completer in _pendingRequests.values) {
+          if (!completer.isCompleted) {
+            completer.completeError(ConnectionFailedException());
+          }
+        }
         _pendingRequests.clear();
         await Future.delayed(const Duration(milliseconds: 100));
       }
