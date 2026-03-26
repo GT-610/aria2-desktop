@@ -1,32 +1,29 @@
 import '../enums.dart';
 
-// Enhanced Download task model with more detailed information
 class DownloadTask {
   final String id;
   final String name;
   final DownloadStatus status;
-  final String? taskStatus; // Store original task status, e.g. 'paused'
+  final String? taskStatus;
   final double progress;
   final String downloadSpeed;
   final String uploadSpeed;
   final String size;
   final String completedSize;
   final bool isLocal;
-  final String instanceId; // Add instance ID field
-  final int? connections; // Connection count information
-  final String? dir; // Download path
-  
-  // Extended detailed information
-  final int totalLengthBytes; // Raw bytes for accurate calculations
-  final int completedLengthBytes; // Raw bytes for accurate calculations
-  final int downloadSpeedBytes; // Raw bytes for accurate calculations
-  final int uploadSpeedBytes; // Raw bytes for accurate calculations
-  final List<Map<String, dynamic>>? files; // File list with detailed information
-  final String? bittorrentInfo; // Torrent info if available
-  final List<String>? uris; // Download URIs
-  final String? errorMessage; // Error message if any
-  final DateTime? startTime; // Task start time
-  final String? bitfield; // Bitfield data for download status visualization
+  final String instanceId;
+  final int? connections;
+  final String? dir;
+  final int totalLengthBytes;
+  final int completedLengthBytes;
+  final int downloadSpeedBytes;
+  final int uploadSpeedBytes;
+  final List<Map<String, dynamic>>? files;
+  final String? bittorrentInfo;
+  final List<String>? uris;
+  final String? errorMessage;
+  final DateTime? startTime;
+  final String? bitfield;
 
   DownloadTask({
     required this.id,
@@ -53,4 +50,73 @@ class DownloadTask {
     this.startTime,
     this.bitfield,
   });
+
+  factory DownloadTask.fromJson(Map<String, dynamic> json) {
+    return DownloadTask(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      status: _parseDownloadStatus(json['status']),
+      taskStatus: json['taskStatus'],
+      progress: (json['progress'] ?? 0.0).toDouble(),
+      downloadSpeed: json['downloadSpeed'] ?? '0 B/s',
+      uploadSpeed: json['uploadSpeed'] ?? '0 B/s',
+      size: json['size'] ?? '0 B',
+      completedSize: json['completedSize'] ?? '0 B',
+      isLocal: json['isLocal'] ?? false,
+      instanceId: json['instanceId'] ?? '',
+      connections: json['connections'],
+      dir: json['dir'],
+      totalLengthBytes: json['totalLengthBytes'] ?? 0,
+      completedLengthBytes: json['completedLengthBytes'] ?? 0,
+      downloadSpeedBytes: json['downloadSpeedBytes'] ?? 0,
+      uploadSpeedBytes: json['uploadSpeedBytes'] ?? 0,
+      files: json['files'] != null ? List<Map<String, dynamic>>.from(json['files']) : null,
+      bittorrentInfo: json['bittorrentInfo'],
+      uris: json['uris'] != null ? List<String>.from(json['uris']) : null,
+      errorMessage: json['errorMessage'],
+      startTime: json['startTime'] != null ? DateTime.tryParse(json['startTime']) : null,
+      bitfield: json['bitfield'],
+    );
+  }
+
+  static DownloadStatus _parseDownloadStatus(dynamic value) {
+    if (value == null) return DownloadStatus.stopped;
+    if (value is DownloadStatus) return value;
+    if (value is String) {
+      try {
+        return DownloadStatus.values.byName(value);
+      } catch (_) {
+        return DownloadStatus.stopped;
+      }
+    }
+    return DownloadStatus.stopped;
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'status': status.name,
+      'taskStatus': taskStatus,
+      'progress': progress,
+      'downloadSpeed': downloadSpeed,
+      'uploadSpeed': uploadSpeed,
+      'size': size,
+      'completedSize': completedSize,
+      'isLocal': isLocal,
+      'instanceId': instanceId,
+      'connections': connections,
+      'dir': dir,
+      'totalLengthBytes': totalLengthBytes,
+      'completedLengthBytes': completedLengthBytes,
+      'downloadSpeedBytes': downloadSpeedBytes,
+      'uploadSpeedBytes': uploadSpeedBytes,
+      'files': files,
+      'bittorrentInfo': bittorrentInfo,
+      'uris': uris,
+      'errorMessage': errorMessage,
+      'startTime': startTime?.toIso8601String(),
+      'bitfield': bitfield,
+    };
+  }
 }

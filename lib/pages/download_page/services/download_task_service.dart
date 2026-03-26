@@ -3,13 +3,12 @@ import 'dart:io';
 
 // Third-party packages
 import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 
 // Models
 import '../models/download_task.dart';
 import '../enums.dart';
-import '../../../models/aria2_instance.dart';
 
 // Services
 import '../../../services/aria2_rpc_client.dart';
@@ -17,9 +16,17 @@ import '../../../services/instance_manager.dart';
 
 // Utilities
 import '../../../utils/format_utils.dart';
+import '../../../utils/logging.dart';
 
 /// Service to handle download task operations and data processing
-class DownloadTaskService {
+class DownloadTaskService with Loggable {
+  static final DownloadTaskService _instance = DownloadTaskService._();
+  DownloadTaskService._() {
+    initLogger();
+  }
+  static DownloadTaskService get instance => _instance;
+  
+  static Logger get _logger => LogManager().logger;
   /// Parse download task from Aria2 RPC response
   static DownloadTask parseTask(Map<String, dynamic> taskData, String instanceId) {
     String gid = taskData['gid'] ?? '';
@@ -163,69 +170,63 @@ class DownloadTaskService {
   /// Pause a download task
   static Future<void> pauseTask(BuildContext context, String taskId, VoidCallback onTaskUpdated) async {
     try {
-      // Get instance manager and active instance
+      // Get instance manager and connected instance
       final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-      final activeInstance = instanceManager.activeInstance;
-      if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
-        final client = Aria2RpcClient(activeInstance);
+      final connectedInstance = instanceManager.getConnectedInstance();
+      if (connectedInstance != null) {
+        final client = Aria2RpcClient(connectedInstance);
         await client.pauseTask(taskId);
         client.close();
         onTaskUpdated();
       }
     } catch (e) {
-        if (kDebugMode) {
-          print('Error pausing task: $e');
-        }
+        _logger.e('Error pausing task', error: e);
       }
   }
 
   /// Stop a download task
   static Future<void> stopTask(BuildContext context, String taskId, VoidCallback onTaskUpdated) async {
     try {
-      // Get instance manager and active instance
+      // Get instance manager and connected instance
       final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-      final activeInstance = instanceManager.activeInstance;
-      if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
-        final client = Aria2RpcClient(activeInstance);
+      final connectedInstance = instanceManager.getConnectedInstance();
+      if (connectedInstance != null) {
+        final client = Aria2RpcClient(connectedInstance);
         await client.removeTask(taskId);
         client.close();
         onTaskUpdated();
       }
     } catch (e) {
-        if (kDebugMode) {
-          print('Error stopping task: $e');
-        }
+        _logger.e('Error stopping task', error: e);
       }
   }
 
   /// Resume a paused download task
   static Future<void> resumeTask(BuildContext context, String taskId, VoidCallback onTaskUpdated) async {
     try {
-      // Get instance manager and active instance
+      // Get instance manager and connected instance
       final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-      final activeInstance = instanceManager.activeInstance;
-      if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
-        final client = Aria2RpcClient(activeInstance);
+      final connectedInstance = instanceManager.getConnectedInstance();
+      if (connectedInstance != null) {
+        final client = Aria2RpcClient(connectedInstance);
         await client.unpauseTask(taskId);
         client.close();
         onTaskUpdated();
       }
     } catch (e) {
-        if (kDebugMode) {
-          print('Error resuming task: $e');
-        }
+        _logger.e('Error resuming task', error: e);
       }
   }
 
   /// Retry a failed download task
   static Future<void> retryTask(BuildContext context, DownloadTask task, VoidCallback onTaskUpdated) async {
     try {
-      // Get instance manager and active instance
+      // Get instance manager and connected instance
       final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-      final activeInstance = instanceManager.activeInstance;
+      final connectedInstance = instanceManager.getConnectedInstance();
       
-      if (activeInstance != null && activeInstance.status == ConnectionStatus.connected) {
-        final client = Aria2RpcClient(activeInstance);
+      if (connectedInstance != null) {
+        final client = Aria2RpcClient(connectedInstance);
         
         // First remove the failed task
         await client.removeTask(task.id);
@@ -233,17 +234,12 @@ class DownloadTaskService {
         // Then add it again (simplified retry mechanism)
         // In a real implementation, you might want to store and reuse the original URIs/magnet links
         // For now, this is a placeholder implementation
-        if (kDebugMode) {
-            print('Retrying task: ${task.id}');
-          }
         
         client.close();
         onTaskUpdated();
       }
     } catch (e) {
-        if (kDebugMode) {
-          print('Error retrying task: $e');
-        }
+        _logger.e('Error retrying task', error: e);
       }
   }
 

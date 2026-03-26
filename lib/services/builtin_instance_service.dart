@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -12,6 +13,9 @@ class BuiltinInstanceService with Loggable {
   String? _aria2ConfPath;
   String? _sessionPath;
   String? _logPath;
+  bool _isConnected = false;
+  StreamSubscription<String>? _stdoutSubscription;
+  StreamSubscription<String>? _stderrSubscription;
 
   /// Singleton instance
   factory BuiltinInstanceService() {
@@ -30,16 +34,8 @@ class BuiltinInstanceService with Loggable {
     String executablePath = Platform.resolvedExecutable;
     Directory executableDir = Directory(executablePath).parent;
 
-    // For development, we'll use the test path from Motrix
-    // For production, we'll use the data/core directory
-    String coreDirPath;
-    if (kDebugMode) {
-      // Development path: use Motrix's test files
-      coreDirPath = r'd:\Data\Code\aria2-desktop\.trae\references\Motrix\extra\win32\x64\engine';
-    } else {
-      // Production path: data/core relative to executable
-      coreDirPath = '${executableDir.path}/data/core';
-    }
+    // Use data/core directory relative to executable
+    String coreDirPath = '${executableDir.path}/data/core';
 
     // Ensure core directory exists
     Directory coreDir = Directory(coreDirPath);
@@ -76,6 +72,8 @@ class BuiltinInstanceService with Loggable {
   /// Start the built-in Aria2 instance
   Future<bool> startInstance() async {
     try {
+      _isConnected = false;
+      
       // Check if built-in files exist
       if (!checkBuiltinFiles()) {
         logger.e('Built-in Aria2 files are missing, cannot start instance');
@@ -149,6 +147,7 @@ class BuiltinInstanceService with Loggable {
       _aria2Process!.exitCode.then((exitCode) {
         logger.w('Built-in Aria2 process exited with code: $exitCode');
         _aria2Process = null;
+        _isConnected = false;
       });
 
       // Monitor stdout and stderr in debug mode
@@ -173,12 +172,15 @@ class BuiltinInstanceService with Loggable {
 
       logger.i('Stopping built-in Aria2 instance, PID: ${_aria2Process!.pid}');
 
-      // Kill the process
+      await _stdoutSubscription?.cancel();
+      await _stderrSubscription?.cancel();
+
       _aria2Process!.kill();
       await _aria2Process!.exitCode.timeout(const Duration(seconds: 5));
 
       logger.i('Built-in Aria2 instance stopped successfully');
       _aria2Process = null;
+      _isConnected = false;
       return true;
     } catch (e, stackTrace) {
       logger.e('Failed to stop built-in Aria2 instance', error: e, stackTrace: stackTrace);
@@ -200,15 +202,27 @@ class BuiltinInstanceService with Loggable {
   void _monitorProcessOutput() {
     if (_aria2Process == null) return;
 
-    // Monitor stdout
-    _aria2Process!.stdout.transform(utf8.decoder).listen((data) {
-      logger.d('Aria2 [builtin] stdout: $data');
+    _stdoutSubscription = _aria2Process!.stdout.transform(utf8.decoder).listen((data) {
+      if (!_isConnected) {
+        logger.d('Aria2 [builtin] stdout: $data');
+      }
     });
 
-    // Monitor stderr
-    _aria2Process!.stderr.transform(utf8.decoder).listen((data) {
-      logger.e('Aria2 [builtin] stderr: $data');
+    _stderrSubscription = _aria2Process!.stderr.transform(utf8.decoder).listen((data) {
+      if (!_isConnected) {
+        logger.e('Aria2 [builtin] stderr: $data');
+      }
     });
+  }
+
+  /// Called when connection to Aria2 is successful
+  void onConnected() {
+    _isConnected = true;
+    _stdoutSubscription?.cancel();
+    _stderrSubscription?.cancel();
+    _stdoutSubscription = null;
+    _stderrSubscription = null;
+    logger.i('Built-in instance connected, output monitoring stopped');
   }
 
   /// Get the built-in instance configuration
@@ -217,7 +231,7 @@ class BuiltinInstanceService with Loggable {
       id: 'builtin',
       name: '内建实例',
       type: InstanceType.builtin,
-      protocol: 'http',
+      protocol: 'ws',
       host: '127.0.0.1',
       port: 16800,
       secret: '',

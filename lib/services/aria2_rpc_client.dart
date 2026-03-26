@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:http/http.dart';
 import '../models/aria2_instance.dart';
 import '../utils/logging.dart';
 
@@ -37,7 +36,7 @@ typedef Aria2EventCallback = void Function(String gid);
 /// Aria2 RPC client service
 class Aria2RpcClient with Loggable {
   final Aria2Instance instance;
-  final http.Client? _httpClient;
+  http.Client? _httpClient;
   WebSocket? _webSocket;
   final Map<String, Completer<Map<String, dynamic>>> _pendingRequests = {};
   bool _isWebSocket = false;
@@ -126,34 +125,56 @@ class Aria2RpcClient with Loggable {
       if (e is TimeoutException) {
         throw ConnectionFailedException();
       }
-      // SocketException usually indicates network connection issue
-      if (e is SocketException || e is ClientException) {
+      // http package wraps SocketException as ClientException
+      if (e is SocketException || e is http.ClientException) {
         throw ConnectionFailedException();
       }
-      // Re-throw other exceptions, including UnauthorizedException
       rethrow;
     }
   }
 
   /// WebSocket RPC implementation
   Future<Map<String, dynamic>> _callWebSocketRpc(String method, List<dynamic> params) async {
-    try {
-      await _initWebSocket();
-      final requestId = DateTime.now().millisecondsSinceEpoch.toString();
-      final requestBody = _buildRequestBody(method, params, requestId);
+    const maxRetries = 2;
+    String? requestId;
 
-      final completer = Completer<Map<String, dynamic>>();
-      _pendingRequests[requestId] = completer;
+    for (int attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        await _initWebSocket();
+        requestId = DateTime.now().millisecondsSinceEpoch.toString();
+        final requestBody = _buildRequestBody(method, params, requestId);
 
-      _webSocket!.add(jsonEncode(requestBody));
+        final completer = Completer<Map<String, dynamic>>();
+        _pendingRequests[requestId] = completer;
 
-      return await completer.future.timeout(const Duration(seconds: 10));
-    } catch (e) {
-      if (e is TimeoutException || e is SocketException) {
-        throw ConnectionFailedException();
+        _webSocket!.add(jsonEncode(requestBody));
+
+        return await completer.future.timeout(const Duration(seconds: 10));
+      } catch (e) {
+        // Clean up current request from pending before rethrowing
+        if (requestId != null) {
+          _pendingRequests.remove(requestId);
+        }
+        if (attempt == maxRetries) {
+          if (e is TimeoutException || e is SocketException) {
+            throw ConnectionFailedException();
+          }
+          rethrow;
+        }
+        logger.w('WebSocket attempt ${attempt + 1} failed, retrying: $e');
+        _webSocket?.close();
+        _webSocket = null;
+        // Complete pending requests with error before clearing
+        for (final completer in _pendingRequests.values) {
+          if (!completer.isCompleted) {
+            completer.completeError(ConnectionFailedException());
+          }
+        }
+        _pendingRequests.clear();
+        await Future.delayed(const Duration(milliseconds: 100));
       }
-      rethrow;
     }
+    throw ConnectionFailedException();
   }
 
   /// Initialize WebSocket connection
@@ -161,6 +182,9 @@ class Aria2RpcClient with Loggable {
     if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
       return;
     }
+
+    _webSocket?.close();
+    _webSocket = null;
 
     try {
       _webSocket = await WebSocket.connect(buildRpcUrl())
@@ -171,6 +195,7 @@ class Aria2RpcClient with Loggable {
         onDone: _handleWebSocketDone,
       );
     } catch (e) {
+      _webSocket = null;
       throw ConnectionFailedException();
     }
   }
@@ -182,7 +207,6 @@ class Aria2RpcClient with Loggable {
       final requestId = data['id']?.toString();
 
       if (requestId != null && _pendingRequests.containsKey(requestId)) {
-        // Handle response to a request
         final completer = _pendingRequests[requestId]!;
         _pendingRequests.remove(requestId);
 
@@ -196,11 +220,9 @@ class Aria2RpcClient with Loggable {
           completer.complete(data);
         }
       } else if (data.containsKey('method')) {
-        // Handle notification
         _handleNotification(data);
       }
     } catch (e) {
-      // Handle parsing errors
       logger.e('Failed to parse WebSocket message', error: e);
     }
   }
@@ -209,17 +231,15 @@ class Aria2RpcClient with Loggable {
   void _handleNotification(Map<String, dynamic> notification) {
     final method = notification['method'] as String;
     final params = notification['params'] as List<dynamic>;
-    
-    // Extract GID from params
+
     String gid = '';
     if (params.isNotEmpty) {
       final firstParam = params[0] as Map<String, dynamic>;
       gid = firstParam['gid'] as String;
     }
-    
+
     logger.d('Received Aria2 notification: $method, GID: $gid');
-    
-    // Map method name to Aria2Event enum
+
     Aria2Event? event;
     switch (method) {
       case 'aria2.onDownloadStart':
@@ -253,8 +273,7 @@ class Aria2RpcClient with Loggable {
         event = Aria2Event.onBtScrape;
         break;
     }
-    
-    // Call callbacks if event is recognized
+
     if (event != null) {
       _triggerEvent(event, gid);
     }
@@ -416,7 +435,14 @@ class Aria2RpcClient with Loggable {
     final response = await callRpc('aria2.remove', [gid]);
     return response['result'] as String; // Returns the GID of the removed task
   }
-  
+
+  /// Remove a download result from stopped list
+  /// Only works for stopped/completed tasks, not active ones
+  Future<String> removeDownloadResult(String gid) async {
+    final response = await callRpc('aria2.removeDownloadResult', [gid]);
+    return response['result'] as String;
+  }
+
   /// Add a download task with URI(s)
   Future<String> addUri(List<String> uris, Map<String, dynamic> options) async {
     // Build request parameters - [URL list, options]
@@ -471,9 +497,9 @@ class Aria2RpcClient with Loggable {
       _pendingRequests.clear();
     } else {
       _httpClient?.close();
+      _httpClient = null;
     }
     
-    // Clear all event callbacks
     clearEventCallbacks();
   }
 

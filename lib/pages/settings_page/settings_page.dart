@@ -75,8 +75,8 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
             ),
             Card(
               margin: const EdgeInsets.only(top: 12, bottom: 24),
-              elevation: 2,
-              shadowColor: Colors.black.withValues(alpha: 0.1),
+              elevation: 1,
+              shadowColor: colorScheme.shadow,
               surfaceTintColor: colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -168,8 +168,8 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
             ),
             Card(
               margin: const EdgeInsets.only(top: 12, bottom: 24),
-              elevation: 2,
-              shadowColor: Colors.black.withValues(alpha: 0.1),
+              elevation: 1,
+              shadowColor: colorScheme.shadow,
               surfaceTintColor: colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -271,8 +271,8 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
             ),
             Card(
               margin: const EdgeInsets.only(top: 12, bottom: 24),
-              elevation: 2,
-              shadowColor: Colors.black.withValues(alpha: 0.1),
+              elevation: 1,
+              shadowColor: colorScheme.shadow,
               surfaceTintColor: colorScheme.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
