@@ -93,11 +93,6 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       final client = _getClient(instance);
       final results = await client.getDownloadStatus();
 
-      if (instance.status != ConnectionStatus.connected) {
-        logger.w('Instance disconnected during fetch, aborting');
-        return null;
-      }
-
       if (results.isEmpty) {
         logger.d('Task data is empty');
         return allTasks;

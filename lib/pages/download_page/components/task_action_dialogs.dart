@@ -161,50 +161,53 @@ class TaskActionDialogs {
       return;
     }
 
-    try {
-      final client = Aria2RpcClient(instance);
+    Aria2RpcClient? client;
       int successCount = 0;
       int failCount = 0;
 
-      for (final task in tasks) {
-        try {
-          switch (actionType) {
-            case TaskActionType.resume:
-              if (task.status == DownloadStatus.waiting &&
-                  task.taskStatus == 'paused') {
-                await client.unpauseTask(task.id);
-                successCount++;
-              }
-              break;
-            case TaskActionType.pause:
-              if ((task.status == DownloadStatus.active ||
-                      task.status == DownloadStatus.waiting) &&
-                  task.taskStatus != 'paused') {
-                await client.pauseTask(task.id);
-                successCount++;
-              }
-              break;
-            case TaskActionType.delete:
-              if (task.status == DownloadStatus.stopped) {
-                await client.removeDownloadResult(task.id);
-              } else {
-                await client.removeTask(task.id);
-              }
-              successCount++;
-              break;
-          }
-        } catch (e) {
-          failCount++;
-          _logger.w('Failed to ${actionType.name} task ${task.id}: $e');
-        }
-      }
+      try {
+        client = Aria2RpcClient(instance);
 
-      client.close();
-      _logger.i(
-          'Action ${actionType.name} completed for instance ${instance.name}: $successCount success, $failCount failed');
-    } catch (e) {
-      _logger.e('Error executing task operation for instance ${instance.name}',
-          error: e);
-    }
+        for (final task in tasks) {
+          try {
+            switch (actionType) {
+              case TaskActionType.resume:
+                if (task.status == DownloadStatus.waiting &&
+                    task.taskStatus == 'paused') {
+                  await client.unpauseTask(task.id);
+                  successCount++;
+                }
+                break;
+              case TaskActionType.pause:
+                if ((task.status == DownloadStatus.active ||
+                        task.status == DownloadStatus.waiting) &&
+                    task.taskStatus != 'paused') {
+                  await client.pauseTask(task.id);
+                  successCount++;
+                }
+                break;
+              case TaskActionType.delete:
+                if (task.status == DownloadStatus.stopped) {
+                  await client.removeDownloadResult(task.id);
+                } else {
+                  await client.removeTask(task.id);
+                }
+                successCount++;
+                break;
+            }
+          } catch (e) {
+            failCount++;
+            _logger.w('Failed to ${actionType.name} task ${task.id}: $e');
+          }
+        }
+
+        _logger.i(
+            'Action ${actionType.name} completed for instance ${instance.name}: $successCount success, $failCount failed');
+      } catch (e) {
+        _logger.e('Error executing task operation for instance ${instance.name}',
+            error: e);
+      } finally {
+        client?.close();
+      }
   }
 }
