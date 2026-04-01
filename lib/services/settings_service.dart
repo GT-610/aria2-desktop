@@ -10,9 +10,7 @@ class SettingsService extends ChangeNotifier with Loggable {
   Aria2Instance? _currentInstance;
   Aria2RpcClient? _rpcClient;
 
-  SettingsService() {
-    initLogger();
-  }
+  SettingsService() {}
 
   void initialize(Settings settings, Aria2Instance? currentInstance) {
     _settings = settings;
@@ -34,7 +32,7 @@ class SettingsService extends ChangeNotifier with Loggable {
 
   Map<String, dynamic> _convertSettingsToAria2Options() {
     if (_settings == null) {
-      logger.w('Settings is null, cannot convert to Aria2 options');
+      w('Settings is null, cannot convert to Aria2 options');
       return {};
     }
 
@@ -80,40 +78,38 @@ class SettingsService extends ChangeNotifier with Loggable {
     options['allow-overwrite'] = _settings!.allowOverwrite;
     options['user-agent'] = _settings!.userAgent;
 
-    logger.d('Converted settings to Aria2 options: $options');
+    d('Converted settings to Aria2 options: $options');
     return options;
   }
 
   Future<bool> applySettingsToAria2() async {
     if (_rpcClient == null) {
-      logger.w('No RPC client available, cannot apply settings');
+      w('No RPC client available, cannot apply settings');
       return false;
     }
 
     if (_currentInstance == null) {
-      logger.w('No connected instance, cannot apply settings');
+      w('No connected instance, cannot apply settings');
       return false;
     }
 
     try {
       final options = _convertSettingsToAria2Options();
-      logger.i(
-        'Applying settings to Aria2 instance: ${_currentInstance!.name}',
-      );
+      i('Applying settings to Aria2 instance: ${_currentInstance!.name}');
 
       final result = await _rpcClient!.setGlobalOption(options);
 
       if (result) {
-        logger.i('Settings applied successfully to Aria2');
+        i('Settings applied successfully to Aria2');
       } else {
-        logger.w('Failed to apply settings to Aria2');
+        w('Failed to apply settings to Aria2');
       }
 
       return result;
-    } catch (e, stackTrace) {
-      logger.e(
+    } catch (err, stackTrace) {
+      this.e(
         'Failed to apply settings to Aria2',
-        error: e,
+        error: err,
         stackTrace: stackTrace,
       );
       return false;
@@ -140,13 +136,13 @@ class SettingsService extends ChangeNotifier with Loggable {
         options['max-overall-upload-limit'] = '0';
       }
 
-      logger.i('Applying speed settings to Aria2');
+      i('Applying speed settings to Aria2');
       final result = await _rpcClient!.setGlobalOption(options);
       return result;
-    } catch (e, stackTrace) {
-      logger.e(
+    } catch (err, stackTrace) {
+      this.e(
         'Failed to apply speed settings',
-        error: e,
+        error: err,
         stackTrace: stackTrace,
       );
       return false;

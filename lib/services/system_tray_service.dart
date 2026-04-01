@@ -8,6 +8,7 @@ import '../utils/logging.dart';
 class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   static SystemTrayService? _instance;
   bool _isInitialized = false;
+  // ignore: unused_field - intended for future use in minimizeToTray()
   bool _minimizeToTray = true;
   VoidCallback? _onShowWindow;
   VoidCallback? _onQuitApp;
@@ -17,9 +18,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     return _instance!;
   }
 
-  SystemTrayService._internal() {
-    initLogger();
-  }
+  SystemTrayService._internal();
 
   void setMinimizeToTray(bool value) {
     _minimizeToTray = value;
@@ -39,11 +38,11 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     try {
       await _initSystemTray();
       _isInitialized = true;
-      logger.i('System tray initialized successfully');
-    } catch (e, stackTrace) {
-      logger.e(
+      i('System tray initialized successfully');
+    } catch (err, stackTrace) {
+      this.e(
         'Failed to initialize system tray',
-        error: e,
+        error: err,
         stackTrace: stackTrace,
       );
     }
@@ -98,10 +97,10 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
         _onShowWindow?.call();
         break;
       case 'start_download':
-        logger.d('Tray menu: Start downloads');
+        d('Tray menu: Start downloads');
         break;
       case 'pause_all':
-        logger.d('Tray menu: Pause all');
+        d('Tray menu: Pause all');
         break;
       case 'quit':
         _onQuitApp?.call();
@@ -114,13 +113,13 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     try {
       await trayManager.setToolTip(tooltip);
     } catch (e) {
-      logger.w('Failed to update tray tooltip', error: e);
+      w('Failed to update tray tooltip', error: e);
     }
   }
 
   Future<void> showNotification(String title, String message) async {
     if (!_isInitialized) return;
-    logger.d('Tray notification: $title - $message');
+    d('Tray notification: $title - $message');
   }
 
   void destroy() {
@@ -128,7 +127,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
       trayManager.removeListener(this);
       trayManager.destroy();
       _isInitialized = false;
-      logger.i('System tray destroyed');
+      i('System tray destroyed');
     }
   }
 
@@ -147,9 +146,7 @@ class WindowManagerService with Loggable {
     return _instance!;
   }
 
-  WindowManagerService._internal() {
-    initLogger();
-  }
+  WindowManagerService._internal() {}
 
   Future<void> initialize() async {
     await windowManager.ensureInitialized();
@@ -169,7 +166,7 @@ class WindowManagerService with Loggable {
       await windowManager.focus();
     });
 
-    logger.i('Window manager initialized');
+    i('Window manager initialized');
   }
 
   Future<void> showWindow() async {

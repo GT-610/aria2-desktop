@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'directory_picker.dart';
-import '../../../utils/logging/log_extensions.dart';
+import '../../../utils/logging.dart';
 
-// Add task dialog component
 class AddTaskDialog extends StatefulWidget {
   final Future<void> Function(String, String, String, String?) onAddTask;
 
@@ -17,7 +18,6 @@ class AddTaskDialog extends StatefulWidget {
 }
 
 class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
-  // State variables
   String saveLocation = '';
   final TextEditingController uriController = TextEditingController();
   bool showAdvancedOptions = false;
@@ -27,8 +27,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
   @override
   void initState() {
     super.initState();
-    initLogger();
-    logger.i('AddTaskDialog initialized');
+    i('AddTaskDialog initialized');
   }
 
   @override
@@ -51,9 +50,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
               uriController.text = data.text!;
               setState(() {});
             }
-            logger.d('从剪贴板粘贴功能已实现');
+            i('从剪贴板粘贴功能已实现');
           } catch (e) {
-            logger.e('Failed to paste', error: e);
+            this.e('Failed to paste', error: e);
           }
         }
 
@@ -65,16 +64,16 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
               allowedExtensions: ['torrent'],
               dialogTitle: '选择种子文件',
             );
-            
+
             if (result != null) {
               final filePath = result.files.single.path;
-              logger.i('Selected torrent file: $filePath');
+              i('Selected torrent file: $filePath');
               setState(() {
                 selectedTorrentFilePath = filePath;
               });
             }
           } catch (e) {
-            logger.e('Failed to select torrent file', error: e);
+            this.e('Failed to select torrent file', error: e);
           }
         }
 
@@ -86,16 +85,16 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
               allowedExtensions: ['metalink'],
               dialogTitle: '选择Metalink文件',
             );
-            
+
             if (result != null) {
               final filePath = result.files.single.path;
-              logger.i('Selected Metalink file: $filePath');
+              i('Selected Metalink file: $filePath');
               setState(() {
                 selectedMetalinkFilePath = filePath;
               });
             }
           } catch (e) {
-            logger.e('Failed to select Metalink file', error: e);
+            this.e('Failed to select Metalink file', error: e);
           }
         }
 
@@ -104,22 +103,25 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
           String downloadDir = saveLocation;
           String uri = uriController.text;
           String? fileContent;
-          
+
           // Read file content if needed
           if (taskType == 'torrent' && selectedTorrentFilePath != null) {
             final file = File(selectedTorrentFilePath!);
             final bytes = await file.readAsBytes();
             fileContent = base64Encode(bytes);
-          } else if (taskType == 'metalink' && selectedMetalinkFilePath != null) {
+          } else if (taskType == 'metalink' &&
+              selectedMetalinkFilePath != null) {
             final file = File(selectedMetalinkFilePath!);
             final bytes = await file.readAsBytes();
             fileContent = base64Encode(bytes);
           }
-          
+
           // Call callback function to handle task addition
-          logger.i('Submit task: type=$taskType, URI=$uri, save directory=$downloadDir, hasFileContent=${fileContent != null}');
+          i(
+            'Submit task: type=$taskType, URI=$uri, save directory=$downloadDir, hasFileContent=${fileContent != null}',
+          );
           widget.onAddTask(taskType, uri, downloadDir, fileContent);
-          
+
           // Close dialog
           if (mounted) {
             Navigator.pop(this.context);
@@ -158,19 +160,17 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                 padding: const EdgeInsets.all(8.0),
                                 child: Column(
                                   children: [
-                                    TextField(
+                                    Input(
                                       controller: uriController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'URL或磁力链接',
-                                        hintText: '请输入下载链接...',
-                                        border: OutlineInputBorder(),
-                                      ),
+                                      label: 'URL或磁力链接',
+                                      hint: '请输入下载链接...',
                                       maxLines: 3,
                                     ),
                                     const SizedBox(height: 8),
-                                    TextButton(
-                                      onPressed: pasteFromClipboard,
-                                      child: const Text('从剪贴板粘贴'),
+                                    Btn.tile(
+                                      text: '从剪贴板粘贴',
+                                      icon: const Icon(Icons.paste),
+                                      onTap: pasteFromClipboard,
                                     ),
                                     const SizedBox(height: 16),
                                     const Text('支持HTTP/HTTPS、FTP、SFTP、磁力链接等'),
@@ -185,10 +185,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                   children: [
                                     const Icon(Icons.file_open, size: 64),
                                     const SizedBox(height: 16),
-                                    TextButton.icon(
-                                      onPressed: selectTorrentFile,
+                                    Btn.tile(
+                                      text: '选择种子文件',
                                       icon: const Icon(Icons.upload_file),
-                                      label: const Text('选择种子文件'),
+                                      onTap: selectTorrentFile,
                                     ),
                                     const SizedBox(height: 16),
                                     if (selectedTorrentFilePath != null)
@@ -213,10 +213,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                   children: [
                                     const Icon(Icons.file_open, size: 64),
                                     const SizedBox(height: 16),
-                                    TextButton.icon(
-                                      onPressed: selectMetalinkFile,
+                                    Btn.tile(
+                                      text: '选择Metalink文件',
                                       icon: const Icon(Icons.upload_file),
-                                      label: const Text('选择Metalink文件'),
+                                      onTap: selectMetalinkFile,
                                     ),
                                     const SizedBox(height: 16),
                                     if (selectedMetalinkFilePath != null)
@@ -259,7 +259,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                               const SizedBox(height: 12),
                               // Advanced options switch
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text('显示高级选项'),
                                   Switch(
@@ -293,18 +294,12 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
               ),
             ),
             actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  // Implement add task functionality based on currently selected tab
+              Btn.cancel(),
+              Btn.ok(
+                onTap: () {
                   int currentTab = DefaultTabController.of(context).index;
                   String taskType;
-                  
+
                   switch (currentTab) {
                     case 0:
                       taskType = 'uri';
@@ -318,10 +313,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                     default:
                       taskType = 'uri';
                   }
-                  
+
                   submitTask(taskType);
                 },
-                child: const Text('确认'),
               ),
             ],
           ),

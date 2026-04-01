@@ -1,7 +1,6 @@
-// Flutter & third-party packages
+import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
 
-/// Task action toolbar component with add, pause, resume, and delete buttons
 class TaskToolbar extends StatelessWidget {
   final VoidCallback onAddTask;
   final VoidCallback onPauseAll;
@@ -21,73 +20,42 @@ class TaskToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        border: Border(bottom: BorderSide(color: colorScheme.surfaceContainerHighest)),
+        border: Border(
+          bottom: BorderSide(color: colorScheme.surfaceContainerHighest),
+        ),
       ),
       child: Row(
         children: [
-          FilledButton.icon(
-            onPressed: onAddTask,
+          Btn.elevated(
+            text: '添加任务',
             icon: const Icon(Icons.add),
-            label: const Text('添加任务'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
+            onTap: onAddTask,
           ),
           const SizedBox(width: 12),
-          OutlinedButton.icon(
-            onPressed: onPauseAll,
+          Btn.tile(
+            text: '全部暂停',
             icon: const Icon(Icons.pause),
-            label: const Text('全部暂停'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
+            onTap: onPauseAll,
           ),
           const SizedBox(width: 12),
-          OutlinedButton.icon(
-            onPressed: onResumeAll,
+          Btn.tile(
+            text: '全部继续',
             icon: const Icon(Icons.play_arrow),
-            label: const Text('全部继续'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
+            onTap: onResumeAll,
           ),
           const SizedBox(width: 12),
-          OutlinedButton.icon(
-            onPressed: onDeleteAll,
+          Btn.tile(
+            text: '全部删除',
             icon: const Icon(Icons.delete),
-            label: const Text('全部删除'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
+            onTap: onDeleteAll,
           ),
           const Spacer(),
-          IconButton.outlined(
-            onPressed: onSearch,
-            icon: const Icon(Icons.search),
-            style: IconButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              padding: const EdgeInsets.all(12),
-            ),
-          ),
+          Btn.icon(icon: const Icon(Icons.search), text: '搜索', onTap: onSearch),
         ],
       ),
     );

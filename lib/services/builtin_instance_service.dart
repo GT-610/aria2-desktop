@@ -24,7 +24,6 @@ class BuiltinInstanceService with Loggable {
   }
 
   BuiltinInstanceService._internal() {
-    initLogger();
     _initializePaths();
   }
 
@@ -40,7 +39,7 @@ class BuiltinInstanceService with Loggable {
     // Ensure core directory exists
     Directory coreDir = Directory(coreDirPath);
     if (!coreDir.existsSync()) {
-      logger.w('Core directory does not exist: $coreDirPath, creating it...');
+      this.w('Core directory does not exist: $coreDirPath, creating it...');
       coreDir.createSync(recursive: true);
     }
 
@@ -50,22 +49,22 @@ class BuiltinInstanceService with Loggable {
     _sessionPath = '$coreDirPath/aria2.session';
     _logPath = '$coreDirPath/aria2.log';
 
-    logger.i('Built-in instance paths initialized:');
-    logger.i('  aria2cPath: $_aria2cPath');
-    logger.i('  aria2ConfPath: $_aria2ConfPath');
-    logger.i('  sessionPath: $_sessionPath');
-    logger.i('  logPath: $_logPath');
+    this.i('Built-in instance paths initialized:');
+    this.i('  aria2cPath: $_aria2cPath');
+    this.i('  aria2ConfPath: $_aria2ConfPath');
+    this.i('  sessionPath: $_sessionPath');
+    this.i('  logPath: $_logPath');
   }
 
   /// Check if the built-in Aria2 files exist
   bool checkBuiltinFiles() {
     final aria2cExists = File(_aria2cPath!).existsSync();
     final confExists = File(_aria2ConfPath!).existsSync();
-    
-    logger.i('Checking built-in files:');
-    logger.i('  aria2c.exe exists: $aria2cExists');
-    logger.i('  aria2.conf exists: $confExists');
-    
+
+    this.i('Checking built-in files:');
+    this.i('  aria2c.exe exists: $aria2cExists');
+    this.i('  aria2.conf exists: $confExists');
+
     return aria2cExists && confExists;
   }
 
@@ -73,16 +72,18 @@ class BuiltinInstanceService with Loggable {
   Future<bool> startInstance() async {
     try {
       _isConnected = false;
-      
+
       // Check if built-in files exist
       if (!checkBuiltinFiles()) {
-        logger.e('Built-in Aria2 files are missing, cannot start instance');
+        this.e('Built-in Aria2 files are missing, cannot start instance');
         return false;
       }
 
       // Check if process is already running
       if (_aria2Process != null) {
-        logger.w('Built-in Aria2 process is already running, PID: ${_aria2Process!.pid}');
+        this.w(
+          'Built-in Aria2 process is already running, PID: ${_aria2Process!.pid}',
+        );
         return true;
       }
 
@@ -130,8 +131,8 @@ class BuiltinInstanceService with Loggable {
         args.add('--input-file=$_sessionPath');
       }
 
-      logger.i('Starting built-in Aria2 instance with command:');
-      logger.i('  $_aria2cPath ${args.join(' ')}');
+      this.i('Starting built-in Aria2 instance with command:');
+      this.i('  $_aria2cPath ${args.join(' ')}');
 
       // Start the process
       _aria2Process = await Process.start(
@@ -141,11 +142,13 @@ class BuiltinInstanceService with Loggable {
         mode: ProcessStartMode.normal,
       );
 
-      logger.i('Built-in Aria2 instance started successfully, PID: ${_aria2Process!.pid}');
+      this.i(
+        'Built-in Aria2 instance started successfully, PID: ${_aria2Process!.pid}',
+      );
 
       // Monitor process exit
       _aria2Process!.exitCode.then((exitCode) {
-        logger.w('Built-in Aria2 process exited with code: $exitCode');
+        this.w('Built-in Aria2 process exited with code: $exitCode');
         _aria2Process = null;
         _isConnected = false;
       });
@@ -157,7 +160,11 @@ class BuiltinInstanceService with Loggable {
 
       return true;
     } catch (e, stackTrace) {
-      logger.e('Failed to start built-in Aria2 instance', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to start built-in Aria2 instance',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }
@@ -166,11 +173,11 @@ class BuiltinInstanceService with Loggable {
   Future<bool> stopInstance() async {
     try {
       if (_aria2Process == null) {
-        logger.w('Built-in Aria2 process is not running');
+        this.w('Built-in Aria2 process is not running');
         return true;
       }
 
-      logger.i('Stopping built-in Aria2 instance, PID: ${_aria2Process!.pid}');
+      this.i('Stopping built-in Aria2 instance, PID: ${_aria2Process!.pid}');
 
       await _stdoutSubscription?.cancel();
       await _stderrSubscription?.cancel();
@@ -178,12 +185,16 @@ class BuiltinInstanceService with Loggable {
       _aria2Process!.kill();
       await _aria2Process!.exitCode.timeout(const Duration(seconds: 5));
 
-      logger.i('Built-in Aria2 instance stopped successfully');
+      this.i('Built-in Aria2 instance stopped successfully');
       _aria2Process = null;
       _isConnected = false;
       return true;
     } catch (e, stackTrace) {
-      logger.e('Failed to stop built-in Aria2 instance', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to stop built-in Aria2 instance',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }
@@ -202,15 +213,19 @@ class BuiltinInstanceService with Loggable {
   void _monitorProcessOutput() {
     if (_aria2Process == null) return;
 
-    _stdoutSubscription = _aria2Process!.stdout.transform(utf8.decoder).listen((data) {
+    _stdoutSubscription = _aria2Process!.stdout.transform(utf8.decoder).listen((
+      data,
+    ) {
       if (!_isConnected) {
-        logger.d('Aria2 [builtin] stdout: $data');
+        d('Aria2 [builtin] stdout: $data');
       }
     });
 
-    _stderrSubscription = _aria2Process!.stderr.transform(utf8.decoder).listen((data) {
+    _stderrSubscription = _aria2Process!.stderr.transform(utf8.decoder).listen((
+      data,
+    ) {
       if (!_isConnected) {
-        logger.e('Aria2 [builtin] stderr: $data');
+        this.e('Aria2 [builtin] stderr: $data');
       }
     });
   }
@@ -222,7 +237,7 @@ class BuiltinInstanceService with Loggable {
     _stderrSubscription?.cancel();
     _stdoutSubscription = null;
     _stderrSubscription = null;
-    logger.i('Built-in instance connected, output monitoring stopped');
+    this.i('Built-in instance connected, output monitoring stopped');
   }
 
   /// Get the built-in instance configuration

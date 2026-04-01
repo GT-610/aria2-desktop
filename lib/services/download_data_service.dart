@@ -11,16 +11,15 @@ import '../utils/logging.dart';
 /// Responsible for periodically fetching task data from Aria2, performing unified data encapsulation and caching
 class DownloadDataService extends ChangeNotifier with Loggable {
   DownloadDataService() {
-    initLogger();
-    logger.i('Service initialization completed');
+    i('Service initialization completed');
   }
 
   Timer? _refreshTimer;
-  
+
   List<DownloadTask> _tasks = [];
   bool _isRefreshing = false;
   String? _lastError;
-  
+
   int _refreshInterval = 1000;
 
   final Map<String, Aria2RpcClient> _clientCache = {};
@@ -55,25 +54,25 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   void stopPeriodicRefresh() {
     _refreshTimer?.cancel();
     _refreshTimer = null;
-    logger.d('Timer stopped');
+    this.d('Timer stopped');
   }
 
   Future<void> refreshTasks(Aria2Instance? instance) async {
     if (_isRefreshing || instance == null) return;
-    
+
     try {
       _isRefreshing = true;
       _lastError = null;
-      
+
       final newTasks = await _fetchTasks(instance);
-      
+
       if (newTasks != null) {
         _tasks = newTasks;
         notifyListeners();
       }
     } catch (e, stackTrace) {
       _lastError = e.toString();
-      logger.e('Failed to refresh tasks', error: e, stackTrace: stackTrace);
+      this.e('Failed to refresh tasks', error: e, stackTrace: stackTrace);
     } finally {
       _isRefreshing = false;
     }
@@ -81,7 +80,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
 
   Future<List<DownloadTask>?> _fetchTasks(Aria2Instance instance) async {
     if (instance.status != ConnectionStatus.connected) {
-      logger.w('Instance not connected, skipping task fetch: ${instance.name}');
+      this.w('Instance not connected, skipping task fetch: ${instance.name}');
       return null;
     }
 
@@ -95,64 +94,81 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       final results = await client.getDownloadStatus();
 
       if (results.isEmpty) {
-        logger.d('Task data is empty');
+        this.d('Task data is empty');
         return allTasks;
       }
 
       if (results[0]['success'] && results[0]['data'] is List) {
         final activeTasks = results[0]['data'] as List;
-        allTasks.addAll(TaskParser.parseTasks(
-          activeTasks,
-          DownloadStatus.active,
-          instanceId,
-          isLocal,
-        ));
+        allTasks.addAll(
+          TaskParser.parseTasks(
+            activeTasks,
+            DownloadStatus.active,
+            instanceId,
+            isLocal,
+          ),
+        );
       }
 
-      if (results.length > 1 && results[1]['success'] && results[1]['data'] is List) {
+      if (results.length > 1 &&
+          results[1]['success'] &&
+          results[1]['data'] is List) {
         final waitingTasks = results[1]['data'] as List;
-        allTasks.addAll(TaskParser.parseTasks(
-          waitingTasks,
-          DownloadStatus.waiting,
-          instanceId,
-          isLocal,
-        ));
+        allTasks.addAll(
+          TaskParser.parseTasks(
+            waitingTasks,
+            DownloadStatus.waiting,
+            instanceId,
+            isLocal,
+          ),
+        );
       }
 
-      if (results.length > 2 && results[2]['success'] && results[2]['data'] is List) {
+      if (results.length > 2 &&
+          results[2]['success'] &&
+          results[2]['data'] is List) {
         final stoppedTasks = results[2]['data'] as List;
-        allTasks.addAll(TaskParser.parseTasks(
-          stoppedTasks,
-          DownloadStatus.stopped,
-          instanceId,
-          isLocal,
-        ));
+        allTasks.addAll(
+          TaskParser.parseTasks(
+            stoppedTasks,
+            DownloadStatus.stopped,
+            instanceId,
+            isLocal,
+          ),
+        );
       }
 
-      logger.d('Task fetch completed: ${allTasks.length} total');
+      this.d('Task fetch completed: ${allTasks.length} total');
 
       return allTasks;
     } catch (e, stackTrace) {
-      logger.e('Failed to fetch tasks: ${instance.name}', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to fetch tasks: ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }
 
   void _restartTimer([Aria2Instance? instance]) {
     stopPeriodicRefresh();
-    
+
     if (instance != null && instance.status == ConnectionStatus.connected) {
-      logger.i('Preparing to start timer: ${instance.name}, fixed interval ${_refreshInterval}ms');
-      _refreshTimer = Timer.periodic(
-        Duration(milliseconds: _refreshInterval),
-        (timer) {
-          if (timer.isActive && !_isRefreshing) {
-            logger.d('Timer triggered task refresh');
-            refreshTasks(instance);
-          }
-        }
+      this.i(
+        'Preparing to start timer: ${instance.name}, fixed interval ${_refreshInterval}ms',
       );
-      logger.i('Timer started successfully: ${instance.name}, interval ${_refreshInterval}ms');
+      _refreshTimer = Timer.periodic(Duration(milliseconds: _refreshInterval), (
+        timer,
+      ) {
+        if (timer.isActive && !_isRefreshing) {
+          this.d('Timer triggered task refresh');
+          refreshTasks(instance);
+        }
+      });
+      this.i(
+        'Timer started successfully: ${instance.name}, interval ${_refreshInterval}ms',
+      );
     }
   }
 
@@ -173,7 +189,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     try {
       return _tasks.firstWhere((task) => task.id == taskId);
     } catch (e) {
-      logger.d('Task not found: $taskId');
+      this.d('Task not found: $taskId');
       return null;
     }
   }

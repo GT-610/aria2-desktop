@@ -3,7 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../../models/settings.dart';
 import './components/appearance_dialog.dart';
-import '../../utils/logging/log_extensions.dart';
+import '../../utils/logging.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -15,22 +15,21 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> with Loggable {
   String _version = '';
   bool _isLoading = true;
-  
+
   @override
   void initState() {
     super.initState();
-    initLogger();
     _loadVersionInfo();
     _loadSettings();
   }
-  
+
   Future<void> _loadSettings() async {
     try {
-      logger.i('Loading settings in settings page');
+      i('Loading settings in settings page');
       await Provider.of<Settings>(context, listen: false).loadSettings();
-      logger.i('Settings loaded successfully');
-    } catch (e) {
-      logger.e('Failed to load settings', error: e);
+      i('Settings loaded successfully');
+    } catch (err) {
+      this.e('Failed to load settings', error: err);
       _showErrorSnackBar('加载设置失败');
     } finally {
       if (mounted) {
@@ -40,26 +39,24 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
       }
     }
   }
-  
+
   Future<void> _loadVersionInfo() async {
     final packageInfo = await PackageInfo.fromPlatform();
     setState(() {
       _version = packageInfo.version;
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    
+
     final settings = Provider.of<Settings>(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -95,9 +92,9 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                       onChanged: (value) async {
                         try {
                           await settings.setAutoStart(value);
-                          logger.i('Auto-start setting changed to: $value');
+                          this.i('Auto-start setting changed to: $value');
                         } catch (e) {
-                          logger.e('Failed to save auto-start setting', error: e);
+                          this.e('Failed to save auto-start setting', error: e);
                           _showErrorSnackBar('保存设置失败');
                         }
                       },
@@ -107,18 +104,18 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                     ),
                     const Divider(height: 1),
                     SwitchListTile.adaptive(
-                      title: Text(
-                        '最小化到系统托盘',
-                        style: theme.textTheme.bodyLarge,
-                      ),
+                      title: Text('最小化到系统托盘', style: theme.textTheme.bodyLarge),
                       subtitle: const Text('关闭窗口时最小化到系统托盘而不是退出'),
                       value: settings.minimizeToTray,
                       onChanged: (value) async {
                         try {
                           await settings.setMinimizeToTray(value);
-                          logger.i('Minimize to tray setting changed to: $value');
+                          this.i('Minimize to tray setting changed to: $value');
                         } catch (e) {
-                          logger.e('Failed to save minimize to tray setting', error: e);
+                          this.e(
+                            'Failed to save minimize to tray setting',
+                            error: e,
+                          );
                           _showErrorSnackBar('保存设置失败');
                         }
                       },
@@ -128,10 +125,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      title: Text(
-                        '外观',
-                        style: theme.textTheme.bodyLarge,
-                      ),
+                      title: Text('外观', style: theme.textTheme.bodyLarge),
                       subtitle: const Text('自定义应用程序的主题和颜色'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -146,8 +140,13 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                               border: Border.all(color: colorScheme.outline),
                             ),
                           ),
-                          Text(settings.themeMode.name == 'light' ? '亮色' : 
-                               settings.themeMode.name == 'dark' ? '暗色' : '系统'),
+                          Text(
+                            settings.themeMode.name == 'light'
+                                ? '亮色'
+                                : settings.themeMode.name == 'dark'
+                                ? '暗色'
+                                : '系统',
+                          ),
                           const Icon(Icons.chevron_right),
                         ],
                       ),
@@ -179,15 +178,15 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                 child: Column(
                   children: [
                     ListTile(
-                      title: Text(
-                        '日志级别',
-                        style: theme.textTheme.bodyLarge,
-                      ),
+                      title: Text('日志级别', style: theme.textTheme.bodyLarge),
                       trailing: SegmentedButton<String>(
                         segments: const [
                           ButtonSegment(value: 'debug', label: Text('Debug')),
                           ButtonSegment(value: 'info', label: Text('Info')),
-                          ButtonSegment(value: 'warning', label: Text('Warning')),
+                          ButtonSegment(
+                            value: 'warning',
+                            label: Text('Warning'),
+                          ),
                           ButtonSegment(value: 'error', label: Text('Error')),
                         ],
                         selected: {settings.logLevelString},
@@ -195,11 +194,16 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                           if (newSelection.isNotEmpty) {
                             final value = newSelection.first;
                             try {
-                              final logLevel = LogLevel.values.firstWhere((e) => e.name == value);
-                              await settings.setLogLevel(logLevel);
-                              logger.i('Log level changed to: $value');
+                              final logLevel = AppLogLevel.values.firstWhere(
+                                (e) => e.name == value,
+                              );
+                              await settings.setAppLogLevel(logLevel);
+                              this.i('Log level changed to: $value');
                             } catch (e) {
-                              logger.e('Failed to save log level setting', error: e);
+                              this.e(
+                                'Failed to save log level setting',
+                                error: e,
+                              );
                               _showErrorSnackBar('保存设置失败');
                             }
                           }
@@ -216,17 +220,16 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                     ),
                     const Divider(height: 1),
                     SwitchListTile.adaptive(
-                      title: Text(
-                        '保存日志到文件',
-                        style: theme.textTheme.bodyLarge,
-                      ),
+                      title: Text('保存日志到文件', style: theme.textTheme.bodyLarge),
                       value: settings.saveLogsToFile,
                       onChanged: (value) async {
                         try {
                           await settings.setSaveLogsToFile(value);
-                          logger.i('Save logs to file setting changed to: $value');
+                          this.i(
+                            'Save logs to file setting changed to: $value',
+                          );
                         } catch (e) {
-                          logger.e('Failed to save save logs setting', error: e);
+                          this.e('Failed to save save logs setting', error: e);
                           _showErrorSnackBar('保存设置失败');
                         }
                       },
@@ -240,17 +243,20 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                       child: FilledButton.icon(
                         onPressed: () async {
                           try {
-                            logger.i('Attempting to open log directory');
+                            this.i('Attempting to open log directory');
                             _showInfoSnackBar('此功能将在后续版本中实现');
                           } catch (e) {
-                            logger.e('Failed to open log directory', error: e);
+                            this.e('Failed to open log directory', error: e);
                             _showErrorSnackBar('无法打开日志目录');
                           }
                         },
                         icon: const Icon(Icons.file_open),
                         label: const Text('查看日志文件'),
                         style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -261,7 +267,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                 ),
               ),
             ),
-            
+
             // About section
             Text(
               '关于',
@@ -282,30 +288,21 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                 child: Column(
                   children: [
                     ListTile(
-                      title: Text(
-                        '版本号',
-                        style: theme.textTheme.bodyLarge,
-                      ),
+                      title: Text('版本号', style: theme.textTheme.bodyLarge),
                       subtitle: Text(_version.isEmpty ? '加载中...' : _version),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                       onTap: () {},
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      title: Text(
-                        '贡献者',
-                        style: theme.textTheme.bodyLarge,
-                      ),
+                      title: Text('贡献者', style: theme.textTheme.bodyLarge),
                       trailing: const Icon(Icons.chevron_right),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                       onTap: () {},
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      title: Text(
-                        '许可协议',
-                        style: theme.textTheme.bodyLarge,
-                      ),
+                      title: Text('许可协议', style: theme.textTheme.bodyLarge),
                       trailing: const Icon(Icons.chevron_right),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                       onTap: () {},
@@ -319,7 +316,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
       ),
     );
   }
-  
+
   // Show appearance settings dialog
   void _showAppearanceDialog(BuildContext context, Settings settings) {
     showDialog(
@@ -329,7 +326,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
       },
     );
   }
-  
+
   // Show error message
   void _showErrorSnackBar(String message) {
     if (mounted) {
@@ -342,7 +339,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
       );
     }
   }
-  
+
   // Show information message
   void _showInfoSnackBar(String message) {
     if (mounted) {

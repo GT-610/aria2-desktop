@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../utils/logging.dart';
+import 'package:provider/provider.dart' as p;
+import 'package:fl_lib/fl_lib.dart';
 import '../../../services/instance_manager.dart';
 import '../../../services/aria2_rpc_client.dart';
 import '../../../services/download_data_service.dart';
@@ -8,17 +8,15 @@ import '../../../models/aria2_instance.dart';
 import '../models/download_task.dart';
 import '../enums.dart';
 
-/// Task operation type enumeration
-enum TaskActionType {
-  resume,
-  pause,
-  delete
+void _log(String message) {
+  dprint('[TaskActionDialogs] $message');
 }
+
+/// Task operation type enumeration
+enum TaskActionType { resume, pause, delete }
 
 /// Task operation dialog component class
 class TaskActionDialogs {
-  static final AppLogger _logger = AppLogger('TaskActionDialogs');
-
   /// Show task operation dialog
   static Future<void> showTaskActionDialog(
     BuildContext context,
@@ -26,8 +24,14 @@ class TaskActionDialogs {
     VoidCallback? onActionCompleted,
     List<DownloadTask>? tasks,
   }) async {
-    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    final downloadDataService = Provider.of<DownloadDataService>(context, listen: false);
+    final instanceManager = p.Provider.of<InstanceManager>(
+      context,
+      listen: false,
+    );
+    final downloadDataService = p.Provider.of<DownloadDataService>(
+      context,
+      listen: false,
+    );
 
     final String title;
     final String allInstancesText;
@@ -85,8 +89,9 @@ class TaskActionDialogs {
               Container(height: 1, color: colorScheme.surfaceContainerHighest),
               const SizedBox(height: 8),
               ...targetInstances.map((instance) {
-                final instanceTasks =
-                    allTasks.where((t) => t.instanceId == instance.id).toList();
+                final instanceTasks = allTasks
+                    .where((t) => t.instanceId == instance.id)
+                    .toList();
                 return Column(
                   children: [
                     buildDialogOption(
@@ -144,8 +149,9 @@ class TaskActionDialogs {
     final connectedInstances = instanceManager.getConnectedInstances();
 
     for (final instance in connectedInstances) {
-      final instanceTasks =
-          allTasks.where((t) => t.instanceId == instance.id).toList();
+      final instanceTasks = allTasks
+          .where((t) => t.instanceId == instance.id)
+          .toList();
       await _performActionForInstance(instance, actionType, instanceTasks);
     }
   }
@@ -157,57 +163,56 @@ class TaskActionDialogs {
     List<DownloadTask> tasks,
   ) async {
     if (tasks.isEmpty) {
-      _logger.d('No tasks to process for instance: ${instance.name}');
+      _log('No tasks to process for instance: ${instance.name}');
       return;
     }
 
     Aria2RpcClient? client;
-      int successCount = 0;
-      int failCount = 0;
+    int successCount = 0;
+    int failCount = 0;
 
-      try {
-        client = Aria2RpcClient(instance);
+    try {
+      client = Aria2RpcClient(instance);
 
-        for (final task in tasks) {
-          try {
-            switch (actionType) {
-              case TaskActionType.resume:
-                if (task.status == DownloadStatus.waiting &&
-                    task.taskStatus == 'paused') {
-                  await client.unpauseTask(task.id);
-                  successCount++;
-                }
-                break;
-              case TaskActionType.pause:
-                if ((task.status == DownloadStatus.active ||
-                        task.status == DownloadStatus.waiting) &&
-                    task.taskStatus != 'paused') {
-                  await client.pauseTask(task.id);
-                  successCount++;
-                }
-                break;
-              case TaskActionType.delete:
-                if (task.status == DownloadStatus.stopped) {
-                  await client.removeDownloadResult(task.id);
-                } else {
-                  await client.removeTask(task.id);
-                }
+      for (final task in tasks) {
+        try {
+          switch (actionType) {
+            case TaskActionType.resume:
+              if (task.status == DownloadStatus.waiting &&
+                  task.taskStatus == 'paused') {
+                await client.unpauseTask(task.id);
                 successCount++;
-                break;
-            }
-          } catch (e) {
-            failCount++;
-            _logger.w('Failed to ${actionType.name} task ${task.id}: $e');
+              }
+              break;
+            case TaskActionType.pause:
+              if ((task.status == DownloadStatus.active ||
+                      task.status == DownloadStatus.waiting) &&
+                  task.taskStatus != 'paused') {
+                await client.pauseTask(task.id);
+                successCount++;
+              }
+              break;
+            case TaskActionType.delete:
+              if (task.status == DownloadStatus.stopped) {
+                await client.removeDownloadResult(task.id);
+              } else {
+                await client.removeTask(task.id);
+              }
+              successCount++;
+              break;
           }
+        } catch (e) {
+          failCount++;
+          _log('Failed to ${actionType.name} task ${task.id}: $e');
         }
-
-        _logger.i(
-            'Action ${actionType.name} completed for instance ${instance.name}: $successCount success, $failCount failed');
-      } catch (e) {
-        _logger.e('Error executing task operation for instance ${instance.name}',
-            error: e);
-      } finally {
-        client?.close();
       }
+
+      _log(
+        'Action ${actionType.name} completed for instance ${instance.name}: $successCount success, $failCount failed',
+      );
+    } catch (e) {
+      _log('Error executing task operation for instance ${instance.name}');
+      client?.close();
+    }
   }
 }

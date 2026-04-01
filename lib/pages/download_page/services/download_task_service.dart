@@ -1,40 +1,35 @@
-// Dart core imports
 import 'dart:io';
 
-// Third-party packages
-import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
-import 'package:logger/logger.dart';
+import 'package:provider/provider.dart';
+import 'package:fl_lib/fl_lib.dart' as fl;
 
-// Models
 import '../models/download_task.dart';
 import '../enums.dart';
 
-// Services
 import '../../../services/aria2_rpc_client.dart';
 import '../../../services/instance_manager.dart';
 
-// Utilities
 import '../../../utils/format_utils.dart';
 import '../../../utils/logging.dart';
 
-/// Service to handle download task operations and data processing
+void _log(String msg) => fl.dprint('[DownloadTaskService] $msg');
+
 class DownloadTaskService with Loggable {
   static final DownloadTaskService _instance = DownloadTaskService._();
-  DownloadTaskService._() {
-    initLogger();
-  }
+  DownloadTaskService._();
   static DownloadTaskService get instance => _instance;
-  
-  static Logger get _logger => LogManager().logger;
-  /// Parse download task from Aria2 RPC response
-  static DownloadTask parseTask(Map<String, dynamic> taskData, String instanceId) {
+
+  static DownloadTask parseTask(
+    Map<String, dynamic> taskData,
+    String instanceId,
+  ) {
     String gid = taskData['gid'] ?? '';
     String status = taskData['status'] ?? '';
     String taskStatus = taskData['bittorrent']?['info']?['name'] != null
         ? 'complete'
         : 'active';
-    
+
     // Determine download status
     DownloadStatus downloadStatus;
     switch (status) {
@@ -70,10 +65,12 @@ class DownloadTaskService with Loggable {
 
     // Calculate progress
     double progress = 0.0;
-    int totalLength = taskData['totalLength'] != null && taskData['totalLength'] != ''
+    int totalLength =
+        taskData['totalLength'] != null && taskData['totalLength'] != ''
         ? int.tryParse(taskData['totalLength']) ?? 0
         : 0;
-    int completedLength = taskData['completedLength'] != null && taskData['completedLength'] != ''
+    int completedLength =
+        taskData['completedLength'] != null && taskData['completedLength'] != ''
         ? int.tryParse(taskData['completedLength']) ?? 0
         : 0;
 
@@ -124,17 +121,21 @@ class DownloadTaskService with Loggable {
   }
 
   /// Get status text and color for a task
-  static (String, Color) getStatusInfo(DownloadTask task, ColorScheme colorScheme) {
+  static (String, Color) getStatusInfo(
+    DownloadTask task,
+    ColorScheme colorScheme,
+  ) {
     // Check if task is paused
     if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
       return ('已暂停', colorScheme.tertiary);
     }
-    
+
     // Special handling for completed tasks
-    if (task.status == DownloadStatus.stopped && task.taskStatus == 'complete') {
+    if (task.status == DownloadStatus.stopped &&
+        task.taskStatus == 'complete') {
       return ('已完成', colorScheme.primaryContainer);
     }
-    
+
     switch (task.status) {
       case DownloadStatus.active:
         return ('下载中', colorScheme.primary);
@@ -151,12 +152,13 @@ class DownloadTaskService with Loggable {
     if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
       return Icon(Icons.pause, color: color);
     }
-    
+
     // Special handling for completed tasks
-    if (task.status == DownloadStatus.stopped && task.taskStatus == 'complete') {
+    if (task.status == DownloadStatus.stopped &&
+        task.taskStatus == 'complete') {
       return Icon(Icons.check_circle, color: color);
     }
-    
+
     switch (task.status) {
       case DownloadStatus.active:
         return Icon(Icons.file_download, color: color);
@@ -168,10 +170,17 @@ class DownloadTaskService with Loggable {
   }
 
   /// Pause a download task
-  static Future<void> pauseTask(BuildContext context, String taskId, VoidCallback onTaskUpdated) async {
+  static Future<void> pauseTask(
+    BuildContext context,
+    String taskId,
+    VoidCallback onTaskUpdated,
+  ) async {
     try {
       // Get instance manager and connected instance
-      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
       final connectedInstance = instanceManager.getConnectedInstance();
       if (connectedInstance != null) {
         final client = Aria2RpcClient(connectedInstance);
@@ -180,15 +189,22 @@ class DownloadTaskService with Loggable {
         onTaskUpdated();
       }
     } catch (e) {
-        _logger.e('Error pausing task', error: e);
-      }
+      _log('Error pausing task: $e');
+    }
   }
 
   /// Stop a download task
-  static Future<void> stopTask(BuildContext context, String taskId, VoidCallback onTaskUpdated) async {
+  static Future<void> stopTask(
+    BuildContext context,
+    String taskId,
+    VoidCallback onTaskUpdated,
+  ) async {
     try {
       // Get instance manager and connected instance
-      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
       final connectedInstance = instanceManager.getConnectedInstance();
       if (connectedInstance != null) {
         final client = Aria2RpcClient(connectedInstance);
@@ -197,15 +213,22 @@ class DownloadTaskService with Loggable {
         onTaskUpdated();
       }
     } catch (e) {
-        _logger.e('Error stopping task', error: e);
-      }
+      _log('Error stopping task: $e');
+    }
   }
 
   /// Resume a paused download task
-  static Future<void> resumeTask(BuildContext context, String taskId, VoidCallback onTaskUpdated) async {
+  static Future<void> resumeTask(
+    BuildContext context,
+    String taskId,
+    VoidCallback onTaskUpdated,
+  ) async {
     try {
       // Get instance manager and connected instance
-      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
       final connectedInstance = instanceManager.getConnectedInstance();
       if (connectedInstance != null) {
         final client = Aria2RpcClient(connectedInstance);
@@ -214,33 +237,40 @@ class DownloadTaskService with Loggable {
         onTaskUpdated();
       }
     } catch (e) {
-        _logger.e('Error resuming task', error: e);
-      }
+      _log('Error resuming task: $e');
+    }
   }
 
   /// Retry a failed download task
-  static Future<void> retryTask(BuildContext context, DownloadTask task, VoidCallback onTaskUpdated) async {
+  static Future<void> retryTask(
+    BuildContext context,
+    DownloadTask task,
+    VoidCallback onTaskUpdated,
+  ) async {
     try {
       // Get instance manager and connected instance
-      final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
       final connectedInstance = instanceManager.getConnectedInstance();
-      
+
       if (connectedInstance != null) {
         final client = Aria2RpcClient(connectedInstance);
-        
+
         // First remove the failed task
         await client.removeTask(task.id);
-        
+
         // Then add it again (simplified retry mechanism)
         // In a real implementation, you might want to store and reuse the original URIs/magnet links
         // For now, this is a placeholder implementation
-        
+
         client.close();
         onTaskUpdated();
       }
     } catch (e) {
-        _logger.e('Error retrying task', error: e);
-      }
+      _log('Error retrying task: $e');
+    }
   }
 
   /// Open the download directory of a task
@@ -253,8 +283,8 @@ class DownloadTaskService with Loggable {
             Platform.isWindows
                 ? 'explorer.exe'
                 : Platform.isLinux
-                    ? 'xdg-open'
-                    : 'open',
+                ? 'xdg-open'
+                : 'open',
             [task.dir!],
           );
         }
@@ -263,34 +293,43 @@ class DownloadTaskService with Loggable {
   }
 
   /// Filter tasks based on selected status filter
-  static List<DownloadTask> filterTasks(List<DownloadTask> tasks, String filter) {
+  static List<DownloadTask> filterTasks(
+    List<DownloadTask> tasks,
+    String filter,
+  ) {
     switch (filter) {
       case 'all':
         return tasks;
       case 'active':
-        return tasks.where((task) => task.status == DownloadStatus.active).toList();
+        return tasks
+            .where((task) => task.status == DownloadStatus.active)
+            .toList();
       case 'waiting':
-        return tasks.where((task) => task.status == DownloadStatus.waiting).toList();
+        return tasks
+            .where((task) => task.status == DownloadStatus.waiting)
+            .toList();
       case 'stopped':
-        return tasks.where((task) => task.status == DownloadStatus.stopped).toList();
+        return tasks
+            .where((task) => task.status == DownloadStatus.stopped)
+            .toList();
       default:
         return tasks;
     }
   }
-  
+
   /// Format speed value to human readable format
   static String _formatSpeed(int bytesPerSecond) {
     if (bytesPerSecond <= 0) return '0 B/s';
-    
+
     const suffixes = ['B/s', 'KB/s', 'MB/s', 'GB/s', 'TB/s'];
     int i = 0;
     double value = bytesPerSecond.toDouble();
-    
+
     while (value >= 1024 && i < suffixes.length - 1) {
       value /= 1024;
       i++;
     }
-    
+
     return '${value.toStringAsFixed(2)} ${suffixes[i]}';
   }
 }

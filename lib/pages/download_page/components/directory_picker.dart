@@ -7,19 +7,19 @@ import '../../../utils/logging.dart';
 class DirectoryPicker extends StatefulWidget {
   /// Initial directory path
   final String initialDirectory;
-  
+
   /// Label text
   final String labelText;
-  
+
   /// Hint text
   final String hintText;
-  
+
   /// Dialog title when selecting directory
   final String dialogTitle;
-  
+
   /// Directory path change callback
   final ValueChanged<String> onDirectoryChanged;
-  
+
   /// Directory selection error callback
   final ValueChanged<String>? onError;
 
@@ -44,7 +44,6 @@ class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
   void initState() {
     super.initState();
     _directoryController = TextEditingController(text: widget.initialDirectory);
-    initLogger();
   }
 
   @override
@@ -58,14 +57,16 @@ class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
     try {
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
         dialogTitle: widget.dialogTitle,
-        initialDirectory: _directoryController.text.isNotEmpty ? _directoryController.text : null,
+        initialDirectory: _directoryController.text.isNotEmpty
+            ? _directoryController.text
+            : null,
       );
-      
+
       if (selectedDirectory != null) {
         _updateDirectory(selectedDirectory);
       }
-    } catch (e) {
-      logger.e('Failed to select directory', error: e);
+    } catch (err) {
+      this.e('Failed to select directory', error: err);
       final mountedContext = context;
       if (widget.onError != null) {
         widget.onError!('Failed to select directory: $e');
