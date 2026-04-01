@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 import 'pages/download_page/download_page.dart';
 import 'pages/instance_page/instance_page.dart';
 import 'pages/settings_page/settings_page.dart';
 import 'models/global_stat.dart';
 import 'services/instance_manager.dart';
 import 'services/download_data_service.dart';
+import 'services/settings_service.dart';
+import 'services/system_tray_service.dart';
 import 'models/settings.dart';
 import 'models/aria2_instance.dart';
 
@@ -15,9 +18,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => Settings()),
-      ],
+      providers: [ChangeNotifierProvider(create: (context) => Settings())],
       child: _ThemeProvider(),
     );
   }
@@ -39,31 +40,27 @@ class _ThemeProviderState extends State<_ThemeProvider> {
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<Settings>(context);
-    
+
     return MaterialApp(
       title: 'Aria2 Desktop',
       theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: settings.primaryColor,
-              brightness: Brightness.light,
-            ),
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: settings.primaryColor,
+          brightness: Brightness.light,
+        ),
         buttonTheme: ButtonThemeData(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
       darkTheme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: settings.primaryColor,
-              brightness: Brightness.dark,
-            ),
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: settings.primaryColor,
+          brightness: Brightness.dark,
+        ),
         buttonTheme: ButtonThemeData(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
       themeMode: settings.themeMode,
@@ -77,6 +74,7 @@ class _ThemeProviderState extends State<_ThemeProvider> {
               return downloadDataService!;
             },
           ),
+          ChangeNotifierProvider(create: (context) => SettingsService()),
         ],
         child: const _HomeWrapper(),
       ),
@@ -102,15 +100,29 @@ class _HomeWrapperState extends State<_HomeWrapper> {
 
   Future<void> _initialize() async {
     // Initialize instance manager
-    final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+    final instanceManager = Provider.of<InstanceManager>(
+      context,
+      listen: false,
+    );
     await instanceManager.initialize();
-    
+
+    // Initialize settings service with current instance
+    final settings = Provider.of<Settings>(context, listen: false);
+    final settingsService = Provider.of<SettingsService>(
+      context,
+      listen: false,
+    );
+    settingsService.initialize(
+      settings,
+      instanceManager.getConnectedInstance(),
+    );
+
     // Check if built-in instance failed to connect
     final builtinInstance = instanceManager.getInstanceById('builtin');
     if (builtinInstance == null) {
       throw Exception('Built-in instance not found');
     }
-    
+
     if (builtinInstance.status == ConnectionStatus.failed) {
       // Show error dialog for built-in instance connection failure
       if (mounted) {
@@ -129,11 +141,11 @@ class _HomeWrapperState extends State<_HomeWrapper> {
           ),
         );
       }
-      
+
       // Disable built-in instance for this session
       // This is handled by the failed status
     }
-    
+
     setState(() {
       _isInitialized = true;
     });
@@ -142,9 +154,7 @@ class _HomeWrapperState extends State<_HomeWrapper> {
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return const MainWindow();
   }
@@ -157,13 +167,47 @@ class MainWindow extends StatefulWidget {
   State<MainWindow> createState() => _MainWindowState();
 }
 
-class _MainWindowState extends State<MainWindow> {
+class _MainWindowState extends State<MainWindow> with WindowListener {
   int _selectedIndex = 0;
   final GlobalStat _globalStat = GlobalStat();
 
   @override
+  void initState() {
+    super.initState();
+    windowManager.addListener(this);
+    _initSystemTrayCallbacks();
+  }
+
+  Future<void> _initSystemTrayCallbacks() async {
+    final systemTrayService = SystemTrayService();
+    systemTrayService.setOnShowWindow(() async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+    systemTrayService.setOnQuitApp(() async {
+      await windowManager.close();
+    });
+  }
+
+  @override
+  void onWindowClose() async {
+    final settings = Provider.of<Settings>(context, listen: false);
+    if (settings.minimizeToTray) {
+      await windowManager.hide();
+    } else {
+      await windowManager.destroy();
+      SystemTrayService().destroy();
+    }
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    
     List<Widget> pages = [
       const DownloadPage(),
       const InstancePage(),
@@ -178,7 +222,7 @@ class _MainWindowState extends State<MainWindow> {
 
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     return Scaffold(
       body: Column(
         children: [
@@ -204,7 +248,11 @@ class _MainWindowState extends State<MainWindow> {
                       ),
                       alignment: Alignment.center,
                       // Icon placeholder - will be replaced with actual app icon
-                      child: Icon(Icons.download_done, size: 28, color: colorScheme.primary),
+                      child: Icon(
+                        Icons.download_done,
+                        size: 28,
+                        color: colorScheme.primary,
+                      ),
                     ),
                   ),
                   destinations: const [
@@ -226,9 +274,7 @@ class _MainWindowState extends State<MainWindow> {
                   ],
                 ),
                 // Main content area
-                Expanded(
-                  child: pages[_selectedIndex],
-                ),
+                Expanded(child: pages[_selectedIndex]),
               ],
             ),
           ),
@@ -237,7 +283,9 @@ class _MainWindowState extends State<MainWindow> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainer,
-              border: Border(top: BorderSide(color: colorScheme.surfaceContainerHighest)),
+              border: Border(
+                top: BorderSide(color: colorScheme.surfaceContainerHighest),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: colorScheme.shadow,
@@ -251,22 +299,33 @@ class _MainWindowState extends State<MainWindow> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Chip(
-                  label: Text('总速度: ${_formatSpeed(_globalStat.downloadSpeed)}'),
+                  label: Text(
+                    '总速度: ${_formatSpeed(_globalStat.downloadSpeed)}',
+                  ),
                   avatar: const Icon(Icons.speed, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
                 ),
                 Chip(
                   label: Text('活跃任务: ${_globalStat.activeTasks}'),
                   avatar: const Icon(Icons.task_alt, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
                 ),
                 Chip(
                   label: Text('等待任务: ${_globalStat.waitingTasks}'),
                   avatar: const Icon(Icons.pending, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
                 ),
               ],
             ),

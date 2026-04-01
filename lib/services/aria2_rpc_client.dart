@@ -40,7 +40,7 @@ class Aria2RpcClient with Loggable {
   WebSocket? _webSocket;
   final Map<String, Completer<Map<String, dynamic>>> _pendingRequests = {};
   bool _isWebSocket = false;
-  
+
   // Event callbacks
   final Map<Aria2Event, List<Aria2EventCallback>> _eventCallbacks = {};
 
@@ -53,16 +53,16 @@ class Aria2RpcClient with Loggable {
     }
   }
 
-  Aria2RpcClient._(this.instance, {required bool isWebSocket}) : 
-    _isWebSocket = isWebSocket,
-    _httpClient = isWebSocket ? null : http.Client() {
+  Aria2RpcClient._(this.instance, {required bool isWebSocket})
+    : _isWebSocket = isWebSocket,
+      _httpClient = isWebSocket ? null : http.Client() {
     initLogger();
-  
+
     // Initialize event callbacks map
     for (var event in Aria2Event.values) {
       _eventCallbacks[event] = [];
     }
-    
+
     if (_isWebSocket) {
       _initWebSocket();
     }
@@ -81,29 +81,33 @@ class Aria2RpcClient with Loggable {
   }
 
   /// HTTP RPC implementation
-  Future<Map<String, dynamic>> _callHttpRpc(String method, List<dynamic> params) async {
+  Future<Map<String, dynamic>> _callHttpRpc(
+    String method,
+    List<dynamic> params,
+  ) async {
     try {
       final requestId = DateTime.now().millisecondsSinceEpoch.toString();
       final requestBody = _buildRequestBody(method, params, requestId);
 
-      final response = await _httpClient!.post(
-        Uri.parse(buildRpcUrl()),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(requestBody),
-      ).timeout(const Duration(seconds: 10));
+      final response = await _httpClient!
+          .post(
+            Uri.parse(buildRpcUrl()),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(requestBody),
+          )
+          .timeout(const Duration(seconds: 10));
 
       // Regardless of status code, try to parse response body to check for Unauthorized error
       try {
         final data = jsonDecode(response.body);
-        
+
         // Check for Unauthorized error, whether in error field or elsewhere
-        if ((data.containsKey('error') && data['error']['message'] == 'Unauthorized') ||
+        if ((data.containsKey('error') &&
+                data['error']['message'] == 'Unauthorized') ||
             response.body.contains('Unauthorized')) {
           throw UnauthorizedException();
         }
-        
+
         if (response.statusCode == 200) {
           if (data.containsKey('error')) {
             throw Exception('RPC Error: ${data['error']['message']}');
@@ -134,7 +138,10 @@ class Aria2RpcClient with Loggable {
   }
 
   /// WebSocket RPC implementation
-  Future<Map<String, dynamic>> _callWebSocketRpc(String method, List<dynamic> params) async {
+  Future<Map<String, dynamic>> _callWebSocketRpc(
+    String method,
+    List<dynamic> params,
+  ) async {
     const maxRetries = 2;
     String? requestId;
 
@@ -187,8 +194,9 @@ class Aria2RpcClient with Loggable {
     _webSocket = null;
 
     try {
-      _webSocket = await WebSocket.connect(buildRpcUrl())
-          .timeout(const Duration(seconds: 10));
+      _webSocket = await WebSocket.connect(
+        buildRpcUrl(),
+      ).timeout(const Duration(seconds: 10));
       _webSocket!.listen(
         _handleWebSocketMessage,
         onError: _handleWebSocketError,
@@ -214,7 +222,9 @@ class Aria2RpcClient with Loggable {
           if (data['error']['message'] == 'Unauthorized') {
             completer.completeError(UnauthorizedException());
           } else {
-            completer.completeError(Exception('RPC Error: ${data['error']['message']}'));
+            completer.completeError(
+              Exception('RPC Error: ${data['error']['message']}'),
+            );
           }
         } else {
           completer.complete(data);
@@ -315,7 +325,8 @@ class Aria2RpcClient with Loggable {
         ? ConnectionFailedException()
         : error;
 
-    for (final Completer<Map<String, dynamic>> completer in _pendingRequests.values) {
+    for (final Completer<Map<String, dynamic>> completer
+        in _pendingRequests.values) {
       if (!completer.isCompleted) {
         completer.completeError(errorToThrow);
       }
@@ -336,13 +347,16 @@ class Aria2RpcClient with Loggable {
   }
 
   /// Execute multiple RPC calls in one request
-  Future<List<Map<String, dynamic>>> multicall(List<Map<String, dynamic>> calls) async {
+  Future<List<Map<String, dynamic>>> multicall(
+    List<Map<String, dynamic>> calls,
+  ) async {
     try {
       // Format: [{"methodName": "aria2.getActive", "params": [...]}, ...]
       final response = await callRpc('system.multicall', [calls]);
-      
+
       // Use original response for type checking directly
-      if (response.containsKey('result') && response['result'] is List<dynamic>) {
+      if (response.containsKey('result') &&
+          response['result'] is List<dynamic>) {
         final results = response['result'] as List<dynamic>;
         return results.map((item) {
           try {
@@ -369,18 +383,24 @@ class Aria2RpcClient with Loggable {
     final calls = [
       {
         "methodName": "aria2.tellActive",
-        "params": instance.secret.isNotEmpty ? ["token:${instance.secret}"] : []
+        "params": instance.secret.isNotEmpty
+            ? ["token:${instance.secret}"]
+            : [],
       },
       {
         "methodName": "aria2.tellWaiting",
-        "params": instance.secret.isNotEmpty ? ["token:${instance.secret}", 0, 100] : [0, 100]
+        "params": instance.secret.isNotEmpty
+            ? ["token:${instance.secret}", 0, 100]
+            : [0, 100],
       },
       {
         "methodName": "aria2.tellStopped",
-        "params": instance.secret.isNotEmpty ? ["token:${instance.secret}", 0, 100] : [0, 100]
-      }
+        "params": instance.secret.isNotEmpty
+            ? ["token:${instance.secret}", 0, 100]
+            : [0, 100],
+      },
     ];
-    
+
     return await multicall(calls);
   }
 
@@ -389,18 +409,24 @@ class Aria2RpcClient with Loggable {
     final multicallParams = [
       {
         "methodName": "aria2.tellActive",
-        "params": instance.secret.isNotEmpty ? ["token:${instance.secret}"] : []
+        "params": instance.secret.isNotEmpty
+            ? ["token:${instance.secret}"]
+            : [],
       },
       {
         "methodName": "aria2.tellWaiting",
-        "params": instance.secret.isNotEmpty ? ["token:${instance.secret}", 0, 1000] : [0, 1000]
+        "params": instance.secret.isNotEmpty
+            ? ["token:${instance.secret}", 0, 1000]
+            : [0, 1000],
       },
       {
         "methodName": "aria2.tellStopped",
-        "params": instance.secret.isNotEmpty ? ["token:${instance.secret}", 0, 1000] : [0, 1000]
-      }
+        "params": instance.secret.isNotEmpty
+            ? ["token:${instance.secret}", 0, 1000]
+            : [0, 1000],
+      },
     ];
-    
+
     final response = await callRpc('system.multicall', [multicallParams]);
     return response;
   }
@@ -447,46 +473,83 @@ class Aria2RpcClient with Loggable {
   Future<String> addUri(List<String> uris, Map<String, dynamic> options) async {
     // Build request parameters - [URL list, options]
     final params = [
-      uris,  // URL list
-      options  // Download options
+      uris, // URL list
+      options, // Download options
     ];
-    
+
     // Call RPC method to send request
     final response = await callRpc('aria2.addUri', params);
-    
+
     // Return task GID
     return response['result'] as String; // Returns the GID of the added task
   }
 
   /// Add a download task with torrent file
-  Future<String> addTorrent(String torrentContent, Map<String, dynamic> options) async {
+  Future<String> addTorrent(
+    String torrentContent,
+    Map<String, dynamic> options,
+  ) async {
     // Build request parameters - [torrent content, uris, options]
     final params = [
-      torrentContent,  // Base64 encoded torrent content
-      [],  // List of webseed URIs (optional)
-      options  // Download options
+      torrentContent, // Base64 encoded torrent content
+      [], // List of webseed URIs (optional)
+      options, // Download options
     ];
-    
+
     // Call RPC method to send request
     final response = await callRpc('aria2.addTorrent', params);
-    
+
     // Return task GID
     return response['result'] as String; // Returns the GID of the added task
   }
 
   /// Add a download task with metalink file
-  Future<String> addMetalink(String metalinkContent, Map<String, dynamic> options) async {
+  Future<String> addMetalink(
+    String metalinkContent,
+    Map<String, dynamic> options,
+  ) async {
     // Build request parameters - [metalink content, options]
     final params = [
-      metalinkContent,  // Base64 encoded metalink content
-      options  // Download options
+      metalinkContent, // Base64 encoded metalink content
+      options, // Download options
     ];
-    
+
     // Call RPC method to send request
     final response = await callRpc('aria2.addMetalink', params);
-    
+
     // Return task GID
     return response['result'] as String; // Returns the GID of the added task
+  }
+
+  /// Set global options (Aria2 global configuration)
+  Future<bool> setGlobalOption(Map<String, dynamic> options) async {
+    try {
+      final response = await callRpc('aria2.setGlobalOption', [options]);
+      logger.d('Global options set successfully: $options');
+      return response['result'] == 'OK';
+    } catch (e, stackTrace) {
+      logger.e(
+        'Failed to set global options',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  /// Get global options (Aria2 global configuration)
+  Future<Map<String, dynamic>> getGlobalOption() async {
+    try {
+      final response = await callRpc('aria2.getGlobalOption', []);
+      return response['result'] as Map<String, dynamic>;
+    } catch (e, stackTrace) {
+      logger.e(
+        'Failed to get global options',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
   }
 
   /// Close connection
@@ -499,12 +562,16 @@ class Aria2RpcClient with Loggable {
       _httpClient?.close();
       _httpClient = null;
     }
-    
+
     clearEventCallbacks();
   }
 
   /// Build request body
-  Map<String, dynamic> _buildRequestBody(String method, List<dynamic> params, String requestId) {
+  Map<String, dynamic> _buildRequestBody(
+    String method,
+    List<dynamic> params,
+    String requestId,
+  ) {
     Map<String, dynamic> requestBody = {
       'jsonrpc': '2.0',
       'id': requestId,
@@ -512,7 +579,7 @@ class Aria2RpcClient with Loggable {
     };
 
     List<dynamic> requestParams = [];
-    
+
     // Special handling for the system.multicall method
     // Because in multicall, the token is already included in the params of each sub-call
     if (method == 'system.multicall') {
@@ -526,7 +593,7 @@ class Aria2RpcClient with Loggable {
         requestParams = List.from(params);
       }
     }
-    
+
     requestBody['params'] = requestParams;
     return requestBody;
   }
