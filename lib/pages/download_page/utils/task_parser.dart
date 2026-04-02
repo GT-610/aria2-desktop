@@ -160,7 +160,7 @@ class TaskParser {
       // Only log warning when there is an error message
       if (errorMessage != null && errorMessage.isNotEmpty) {
         _log(
-          'Task[${id.substring(0, 8)}] error: ${errorMessage.length > 80 ? errorMessage.substring(0, 80) : errorMessage}',
+          'Task[${id.length > 8 ? id.substring(0, 8) : id}] error: ${errorMessage.length > 80 ? errorMessage.substring(0, 80) : errorMessage}',
         );
       }
     }
@@ -173,7 +173,7 @@ class TaskParser {
 
     // If there's no file name, use gid as the name
     if (name.isEmpty) {
-      name = id.substring(0, 8);
+      name = id.length > 8 ? id.substring(0, 8) : id;
     }
 
     // Get download status from API status

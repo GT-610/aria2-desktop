@@ -39,30 +39,34 @@ class SettingsService extends ChangeNotifier with Loggable {
     final options = <String, dynamic>{};
 
     // Transfer settings
-    options['max-concurrent-downloads'] = _settings!.maxConcurrentDownloads;
-    options['max-connection-per-server'] = _settings!.maxConnectionPerServer;
-    options['split'] = _settings!.split;
-    options['continue'] = _settings!.continueDownloads;
+    options['max-concurrent-downloads'] =
+        _settings!.maxConcurrentDownloads.toString();
+    options['max-connection-per-server'] =
+        _settings!.maxConnectionPerServer.toString();
+    options['split'] = _settings!.split.toString();
+    options['continue'] = _settings!.continueDownloads.toString();
 
     // Speed settings
     if (_settings!.maxOverallDownloadLimit > 0) {
       options['max-overall-download-limit'] =
-          _settings!.maxOverallDownloadLimit;
+          _settings!.maxOverallDownloadLimit.toString();
     } else {
       options['max-overall-download-limit'] = '0';
     }
     if (_settings!.maxOverallUploadLimit > 0) {
-      options['max-overall-upload-limit'] = _settings!.maxOverallUploadLimit;
+      options['max-overall-upload-limit'] =
+          _settings!.maxOverallUploadLimit.toString();
     } else {
       options['max-overall-upload-limit'] = '0';
     }
 
     // BT settings
-    options['bt-save-metadata'] = _settings!.btSaveMetadata;
-    options['bt-force-encryption'] = _settings!.btForceEncryption;
-    options['bt-load-saved-metadata'] = _settings!.btLoadSavedMetadata;
-    options['seed-time'] = _settings!.seedTime;
-    options['seed-ratio'] = _settings!.seedRatio;
+    options['bt-save-metadata'] = _settings!.btSaveMetadata.toString();
+    options['bt-force-encryption'] = _settings!.btForceEncryption.toString();
+    options['bt-load-saved-metadata'] =
+        _settings!.btLoadSavedMetadata.toString();
+    options['seed-time'] = _settings!.seedTime.toString();
+    options['seed-ratio'] = _settings!.seedRatio.toString();
     options['bt-exclude-tracker'] = _settings!.btExcludeTracker;
 
     // Advanced settings
@@ -72,10 +76,10 @@ class SettingsService extends ChangeNotifier with Loggable {
     if (_settings!.noProxy.isNotEmpty) {
       options['no-proxy'] = _settings!.noProxy;
     }
-    options['dht-listen-port'] = _settings!.dhtListenPort;
-    options['enable-dht6'] = _settings!.enableDht6;
-    options['auto-file-renaming'] = _settings!.autoFileRenaming;
-    options['allow-overwrite'] = _settings!.allowOverwrite;
+    options['dht-listen-port'] = _settings!.dhtListenPort.toString();
+    options['enable-dht6'] = _settings!.enableDht6.toString();
+    options['auto-file-renaming'] = _settings!.autoFileRenaming.toString();
+    options['allow-overwrite'] = _settings!.allowOverwrite.toString();
     options['user-agent'] = _settings!.userAgent;
 
     d('Converted settings to Aria2 options: $options');
