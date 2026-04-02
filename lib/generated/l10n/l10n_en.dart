@@ -451,6 +451,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addInstance => 'Add Instance';
 
   @override
+  String get add => 'Add';
+
+  @override
   String successConnected(Object name) {
     return 'Successfully connected to instance: $name';
   }
@@ -471,7 +474,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get instanceName => 'Instance Name';
 
   @override
+  String get instanceNameTip => 'Enter instance name';
+
+  @override
   String get host => 'Host';
+
+  @override
+  String get port => 'Port';
 
   @override
   String get hostTip => 'e.g., localhost:6800 or http://aria2.example.com:6800';
@@ -517,4 +526,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get error => 'Error';
+
+  @override
+  String get instanceNameRequired => 'Instance name is required';
+
+  @override
+  String get instanceNameTooLong =>
+      'Instance name must be 30 characters or less';
+
+  @override
+  String get hostRequired => 'Host is required';
+
+  @override
+  String get portRequired => 'Port is required';
+
+  @override
+  String get portInvalid => 'Port must be between 1 and 65535';
 }

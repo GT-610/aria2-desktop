@@ -446,6 +446,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get addInstance => '添加实例';
 
   @override
+  String get add => '添加';
+
+  @override
   String successConnected(Object name) {
     return '成功连接到实例: $name';
   }
@@ -465,7 +468,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get instanceName => '实例名称';
 
   @override
+  String get instanceNameTip => '输入实例名称';
+
+  @override
   String get host => '主机';
+
+  @override
+  String get port => '端口';
 
   @override
   String get hostTip => '例如：localhost:6800 或 http://aria2.example.com:6800';
@@ -510,4 +519,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get error => '错误';
+
+  @override
+  String get instanceNameRequired => '实例名称不能为空';
+
+  @override
+  String get instanceNameTooLong => '实例名称不能超过30个字符';
+
+  @override
+  String get hostRequired => '主机地址不能为空';
+
+  @override
+  String get portRequired => '端口不能为空';
+
+  @override
+  String get portInvalid => '端口必须在1到65535之间';
 }

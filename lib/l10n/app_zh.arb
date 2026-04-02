@@ -138,12 +138,15 @@
   "instanceAddedSuccess": "实例添加成功",
   "operationFailed": "操作失败: {error}",
   "addInstance": "添加实例",
+  "add": "添加",
   "successConnected": "成功连接到实例: {name}",
   "connectionFailedCheckConfig": "连接失败，请检查配置",
   "connectionFailedError": "连接失败: {error}",
   "editInstance": "编辑实例",
   "instanceName": "实例名称",
+  "instanceNameTip": "输入实例名称",
   "host": "主机",
+  "port": "端口",
   "hostTip": "例如：localhost:6800 或 http://aria2.example.com:6800",
   "protocol": "协议",
   "http": "HTTP",
@@ -157,5 +160,10 @@
   "debug": "调试",
   "info": "信息",
   "warning": "警告",
-  "error": "错误"
+  "error": "错误",
+  "instanceNameRequired": "实例名称不能为空",
+  "instanceNameTooLong": "实例名称不能超过30个字符",
+  "hostRequired": "主机地址不能为空",
+  "portRequired": "端口不能为空",
+  "portInvalid": "端口必须在1到65535之间"
 }

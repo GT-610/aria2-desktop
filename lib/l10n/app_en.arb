@@ -138,12 +138,15 @@
   "instanceAddedSuccess": "Instance added successfully",
   "operationFailed": "Operation failed: {error}",
   "addInstance": "Add Instance",
+  "add": "Add",
   "successConnected": "Successfully connected to instance: {name}",
   "connectionFailedCheckConfig": "Connection failed, please check configuration",
   "connectionFailedError": "Connection failed: {error}",
   "editInstance": "Edit Instance",
   "instanceName": "Instance Name",
+  "instanceNameTip": "Enter instance name",
   "host": "Host",
+  "port": "Port",
   "hostTip": "e.g., localhost:6800 or http://aria2.example.com:6800",
   "protocol": "Protocol",
   "http": "HTTP",
@@ -157,5 +160,10 @@
   "debug": "Debug",
   "info": "Info",
   "warning": "Warning",
-  "error": "Error"
+  "error": "Error",
+  "instanceNameRequired": "Instance name is required",
+  "instanceNameTooLong": "Instance name must be 30 characters or less",
+  "hostRequired": "Host is required",
+  "portRequired": "Port is required",
+  "portInvalid": "Port must be between 1 and 65535"
 }

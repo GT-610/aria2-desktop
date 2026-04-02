@@ -1,5 +1,6 @@
 import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
+import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
 
 class InstanceDialog extends StatefulWidget {
@@ -24,6 +25,10 @@ class _InstanceDialogState extends State<InstanceDialog> {
   late final TextEditingController _hostController;
   late final TextEditingController _portController;
   late final TextEditingController _secretController;
+
+  String? _nameError;
+  String? _hostError;
+  String? _portError;
 
   @override
   void initState() {
@@ -60,15 +65,57 @@ class _InstanceDialogState extends State<InstanceDialog> {
     super.dispose();
   }
 
+  bool _validate() {
+    final l10n = AppLocalizations.of(context)!;
+    bool isValid = true;
+
+    setState(() {
+      if (_name.trim().isEmpty) {
+        _nameError = l10n.instanceNameRequired;
+        isValid = false;
+      } else if (_name.trim().length > 30) {
+        _nameError = l10n.instanceNameTooLong;
+        isValid = false;
+      } else {
+        _nameError = null;
+      }
+
+      if (_host.trim().isEmpty) {
+        _hostError = l10n.hostRequired;
+        isValid = false;
+      } else {
+        _hostError = null;
+      }
+
+      if (_portController.text.trim().isEmpty) {
+        _portError = l10n.portRequired;
+        isValid = false;
+      } else {
+        final portNum = int.tryParse(_portController.text.trim());
+        if (portNum == null || portNum < 1 || portNum > 65535) {
+          _portError = l10n.portInvalid;
+          isValid = false;
+        } else {
+          _portError = null;
+          _port = portNum;
+        }
+      }
+    });
+
+    return isValid;
+  }
+
   void _submit() {
+    if (!_validate()) return;
+
     final instance = Aria2Instance(
       id:
           widget.instance?.id ??
           DateTime.now().millisecondsSinceEpoch.toString(),
-      name: _name,
+      name: _name.trim(),
       type: _type,
       protocol: _protocol,
-      host: _host,
+      host: _host.trim(),
       port: _port,
       secret: _secret,
     );
@@ -83,6 +130,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -103,7 +151,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
             Padding(
               padding: const EdgeInsets.all(24).copyWith(bottom: 16),
               child: Text(
-                widget.instance == null ? '添加实例' : '编辑实例',
+                widget.instance == null ? l10n.addInstance : l10n.editInstance,
                 style: theme.textTheme.headlineMedium,
               ),
             ),
@@ -116,9 +164,15 @@ class _InstanceDialogState extends State<InstanceDialog> {
                   children: [
                     Input(
                       controller: _nameController,
-                      label: '实例名称',
-                      hint: '输入实例名称',
-                      onChanged: (value) => _name = value,
+                      label: l10n.instanceName,
+                      hint: l10n.instanceNameTip,
+                      errorText: _nameError,
+                      onChanged: (value) {
+                        _name = value;
+                        if (_nameError != null) {
+                          setState(() => _nameError = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -126,7 +180,9 @@ class _InstanceDialogState extends State<InstanceDialog> {
                         Icon(Icons.cloud_outlined, color: colorScheme.primary),
                         const SizedBox(width: 8),
                         Text(
-                          _type == InstanceType.builtin ? '内建实例' : '远程实例',
+                          _type == InstanceType.builtin
+                              ? l10n.builtin
+                              : l10n.remote,
                           style: theme.textTheme.bodyLarge,
                         ),
                       ],
@@ -134,7 +190,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       initialValue: _protocol,
-                      decoration: const InputDecoration(labelText: '协议'),
+                      decoration: InputDecoration(labelText: l10n.protocol),
                       items: ['http', 'https', 'ws', 'wss'].map((p) {
                         return DropdownMenuItem(
                           value: p,
@@ -146,17 +202,27 @@ class _InstanceDialogState extends State<InstanceDialog> {
                     const SizedBox(height: 16),
                     Input(
                       controller: _hostController,
-                      label: '主机地址',
-                      hint: 'localhost 或 IP地址 或 域名',
-                      onChanged: (value) => _host = value,
+                      label: l10n.host,
+                      hint: l10n.hostTip,
+                      errorText: _hostError,
+                      onChanged: (value) {
+                        _host = value;
+                        if (_hostError != null) {
+                          setState(() => _hostError = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
                     Input(
                       controller: _portController,
-                      label: '端口',
+                      label: l10n.port,
                       hint: '6800',
                       type: TextInputType.number,
+                      errorText: _portError,
                       onChanged: (value) {
+                        if (_portError != null) {
+                          setState(() => _portError = null);
+                        }
                         final port = int.tryParse(value);
                         if (port != null) _port = port;
                       },
@@ -164,8 +230,8 @@ class _InstanceDialogState extends State<InstanceDialog> {
                     const SizedBox(height: 16),
                     Input(
                       controller: _secretController,
-                      label: '密钥 (可选)',
-                      hint: '如果Aria2设置了密钥，请输入',
+                      label: l10n.rpcSecret,
+                      hint: l10n.rpcSecretTip,
                       obscureText: true,
                       onChanged: (value) => _secret = value,
                     ),
@@ -182,7 +248,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                   Btn.cancel(onTap: () => Navigator.of(context).pop()),
                   const SizedBox(width: 8),
                   Btn.elevated(
-                    text: widget.instance == null ? '添加' : '保存',
+                    text: widget.instance == null ? l10n.add : l10n.save,
                     onTap: _submit,
                   ),
                 ],

@@ -920,6 +920,12 @@ abstract class AppLocalizations {
   /// **'Add Instance'**
   String get addInstance;
 
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
   /// No description provided for @successConnected.
   ///
   /// In en, this message translates to:
@@ -950,11 +956,23 @@ abstract class AppLocalizations {
   /// **'Instance Name'**
   String get instanceName;
 
+  /// No description provided for @instanceNameTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter instance name'**
+  String get instanceNameTip;
+
   /// No description provided for @host.
   ///
   /// In en, this message translates to:
   /// **'Host'**
   String get host;
+
+  /// No description provided for @port.
+  ///
+  /// In en, this message translates to:
+  /// **'Port'**
+  String get port;
 
   /// No description provided for @hostTip.
   ///
@@ -1039,6 +1057,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error'**
   String get error;
+
+  /// No description provided for @instanceNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Instance name is required'**
+  String get instanceNameRequired;
+
+  /// No description provided for @instanceNameTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Instance name must be 30 characters or less'**
+  String get instanceNameTooLong;
+
+  /// No description provided for @hostRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Host is required'**
+  String get hostRequired;
+
+  /// No description provided for @portRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Port is required'**
+  String get portRequired;
+
+  /// No description provided for @portInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Port must be between 1 and 65535'**
+  String get portInvalid;
 }
 
 class _AppLocalizationsDelegate

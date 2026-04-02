@@ -211,7 +211,7 @@ class TaskActionDialogs {
         'Action ${actionType.name} completed for instance ${instance.name}: $successCount success, $failCount failed',
       );
     } catch (e) {
-      _log('Error executing task operation for instance ${instance.name}');
+      _log('Error executing task operation for instance ${instance.name}: $e');
     } finally {
       client?.close();
     }
