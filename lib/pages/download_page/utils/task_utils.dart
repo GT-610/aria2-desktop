@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:fl_lib/fl_lib.dart';
 import '../models/download_task.dart';
 
-void _log(String msg) => dprint('[TaskUtils] $msg');
+void _logE(String msg) => lprint('[TaskUtils] $msg');
 
 class TaskUtils {
   static String calculateRemainingTime(double progress, String downloadSpeed) {
@@ -61,7 +61,7 @@ class TaskUtils {
         }
       }
     } catch (e) {
-      _log('Error opening directory: $e');
+      _logE('Error opening directory: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,

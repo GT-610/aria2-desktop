@@ -115,7 +115,7 @@ String? parseBitfield(String? bittorrentInfo) {
         }
       }
     } catch (e) {
-      dprint('[FormatUtils] Failed to parse bitfield: $e');
+      lprint('[FormatUtils] Failed to parse bitfield: $e');
     }
   }
   return null;

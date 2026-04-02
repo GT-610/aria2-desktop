@@ -8,8 +8,8 @@ import '../../../models/aria2_instance.dart';
 import '../models/download_task.dart';
 import '../enums.dart';
 
-void _log(String message) {
-  dprint('[TaskActionDialogs] $message');
+void _logE(String message) {
+  lprint('[TaskActionDialogs] $message');
 }
 
 /// Task operation type enumeration
@@ -163,7 +163,7 @@ class TaskActionDialogs {
     List<DownloadTask> tasks,
   ) async {
     if (tasks.isEmpty) {
-      _log('No tasks to process for instance: ${instance.name}');
+      _logE('No tasks to process for instance: ${instance.name}');
       return;
     }
 
@@ -203,15 +203,15 @@ class TaskActionDialogs {
           }
         } catch (e) {
           failCount++;
-          _log('Failed to ${actionType.name} task ${task.id}: $e');
+          _logE('Failed to ${actionType.name} task ${task.id}: $e');
         }
       }
 
-      _log(
+      _logE(
         'Action ${actionType.name} completed for instance ${instance.name}: $successCount success, $failCount failed',
       );
     } catch (e) {
-      _log('Error executing task operation for instance ${instance.name}: $e');
+      _logE('Error executing task operation for instance ${instance.name}: $e');
     } finally {
       client?.close();
     }

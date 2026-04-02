@@ -13,7 +13,7 @@ import '../../../services/instance_manager.dart';
 import '../../../utils/format_utils.dart';
 import '../../../utils/logging.dart';
 
-void _log(String msg) => fl.dprint('[DownloadTaskService] $msg');
+void _logE(String msg) => fl.lprint('[DownloadTaskService] $msg');
 
 class DownloadTaskService with Loggable {
   static final DownloadTaskService _instance = DownloadTaskService._();
@@ -189,7 +189,7 @@ class DownloadTaskService with Loggable {
         onTaskUpdated();
       }
     } catch (e) {
-      _log('Error pausing task: $e');
+      _logE('Error pausing task: $e');
     }
   }
 
@@ -213,7 +213,7 @@ class DownloadTaskService with Loggable {
         onTaskUpdated();
       }
     } catch (e) {
-      _log('Error stopping task: $e');
+      _logE('Error stopping task: $e');
     }
   }
 
@@ -237,7 +237,7 @@ class DownloadTaskService with Loggable {
         onTaskUpdated();
       }
     } catch (e) {
-      _log('Error resuming task: $e');
+      _logE('Error resuming task: $e');
     }
   }
 
@@ -269,7 +269,7 @@ class DownloadTaskService with Loggable {
         onTaskUpdated();
       }
     } catch (e) {
-      _log('Error retrying task: $e');
+      _logE('Error retrying task: $e');
     }
   }
 

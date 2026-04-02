@@ -4,7 +4,8 @@ import '../enums.dart';
 import '../models/download_task.dart';
 import '../../../utils/format_utils.dart';
 
-void _log(String msg) => dprint('[TaskParser] $msg');
+void _logD(String msg) => dprint('[TaskParser] $msg');
+void _logE(String msg) => lprint('[TaskParser] $msg');
 
 class TaskParser {
   static List<DownloadTask> parseTasks(
@@ -18,7 +19,7 @@ class TaskParser {
     // Handle nested array structure: if tasks is a nested array (tasks[0] is also an array), use tasks[0] as the task list
     List taskList = tasks;
     if (tasks.isNotEmpty && tasks[0] is List) {
-      _log('Data structure optimization: Processing nested array');
+      _logD('Data structure optimization: Processing nested array');
       taskList = tasks[0];
     }
 
@@ -56,7 +57,7 @@ class TaskParser {
           );
           parsedTasks.add(taskWithStatus);
         } catch (e) {
-          _log('Failed to parse task: ${e.toString()}');
+          _logE('Failed to parse task: ${e.toString()}');
           continue;
         }
       }
@@ -159,7 +160,7 @@ class TaskParser {
       errorMessage = taskData['errorMessage'] as String?;
       // Only log warning when there is an error message
       if (errorMessage != null && errorMessage.isNotEmpty) {
-        _log(
+        _logD(
           'Task[${id.length > 8 ? id.substring(0, 8) : id}] error: ${errorMessage.length > 80 ? errorMessage.substring(0, 80) : errorMessage}',
         );
       }
