@@ -22,7 +22,9 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
   void initState() {
     super.initState();
     _loadVersionInfo();
-    _loadSettings();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSettings();
+    });
   }
 
   Future<void> _loadSettings() async {
@@ -32,6 +34,10 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
       i('Settings loaded successfully');
     } catch (err) {
       this.e('Failed to load settings', error: err);
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        _showErrorSnackBar(l10n.loadSettingsFailed);
+      }
     } finally {
       if (mounted) {
         setState(() {

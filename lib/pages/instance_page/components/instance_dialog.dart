@@ -189,7 +189,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _protocol,
+                      initialValue: _protocol,
                       decoration: InputDecoration(labelText: l10n.protocol),
                       items: ['http', 'https', 'ws', 'wss'].map((p) {
                         return DropdownMenuItem(
