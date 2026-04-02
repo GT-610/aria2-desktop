@@ -294,7 +294,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
               ),
             ),
             actions: [
-              Btn.cancel(),
+              Btn.cancel(onTap: () => Navigator.of(context).pop()),
               Btn.ok(
                 onTap: () {
                   int currentTab = DefaultTabController.of(context).index;
