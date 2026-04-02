@@ -130,12 +130,13 @@ class SettingsService extends ChangeNotifier with Loggable {
 
       if (_settings!.maxOverallDownloadLimit > 0) {
         options['max-overall-download-limit'] =
-            _settings!.maxOverallDownloadLimit;
+            _settings!.maxOverallDownloadLimit.toString();
       } else {
         options['max-overall-download-limit'] = '0';
       }
       if (_settings!.maxOverallUploadLimit > 0) {
-        options['max-overall-upload-limit'] = _settings!.maxOverallUploadLimit;
+        options['max-overall-upload-limit'] =
+            _settings!.maxOverallUploadLimit.toString();
       } else {
         options['max-overall-upload-limit'] = '0';
       }

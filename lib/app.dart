@@ -220,13 +220,16 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
     if (index < 0 || index >= 3) return;
     setState(() => _selectedIndex = index);
     _switchingPage = true;
-    _pageController.animateToPage(
+    _pageController
+        .animateToPage(
       index,
       duration: const Duration(milliseconds: 677),
       curve: Curves.fastLinearToSlowEaseIn,
-    );
-    Future.delayed(const Duration(milliseconds: 677), () {
-      _switchingPage = false;
+    )
+        .then((_) {
+      if (mounted) {
+        _switchingPage = false;
+      }
     });
   }
 
