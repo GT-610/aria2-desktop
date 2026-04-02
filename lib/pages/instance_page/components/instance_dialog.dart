@@ -20,6 +20,11 @@ class _InstanceDialogState extends State<InstanceDialog> {
   late int _port;
   late String _secret;
 
+  late final TextEditingController _nameController;
+  late final TextEditingController _hostController;
+  late final TextEditingController _portController;
+  late final TextEditingController _secretController;
+
   @override
   void initState() {
     super.initState();
@@ -39,6 +44,20 @@ class _InstanceDialogState extends State<InstanceDialog> {
       _port = 6800;
       _secret = '';
     }
+
+    _nameController = TextEditingController(text: _name);
+    _hostController = TextEditingController(text: _host);
+    _portController = TextEditingController(text: _port.toString());
+    _secretController = TextEditingController(text: _secret);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _hostController.dispose();
+    _portController.dispose();
+    _secretController.dispose();
+    super.dispose();
   }
 
   void _submit() {
@@ -96,6 +115,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Input(
+                      controller: _nameController,
                       label: '实例名称',
                       hint: '输入实例名称',
                       onChanged: (value) => _name = value,
@@ -125,12 +145,14 @@ class _InstanceDialogState extends State<InstanceDialog> {
                     ),
                     const SizedBox(height: 16),
                     Input(
+                      controller: _hostController,
                       label: '主机地址',
                       hint: 'localhost 或 IP地址 或 域名',
                       onChanged: (value) => _host = value,
                     ),
                     const SizedBox(height: 16),
                     Input(
+                      controller: _portController,
                       label: '端口',
                       hint: '6800',
                       type: TextInputType.number,
@@ -141,6 +163,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                     ),
                     const SizedBox(height: 16),
                     Input(
+                      controller: _secretController,
                       label: '密钥 (可选)',
                       hint: '如果Aria2设置了密钥，请输入',
                       obscureText: true,

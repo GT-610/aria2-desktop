@@ -212,6 +212,7 @@ class TaskActionDialogs {
       );
     } catch (e) {
       _log('Error executing task operation for instance ${instance.name}');
+    } finally {
       client?.close();
     }
   }

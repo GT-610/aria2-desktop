@@ -69,10 +69,10 @@ class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
       this.e('Failed to select directory', error: err);
       final mountedContext = context;
       if (widget.onError != null) {
-        widget.onError!('Failed to select directory: $e');
+        widget.onError!('Failed to select directory: $err');
       } else if (mountedContext.mounted) {
         ScaffoldMessenger.of(mountedContext).showSnackBar(
-          SnackBar(content: Text('Failed to select directory: $e')),
+          SnackBar(content: Text('Failed to select directory: $err')),
         );
       }
     }
