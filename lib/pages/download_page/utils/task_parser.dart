@@ -56,7 +56,7 @@ class TaskParser {
           );
           parsedTasks.add(taskWithStatus);
         } catch (e) {
-          _log('Failed to parse task: ${e.toString().substring(0, 100)}');
+          _log('Failed to parse task: ${e.toString()}');
           continue;
         }
       }
@@ -160,7 +160,7 @@ class TaskParser {
       // Only log warning when there is an error message
       if (errorMessage != null && errorMessage.isNotEmpty) {
         _log(
-          'Task[${id.substring(0, 8)}] error: ${errorMessage.substring(0, 80)}',
+          'Task[${id.substring(0, 8)}] error: ${errorMessage.length > 80 ? errorMessage.substring(0, 80) : errorMessage}',
         );
       }
     }

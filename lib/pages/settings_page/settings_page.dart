@@ -134,6 +134,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                         l10n.appearance,
                         style: theme.textTheme.bodyLarge,
                       ),
+                      subtitle: Text(l10n.appearanceTip),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [

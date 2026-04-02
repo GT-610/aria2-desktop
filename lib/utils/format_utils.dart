@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
 
 class FormatUtils {}
@@ -114,7 +115,7 @@ String? parseBitfield(String? bittorrentInfo) {
         }
       }
     } catch (e) {
-      // Silent catch for bitfield parsing
+      dprint('[FormatUtils] Failed to parse bitfield: $e');
     }
   }
   return null;
