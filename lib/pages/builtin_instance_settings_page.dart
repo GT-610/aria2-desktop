@@ -1,3 +1,4 @@
+import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/settings.dart';
@@ -61,13 +62,10 @@ class _BuiltinInstanceSettingsPageState
                   }
                 : null,
             child: _isSaving
-                ? SizedBox(
+                ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: colorScheme.onSurface,
-                    ),
+                    child: fl.SizedLoading.small,
                   )
                 : Text(
                     '保存并应用',
@@ -558,9 +556,9 @@ class _BuiltinInstanceSettingsPageState
         barrierDismissible: false,
         builder: (context) => AlertDialog(
           content: Row(
-            children: const [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
+            children: [
+              fl.SizedLoading.medium,
+              const SizedBox(width: 16),
               Expanded(child: Text('内建实例正在重启，请稍候...')),
             ],
           ),

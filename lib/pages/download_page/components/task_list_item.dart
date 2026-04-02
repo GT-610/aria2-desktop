@@ -37,10 +37,6 @@ class TaskListItem extends StatelessWidget {
     return instanceNames[instanceId] ?? '未知实例';
   }
 
-
-
-
-
   // Handle task pause
   Future<void> _handlePauseTask(BuildContext context) async {
     await DownloadTaskService.pauseTask(context, task.id, onTaskUpdated);
@@ -65,16 +61,17 @@ class TaskListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final (statusText, statusColor) = DownloadTaskService.getStatusInfo(task, colorScheme);
-    
+    final (statusText, statusColor) = DownloadTaskService.getStatusInfo(
+      task,
+      colorScheme,
+    );
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 1,
       shadowColor: colorScheme.shadow,
       surfaceTintColor: colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
@@ -93,7 +90,10 @@ class TaskListItem extends StatelessWidget {
                   if (task.progress > 0)
                     Container(
                       margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: statusColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
@@ -125,14 +125,21 @@ class TaskListItem extends StatelessWidget {
                         // Upload speed
                         Container(
                           margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: colorScheme.secondary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.upload, size: 14, color: colorScheme.secondary),
+                              Icon(
+                                Icons.upload,
+                                size: 14,
+                                color: colorScheme.secondary,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 task.uploadSpeed,
@@ -148,14 +155,21 @@ class TaskListItem extends StatelessWidget {
                         // Download speed
                         Container(
                           margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: colorScheme.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.download, size: 14, color: colorScheme.primary),
+                              Icon(
+                                Icons.download,
+                                size: 14,
+                                color: colorScheme.primary,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 task.downloadSpeed,
@@ -172,7 +186,10 @@ class TaskListItem extends StatelessWidget {
                     ),
                   // Status label
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(16),
@@ -188,9 +205,9 @@ class TaskListItem extends StatelessWidget {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               // Progress bar (shown for all statuses with slight style variation for non-active)
               Stack(
                 children: [
@@ -201,16 +218,19 @@ class TaskListItem extends StatelessWidget {
                     backgroundColor: colorScheme.surfaceContainerHighest,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       // Use tertiary color for paused tasks
-                      (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') 
-                        ? colorScheme.tertiary 
-                        : (task.status == DownloadStatus.active ? statusColor : statusColor.withValues(alpha: 0.6)),
+                      (task.status == DownloadStatus.waiting &&
+                              task.taskStatus == 'paused')
+                          ? colorScheme.tertiary
+                          : (task.status == DownloadStatus.active
+                                ? statusColor
+                                : statusColor.withValues(alpha: 0.6)),
                     ),
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               // Task details
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -222,7 +242,10 @@ class TaskListItem extends StatelessWidget {
                       // Instance name
                       Container(
                         margin: const EdgeInsets.only(bottom: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: colorScheme.tertiary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
@@ -293,7 +316,8 @@ class TaskListItem extends StatelessWidget {
                             constraints: BoxConstraints(),
                           ),
                         ),
-                      ] else if (task.status == DownloadStatus.stopped && task.taskStatus != 'complete') ...[
+                      ] else if (task.status == DownloadStatus.stopped &&
+                          task.taskStatus != 'complete') ...[
                         // Retry button - Don't show for completed tasks
                         Tooltip(
                           message: '重试',
@@ -315,11 +339,11 @@ class TaskListItem extends StatelessWidget {
                           padding: EdgeInsets.zero,
                           constraints: BoxConstraints(),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),

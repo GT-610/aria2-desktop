@@ -1,3 +1,4 @@
+import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import '../../../../models/aria2_instance.dart';
 import '../../../../utils/logging.dart';
@@ -55,7 +56,7 @@ class _InstanceCardState extends State<InstanceCard> {
         return const SizedBox(
           width: 16,
           height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+          child: fl.SizedLoading.small,
         );
       case ConnectionStatus.connected:
         return const Icon(Icons.link, size: 16, color: Colors.white);
@@ -101,7 +102,7 @@ class _InstanceCardState extends State<InstanceCard> {
                 const SizedBox(
                   width: 12,
                   height: 12,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: fl.SizedLoading.small,
                 ),
                 const SizedBox(width: 4),
                 Text(label, style: TextStyle(fontSize: 12, color: textColor)),
@@ -163,10 +164,7 @@ class _InstanceCardState extends State<InstanceCard> {
               const SizedBox(
                 width: 16,
                 height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
+                child: fl.SizedLoading.small,
               ),
               const SizedBox(width: 8),
               const Text('断开'),
@@ -331,9 +329,17 @@ class _InstanceCardState extends State<InstanceCard> {
                         // Navigate to builtin instance settings page
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) =>
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) =>
                                 const BuiltinInstanceSettingsPage(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              return fl.SlideTransitionX(
+                                position: animation,
+                                direction: AxisDirection.left,
+                                child: child,
+                              );
+                            },
+                            transitionDuration: const Duration(milliseconds: 300),
                           ),
                         );
                       },

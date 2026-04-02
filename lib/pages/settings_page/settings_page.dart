@@ -1,6 +1,8 @@
+import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import '../../generated/l10n/l10n.dart';
 import '../../models/settings.dart';
 import './components/appearance_dialog.dart';
 import '../../utils/logging.dart';
@@ -30,7 +32,6 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
       i('Settings loaded successfully');
     } catch (err) {
       this.e('Failed to load settings', error: err);
-      _showErrorSnackBar('加载设置失败');
     } finally {
       if (mounted) {
         setState(() {
@@ -50,10 +51,11 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(body: Center(child: fl.SizedLoading.medium));
     }
 
     final settings = Provider.of<Settings>(context);
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -65,7 +67,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
           children: [
             // Global settings section
             Text(
-              '全局设置',
+              l10n.globalSettings,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -84,10 +86,10 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                   children: [
                     SwitchListTile.adaptive(
                       title: Text(
-                        '系统启动时自动运行',
+                        l10n.runAtStartup,
                         style: theme.textTheme.bodyLarge,
                       ),
-                      subtitle: const Text('设置应用随系统启动而运行'),
+                      subtitle: Text(l10n.runAtStartupTip),
                       value: settings.autoStart,
                       onChanged: (value) async {
                         try {
@@ -95,7 +97,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                           this.i('Auto-start setting changed to: $value');
                         } catch (e) {
                           this.e('Failed to save auto-start setting', error: e);
-                          _showErrorSnackBar('保存设置失败');
+                          _showErrorSnackBar(l10n.saveSettingsFailed);
                         }
                       },
                       activeThumbColor: Colors.white,
@@ -104,8 +106,11 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                     ),
                     const Divider(height: 1),
                     SwitchListTile.adaptive(
-                      title: Text('最小化到系统托盘', style: theme.textTheme.bodyLarge),
-                      subtitle: const Text('关闭窗口时最小化到系统托盘而不是退出'),
+                      title: Text(
+                        l10n.minimizeToTray,
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(l10n.minimizeToTrayTip),
                       value: settings.minimizeToTray,
                       onChanged: (value) async {
                         try {
@@ -116,7 +121,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                             'Failed to save minimize to tray setting',
                             error: e,
                           );
-                          _showErrorSnackBar('保存设置失败');
+                          _showErrorSnackBar(l10n.saveSettingsFailed);
                         }
                       },
                       activeThumbColor: Colors.white,
@@ -125,8 +130,10 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      title: Text('外观', style: theme.textTheme.bodyLarge),
-                      subtitle: const Text('自定义应用程序的主题和颜色'),
+                      title: Text(
+                        l10n.appearance,
+                        style: theme.textTheme.bodyLarge,
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -142,16 +149,32 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                           ),
                           Text(
                             settings.themeMode.name == 'light'
-                                ? '亮色'
+                                ? l10n.light
                                 : settings.themeMode.name == 'dark'
-                                ? '暗色'
-                                : '系统',
+                                ? l10n.dark
+                                : l10n.system,
                           ),
                           const Icon(Icons.chevron_right),
                         ],
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                       onTap: () => _showAppearanceDialog(context, settings),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      title: Text(
+                        l10n.language,
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_getLanguageName(settings.locale, l10n)),
+                          const Icon(Icons.chevron_right),
+                        ],
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                      onTap: () => _showLanguageDialog(context, settings, l10n),
                     ),
                   ],
                 ),
@@ -160,7 +183,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
 
             // Log settings section
             Text(
-              '日志设置',
+              l10n.logSettings,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -178,16 +201,25 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                 child: Column(
                   children: [
                     ListTile(
-                      title: Text('日志级别', style: theme.textTheme.bodyLarge),
+                      title: Text(
+                        l10n.logLevel,
+                        style: theme.textTheme.bodyLarge,
+                      ),
                       trailing: SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'debug', label: Text('Debug')),
-                          ButtonSegment(value: 'info', label: Text('Info')),
+                        segments: [
+                          ButtonSegment(
+                            value: 'debug',
+                            label: Text(l10n.debug),
+                          ),
+                          ButtonSegment(value: 'info', label: Text(l10n.info)),
                           ButtonSegment(
                             value: 'warning',
-                            label: Text('Warning'),
+                            label: Text(l10n.warning),
                           ),
-                          ButtonSegment(value: 'error', label: Text('Error')),
+                          ButtonSegment(
+                            value: 'error',
+                            label: Text(l10n.error),
+                          ),
                         ],
                         selected: {settings.logLevelString},
                         onSelectionChanged: (newSelection) async {
@@ -204,7 +236,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                                 'Failed to save log level setting',
                                 error: e,
                               );
-                              _showErrorSnackBar('保存设置失败');
+                              _showErrorSnackBar(l10n.saveSettingsFailed);
                             }
                           }
                         },
@@ -220,7 +252,10 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                     ),
                     const Divider(height: 1),
                     SwitchListTile.adaptive(
-                      title: Text('保存日志到文件', style: theme.textTheme.bodyLarge),
+                      title: Text(
+                        l10n.saveLogToFile,
+                        style: theme.textTheme.bodyLarge,
+                      ),
                       value: settings.saveLogsToFile,
                       onChanged: (value) async {
                         try {
@@ -230,7 +265,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                           );
                         } catch (e) {
                           this.e('Failed to save save logs setting', error: e);
-                          _showErrorSnackBar('保存设置失败');
+                          _showErrorSnackBar(l10n.saveSettingsFailed);
                         }
                       },
                       activeThumbColor: Colors.white,
@@ -244,14 +279,16 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                         onPressed: () async {
                           try {
                             this.i('Attempting to open log directory');
-                            _showInfoSnackBar('此功能将在后续版本中实现');
+                            _showInfoSnackBar(
+                              l10n.thisFeatureWillBeImplemented,
+                            );
                           } catch (e) {
                             this.e('Failed to open log directory', error: e);
-                            _showErrorSnackBar('无法打开日志目录');
+                            _showErrorSnackBar(l10n.cannotOpenLogDirectory);
                           }
                         },
                         icon: const Icon(Icons.file_open),
-                        label: const Text('查看日志文件'),
+                        label: Text(l10n.viewLogFiles),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 24,
@@ -270,7 +307,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
 
             // About section
             Text(
-              '关于',
+              l10n.about,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -288,21 +325,32 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                 child: Column(
                   children: [
                     ListTile(
-                      title: Text('版本号', style: theme.textTheme.bodyLarge),
-                      subtitle: Text(_version.isEmpty ? '加载中...' : _version),
+                      title: Text(
+                        l10n.version,
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(
+                        _version.isEmpty ? l10n.versionLoading : _version,
+                      ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                       onTap: () {},
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      title: Text('贡献者', style: theme.textTheme.bodyLarge),
+                      title: Text(
+                        l10n.contributors,
+                        style: theme.textTheme.bodyLarge,
+                      ),
                       trailing: const Icon(Icons.chevron_right),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                       onTap: () {},
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      title: Text('许可协议', style: theme.textTheme.bodyLarge),
+                      title: Text(
+                        l10n.license,
+                        style: theme.textTheme.bodyLarge,
+                      ),
                       trailing: const Icon(Icons.chevron_right),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                       onTap: () {},
@@ -323,6 +371,72 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
       context: context,
       builder: (context) {
         return AppearanceDialog(settings: settings);
+      },
+    );
+  }
+
+  // Get language display name
+  String _getLanguageName(Locale? locale, AppLocalizations l10n) {
+    if (locale == null) {
+      return l10n.system;
+    }
+    switch (locale.languageCode) {
+      case 'en':
+        return 'English';
+      case 'zh':
+        return '中文';
+      default:
+        return locale.languageCode;
+    }
+  }
+
+  // Show language selection dialog
+  void _showLanguageDialog(
+    BuildContext context,
+    Settings settings,
+    AppLocalizations l10n,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(l10n.language),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(l10n.system),
+                trailing: settings.locale == null
+                    ? const Icon(Icons.check, color: Colors.green)
+                    : null,
+                onTap: () {
+                  settings.setLocale(null);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: const Text('English'),
+                trailing: settings.locale?.languageCode == 'en'
+                    ? const Icon(Icons.check, color: Colors.green)
+                    : null,
+                onTap: () {
+                  settings.setLocale(const Locale('en'));
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: const Text('中文'),
+                trailing: settings.locale?.languageCode == 'zh'
+                    ? const Icon(Icons.check, color: Colors.green)
+                    : null,
+                onTap: () {
+                  settings.setLocale(const Locale('zh'));
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
       },
     );
   }

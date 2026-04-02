@@ -1,6 +1,9 @@
+import 'package:fl_lib/fl_lib.dart' as fl;
+import 'package:fl_lib/fl_lib.dart' show ChineseThemeData;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
+import 'generated/l10n/l10n.dart';
 import 'pages/download_page/download_page.dart';
 import 'pages/instance_page/instance_page.dart';
 import 'pages/settings_page/settings_page.dart';
@@ -43,6 +46,9 @@ class _ThemeProviderState extends State<_ThemeProvider> {
 
     return MaterialApp(
       title: 'Aria2 Desktop',
+      locale: settings.locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -52,7 +58,7 @@ class _ThemeProviderState extends State<_ThemeProvider> {
         buttonTheme: ButtonThemeData(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-      ),
+      ).fixWindowsFont,
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -62,7 +68,7 @@ class _ThemeProviderState extends State<_ThemeProvider> {
         buttonTheme: ButtonThemeData(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-      ),
+      ).fixWindowsFont,
       themeMode: settings.themeMode,
       home: MultiProvider(
         providers: [
@@ -124,26 +130,10 @@ class _HomeWrapperState extends State<_HomeWrapper> {
     }
 
     if (builtinInstance.status == ConnectionStatus.failed) {
-      // Show error dialog for built-in instance connection failure
-      if (mounted) {
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Text('内建实例连接失败'),
-            content: const Text('内建实例连接失败，仅远程功能可用'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('确定'),
-              ),
-            ],
-          ),
-        );
-      }
-
-      // Disable built-in instance for this session
-      // This is handled by the failed status
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _showBuiltinConnectionFailedDialog(context);
+      });
     }
 
     setState(() {
@@ -151,10 +141,25 @@ class _HomeWrapperState extends State<_HomeWrapper> {
     });
   }
 
+  void _showBuiltinConnectionFailedDialog(BuildContext ctx) {
+    final l10n = AppLocalizations.of(ctx)!;
+    showDialog(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.builtinInstanceConnectFailed),
+        content: Text(l10n.builtinInstanceConnectFailedTip),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.ok)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(body: Center(child: fl.SizedLoading.medium));
     }
     return const MainWindow();
   }
@@ -170,12 +175,22 @@ class MainWindow extends StatefulWidget {
 class _MainWindowState extends State<MainWindow> with WindowListener {
   int _selectedIndex = 0;
   final GlobalStat _globalStat = GlobalStat();
+  late final PageController _pageController;
+  bool _switchingPage = false;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
     windowManager.addListener(this);
     _initSystemTrayCallbacks();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    windowManager.removeListener(this);
+    super.dispose();
   }
 
   Future<void> _initSystemTrayCallbacks() async {
@@ -200,10 +215,19 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
     }
   }
 
-  @override
-  void dispose() {
-    windowManager.removeListener(this);
-    super.dispose();
+  void _onDestinationSelected(int index) {
+    if (_selectedIndex == index) return;
+    if (index < 0 || index >= 3) return;
+    setState(() => _selectedIndex = index);
+    _switchingPage = true;
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 677),
+      curve: Curves.fastLinearToSlowEaseIn,
+    );
+    Future.delayed(const Duration(milliseconds: 677), () {
+      _switchingPage = false;
+    });
   }
 
   @override
@@ -214,12 +238,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
       const SettingsPage(),
     ];
 
-    void onItemTapped(int index) {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
-
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -232,7 +251,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
                 // Side navigation rail
                 NavigationRail(
                   selectedIndex: _selectedIndex,
-                  onDestinationSelected: onItemTapped,
+                  onDestinationSelected: _onDestinationSelected,
                   labelType: NavigationRailLabelType.selected,
                   backgroundColor: colorScheme.surfaceContainer,
                   indicatorColor: colorScheme.surfaceContainerHighest,
@@ -255,26 +274,39 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
                       ),
                     ),
                   ),
-                  destinations: const [
+                  destinations: [
                     NavigationRailDestination(
-                      icon: Icon(Icons.download_outlined),
-                      selectedIcon: Icon(Icons.download),
-                      label: Text('下载'),
+                      icon: const Icon(Icons.download_outlined),
+                      selectedIcon: const Icon(Icons.download),
+                      label: Text(l10n.download),
                     ),
                     NavigationRailDestination(
-                      icon: Icon(Icons.settings_remote_outlined),
-                      selectedIcon: Icon(Icons.settings_remote),
-                      label: Text('实例'),
+                      icon: const Icon(Icons.settings_remote_outlined),
+                      selectedIcon: const Icon(Icons.settings_remote),
+                      label: Text(l10n.instance),
                     ),
                     NavigationRailDestination(
-                      icon: Icon(Icons.settings_outlined),
-                      selectedIcon: Icon(Icons.settings),
-                      label: Text('设置'),
+                      icon: const Icon(Icons.settings_outlined),
+                      selectedIcon: const Icon(Icons.settings),
+                      label: Text(l10n.settings),
                     ),
                   ],
                 ),
-                // Main content area
-                Expanded(child: pages[_selectedIndex]),
+                // Main content area with page transition animation
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: 3,
+                    physics: const NeverScrollableScrollPhysics(),
+                    scrollDirection: Axis.vertical,
+                    itemBuilder: (_, index) => pages[index],
+                    onPageChanged: (value) {
+                      if (!_switchingPage) {
+                        setState(() => _selectedIndex = value);
+                      }
+                    },
+                  ),
+                ),
               ],
             ),
           ),
@@ -300,7 +332,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
               children: [
                 Chip(
                   label: Text(
-                    '总速度: ${_formatSpeed(_globalStat.downloadSpeed)}',
+                    l10n.totalSpeed(_formatSpeed(_globalStat.downloadSpeed)),
                   ),
                   avatar: const Icon(Icons.speed, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
@@ -310,7 +342,9 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
                   ),
                 ),
                 Chip(
-                  label: Text('活跃任务: ${_globalStat.activeTasks}'),
+                  label: Text(
+                    l10n.activeTasks(_globalStat.activeTasks.toString()),
+                  ),
                   avatar: const Icon(Icons.task_alt, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.symmetric(
@@ -319,7 +353,9 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
                   ),
                 ),
                 Chip(
-                  label: Text('等待任务: ${_globalStat.waitingTasks}'),
+                  label: Text(
+                    l10n.waitingTasks(_globalStat.waitingTasks.toString()),
+                  ),
                   avatar: const Icon(Icons.pending, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.symmetric(

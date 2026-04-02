@@ -21,8 +21,10 @@ class Settings extends ChangeNotifier with Loggable {
   AppLogLevel _logLevel = AppLogLevel.info; // Log level
   bool _saveLogsToFile = true; // Save logs to file
 
+  // Locale settings
+  Locale? _locale; // App locale
+
   // Built-in Aria2 instance settings
-  // Connection settings
   int _rpcListenPort = 16800; // RPC listen port
   String _rpcSecret = ''; // RPC secret
 
@@ -101,6 +103,7 @@ class Settings extends ChangeNotifier with Loggable {
   AppLogLevel get logLevel => _logLevel;
   bool get saveLogsToFile => _saveLogsToFile;
   String get logLevelString => _logLevel.name;
+  Locale? get locale => _locale;
 
   // Built-in Aria2 instance getters
   // Connection settings
@@ -182,6 +185,12 @@ class Settings extends ChangeNotifier with Loggable {
 
         _saveLogsToFile = settingsMap['saveLogsToFile'] ?? true;
 
+        // Locale settings
+        final localeCode = settingsMap['locale'];
+        if (localeCode != null && localeCode.isNotEmpty) {
+          _locale = Locale(localeCode);
+        }
+
         // Built-in Aria2 instance settings
         // Connection settings
         _rpcListenPort = settingsMap['rpcListenPort'] ?? 16800;
@@ -244,6 +253,7 @@ class Settings extends ChangeNotifier with Loggable {
     _customColorCode = null;
     _logLevel = AppLogLevel.info;
     _saveLogsToFile = true;
+    _locale = null;
 
     // Built-in Aria2 instance settings defaults
     // Connection settings
@@ -298,6 +308,7 @@ class Settings extends ChangeNotifier with Loggable {
         'customColorCode': _customColorCode,
         'logLevel': _logLevel.name,
         'saveLogsToFile': _saveLogsToFile,
+        'locale': _locale?.languageCode,
 
         // Built-in Aria2 instance settings
         // Connection settings
@@ -392,6 +403,13 @@ class Settings extends ChangeNotifier with Loggable {
   // Save logs to file setting
   Future<void> setSaveLogsToFile(bool value) async {
     _saveLogsToFile = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  // Locale setting
+  Future<void> setLocale(Locale? locale) async {
+    _locale = locale;
     notifyListeners();
     await _saveAllSettings();
   }
