@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../../generated/l10n/l10n.dart';
 import '../../../models/settings.dart';
 
 // Appearance settings dialog
 class AppearanceDialog extends StatefulWidget {
   final Settings settings;
-  
+
   const AppearanceDialog({required this.settings, super.key});
-  
+
   @override
   State<AppearanceDialog> createState() => _AppearanceDialogState();
 }
@@ -33,18 +34,18 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
     Colors.brown,
     Colors.grey,
   ];
-  
+
   // Custom color picker
   Color _selectedColor = Colors.blue;
   String _selectedThemeMode = 'system';
-  
+
   @override
   void initState() {
     super.initState();
     _selectedColor = widget.settings.primaryColor;
     _selectedThemeMode = widget.settings.themeMode.name;
   }
-  
+
   // Get theme mode from string
   ThemeMode _getThemeModeFromString(String mode) {
     switch (mode) {
@@ -57,16 +58,15 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
         return ThemeMode.system;
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 400),
         padding: const EdgeInsets.all(20),
@@ -75,24 +75,21 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '外观设置',
+              l10n.appearance,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Theme mode section
-            Text(
-              '主题模式',
-              style: theme.textTheme.bodyLarge,
-            ),
+            Text(l10n.themeMode, style: theme.textTheme.bodyLarge),
             const SizedBox(height: 12),
             SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'light', label: Text('亮色')),
-                ButtonSegment(value: 'dark', label: Text('暗色')),
-                ButtonSegment(value: 'system', label: Text('系统')),
+              segments: [
+                ButtonSegment(value: 'light', label: Text(l10n.light)),
+                ButtonSegment(value: 'dark', label: Text(l10n.dark)),
+                ButtonSegment(value: 'system', label: Text(l10n.system)),
               ],
               selected: {_selectedThemeMode},
               onSelectionChanged: (newSelection) {
@@ -104,9 +101,9 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                   try {
                     widget.settings.setThemeMode(themeMode);
                   } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('设置主题模式失败: $e')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('设置主题模式失败: $e')));
                   }
                 }
               },
@@ -119,19 +116,13 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Theme color section
-            Text(
-              '主题色',
-              style: theme.textTheme.bodyLarge,
-            ),
+            Text(l10n.themeColor, style: theme.textTheme.bodyLarge),
             const SizedBox(height: 12),
-            
+
             // Preset colors section
-            Text(
-              '预设',
-              style: theme.textTheme.bodyMedium,
-            ),
+            Text(l10n.preset, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
             SizedBox(
               height: 50,
@@ -145,8 +136,10 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                 itemCount: _presetColors.length,
                 itemBuilder: (context, index) {
                   final color = _presetColors[index];
-                  final isSelected = color == _selectedColor && widget.settings.customColorCode == null;
-                  
+                  final isSelected =
+                      color == _selectedColor &&
+                      widget.settings.customColorCode == null;
+
                   return GestureDetector(
                     onTap: () {
                       setState(() {
@@ -155,9 +148,9 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                       try {
                         widget.settings.setPrimaryColor(color, isCustom: false);
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('设置主题色失败: $e')),
-                        );
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('设置主题色失败: $e')));
                       }
                     },
                     child: Container(
@@ -167,7 +160,9 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                         color: color,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected ? colorScheme.onSurface : Colors.transparent,
+                          color: isSelected
+                              ? colorScheme.onSurface
+                              : Colors.transparent,
                           width: 3,
                         ),
                       ),
@@ -177,14 +172,11 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Custom color section
-            Text(
-              '自定义',
-              style: theme.textTheme.bodyMedium,
-            ),
+            Text(l10n.custom, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 12),
-            
+
             // Custom color picker UI
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -203,11 +195,10 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                           border: Border.all(color: colorScheme.outline),
                         ),
                       ),
-
                     ],
                   ),
                 ),
-                
+
                 // RGB sliders
                 Expanded(
                   child: Column(
@@ -215,7 +206,8 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                     children: [
                       _buildColorSlider(
                         label: 'R',
-                        value: ((_selectedColor.r * 255.0).round() & 0xff).toDouble(),
+                        value: ((_selectedColor.r * 255.0).round() & 0xff)
+                            .toDouble(),
                         onChanged: (value) {
                           final newColor = Color.fromRGBO(
                             value.toInt(),
@@ -235,18 +227,22 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                             1.0,
                           );
                           try {
-                          widget.settings.setPrimaryColor(newColor, isCustom: true);
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('设置自定义主题色失败: $e')),
-                          );
-                        }
+                            widget.settings.setPrimaryColor(
+                              newColor,
+                              isCustom: true,
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('设置自定义主题色失败: $e')),
+                            );
+                          }
                         },
                         activeColor: Colors.red,
                       ),
                       _buildColorSlider(
                         label: 'G',
-                        value: ((_selectedColor.g * 255.0).round() & 0xff).toDouble(),
+                        value: ((_selectedColor.g * 255.0).round() & 0xff)
+                            .toDouble(),
                         onChanged: (value) {
                           final newColor = Color.fromRGBO(
                             (_selectedColor.r * 255.0).round() & 0xff,
@@ -265,13 +261,17 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                             (_selectedColor.b * 255.0).round() & 0xff,
                             1.0,
                           );
-                          widget.settings.setPrimaryColor(newColor, isCustom: true);
+                          widget.settings.setPrimaryColor(
+                            newColor,
+                            isCustom: true,
+                          );
                         },
                         activeColor: Colors.green,
                       ),
                       _buildColorSlider(
                         label: 'B',
-                        value: ((_selectedColor.b * 255.0).round() & 0xff).toDouble(),
+                        value: ((_selectedColor.b * 255.0).round() & 0xff)
+                            .toDouble(),
                         onChanged: (value) {
                           final newColor = Color.fromRGBO(
                             (_selectedColor.r * 255.0).round() & 0xff,
@@ -290,7 +290,10 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                             value.toInt(),
                             1.0,
                           );
-                          widget.settings.setPrimaryColor(newColor, isCustom: true);
+                          widget.settings.setPrimaryColor(
+                            newColor,
+                            isCustom: true,
+                          );
                         },
                         activeColor: Colors.blue,
                       ),
@@ -300,18 +303,18 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
               ],
             ),
             const SizedBox(height: 20),
-            
+
             // Color code display
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '颜色代码: #${_selectedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
+                  '${l10n.colorCode}: #${_selectedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
                   style: theme.textTheme.bodyMedium,
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('完成'),
+                  child: Text(l10n.done),
                 ),
               ],
             ),
@@ -320,7 +323,7 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
       ),
     );
   }
-  
+
   // Build color slider
   Widget _buildColorSlider({
     required String label,
@@ -331,10 +334,7 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
   }) {
     return Row(
       children: [
-        SizedBox(
-          width: 20,
-          child: Text(label),
-        ),
+        SizedBox(width: 20, child: Text(label)),
         Expanded(
           child: Slider(
             value: value,
@@ -347,10 +347,7 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
             thumbColor: Colors.white,
           ),
         ),
-        SizedBox(
-          width: 40,
-          child: Text(value.toInt().toString()),
-        ),
+        SizedBox(width: 40, child: Text(value.toInt().toString())),
       ],
     );
   }

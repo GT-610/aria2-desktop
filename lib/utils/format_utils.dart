@@ -1,29 +1,22 @@
-
-
 // Import necessary libraries
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
-import 'logging.dart';
 
-// By convention, separate dart standard library imports and third-party library imports;
-
-// Format utility class
-class FormatUtils {
-  static final AppLogger _logger = AppLogger('FormatUtils');
-}
+class FormatUtils {}
 
 // Format bytes for display
 String formatBytes(int bytes, {int decimals = 2}) {
   if (bytes <= 0) return '0 B';
-  
+
   const suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
   int i = (bytes == 0) ? 0 : (log(bytes) / log(1024)).floor();
-  
+
   // Ensure i doesn't exceed the range of suffixes
   i = i.clamp(0, suffixes.length - 1);
-  
+
   return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
 }
 
@@ -32,16 +25,16 @@ String calculateRemainingTime(double progress, String downloadSpeed) {
   if (progress >= 1.0 || downloadSpeed == '0' || downloadSpeed.isEmpty) {
     return 'Completed';
   }
-  
+
   // 解析下载速度
   int speedBytes = 0;
   final speedRegex = RegExp(r'^(\d+(?:\.\d+)?)\s*([KMG]?)B\/s$');
   final match = speedRegex.firstMatch(downloadSpeed);
-  
+
   if (match != null) {
     final value = double.tryParse(match.group(1) ?? '0') ?? 0;
     final unit = match.group(2) ?? '';
-    
+
     switch (unit) {
       case 'K':
         speedBytes = (value * 1024).toInt();
@@ -57,17 +50,17 @@ String calculateRemainingTime(double progress, String downloadSpeed) {
         break;
     }
   }
-  
+
   // If speed is 0, return unknown
   if (speedBytes == 0) {
     return 'Unknown';
   }
-  
+
   // 计算剩余秒数
   double remainingPercentage = 1.0 - progress;
   // 这里假设总大小为100%，实际应用中需要根据实际大小计算
   int remainingSeconds = (remainingPercentage / (speedBytes / 100)).toInt();
-  
+
   // Format remaining time
   if (remainingSeconds < 60) {
     return '${remainingSeconds}s';
@@ -75,9 +68,6 @@ String calculateRemainingTime(double progress, String downloadSpeed) {
     int minutes = remainingSeconds ~/ 60;
     int seconds = remainingSeconds % 60;
     return '${minutes}m${seconds}s';
-
-
-
   } else if (remainingSeconds < 86400) {
     int hours = remainingSeconds ~/ 3600;
     int minutes = (remainingSeconds % 3600) ~/ 60;
@@ -92,7 +82,7 @@ String calculateRemainingTime(double progress, String downloadSpeed) {
 // Parse hexadecimal bitfield into piece status array
 List<int> parseHexBitfield(String bitfield) {
   List<int> pieces = [];
-  
+
   // Each character represents a piece's status (0-f)
   for (int i = 0; i < bitfield.length; i++) {
     String hexChar = bitfield[i];
@@ -104,7 +94,7 @@ List<int> parseHexBitfield(String bitfield) {
       pieces.add(0);
     }
   }
-  
+
   return pieces;
 }
 
@@ -113,17 +103,19 @@ String? parseBitfield(String? bittorrentInfo) {
   if (bittorrentInfo != null && bittorrentInfo.isNotEmpty) {
     try {
       Map<String, dynamic> bittorrentData = json.decode(bittorrentInfo);
-      if (bittorrentData.containsKey('bitfield') && bittorrentData['bitfield'] is String) {
+      if (bittorrentData.containsKey('bitfield') &&
+          bittorrentData['bitfield'] is String) {
         return bittorrentData['bitfield'] as String;
       }
       if (bittorrentData.containsKey('info') && bittorrentData['info'] is Map) {
-        Map<String, dynamic> info = bittorrentData['info'] as Map<String, dynamic>;
+        Map<String, dynamic> info =
+            bittorrentData['info'] as Map<String, dynamic>;
         if (info.containsKey('bitfield') && info['bitfield'] is String) {
           return info['bitfield'] as String;
         }
       }
     } catch (e) {
-      FormatUtils._logger.e('Failed to parse bitfield from bittorrentInfo', error: e);
+      lprint('[FormatUtils] Failed to parse bitfield: $e');
     }
   }
   return null;

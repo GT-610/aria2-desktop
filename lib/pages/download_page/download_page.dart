@@ -40,34 +40,36 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
 
   // Instance name mapping for displaying instance names
   Map<String, String> _instanceNames = {};
-  
+
   // InstanceManager instance
   InstanceManager? instanceManager;
-  
+
   // DownloadDataService instance
   DownloadDataService? downloadDataService;
 
   @override
   void initState() {
     super.initState();
-    initLogger();
-    logger.d('DownloadPage initialized');
+    d('DownloadPage initialized');
   }
-  
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
     instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    downloadDataService = Provider.of<DownloadDataService>(context, listen: false);
+    downloadDataService = Provider.of<DownloadDataService>(
+      context,
+      listen: false,
+    );
 
     _loadInstanceNames(instanceManager!);
     instanceManager?.removeListener(_handleInstanceChanges);
     instanceManager?.addListener(_handleInstanceChanges);
 
-    logger.d('DownloadPage initialized');
+    d('DownloadPage initialized');
   }
-  
+
   @override
   void dispose() {
     if (instanceManager != null) {
@@ -80,45 +82,52 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
 
     super.dispose();
   }
-  
+
   // Method to handle instance status changes
   void _handleInstanceChanges() {
     if (mounted) {
       // Update refresh timer when instance changes
       _updateRefreshTimer();
-      
+
       // Reload instance names
       if (instanceManager != null) {
         _loadInstanceNames(instanceManager!);
       }
-      
+
       // Trigger UI rebuild
       setState(() {});
     }
   }
-  
+
   // Update the refresh timer based on the connected instance
   void _updateRefreshTimer() {
-    if (instanceManager == null || downloadDataService == null || !mounted) return;
-    
+    if (instanceManager == null || downloadDataService == null || !mounted)
+      return;
+
     final connectedInstance = instanceManager!.getConnectedInstance();
-    
+
     // Record debug information to help locate issues
-    logger.d('Updating refresh timer - Connected instance: ${connectedInstance?.name}, Status: ${connectedInstance?.status}');
-    
+    this.d(
+      'Updating refresh timer - Connected instance: ${connectedInstance?.name}, Status: ${connectedInstance?.status}',
+    );
+
     if (connectedInstance != null) {
       // Start or update the refresh timer with the connected instance
-      logger.d('Starting periodic refresh for instance: ${connectedInstance.name}');
+      this.d(
+        'Starting periodic refresh for instance: ${connectedInstance.name}',
+      );
       // Store timer reference for status tracking
-      _refreshTimer = downloadDataService!.startPeriodicRefresh(connectedInstance);
+      _refreshTimer = downloadDataService!.startPeriodicRefresh(
+        connectedInstance,
+      );
       // Force an immediate refresh only when the timer starts for the first time, avoiding triggering refresh on every UI update
       if (_refreshTimer != null) {
-        logger.d('Performing initial refresh');
+        this.d('Performing initial refresh');
         downloadDataService!.refreshTasks(connectedInstance);
       }
     } else {
       // Stop the refresh timer when there's no connected instance
-      logger.d('Stopping periodic refresh - No connected instance');
+      this.d('Stopping periodic refresh - No connected instance');
       downloadDataService!.stopPeriodicRefresh();
       _refreshTimer = null; // Clear timer reference
     }
@@ -127,11 +136,11 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   // Show task details dialog
   void _showTaskDetails(BuildContext context, DownloadTask task) {
     // Get complete task information from the global service
-    logger.d('Show task details dialog for: ${task.name} (ID: ${task.id})');
-    
+    this.d('Show task details dialog for: ${task.name} (ID: ${task.id})');
+
     // Get all tasks from the downloadDataService
     final allTasks = downloadDataService?.tasks ?? [];
-    
+
     // Show the task details dialog
     TaskDetailsDialog.showTaskDetailsDialog(
       context,
@@ -140,19 +149,19 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       DownloadTaskService.getStatusInfo,
     );
   }
-  
+
   // Load instance names
   Future<void> _loadInstanceNames(InstanceManager instanceManager) async {
     try {
       // Get all instances
       final instances = instanceManager.instances;
-      
+
       // Build mapping from instance ID to name
       final Map<String, String> instanceMap = {};
       for (final instance in instances) {
         instanceMap[instance.id] = instance.name;
       }
-      
+
       // Update state
       if (mounted) {
         setState(() {
@@ -160,7 +169,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
         });
       }
     } catch (e, stackTrace) {
-      logger.e('Failed to load instance names', error: e, stackTrace: stackTrace);
+      this.e('Failed to load instance names', error: e, stackTrace: stackTrace);
       // Notify user when error occurs
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -173,20 +182,22 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       }
     }
   }
-  
-  
+
   // Get all instance ID list
   List<String> _getAllInstanceIds() {
     if (downloadDataService == null) return [];
-    
+
     // Extract all unique instance IDs from tasks
-    return downloadDataService!.tasks.map((task) => task.instanceId).toSet().toList();
+    return downloadDataService!.tasks
+        .map((task) => task.instanceId)
+        .toSet()
+        .toList();
   }
 
   // Refresh tasks and restart timer
   void _refreshTasksAndRestartTimer() {
     if (instanceManager == null || downloadDataService == null) return;
-    
+
     final connectedInstance = instanceManager!.getConnectedInstance();
     if (connectedInstance != null) {
       // Directly refresh task data
@@ -196,19 +207,22 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
 
   // Store currently selected instance ID
   String? _selectedInstanceId;
-  
+
   // Store timer reference for checking timer status
   Timer? _refreshTimer;
-  
+
   // Filter tasks based on selected criteria
   List<DownloadTask> _filterTasks() {
     if (downloadDataService == null) return [];
-    
+
     List<DownloadTask> tasks = downloadDataService!.tasks;
-    
+
     // If filtering by instance, use _selectedInstanceId
-    if (_currentCategoryType == CategoryType.byInstance && _selectedInstanceId != null) {
-      tasks = tasks.where((task) => task.instanceId == _selectedInstanceId).toList();
+    if (_currentCategoryType == CategoryType.byInstance &&
+        _selectedInstanceId != null) {
+      tasks = tasks
+          .where((task) => task.instanceId == _selectedInstanceId)
+          .toList();
     } else {
       // Other categories use _selectedFilter
       switch (_selectedFilter) {
@@ -216,13 +230,19 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
           // All tasks, no filtering
           break;
         case FilterOption.active:
-          tasks = tasks.where((task) => task.status == DownloadStatus.active).toList();
+          tasks = tasks
+              .where((task) => task.status == DownloadStatus.active)
+              .toList();
           break;
         case FilterOption.waiting:
-          tasks = tasks.where((task) => task.status == DownloadStatus.waiting).toList();
+          tasks = tasks
+              .where((task) => task.status == DownloadStatus.waiting)
+              .toList();
           break;
         case FilterOption.stopped:
-          tasks = tasks.where((task) => task.status == DownloadStatus.stopped).toList();
+          tasks = tasks
+              .where((task) => task.status == DownloadStatus.stopped)
+              .toList();
           break;
         case FilterOption.local:
           tasks = tasks.where((task) => task.isLocal == true).toList();
@@ -235,33 +255,31 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
           break;
       }
     }
-    
+
     return tasks;
   }
-  
 
-  
   // Handle category changes
   void _handleCategoryChanged(CategoryType newCategory) {
     setState(() {
       _currentCategoryType = newCategory;
     });
   }
-  
+
   // Handle filter option changes
   void _handleFilterChanged(FilterOption newFilter) {
     setState(() {
       _selectedFilter = newFilter;
     });
   }
-  
+
   // Handle instance selection changes
   void _handleInstanceSelected(String? instanceId) {
     setState(() {
       _selectedInstanceId = instanceId;
     });
   }
-  
+
   // Store the last connected instance ID and status for detecting real changes
   String? _lastConnectedInstanceId;
   ConnectionStatus? _lastConnectedInstanceStatus;
@@ -270,35 +288,35 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   Widget build(BuildContext context) {
     // Listen for InstanceManager changes to ensure immediate response when instance status changes
     final instanceManager = context.watch<InstanceManager>();
-    
+
     // Get the latest data from DownloadDataService via Provider for responsive updates
     final lastError = context.watch<DownloadDataService>().lastError;
-    
+
     // Get current connected instance information
     final currentConnectedInstance = instanceManager.getConnectedInstance();
     final currentInstanceId = currentConnectedInstance?.id;
     final currentInstanceStatus = currentConnectedInstance?.status;
-    
+
     // Only update the timer when the connected instance truly changes (ID or status changes)
-    if (currentInstanceId != _lastConnectedInstanceId || 
+    if (currentInstanceId != _lastConnectedInstanceId ||
         currentInstanceStatus != _lastConnectedInstanceStatus) {
       // Update recorded instance information
       _lastConnectedInstanceId = currentInstanceId;
       _lastConnectedInstanceStatus = currentInstanceStatus;
-      
+
       // Update refresh timer
       _updateRefreshTimer();
     }
-    
+
     // Display error message
     if (lastError != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('获取任务数据失败: $lastError')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('获取任务数据失败: $lastError')));
       });
     }
-    
+
     return Scaffold(
       body: Column(
         children: [
@@ -310,7 +328,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
             onDeleteAll: () => _showDeleteDialog(context),
             onSearch: () {},
           ),
-          
+
           // Filter selector
           FilterSelector(
             currentCategoryType: _currentCategoryType,
@@ -322,7 +340,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
             onFilterChanged: _handleFilterChanged,
             onInstanceSelected: _handleInstanceSelected,
           ),
-          
+
           // Task list - Material You style
           Expanded(
             child: TaskListView(
@@ -363,34 +381,39 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       onActionCompleted: _refreshTasksAndRestartTimer,
     );
   }
-  
+
   // Show add task dialog
   void _showAddTaskDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) {
         return AddTaskDialog(
-            onAddTask: (taskType, uri, downloadDir, fileContent) async {
+          onAddTask: (taskType, uri, downloadDir, fileContent) async {
             try {
               // Get instance manager and connected instance
-              final instanceManager = Provider.of<InstanceManager>(context, listen: false);
+              final instanceManager = Provider.of<InstanceManager>(
+                context,
+                listen: false,
+              );
               final connectedInstance = instanceManager.getConnectedInstance();
-              
+
               if (connectedInstance != null) {
                 final client = Aria2RpcClient(connectedInstance);
-                
+
                 // Build download options
-                final options = {
-                  'dir': downloadDir,
-                };
-                
+                final options = {'dir': downloadDir};
+
                 // Add task based on task type
                 switch (taskType) {
                   case 'uri':
                     if (uri.isNotEmpty) {
                       // Split URI by newlines to support multiple URLs
-                      final uris = uri.split('\n').map((u) => u.trim()).where((u) => u.isNotEmpty).toList();
-                      
+                      final uris = uri
+                          .split('\n')
+                          .map((u) => u.trim())
+                          .where((u) => u.isNotEmpty)
+                          .toList();
+
                       // Add URI task
                       await client.addUri(uris, options);
                     }
@@ -408,32 +431,32 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                     }
                     break;
                 }
-                
+
                 // Immediately refresh task list and reset timer
                 _refreshTasksAndRestartTimer();
-                
+
                 client.close();
-                
+
                 // Show success message
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('任务添加成功')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('任务添加成功')));
                 }
               } else {
                 // Show error message when no active instance
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('当前没有连接的实例')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('当前没有连接的实例')));
                 }
               }
             } catch (e, stackTrace) {
-              logger.e('Failed to add task', error: e, stackTrace: stackTrace);
+              this.e('Failed to add task', error: e, stackTrace: stackTrace);
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('添加任务失败: $e')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('添加任务失败: $e')));
               }
             }
           },

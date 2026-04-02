@@ -10,9 +10,7 @@ class SettingsService extends ChangeNotifier with Loggable {
   Aria2Instance? _currentInstance;
   Aria2RpcClient? _rpcClient;
 
-  SettingsService() {
-    initLogger();
-  }
+  SettingsService() {}
 
   void initialize(Settings settings, Aria2Instance? currentInstance) {
     _settings = settings;
@@ -34,37 +32,41 @@ class SettingsService extends ChangeNotifier with Loggable {
 
   Map<String, dynamic> _convertSettingsToAria2Options() {
     if (_settings == null) {
-      logger.w('Settings is null, cannot convert to Aria2 options');
+      w('Settings is null, cannot convert to Aria2 options');
       return {};
     }
 
     final options = <String, dynamic>{};
 
     // Transfer settings
-    options['max-concurrent-downloads'] = _settings!.maxConcurrentDownloads;
-    options['max-connection-per-server'] = _settings!.maxConnectionPerServer;
-    options['split'] = _settings!.split;
-    options['continue'] = _settings!.continueDownloads;
+    options['max-concurrent-downloads'] =
+        _settings!.maxConcurrentDownloads.toString();
+    options['max-connection-per-server'] =
+        _settings!.maxConnectionPerServer.toString();
+    options['split'] = _settings!.split.toString();
+    options['continue'] = _settings!.continueDownloads.toString();
 
     // Speed settings
     if (_settings!.maxOverallDownloadLimit > 0) {
       options['max-overall-download-limit'] =
-          _settings!.maxOverallDownloadLimit;
+          _settings!.maxOverallDownloadLimit.toString();
     } else {
       options['max-overall-download-limit'] = '0';
     }
     if (_settings!.maxOverallUploadLimit > 0) {
-      options['max-overall-upload-limit'] = _settings!.maxOverallUploadLimit;
+      options['max-overall-upload-limit'] =
+          _settings!.maxOverallUploadLimit.toString();
     } else {
       options['max-overall-upload-limit'] = '0';
     }
 
     // BT settings
-    options['bt-save-metadata'] = _settings!.btSaveMetadata;
-    options['bt-force-encryption'] = _settings!.btForceEncryption;
-    options['bt-load-saved-metadata'] = _settings!.btLoadSavedMetadata;
-    options['seed-time'] = _settings!.seedTime;
-    options['seed-ratio'] = _settings!.seedRatio;
+    options['bt-save-metadata'] = _settings!.btSaveMetadata.toString();
+    options['bt-force-encryption'] = _settings!.btForceEncryption.toString();
+    options['bt-load-saved-metadata'] =
+        _settings!.btLoadSavedMetadata.toString();
+    options['seed-time'] = _settings!.seedTime.toString();
+    options['seed-ratio'] = _settings!.seedRatio.toString();
     options['bt-exclude-tracker'] = _settings!.btExcludeTracker;
 
     // Advanced settings
@@ -74,46 +76,44 @@ class SettingsService extends ChangeNotifier with Loggable {
     if (_settings!.noProxy.isNotEmpty) {
       options['no-proxy'] = _settings!.noProxy;
     }
-    options['dht-listen-port'] = _settings!.dhtListenPort;
-    options['enable-dht6'] = _settings!.enableDht6;
-    options['auto-file-renaming'] = _settings!.autoFileRenaming;
-    options['allow-overwrite'] = _settings!.allowOverwrite;
+    options['dht-listen-port'] = _settings!.dhtListenPort.toString();
+    options['enable-dht6'] = _settings!.enableDht6.toString();
+    options['auto-file-renaming'] = _settings!.autoFileRenaming.toString();
+    options['allow-overwrite'] = _settings!.allowOverwrite.toString();
     options['user-agent'] = _settings!.userAgent;
 
-    logger.d('Converted settings to Aria2 options: $options');
+    d('Converted settings to Aria2 options: $options');
     return options;
   }
 
   Future<bool> applySettingsToAria2() async {
     if (_rpcClient == null) {
-      logger.w('No RPC client available, cannot apply settings');
+      w('No RPC client available, cannot apply settings');
       return false;
     }
 
     if (_currentInstance == null) {
-      logger.w('No connected instance, cannot apply settings');
+      w('No connected instance, cannot apply settings');
       return false;
     }
 
     try {
       final options = _convertSettingsToAria2Options();
-      logger.i(
-        'Applying settings to Aria2 instance: ${_currentInstance!.name}',
-      );
+      i('Applying settings to Aria2 instance: ${_currentInstance!.name}');
 
       final result = await _rpcClient!.setGlobalOption(options);
 
       if (result) {
-        logger.i('Settings applied successfully to Aria2');
+        i('Settings applied successfully to Aria2');
       } else {
-        logger.w('Failed to apply settings to Aria2');
+        w('Failed to apply settings to Aria2');
       }
 
       return result;
-    } catch (e, stackTrace) {
-      logger.e(
+    } catch (err, stackTrace) {
+      this.e(
         'Failed to apply settings to Aria2',
-        error: e,
+        error: err,
         stackTrace: stackTrace,
       );
       return false;
@@ -130,23 +130,24 @@ class SettingsService extends ChangeNotifier with Loggable {
 
       if (_settings!.maxOverallDownloadLimit > 0) {
         options['max-overall-download-limit'] =
-            _settings!.maxOverallDownloadLimit;
+            _settings!.maxOverallDownloadLimit.toString();
       } else {
         options['max-overall-download-limit'] = '0';
       }
       if (_settings!.maxOverallUploadLimit > 0) {
-        options['max-overall-upload-limit'] = _settings!.maxOverallUploadLimit;
+        options['max-overall-upload-limit'] =
+            _settings!.maxOverallUploadLimit.toString();
       } else {
         options['max-overall-upload-limit'] = '0';
       }
 
-      logger.i('Applying speed settings to Aria2');
+      i('Applying speed settings to Aria2');
       final result = await _rpcClient!.setGlobalOption(options);
       return result;
-    } catch (e, stackTrace) {
-      logger.e(
+    } catch (err, stackTrace) {
+      this.e(
         'Failed to apply speed settings',
-        error: e,
+        error: err,
         stackTrace: stackTrace,
       );
       return false;

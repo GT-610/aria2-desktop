@@ -56,8 +56,6 @@ class Aria2RpcClient with Loggable {
   Aria2RpcClient._(this.instance, {required bool isWebSocket})
     : _isWebSocket = isWebSocket,
       _httpClient = isWebSocket ? null : http.Client() {
-    initLogger();
-
     // Initialize event callbacks map
     for (var event in Aria2Event.values) {
       _eventCallbacks[event] = [];
@@ -168,7 +166,7 @@ class Aria2RpcClient with Loggable {
           }
           rethrow;
         }
-        logger.w('WebSocket attempt ${attempt + 1} failed, retrying: $e');
+        w('WebSocket attempt ${attempt + 1} failed, retrying: $e');
         _webSocket?.close();
         _webSocket = null;
         // Complete pending requests with error before clearing
@@ -232,8 +230,8 @@ class Aria2RpcClient with Loggable {
       } else if (data.containsKey('method')) {
         _handleNotification(data);
       }
-    } catch (e) {
-      logger.e('Failed to parse WebSocket message', error: e);
+    } catch (err) {
+      e('Failed to parse WebSocket message', error: err);
     }
   }
 
@@ -248,7 +246,7 @@ class Aria2RpcClient with Loggable {
       gid = firstParam['gid'] as String;
     }
 
-    logger.d('Received Aria2 notification: $method, GID: $gid');
+    d('Received Aria2 notification: $method, GID: $gid');
 
     Aria2Event? event;
     switch (method) {
@@ -295,8 +293,8 @@ class Aria2RpcClient with Loggable {
     for (final callback in callbacks) {
       try {
         callback(gid);
-      } catch (e) {
-        logger.e('Error in event callback', error: e);
+      } catch (err) {
+        e('Error in event callback', error: err);
       }
     }
   }
@@ -364,15 +362,15 @@ class Aria2RpcClient with Loggable {
             final isSuccess = item is List<dynamic>;
             return {'success': isSuccess, 'data': item};
           } catch (e) {
-            logger.e('Error processing multicall item', error: e);
+            this.e('Error processing multicall item', error: e);
             return {'success': false, 'error': 'Error processing item: $e'};
           }
         }).toList();
       }
-      logger.e('Invalid multicall response format: $response');
+      this.e('Invalid multicall response format: $response');
       return [];
     } catch (e) {
-      logger.e('Multicall failed', error: e);
+      this.e('Multicall failed', error: e);
       rethrow;
     }
   }
@@ -525,14 +523,10 @@ class Aria2RpcClient with Loggable {
   Future<bool> setGlobalOption(Map<String, dynamic> options) async {
     try {
       final response = await callRpc('aria2.setGlobalOption', [options]);
-      logger.d('Global options set successfully: $options');
+      this.d('Global options set successfully: $options');
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
-      logger.e(
-        'Failed to set global options',
-        error: e,
-        stackTrace: stackTrace,
-      );
+      this.e('Failed to set global options', error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
@@ -543,11 +537,7 @@ class Aria2RpcClient with Loggable {
       final response = await callRpc('aria2.getGlobalOption', []);
       return response['result'] as Map<String, dynamic>;
     } catch (e, stackTrace) {
-      logger.e(
-        'Failed to get global options',
-        error: e,
-        stackTrace: stackTrace,
-      );
+      this.e('Failed to get global options', error: e, stackTrace: stackTrace);
       rethrow;
     }
   }

@@ -1,3 +1,4 @@
+import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import '../../../../models/aria2_instance.dart';
 import '../../../../utils/logging.dart';
@@ -25,9 +26,7 @@ class InstanceCard extends StatefulWidget with Loggable {
     required this.onToggleConnection,
     required this.onEdit,
     required this.onDelete,
-  }) {
-    initLogger();
-  }
+  }) {}
 
   @override
   State<InstanceCard> createState() => _InstanceCardState();
@@ -57,7 +56,7 @@ class _InstanceCardState extends State<InstanceCard> {
         return const SizedBox(
           width: 16,
           height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+          child: fl.SizedLoading.small,
         );
       case ConnectionStatus.connected:
         return const Icon(Icons.link, size: 16, color: Colors.white);
@@ -103,7 +102,7 @@ class _InstanceCardState extends State<InstanceCard> {
                 const SizedBox(
                   width: 12,
                   height: 12,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: fl.SizedLoading.small,
                 ),
                 const SizedBox(width: 4),
                 Text(label, style: TextStyle(fontSize: 12, color: textColor)),
@@ -117,7 +116,12 @@ class _InstanceCardState extends State<InstanceCard> {
   }
 
   // Return action button based on status
-  Widget _getStatusActionButton(ConnectionStatus status, bool isConnectionInProgress, BuildContext context, VoidCallback onPressed) {
+  Widget _getStatusActionButton(
+    ConnectionStatus status,
+    bool isConnectionInProgress,
+    BuildContext context,
+    VoidCallback onPressed,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
 
     // For builtin instance, only show connect button when disconnected or failed
@@ -126,17 +130,13 @@ class _InstanceCardState extends State<InstanceCard> {
         case ConnectionStatus.disconnected:
           return FilledButton(
             onPressed: onPressed,
-            style: FilledButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: colorScheme.primary),
             child: const Text('连接'),
           );
         case ConnectionStatus.failed:
           return FilledButton(
             onPressed: onPressed,
-            style: FilledButton.styleFrom(
-              backgroundColor: colorScheme.error,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
             child: const Text('重新连接'),
           );
         // Hide button for connecting and connected states
@@ -150,32 +150,28 @@ class _InstanceCardState extends State<InstanceCard> {
       case ConnectionStatus.disconnected:
         return FilledButton(
           onPressed: onPressed,
-          style: FilledButton.styleFrom(
-            backgroundColor: colorScheme.primary,
-          ),
+          style: FilledButton.styleFrom(backgroundColor: colorScheme.primary),
           child: const Text('连接'),
         );
-      
+
       case ConnectionStatus.connecting:
         return FilledButton(
           onPressed: onPressed,
-          style: FilledButton.styleFrom(
-            backgroundColor: colorScheme.primary,
-          ),
+          style: FilledButton.styleFrom(backgroundColor: colorScheme.primary),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(
                 width: 16,
                 height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: fl.SizedLoading.small,
               ),
               const SizedBox(width: 8),
               const Text('断开'),
             ],
           ),
         );
-      
+
       case ConnectionStatus.connected:
         return OutlinedButton(
           onPressed: onPressed,
@@ -184,13 +180,11 @@ class _InstanceCardState extends State<InstanceCard> {
           ),
           child: const Text('断开'),
         );
-      
+
       case ConnectionStatus.failed:
         return FilledButton(
           onPressed: onPressed,
-          style: FilledButton.styleFrom(
-            backgroundColor: colorScheme.error,
-          ),
+          style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
           child: const Text('重新连接'),
         );
     }
@@ -234,13 +228,19 @@ class _InstanceCardState extends State<InstanceCard> {
                         height: 24,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _getStatusColor(widget.instance.status, colorScheme),
+                          color: _getStatusColor(
+                            widget.instance.status,
+                            colorScheme,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                                color: _getStatusColor(widget.instance.status, colorScheme).withValues(alpha: 0.3),
-                                blurRadius: 4,
-                                spreadRadius: 1,
-                              ),
+                              color: _getStatusColor(
+                                widget.instance.status,
+                                colorScheme,
+                              ).withValues(alpha: 0.3),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
                           ],
                         ),
                         child: _getStatusIcon(widget.instance.status),
@@ -253,12 +253,19 @@ class _InstanceCardState extends State<InstanceCard> {
                       const SizedBox(width: 8),
                       Chip(
                         label: Text(
-                          widget.instance.type == InstanceType.builtin ? '内建' : '远程',
+                          widget.instance.type == InstanceType.builtin
+                              ? '内建'
+                              : '远程',
                           style: const TextStyle(fontSize: 12),
                         ),
-                        backgroundColor: widget.instance.type == InstanceType.builtin ? colorScheme.primary.withValues(alpha: 0.2) : colorScheme.surfaceContainerHighest,
+                        backgroundColor:
+                            widget.instance.type == InstanceType.builtin
+                            ? colorScheme.primary.withValues(alpha: 0.2)
+                            : colorScheme.surfaceContainerHighest,
                         labelStyle: TextStyle(
-                          color: widget.instance.type == InstanceType.builtin ? colorScheme.primary : null,
+                          color: widget.instance.type == InstanceType.builtin
+                              ? colorScheme.primary
+                              : null,
                           fontSize: 12,
                         ),
                         padding: const EdgeInsets.all(0),
@@ -268,7 +275,6 @@ class _InstanceCardState extends State<InstanceCard> {
                   ),
                   // Status label - clearly display connection status
                   _getStatusChip(widget.instance.status, colorScheme),
-
                 ],
               ),
               const SizedBox(height: 8),
@@ -276,33 +282,26 @@ class _InstanceCardState extends State<InstanceCard> {
               if (widget.instance.type != InstanceType.builtin) ...[
                 Text(
                   '${widget.instance.protocol}://${widget.instance.host}:${widget.instance.port}',
-                  style: TextStyle(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
               ],
               // Version information for builtin instance
               if (widget.instance.type == InstanceType.builtin) ...[
                 Text(
-                  widget.instance.version != null && widget.instance.version!.isNotEmpty
+                  widget.instance.version != null &&
+                          widget.instance.version!.isNotEmpty
                       ? 'Aria2 版本: ${widget.instance.version}'
                       : '获取版本中...',
-                  style: TextStyle(
-                    color: colorScheme.tertiary,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: colorScheme.tertiary, fontSize: 12),
                 ),
               ],
               // Error information
-              if (widget.instance.errorMessage != null && widget.instance.errorMessage!.isNotEmpty) ...[
+              if (widget.instance.errorMessage != null &&
+                  widget.instance.errorMessage!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(
-                      Icons.warning,
-                      size: 14,
-                      color: colorScheme.error,
-                    ),
+                    Icon(Icons.warning, size: 14, color: colorScheme.error),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -330,8 +329,17 @@ class _InstanceCardState extends State<InstanceCard> {
                         // Navigate to builtin instance settings page
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const BuiltinInstanceSettingsPage(),
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) =>
+                                const BuiltinInstanceSettingsPage(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              return fl.SlideTransitionX(
+                                position: animation,
+                                direction: AxisDirection.left,
+                                child: child,
+                              );
+                            },
+                            transitionDuration: const Duration(milliseconds: 300),
                           ),
                         );
                       },
@@ -355,7 +363,12 @@ class _InstanceCardState extends State<InstanceCard> {
                     ),
                   ],
                   // 状态操作按钮 - 根据不同状态显示不同按钮
-                  _getStatusActionButton(widget.instance.status, widget.isConnectionInProgress, context, () => widget.onToggleConnection(widget.instance)),
+                  _getStatusActionButton(
+                    widget.instance.status,
+                    widget.isConnectionInProgress,
+                    context,
+                    () => widget.onToggleConnection(widget.instance),
+                  ),
                 ],
               ),
             ],
