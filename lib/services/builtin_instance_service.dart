@@ -124,6 +124,7 @@ class BuiltinInstanceService with Loggable {
       '--remote-time=true',
       '--follow-torrent=mem',
       '--seed-time=${settings['seedTime'] ?? 60}',
+      '--seed-ratio=${settings['seedRatio'] ?? 1.0}',
       '--bt-enable-lpd=true',
       '--bt-max-peers=100',
       '--bt-require-crypto=${settings['btForceEncryption'] ?? false}',

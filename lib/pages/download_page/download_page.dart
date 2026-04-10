@@ -227,7 +227,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   List<DownloadTask> _filterTasks() {
     if (downloadDataService == null) return [];
 
-    var tasks = downloadDataService!.tasks;
+    var tasks = List<DownloadTask>.from(downloadDataService!.tasks);
 
     if (_currentCategoryType == CategoryType.byInstance &&
         _selectedInstanceId != null) {

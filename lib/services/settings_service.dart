@@ -31,7 +31,7 @@ class SettingsService extends ChangeNotifier with Loggable {
           ? settings.maxOverallUploadLimit.toString()
           : '0',
       'bt-save-metadata': settings.btSaveMetadata.toString(),
-      'bt-force-encryption': settings.btForceEncryption.toString(),
+      'bt-require-crypto': settings.btForceEncryption.toString(),
       'bt-load-saved-metadata': settings.btLoadSavedMetadata.toString(),
       'seed-time': settings.seedTime.toString(),
       'seed-ratio': settings.seedRatio.toString(),
