@@ -110,16 +110,16 @@ class TaskDetailsDialog {
                                     const SizedBox(height: 8),
                                     Text(
                                       l10n.sizeWithValue(
-                                        currentTask.size,
                                         currentTask.totalLengthBytes.toString(),
+                                        currentTask.size,
                                       ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
                                       l10n.downloadedWithValue(
-                                        currentTask.completedSize,
                                         currentTask.completedLengthBytes
                                             .toString(),
+                                        currentTask.completedSize,
                                       ),
                                     ),
                                     const SizedBox(height: 8),
@@ -129,16 +129,16 @@ class TaskDetailsDialog {
                                     const SizedBox(height: 12),
                                     Text(
                                       l10n.downloadSpeedWithValue(
-                                        currentTask.downloadSpeed,
                                         currentTask.downloadSpeedBytes
                                             .toString(),
+                                        currentTask.downloadSpeed,
                                       ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
                                       l10n.uploadSpeedWithValue(
-                                        currentTask.uploadSpeed,
                                         currentTask.uploadSpeedBytes.toString(),
+                                        currentTask.uploadSpeed,
                                       ),
                                     ),
                                     const SizedBox(height: 12),
