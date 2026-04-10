@@ -307,7 +307,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
                     controller: _pageController,
                     itemCount: 3,
                     physics: const NeverScrollableScrollPhysics(),
-                    scrollDirection: Axis.vertical,
                     itemBuilder: (_, index) => pages[index],
                     onPageChanged: (value) {
                       if (!_switchingPage) {

@@ -304,26 +304,8 @@ class _InstanceCardState extends State<InstanceCard> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          PageRouteBuilder(
-                            pageBuilder:
-                                (context, animation, secondaryAnimation) =>
-                                    const BuiltinInstanceSettingsPage(),
-                            transitionsBuilder:
-                                (
-                                  context,
-                                  animation,
-                                  secondaryAnimation,
-                                  child,
-                                ) {
-                                  return fl.SlideTransitionX(
-                                    position: animation,
-                                    direction: AxisDirection.left,
-                                    child: child,
-                                  );
-                                },
-                            transitionDuration: const Duration(
-                              milliseconds: 300,
-                            ),
+                          MaterialPageRoute(
+                            builder: (_) => const BuiltinInstanceSettingsPage(),
                           ),
                         );
                       },
