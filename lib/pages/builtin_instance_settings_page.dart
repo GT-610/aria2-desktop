@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/settings.dart';
-import '../services/builtin_instance_service.dart';
 import '../services/instance_manager.dart';
 import '../services/settings_service.dart';
 
@@ -19,8 +18,6 @@ class _BuiltinInstanceSettingsPageState
     extends State<BuiltinInstanceSettingsPage> {
   bool _hasChanges = false;
   bool _isSaving = false;
-  final BuiltinInstanceService _builtinInstanceService =
-      BuiltinInstanceService();
 
   @override
   Widget build(BuildContext context) {
@@ -554,19 +551,27 @@ class _BuiltinInstanceSettingsPageState
     }
 
     try {
-      await _builtinInstanceService.stopInstance();
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
+      final builtinInstance = instanceManager.getBuiltinInstance();
+      if (builtinInstance == null) {
+        throw Exception('Built-in instance is missing');
+      }
+
+      await instanceManager.disconnectInstance(builtinInstance);
       await Future.delayed(const Duration(milliseconds: 500));
-      final success = await _builtinInstanceService.startInstance();
+      final refreshedBuiltinInstance =
+          instanceManager.getBuiltinInstance() ?? builtinInstance;
+      final success = await instanceManager.connectInstance(
+        refreshedBuiltinInstance,
+      );
 
       if (mounted) {
         Navigator.pop(context);
 
         if (success) {
-          final instanceManager = Provider.of<InstanceManager>(
-            context,
-            listen: false,
-          );
-          await instanceManager.refreshBuiltinInstanceConfig();
           final settingsService = Provider.of<SettingsService>(
             context,
             listen: false,
