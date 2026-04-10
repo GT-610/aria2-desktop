@@ -422,7 +422,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                 },
               ),
               ListTile(
-                title: const Text('English'),
+                title: Text(l10n.english),
                 trailing: settings.locale?.languageCode == 'en'
                     ? const Icon(Icons.check, color: Colors.green)
                     : null,
@@ -432,7 +432,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                 },
               ),
               ListTile(
-                title: const Text('中文'),
+                title: Text(l10n.chinese),
                 trailing: settings.locale?.languageCode == 'zh'
                     ? const Icon(Icons.check, color: Colors.green)
                     : null,

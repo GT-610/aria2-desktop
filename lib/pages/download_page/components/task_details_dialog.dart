@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../generated/l10n/l10n.dart';
 import '../../../utils/format_utils.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
@@ -13,7 +14,8 @@ class TaskDetailsDialog {
     DownloadTask initialTask,
     List<DownloadTask> allTasks,
     Map<String, String> instanceNames,
-    (String, Color) Function(DownloadTask, ColorScheme) getStatusInfo,
+    (String, Color) Function(BuildContext, DownloadTask, ColorScheme)
+    getStatusInfo,
   ) async {
     showDialog(
       context: context,
@@ -22,6 +24,7 @@ class TaskDetailsDialog {
 
         return StatefulBuilder(
           builder: (context, setState) {
+            final l10n = AppLocalizations.of(context)!;
             DownloadTask getLatestTaskData() {
               return allTasks.firstWhere(
                 (task) =>
@@ -44,6 +47,7 @@ class TaskDetailsDialog {
 
             final currentTask = getLatestTaskData();
             final statusInfo = getStatusInfo(
+              context,
               currentTask,
               Theme.of(context).colorScheme,
             );
@@ -56,7 +60,7 @@ class TaskDetailsDialog {
               child: DefaultTabController(
                 length: 3,
                 child: AlertDialog(
-                  title: const Text('Task details'),
+                  title: Text(l10n.taskDetails),
                   content: SizedBox(
                     width: 600,
                     height: 450,
@@ -71,15 +75,15 @@ class TaskDetailsDialog {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Instance: ${instanceNames[currentTask.instanceId] ?? currentTask.instanceId}',
+                          '${l10n.instance}: ${instanceNames[currentTask.instanceId] ?? currentTask.instanceId}',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         const SizedBox(height: 12),
-                        const TabBar(
+                        TabBar(
                           tabs: [
-                            Tab(text: 'Overview'),
-                            Tab(text: 'Pieces'),
-                            Tab(text: 'Files'),
+                            Tab(text: l10n.overview),
+                            Tab(text: l10n.pieces),
+                            Tab(text: l10n.filesTitle),
                           ],
                           indicatorSize: TabBarIndicatorSize.tab,
                         ),
@@ -91,13 +95,12 @@ class TaskDetailsDialog {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Task ID: ${currentTask.id}'),
+                                    Text(l10n.taskId(currentTask.id)),
                                     const SizedBox(height: 8),
                                     Row(
                                       children: [
-                                        const Text('Status: '),
                                         Text(
-                                          statusInfo.$1,
+                                          l10n.statusWithValue(statusInfo.$1),
                                           style: TextStyle(
                                             color: statusInfo.$2,
                                           ),
@@ -106,33 +109,57 @@ class TaskDetailsDialog {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Size: ${currentTask.size} (${currentTask.totalLengthBytes} bytes)',
+                                      l10n.sizeWithValue(
+                                        currentTask.totalLengthBytes.toString(),
+                                        currentTask.size,
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Downloaded: ${currentTask.completedSize} (${currentTask.completedLengthBytes} bytes)',
+                                      l10n.downloadedWithValue(
+                                        currentTask.completedLengthBytes
+                                            .toString(),
+                                        currentTask.completedSize,
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
-                                    Text('Progress: $progressPercent%'),
+                                    Text(
+                                      l10n.progressWithValue(progressPercent),
+                                    ),
                                     const SizedBox(height: 12),
                                     Text(
-                                      'Download speed: ${currentTask.downloadSpeed} (${currentTask.downloadSpeedBytes} bytes/s)',
+                                      l10n.downloadSpeedWithValue(
+                                        currentTask.downloadSpeedBytes
+                                            .toString(),
+                                        currentTask.downloadSpeed,
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Upload speed: ${currentTask.uploadSpeed} (${currentTask.uploadSpeedBytes} bytes/s)',
+                                      l10n.uploadSpeedWithValue(
+                                        currentTask.uploadSpeedBytes.toString(),
+                                        currentTask.uploadSpeed,
+                                      ),
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
-                                      'Connections: ${currentTask.connections ?? '--'}',
+                                      l10n.connectionsWithValue(
+                                        '${currentTask.connections ?? '--'}',
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Save location: ${currentTask.dir ?? '--'}',
+                                      l10n.saveLocationWithValue(
+                                        currentTask.dir ?? '--',
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Task type: ${currentTask.isLocal ? 'Built-in' : 'Remote'}',
+                                      l10n.taskTypeWithValue(
+                                        currentTask.isLocal
+                                            ? l10n.builtin
+                                            : l10n.remote,
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
                                     if (currentTask.errorMessage != null &&
@@ -142,7 +169,9 @@ class TaskDetailsDialog {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Error: ${currentTask.errorMessage}',
+                                            l10n.errorWithValue(
+                                              currentTask.errorMessage!,
+                                            ),
                                             style: const TextStyle(
                                               color: Colors.red,
                                             ),
@@ -154,22 +183,30 @@ class TaskDetailsDialog {
                                             DownloadStatus.active &&
                                         currentTask.downloadSpeedBytes > 0)
                                       Text(
-                                        'Remaining time: ${TaskUtils.calculateRemainingTime(currentTask.progress, currentTask.downloadSpeed)}',
+                                        l10n.remainingTimeWithValue(
+                                          TaskUtils.calculateRemainingTime(
+                                            currentTask.progress,
+                                            currentTask.downloadSpeed,
+                                          ),
+                                        ),
                                       ),
                                   ],
                                 ),
                               ),
                               SingleChildScrollView(
                                 padding: const EdgeInsets.all(16),
-                                child: _buildBitfieldVisualization(currentTask),
+                                child: _buildBitfieldVisualization(
+                                  context,
+                                  currentTask,
+                                ),
                               ),
                               SingleChildScrollView(
                                 padding: const EdgeInsets.all(8),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Files',
+                                    Text(
+                                      l10n.filesTitle,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -187,7 +224,7 @@ class TaskDetailsDialog {
                                               currentTask.files![index];
                                           final filePath =
                                               file['path'] as String? ??
-                                              'Unknown path';
+                                              l10n.unknownPath;
                                           final fileName = filePath
                                               .split('/')
                                               .last
@@ -242,8 +279,8 @@ class TaskDetailsDialog {
                                                       '$completedSize / $fileSize',
                                                     ),
                                                     if (!selected)
-                                                      const Text(
-                                                        ' (not selected)',
+                                                      Text(
+                                                        ' ${l10n.notSelected}',
                                                         style: TextStyle(
                                                           color: Colors.grey,
                                                         ),
@@ -256,7 +293,7 @@ class TaskDetailsDialog {
                                         },
                                       )
                                     else
-                                      const Text('No file information'),
+                                      Text(l10n.noFileInformation),
                                   ],
                                 ),
                               ),
@@ -272,7 +309,7 @@ class TaskDetailsDialog {
                         disposeResources();
                         Navigator.of(context).pop();
                       },
-                      child: const Text('Close'),
+                      child: Text(l10n.close),
                     ),
                   ],
                 ),
@@ -284,7 +321,11 @@ class TaskDetailsDialog {
     );
   }
 
-  static Widget _buildBitfieldVisualization(DownloadTask task) {
+  static Widget _buildBitfieldVisualization(
+    BuildContext context,
+    DownloadTask task,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
     final bitfield = task.bitfield;
 
     if (bitfield == null || bitfield.isEmpty) {
@@ -295,13 +336,13 @@ class TaskDetailsDialog {
             Icon(Icons.info_outline, size: 64, color: Colors.grey[600]),
             const SizedBox(height: 16),
             Text(
-              'No piece information available for this task.',
+              l10n.noPieceInformation,
               style: TextStyle(fontSize: 16, color: Colors.grey[700]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'The task may not have started yet, or Aria2 did not expose piece data.',
+              l10n.noPieceInformationHint,
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
@@ -332,28 +373,28 @@ class TaskDetailsDialog {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Piece statistics',
+                Text(
+                  l10n.pieceStatistics,
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 8),
-                _buildStatRow('Total pieces', '$totalPieces'),
-                _buildStatRow('Completed', '$completedPieces', Colors.green),
-                _buildStatRow('Partial', '$partialPieces', Colors.yellow),
-                _buildStatRow('Missing', '$missingPieces', Colors.grey),
+                _buildStatRow(l10n.totalPieces, '$totalPieces'),
+                _buildStatRow(l10n.completed, '$completedPieces', Colors.green),
+                _buildStatRow(l10n.partial, '$partialPieces', Colors.yellow),
+                _buildStatRow(l10n.missing, '$missingPieces', Colors.grey),
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
                   value: completionPercentage / 100,
                   backgroundColor: Colors.grey.shade200,
                 ),
                 const SizedBox(height: 4),
-                Text('Completion: ${completionPercentage.toStringAsFixed(2)}%'),
+                Text(l10n.completion(completionPercentage.toStringAsFixed(2))),
               ],
             ),
           ),
         ),
-        const Text(
-          'Piece map',
+        Text(
+          l10n.pieceMap,
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 12),
@@ -366,16 +407,16 @@ class TaskDetailsDialog {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Legend',
+                Text(
+                  l10n.legend,
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                _buildLegendRow(Colors.green, 'Completed (f)'),
-                _buildLegendRow(Colors.lightGreen, 'High progress (8-b)'),
-                _buildLegendRow(Colors.yellow, 'Medium progress (4-7)'),
-                _buildLegendRow(Colors.orange, 'Low progress (1-3)'),
-                _buildLegendRow(Colors.grey, 'Missing (0)'),
+                _buildLegendRow(Colors.green, '${l10n.completed} (f)'),
+                _buildLegendRow(Colors.lightGreen, l10n.highProgress),
+                _buildLegendRow(Colors.yellow, l10n.mediumProgress),
+                _buildLegendRow(Colors.orange, l10n.lowProgress),
+                _buildLegendRow(Colors.grey, '${l10n.missing} (0)'),
               ],
             ),
           ),

@@ -1087,6 +1087,906 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Port must be between 1 and 65535'**
   String get portInvalid;
+
+  /// No description provided for @failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get failed;
+
+  /// No description provided for @check.
+  ///
+  /// In en, this message translates to:
+  /// **'Check'**
+  String get check;
+
+  /// No description provided for @addInstanceTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add instance'**
+  String get addInstanceTooltip;
+
+  /// No description provided for @instanceReachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Instance is reachable'**
+  String get instanceReachable;
+
+  /// No description provided for @instanceOfflineUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Instance is offline or unreachable'**
+  String get instanceOfflineUnreachable;
+
+  /// No description provided for @failedToDeleteInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete instance: {error}'**
+  String failedToDeleteInstance(Object error);
+
+  /// No description provided for @disconnectedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnected successfully'**
+  String get disconnectedSuccessfully;
+
+  /// No description provided for @versionWillAppearAfterConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Version will appear after connection'**
+  String get versionWillAppearAfterConnection;
+
+  /// No description provided for @builtInDefaultInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} (Built-in default)'**
+  String builtInDefaultInstance(Object name);
+
+  /// No description provided for @builtInInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} (Built-in)'**
+  String builtInInstance(Object name);
+
+  /// No description provided for @searchTasksHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search tasks by name, path, or instance'**
+  String get searchTasksHint;
+
+  /// No description provided for @sortTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort tasks'**
+  String get sortTasks;
+
+  /// No description provided for @ascending.
+  ///
+  /// In en, this message translates to:
+  /// **'Ascending'**
+  String get ascending;
+
+  /// No description provided for @descending.
+  ///
+  /// In en, this message translates to:
+  /// **'Descending'**
+  String get descending;
+
+  /// No description provided for @name.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get name;
+
+  /// No description provided for @progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get progress;
+
+  /// No description provided for @size.
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get size;
+
+  /// No description provided for @speed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed'**
+  String get speed;
+
+  /// No description provided for @pauseAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause All'**
+  String get pauseAll;
+
+  /// No description provided for @resumeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume All'**
+  String get resumeAll;
+
+  /// No description provided for @deleteAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete All'**
+  String get deleteAll;
+
+  /// No description provided for @allTasksLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'All tasks'**
+  String get allTasksLabel;
+
+  /// No description provided for @byStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'By status'**
+  String get byStatus;
+
+  /// No description provided for @byType.
+  ///
+  /// In en, this message translates to:
+  /// **'By type'**
+  String get byType;
+
+  /// No description provided for @byInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'By instance'**
+  String get byInstance;
+
+  /// No description provided for @allInstances.
+  ///
+  /// In en, this message translates to:
+  /// **'All instances'**
+  String get allInstances;
+
+  /// No description provided for @chooseCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a category'**
+  String get chooseCategory;
+
+  /// No description provided for @stoppedCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped / Completed'**
+  String get stoppedCompleted;
+
+  /// No description provided for @unknownPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown path'**
+  String get unknownPath;
+
+  /// No description provided for @selectedFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected: {name}'**
+  String selectedFile(Object name);
+
+  /// No description provided for @addTaskDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add task'**
+  String get addTaskDialogTitle;
+
+  /// No description provided for @uriTab.
+  ///
+  /// In en, this message translates to:
+  /// **'URI'**
+  String get uriTab;
+
+  /// No description provided for @torrentTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Torrent'**
+  String get torrentTab;
+
+  /// No description provided for @metalinkTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Metalink'**
+  String get metalinkTab;
+
+  /// No description provided for @urlOrMagnetLink.
+  ///
+  /// In en, this message translates to:
+  /// **'URL or magnet link'**
+  String get urlOrMagnetLink;
+
+  /// No description provided for @enterOneOrMoreLinks.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter one or more links'**
+  String get enterOneOrMoreLinks;
+
+  /// No description provided for @pasteFromClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste from clipboard'**
+  String get pasteFromClipboard;
+
+  /// No description provided for @uriSupportHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Supports HTTP/HTTPS, FTP, SFTP, magnet and more.'**
+  String get uriSupportHint;
+
+  /// No description provided for @selectTorrentFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Select torrent file'**
+  String get selectTorrentFile;
+
+  /// No description provided for @selectMetalinkFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Select metalink file'**
+  String get selectMetalinkFile;
+
+  /// No description provided for @targetInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'Target instance'**
+  String get targetInstance;
+
+  /// No description provided for @selectTargetInstanceFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a target instance first'**
+  String get selectTargetInstanceFirst;
+
+  /// No description provided for @noConnectedInstancesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No connected instances are available. Connect the built-in or a remote instance first.'**
+  String get noConnectedInstancesAvailable;
+
+  /// No description provided for @tasksWillBeSentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Tasks will be sent to {target}.'**
+  String tasksWillBeSentTo(Object target);
+
+  /// No description provided for @showAdvancedOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Show advanced options'**
+  String get showAdvancedOptions;
+
+  /// No description provided for @advancedOptionsPlanned.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced per-task options are planned for a later stage.'**
+  String get advancedOptionsPlanned;
+
+  /// No description provided for @saveLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Save location'**
+  String get saveLocation;
+
+  /// No description provided for @useInstanceDefaultDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the instance default directory'**
+  String get useInstanceDefaultDirectory;
+
+  /// No description provided for @chooseSaveLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose save location'**
+  String get chooseSaveLocation;
+
+  /// No description provided for @failedToSelectDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to select directory: {error}'**
+  String failedToSelectDirectory(Object error);
+
+  /// No description provided for @selectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String selectedCount(Object count);
+
+  /// No description provided for @allVisibleSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'All visible selected'**
+  String get allVisibleSelected;
+
+  /// No description provided for @selectAllVisible.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all visible'**
+  String get selectAllVisible;
+
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
+  /// No description provided for @failedToRefreshTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to refresh tasks: {error}'**
+  String failedToRefreshTasks(Object error);
+
+  /// No description provided for @failedToLoadInstanceNames.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load instance names: {error}'**
+  String failedToLoadInstanceNames(Object error);
+
+  /// No description provided for @connectBeforeAddingTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect the built-in instance or a remote instance before adding tasks.'**
+  String get connectBeforeAddingTasks;
+
+  /// No description provided for @taskAddedToInstanceSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Task added to {name} successfully'**
+  String taskAddedToInstanceSuccess(Object name);
+
+  /// No description provided for @resumeTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume tasks'**
+  String get resumeTasks;
+
+  /// No description provided for @pauseTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause tasks'**
+  String get pauseTasks;
+
+  /// No description provided for @deleteTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete tasks'**
+  String get deleteTasks;
+
+  /// No description provided for @actionAcrossAllInstances.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} across all connected instances'**
+  String actionAcrossAllInstances(Object action);
+
+  /// No description provided for @actionInInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} in {instance}'**
+  String actionInInstance(Object action, Object instance);
+
+  /// No description provided for @chooseActionScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose where to apply this action.'**
+  String get chooseActionScope;
+
+  /// No description provided for @noConnectedInstancesForAction.
+  ///
+  /// In en, this message translates to:
+  /// **'No connected instances are available for this action.'**
+  String get noConnectedInstancesForAction;
+
+  /// No description provided for @noConnectedInstancesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No connected instances. Connect an instance to view tasks.'**
+  String get noConnectedInstancesTitle;
+
+  /// No description provided for @combinedTaskListHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The download list combines tasks from the built-in instance and any connected remote instances.'**
+  String get combinedTaskListHint;
+
+  /// No description provided for @noTasksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No tasks'**
+  String get noTasksTitle;
+
+  /// No description provided for @noTasksHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a task or switch filters to see downloads from connected instances.'**
+  String get noTasksHint;
+
+  /// No description provided for @noDownloadDirectoryAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No download directory available'**
+  String get noDownloadDirectoryAvailable;
+
+  /// No description provided for @targetInstanceNotConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'The target instance is not connected.'**
+  String get targetInstanceNotConnected;
+
+  /// No description provided for @failedToPauseTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to pause the task: {error}'**
+  String failedToPauseTask(Object error);
+
+  /// No description provided for @failedToRemoveTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to remove the task: {error}'**
+  String failedToRemoveTask(Object error);
+
+  /// No description provided for @failedToResumeTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to resume the task: {error}'**
+  String failedToResumeTask(Object error);
+
+  /// No description provided for @failedToRemoveFailedTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to remove the failed task: {error}'**
+  String failedToRemoveFailedTask(Object error);
+
+  /// No description provided for @paused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get paused;
+
+  /// No description provided for @completed.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get completed;
+
+  /// No description provided for @downloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading'**
+  String get downloading;
+
+  /// No description provided for @waiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting'**
+  String get waiting;
+
+  /// No description provided for @stopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get stopped;
+
+  /// No description provided for @removeFailedTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove failed task'**
+  String get removeFailedTask;
+
+  /// No description provided for @taskDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Task details'**
+  String get taskDetails;
+
+  /// No description provided for @overview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get overview;
+
+  /// No description provided for @pieces.
+  ///
+  /// In en, this message translates to:
+  /// **'Pieces'**
+  String get pieces;
+
+  /// No description provided for @taskId.
+  ///
+  /// In en, this message translates to:
+  /// **'Task ID: {id}'**
+  String taskId(Object id);
+
+  /// No description provided for @statusWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Status: {status}'**
+  String statusWithValue(Object status);
+
+  /// No description provided for @sizeWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Size: {size} ({bytes} bytes)'**
+  String sizeWithValue(Object bytes, Object size);
+
+  /// No description provided for @downloadedWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded: {size} ({bytes} bytes)'**
+  String downloadedWithValue(Object bytes, Object size);
+
+  /// No description provided for @progressWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress: {progress}%'**
+  String progressWithValue(Object progress);
+
+  /// No description provided for @downloadSpeedWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Download speed: {speed} ({bytes} bytes/s)'**
+  String downloadSpeedWithValue(Object bytes, Object speed);
+
+  /// No description provided for @uploadSpeedWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload speed: {speed} ({bytes} bytes/s)'**
+  String uploadSpeedWithValue(Object bytes, Object speed);
+
+  /// No description provided for @connectionsWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Connections: {value}'**
+  String connectionsWithValue(Object value);
+
+  /// No description provided for @saveLocationWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Save location: {value}'**
+  String saveLocationWithValue(Object value);
+
+  /// No description provided for @taskTypeWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Task type: {value}'**
+  String taskTypeWithValue(Object value);
+
+  /// No description provided for @errorWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {value}'**
+  String errorWithValue(Object value);
+
+  /// No description provided for @remainingTimeWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining time: {value}'**
+  String remainingTimeWithValue(Object value);
+
+  /// No description provided for @filesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get filesTitle;
+
+  /// No description provided for @notSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'(not selected)'**
+  String get notSelected;
+
+  /// No description provided for @noFileInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'No file information'**
+  String get noFileInformation;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @noPieceInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'No piece information available for this task.'**
+  String get noPieceInformation;
+
+  /// No description provided for @noPieceInformationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The task may not have started yet, or Aria2 did not expose piece data.'**
+  String get noPieceInformationHint;
+
+  /// No description provided for @pieceStatistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Piece statistics'**
+  String get pieceStatistics;
+
+  /// No description provided for @totalPieces.
+  ///
+  /// In en, this message translates to:
+  /// **'Total pieces'**
+  String get totalPieces;
+
+  /// No description provided for @partial.
+  ///
+  /// In en, this message translates to:
+  /// **'Partial'**
+  String get partial;
+
+  /// No description provided for @missing.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing'**
+  String get missing;
+
+  /// No description provided for @completion.
+  ///
+  /// In en, this message translates to:
+  /// **'Completion: {value}%'**
+  String completion(Object value);
+
+  /// No description provided for @pieceMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Piece map'**
+  String get pieceMap;
+
+  /// No description provided for @legend.
+  ///
+  /// In en, this message translates to:
+  /// **'Legend'**
+  String get legend;
+
+  /// No description provided for @highProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'High progress (8-b)'**
+  String get highProgress;
+
+  /// No description provided for @mediumProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium progress (4-7)'**
+  String get mediumProgress;
+
+  /// No description provided for @lowProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Low progress (1-3)'**
+  String get lowProgress;
+
+  /// No description provided for @cannotGetDownloadDirectoryInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot get download directory information'**
+  String get cannotGetDownloadDirectoryInformation;
+
+  /// No description provided for @downloadDirectoryDoesNotExist.
+  ///
+  /// In en, this message translates to:
+  /// **'Download directory does not exist'**
+  String get downloadDirectoryDoesNotExist;
+
+  /// No description provided for @cannotOpenDownloadDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot open download directory'**
+  String get cannotOpenDownloadDirectory;
+
+  /// No description provided for @errorOpeningDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Error opening directory: {error}'**
+  String errorOpeningDirectory(Object error);
+
+  /// No description provided for @connectionSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection'**
+  String get connectionSection;
+
+  /// No description provided for @transferSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer'**
+  String get transferSection;
+
+  /// No description provided for @speedLimits.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed Limits'**
+  String get speedLimits;
+
+  /// No description provided for @btPtSection.
+  ///
+  /// In en, this message translates to:
+  /// **'BT / PT'**
+  String get btPtSection;
+
+  /// No description provided for @networkSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Network'**
+  String get networkSection;
+
+  /// No description provided for @filesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get filesSection;
+
+  /// No description provided for @leaveEmptyToDisableSecretAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to disable secret auth'**
+  String get leaveEmptyToDisableSecretAuth;
+
+  /// No description provided for @splitCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Split count'**
+  String get splitCount;
+
+  /// No description provided for @continueUnfinishedDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue unfinished downloads'**
+  String get continueUnfinishedDownloads;
+
+  /// No description provided for @maxOverallDownloadLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Max overall download limit (KB/s)'**
+  String get maxOverallDownloadLimit;
+
+  /// No description provided for @maxOverallUploadLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Max overall upload limit (KB/s)'**
+  String get maxOverallUploadLimit;
+
+  /// No description provided for @keepSeedingAfterCompletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep seeding after completion'**
+  String get keepSeedingAfterCompletion;
+
+  /// No description provided for @seedRatio.
+  ///
+  /// In en, this message translates to:
+  /// **'Seed ratio'**
+  String get seedRatio;
+
+  /// No description provided for @seedTimeMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Seed time (minutes)'**
+  String get seedTimeMinutes;
+
+  /// No description provided for @exampleProxy.
+  ///
+  /// In en, this message translates to:
+  /// **'Example: http://proxy:port'**
+  String get exampleProxy;
+
+  /// No description provided for @noProxyHosts.
+  ///
+  /// In en, this message translates to:
+  /// **'No-proxy hosts'**
+  String get noProxyHosts;
+
+  /// No description provided for @multipleHostsComma.
+  ///
+  /// In en, this message translates to:
+  /// **'Separate multiple hosts with commas'**
+  String get multipleHostsComma;
+
+  /// No description provided for @autoRenameFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto rename files'**
+  String get autoRenameFiles;
+
+  /// No description provided for @allowOverwrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow overwrite'**
+  String get allowOverwrite;
+
+  /// No description provided for @userAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'User agent'**
+  String get userAgent;
+
+  /// No description provided for @decrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease'**
+  String get decrease;
+
+  /// No description provided for @increase.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase'**
+  String get increase;
+
+  /// No description provided for @settingsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings saved'**
+  String get settingsSaved;
+
+  /// No description provided for @restartingBuiltinInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'Restarting the built-in instance, please wait...'**
+  String get restartingBuiltinInstance;
+
+  /// No description provided for @builtinInstanceMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in instance is missing'**
+  String get builtinInstanceMissing;
+
+  /// No description provided for @settingsSavedAppliedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings saved and applied successfully'**
+  String get settingsSavedAppliedSuccess;
+
+  /// No description provided for @settingsSavedRpcApplyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings saved and instance restarted, but applying settings via RPC failed'**
+  String get settingsSavedRpcApplyFailed;
+
+  /// No description provided for @settingsSavedRestartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings were saved, but restarting the built-in instance failed'**
+  String get settingsSavedRestartFailed;
+
+  /// No description provided for @settingsSavedRestartFailedWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings were saved, but restarting the built-in instance failed: {error}'**
+  String settingsSavedRestartFailedWithError(Object error);
+
+  /// No description provided for @leavePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave this page?'**
+  String get leavePage;
+
+  /// No description provided for @unsavedChangesPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes. What would you like to do?'**
+  String get unsavedChangesPrompt;
+
+  /// No description provided for @discard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get discard;
+
+  /// No description provided for @english.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get english;
+
+  /// No description provided for @chinese.
+  ///
+  /// In en, this message translates to:
+  /// **'Chinese'**
+  String get chinese;
 }
 
 class _AppLocalizationsDelegate

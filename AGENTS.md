@@ -2,6 +2,8 @@
 
 ## Build, Lint, and Test Commands
 
+For Codex: All these commands need to be executed outside sandbox, or it will get stuck.
+
 ### Development
 ```bash
 flutter run                    # Run in debug mode

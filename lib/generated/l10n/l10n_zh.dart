@@ -534,4 +534,516 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get portInvalid => '端口必须在1到65535之间';
+
+  @override
+  String get failed => '失败';
+
+  @override
+  String get check => '检查';
+
+  @override
+  String get addInstanceTooltip => '添加实例';
+
+  @override
+  String get instanceReachable => '实例可连接';
+
+  @override
+  String get instanceOfflineUnreachable => '实例离线或无法访问';
+
+  @override
+  String failedToDeleteInstance(Object error) {
+    return '删除实例失败: $error';
+  }
+
+  @override
+  String get disconnectedSuccessfully => '已成功断开连接';
+
+  @override
+  String get versionWillAppearAfterConnection => '连接后将显示版本';
+
+  @override
+  String builtInDefaultInstance(Object name) {
+    return '$name（内建默认）';
+  }
+
+  @override
+  String builtInInstance(Object name) {
+    return '$name（内建）';
+  }
+
+  @override
+  String get searchTasksHint => '按名称、路径或实例搜索任务';
+
+  @override
+  String get sortTasks => '排序任务';
+
+  @override
+  String get ascending => '升序';
+
+  @override
+  String get descending => '降序';
+
+  @override
+  String get name => '名称';
+
+  @override
+  String get progress => '进度';
+
+  @override
+  String get size => '大小';
+
+  @override
+  String get speed => '速度';
+
+  @override
+  String get pauseAll => '全部暂停';
+
+  @override
+  String get resumeAll => '全部继续';
+
+  @override
+  String get deleteAll => '全部删除';
+
+  @override
+  String get allTasksLabel => '全部任务';
+
+  @override
+  String get byStatus => '按状态';
+
+  @override
+  String get byType => '按类型';
+
+  @override
+  String get byInstance => '按实例';
+
+  @override
+  String get allInstances => '全部实例';
+
+  @override
+  String get chooseCategory => '选择分类';
+
+  @override
+  String get stoppedCompleted => '已停止 / 已完成';
+
+  @override
+  String get unknownPath => '未知路径';
+
+  @override
+  String selectedFile(Object name) {
+    return '已选择: $name';
+  }
+
+  @override
+  String get addTaskDialogTitle => '添加任务';
+
+  @override
+  String get uriTab => 'URI';
+
+  @override
+  String get torrentTab => 'Torrent';
+
+  @override
+  String get metalinkTab => 'Metalink';
+
+  @override
+  String get urlOrMagnetLink => 'URL 或 Magnet 链接';
+
+  @override
+  String get enterOneOrMoreLinks => '输入一个或多个链接';
+
+  @override
+  String get pasteFromClipboard => '从剪贴板粘贴';
+
+  @override
+  String get uriSupportHint => '支持 HTTP/HTTPS、FTP、SFTP、Magnet 等协议。';
+
+  @override
+  String get selectTorrentFile => '选择 Torrent 文件';
+
+  @override
+  String get selectMetalinkFile => '选择 Metalink 文件';
+
+  @override
+  String get targetInstance => '目标实例';
+
+  @override
+  String get selectTargetInstanceFirst => '请先选择目标实例';
+
+  @override
+  String get noConnectedInstancesAvailable => '没有可用的已连接实例。请先连接内建或远程实例。';
+
+  @override
+  String tasksWillBeSentTo(Object target) {
+    return '任务将发送到 $target。';
+  }
+
+  @override
+  String get showAdvancedOptions => '显示高级选项';
+
+  @override
+  String get advancedOptionsPlanned => '单任务高级选项将在后续阶段提供。';
+
+  @override
+  String get saveLocation => '保存位置';
+
+  @override
+  String get useInstanceDefaultDirectory => '使用实例默认目录';
+
+  @override
+  String get chooseSaveLocation => '选择保存位置';
+
+  @override
+  String failedToSelectDirectory(Object error) {
+    return '选择目录失败: $error';
+  }
+
+  @override
+  String selectedCount(Object count) {
+    return '已选择 $count 项';
+  }
+
+  @override
+  String get allVisibleSelected => '已选择全部可见项';
+
+  @override
+  String get selectAllVisible => '选择全部可见项';
+
+  @override
+  String get clear => '清除';
+
+  @override
+  String failedToRefreshTasks(Object error) {
+    return '刷新任务失败: $error';
+  }
+
+  @override
+  String failedToLoadInstanceNames(Object error) {
+    return '加载实例名称失败: $error';
+  }
+
+  @override
+  String get connectBeforeAddingTasks => '添加任务前请先连接内建或远程实例。';
+
+  @override
+  String taskAddedToInstanceSuccess(Object name) {
+    return '已成功向 $name 添加任务';
+  }
+
+  @override
+  String get resumeTasks => '继续任务';
+
+  @override
+  String get pauseTasks => '暂停任务';
+
+  @override
+  String get deleteTasks => '删除任务';
+
+  @override
+  String actionAcrossAllInstances(Object action) {
+    return '在全部已连接实例中$action';
+  }
+
+  @override
+  String actionInInstance(Object action, Object instance) {
+    return '在 $instance 中$action';
+  }
+
+  @override
+  String get chooseActionScope => '选择将此操作应用到哪里。';
+
+  @override
+  String get noConnectedInstancesForAction => '没有可用于此操作的已连接实例。';
+
+  @override
+  String get noConnectedInstancesTitle => '没有已连接的实例。连接一个实例后即可查看任务。';
+
+  @override
+  String get combinedTaskListHint => '下载列表会合并内建实例与所有已连接远程实例的任务。';
+
+  @override
+  String get noTasksTitle => '暂无任务';
+
+  @override
+  String get noTasksHint => '添加任务或切换筛选条件以查看已连接实例的下载。';
+
+  @override
+  String get noDownloadDirectoryAvailable => '没有可用的下载目录';
+
+  @override
+  String get targetInstanceNotConnected => '目标实例未连接。';
+
+  @override
+  String failedToPauseTask(Object error) {
+    return '暂停任务失败: $error';
+  }
+
+  @override
+  String failedToRemoveTask(Object error) {
+    return '删除任务失败: $error';
+  }
+
+  @override
+  String failedToResumeTask(Object error) {
+    return '继续任务失败: $error';
+  }
+
+  @override
+  String failedToRemoveFailedTask(Object error) {
+    return '删除失败任务失败: $error';
+  }
+
+  @override
+  String get paused => '已暂停';
+
+  @override
+  String get completed => '已完成';
+
+  @override
+  String get downloading => '下载中';
+
+  @override
+  String get waiting => '等待中';
+
+  @override
+  String get stopped => '已停止';
+
+  @override
+  String get removeFailedTask => '移除失败任务';
+
+  @override
+  String get taskDetails => '任务详情';
+
+  @override
+  String get overview => '概览';
+
+  @override
+  String get pieces => '分片';
+
+  @override
+  String taskId(Object id) {
+    return '任务 ID: $id';
+  }
+
+  @override
+  String statusWithValue(Object status) {
+    return '状态: $status';
+  }
+
+  @override
+  String sizeWithValue(Object bytes, Object size) {
+    return '大小: $size ($bytes 字节)';
+  }
+
+  @override
+  String downloadedWithValue(Object bytes, Object size) {
+    return '已下载: $size ($bytes 字节)';
+  }
+
+  @override
+  String progressWithValue(Object progress) {
+    return '进度: $progress%';
+  }
+
+  @override
+  String downloadSpeedWithValue(Object bytes, Object speed) {
+    return '下载速度: $speed ($bytes 字节/秒)';
+  }
+
+  @override
+  String uploadSpeedWithValue(Object bytes, Object speed) {
+    return '上传速度: $speed ($bytes 字节/秒)';
+  }
+
+  @override
+  String connectionsWithValue(Object value) {
+    return '连接数: $value';
+  }
+
+  @override
+  String saveLocationWithValue(Object value) {
+    return '保存位置: $value';
+  }
+
+  @override
+  String taskTypeWithValue(Object value) {
+    return '任务类型: $value';
+  }
+
+  @override
+  String errorWithValue(Object value) {
+    return '错误: $value';
+  }
+
+  @override
+  String remainingTimeWithValue(Object value) {
+    return '剩余时间: $value';
+  }
+
+  @override
+  String get filesTitle => '文件';
+
+  @override
+  String get notSelected => '（未选择）';
+
+  @override
+  String get noFileInformation => '没有文件信息';
+
+  @override
+  String get close => '关闭';
+
+  @override
+  String get noPieceInformation => '该任务没有可用的分片信息。';
+
+  @override
+  String get noPieceInformationHint => '任务可能尚未开始，或 Aria2 没有提供分片数据。';
+
+  @override
+  String get pieceStatistics => '分片统计';
+
+  @override
+  String get totalPieces => '总分片数';
+
+  @override
+  String get partial => '部分完成';
+
+  @override
+  String get missing => '缺失';
+
+  @override
+  String completion(Object value) {
+    return '完成度: $value%';
+  }
+
+  @override
+  String get pieceMap => '分片图';
+
+  @override
+  String get legend => '图例';
+
+  @override
+  String get highProgress => '高进度 (8-b)';
+
+  @override
+  String get mediumProgress => '中等进度 (4-7)';
+
+  @override
+  String get lowProgress => '低进度 (1-3)';
+
+  @override
+  String get cannotGetDownloadDirectoryInformation => '无法获取下载目录信息';
+
+  @override
+  String get downloadDirectoryDoesNotExist => '下载目录不存在';
+
+  @override
+  String get cannotOpenDownloadDirectory => '无法打开下载目录';
+
+  @override
+  String errorOpeningDirectory(Object error) {
+    return '打开目录时出错: $error';
+  }
+
+  @override
+  String get connectionSection => '连接';
+
+  @override
+  String get transferSection => '传输';
+
+  @override
+  String get speedLimits => '速度限制';
+
+  @override
+  String get btPtSection => 'BT / PT';
+
+  @override
+  String get networkSection => '网络';
+
+  @override
+  String get filesSection => '文件';
+
+  @override
+  String get leaveEmptyToDisableSecretAuth => '留空则禁用 Secret 验证';
+
+  @override
+  String get splitCount => '分片数';
+
+  @override
+  String get continueUnfinishedDownloads => '继续未完成的下载';
+
+  @override
+  String get maxOverallDownloadLimit => '全局最大下载限速 (KB/s)';
+
+  @override
+  String get maxOverallUploadLimit => '全局最大上传限速 (KB/s)';
+
+  @override
+  String get keepSeedingAfterCompletion => '完成后继续做种';
+
+  @override
+  String get seedRatio => '做种比例';
+
+  @override
+  String get seedTimeMinutes => '做种时间 (分钟)';
+
+  @override
+  String get exampleProxy => '示例: http://proxy:port';
+
+  @override
+  String get noProxyHosts => '不使用代理的主机';
+
+  @override
+  String get multipleHostsComma => '多个主机用逗号分隔';
+
+  @override
+  String get autoRenameFiles => '自动重命名文件';
+
+  @override
+  String get allowOverwrite => '允许覆盖';
+
+  @override
+  String get userAgent => 'User Agent';
+
+  @override
+  String get decrease => '减少';
+
+  @override
+  String get increase => '增加';
+
+  @override
+  String get settingsSaved => '设置已保存';
+
+  @override
+  String get restartingBuiltinInstance => '正在重启内建实例，请稍候...';
+
+  @override
+  String get builtinInstanceMissing => '缺少内建实例';
+
+  @override
+  String get settingsSavedAppliedSuccess => '设置已保存并成功应用';
+
+  @override
+  String get settingsSavedRpcApplyFailed => '设置已保存且实例已重启，但通过 RPC 应用设置失败';
+
+  @override
+  String get settingsSavedRestartFailed => '设置已保存，但重启内建实例失败';
+
+  @override
+  String settingsSavedRestartFailedWithError(Object error) {
+    return '设置已保存，但重启内建实例失败: $error';
+  }
+
+  @override
+  String get leavePage => '离开此页面？';
+
+  @override
+  String get unsavedChangesPrompt => '你有未保存的更改。你想怎么做？';
+
+  @override
+  String get discard => '丢弃';
+
+  @override
+  String get english => 'English';
+
+  @override
+  String get chinese => '中文';
 }

@@ -2,6 +2,7 @@ import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../generated/l10n/l10n.dart';
 import '../models/settings.dart';
 import '../services/instance_manager.dart';
 import '../services/settings_service.dart';
@@ -21,13 +22,14 @@ class _BuiltinInstanceSettingsPageState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final settings = Provider.of<Settings>(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Built-in Instance Settings'),
+        title: Text(l10n.instanceSettings),
         backgroundColor: colorScheme.surface,
         elevation: 0,
         shadowColor: Colors.transparent,
@@ -39,7 +41,7 @@ class _BuiltinInstanceSettingsPageState
           TextButton(
             onPressed: _hasChanges ? () => _saveSettings(settings) : null,
             child: Text(
-              'Save',
+              l10n.save,
               style: TextStyle(
                 color: _hasChanges
                     ? colorScheme.primary
@@ -58,7 +60,7 @@ class _BuiltinInstanceSettingsPageState
                     child: fl.SizedLoading.small,
                   )
                 : Text(
-                    'Save & Apply',
+                    l10n.saveAndApply,
                     style: TextStyle(
                       color: _hasChanges
                           ? colorScheme.primary
@@ -74,38 +76,38 @@ class _BuiltinInstanceSettingsPageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionHeader('Connection', theme),
+            _buildSectionHeader(l10n.connectionSection, theme),
             _buildCard(
               theme: theme,
               children: [
                 _buildTextFieldSetting(
-                  'RPC listen port',
+                  l10n.rpcListenPort,
                   settings.rpcListenPort.toString(),
                   (value) {
                     settings.setRpcListenPort(int.tryParse(value) ?? 16800);
                     _markChanged();
                   },
                   keyboardType: TextInputType.number,
-                  helperText: 'Default: 16800',
+                  helperText: l10n.rpcPortDefault,
                 ),
                 _buildTextFieldSetting(
-                  'RPC secret',
+                  l10n.rpcSecret,
                   settings.rpcSecret,
                   (value) {
                     settings.setRpcSecret(value);
                     _markChanged();
                   },
                   obscureText: true,
-                  helperText: 'Leave empty to disable secret auth',
+                  helperText: l10n.leaveEmptyToDisableSecretAuth,
                 ),
               ],
             ),
-            _buildSectionHeader('Transfer', theme),
+            _buildSectionHeader(l10n.transferSection, theme),
             _buildCard(
               theme: theme,
               children: [
                 _buildNumberSetting(
-                  'Max concurrent downloads',
+                  l10n.maxConcurrentDownloads,
                   settings.maxConcurrentDownloads,
                   (value) {
                     settings.setMaxConcurrentDownloads(value);
@@ -115,7 +117,7 @@ class _BuiltinInstanceSettingsPageState
                   max: 16,
                 ),
                 _buildNumberSetting(
-                  'Max connections per server',
+                  l10n.maxConnectionPerServer,
                   settings.maxConnectionPerServer,
                   (value) {
                     settings.setMaxConnectionPerServer(value);
@@ -125,7 +127,7 @@ class _BuiltinInstanceSettingsPageState
                   max: 128,
                 ),
                 _buildNumberSetting(
-                  'Split count',
+                  l10n.splitCount,
                   settings.split,
                   (value) {
                     settings.setSplit(value);
@@ -135,7 +137,7 @@ class _BuiltinInstanceSettingsPageState
                   max: 128,
                 ),
                 _buildSwitchSetting(
-                  'Continue unfinished downloads',
+                  l10n.continueUnfinishedDownloads,
                   settings.continueDownloads,
                   (value) {
                     settings.setContinueDownloads(value);
@@ -144,12 +146,12 @@ class _BuiltinInstanceSettingsPageState
                 ),
               ],
             ),
-            _buildSectionHeader('Speed Limits', theme),
+            _buildSectionHeader(l10n.speedLimits, theme),
             _buildCard(
               theme: theme,
               children: [
                 _buildNumberSetting(
-                  'Max overall download limit (KB/s)',
+                  l10n.maxOverallDownloadLimit,
                   settings.maxOverallDownloadLimit,
                   (value) {
                     settings.setMaxOverallDownloadLimit(value);
@@ -157,10 +159,10 @@ class _BuiltinInstanceSettingsPageState
                   },
                   min: 0,
                   max: 65535,
-                  suffix: '0 means unlimited',
+                  suffix: l10n.downloadLimitTip,
                 ),
                 _buildNumberSetting(
-                  'Max overall upload limit (KB/s)',
+                  l10n.maxOverallUploadLimit,
                   settings.maxOverallUploadLimit,
                   (value) {
                     settings.setMaxOverallUploadLimit(value);
@@ -168,16 +170,16 @@ class _BuiltinInstanceSettingsPageState
                   },
                   min: 0,
                   max: 65535,
-                  suffix: '0 means unlimited',
+                  suffix: l10n.uploadLimitTip,
                 ),
               ],
             ),
-            _buildSectionHeader('BT / PT', theme),
+            _buildSectionHeader(l10n.btPtSection, theme),
             _buildCard(
               theme: theme,
               children: [
                 _buildSwitchSetting(
-                  'Save BT metadata',
+                  l10n.saveBtMetadata,
                   settings.btSaveMetadata,
                   (value) {
                     settings.setBtSaveMetadata(value);
@@ -185,7 +187,7 @@ class _BuiltinInstanceSettingsPageState
                   },
                 ),
                 _buildSwitchSetting(
-                  'Load saved BT metadata',
+                  l10n.loadSavedBtMetadata,
                   settings.btLoadSavedMetadata,
                   (value) {
                     settings.setBtLoadSavedMetadata(value);
@@ -193,7 +195,7 @@ class _BuiltinInstanceSettingsPageState
                   },
                 ),
                 _buildSwitchSetting(
-                  'Force BT encryption',
+                  l10n.forceBtEncryption,
                   settings.btForceEncryption,
                   (value) {
                     settings.setBtForceEncryption(value);
@@ -201,7 +203,7 @@ class _BuiltinInstanceSettingsPageState
                   },
                 ),
                 _buildSwitchSetting(
-                  'Keep seeding after completion',
+                  l10n.keepSeedingAfterCompletion,
                   settings.keepSeeding,
                   (value) {
                     settings.setKeepSeeding(value);
@@ -210,7 +212,7 @@ class _BuiltinInstanceSettingsPageState
                 ),
                 if (!settings.keepSeeding) ...[
                   _buildNumberSetting(
-                    'Seed ratio',
+                    l10n.seedRatio,
                     settings.seedRatio.toInt(),
                     (value) {
                       settings.setSeedRatio(value.toDouble());
@@ -218,10 +220,10 @@ class _BuiltinInstanceSettingsPageState
                     },
                     min: 0,
                     max: 100,
-                    suffix: '0 means unlimited',
+                    suffix: l10n.seedingRatioTip,
                   ),
                   _buildNumberSetting(
-                    'Seed time (minutes)',
+                    l10n.seedTimeMinutes,
                     settings.seedTime,
                     (value) {
                       settings.setSeedTime(value);
@@ -229,45 +231,42 @@ class _BuiltinInstanceSettingsPageState
                     },
                     min: 0,
                     max: 10080,
-                    suffix: '0 means unlimited',
+                    suffix: l10n.seedingTimeTip,
                   ),
                 ],
                 _buildTextFieldSetting(
-                  'Excluded trackers',
+                  l10n.excludedTrackers,
                   settings.btExcludeTracker,
                   (value) {
                     settings.setBtExcludeTracker(value);
                     _markChanged();
                   },
-                  helperText: 'Separate multiple trackers with commas',
+                  helperText: l10n.trackersTip,
                   maxLines: 2,
                 ),
               ],
             ),
-            _buildSectionHeader('Network', theme),
+            _buildSectionHeader(l10n.networkSection, theme),
             _buildCard(
               theme: theme,
               children: [
+                _buildTextFieldSetting(l10n.globalProxy, settings.allProxy, (
+                  value,
+                ) {
+                  settings.setAllProxy(value);
+                  _markChanged();
+                }, helperText: l10n.exampleProxy),
                 _buildTextFieldSetting(
-                  'Global proxy',
-                  settings.allProxy,
-                  (value) {
-                    settings.setAllProxy(value);
-                    _markChanged();
-                  },
-                  helperText: 'Example: http://proxy:port',
-                ),
-                _buildTextFieldSetting(
-                  'No-proxy hosts',
+                  l10n.noProxyHosts,
                   settings.noProxy,
                   (value) {
                     settings.setNoProxy(value);
                     _markChanged();
                   },
-                  helperText: 'Separate multiple hosts with commas',
+                  helperText: l10n.multipleHostsComma,
                 ),
                 _buildNumberSetting(
-                  'DHT listen port',
+                  l10n.dhtListenPort,
                   settings.dhtListenPort,
                   (value) {
                     settings.setDhtListenPort(value);
@@ -276,7 +275,7 @@ class _BuiltinInstanceSettingsPageState
                   min: 1024,
                   max: 65535,
                 ),
-                _buildSwitchSetting('Enable DHT6', settings.enableDht6, (
+                _buildSwitchSetting(l10n.enableDht6, settings.enableDht6, (
                   value,
                 ) {
                   settings.setEnableDht6(value);
@@ -284,12 +283,12 @@ class _BuiltinInstanceSettingsPageState
                 }),
               ],
             ),
-            _buildSectionHeader('Files', theme),
+            _buildSectionHeader(l10n.filesSection, theme),
             _buildCard(
               theme: theme,
               children: [
                 _buildSwitchSetting(
-                  'Auto rename files',
+                  l10n.autoRenameFiles,
                   settings.autoFileRenaming,
                   (value) {
                     settings.setAutoFileRenaming(value);
@@ -297,14 +296,14 @@ class _BuiltinInstanceSettingsPageState
                   },
                 ),
                 _buildSwitchSetting(
-                  'Allow overwrite',
+                  l10n.allowOverwrite,
                   settings.allowOverwrite,
                   (value) {
                     settings.setAllowOverwrite(value);
                     _markChanged();
                   },
                 ),
-                _buildTextFieldSetting('User agent', settings.userAgent, (
+                _buildTextFieldSetting(l10n.userAgent, settings.userAgent, (
                   value,
                 ) {
                   settings.setUserAgent(value);
@@ -425,7 +424,7 @@ class _BuiltinInstanceSettingsPageState
               onPressed: value > min ? () => onChanged(value - 1) : null,
               icon: const Icon(Icons.remove),
               iconSize: 20,
-              tooltip: 'Decrease',
+              tooltip: AppLocalizations.of(context)!.decrease,
               splashRadius: 20,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -450,7 +449,7 @@ class _BuiltinInstanceSettingsPageState
               onPressed: value < max ? () => onChanged(value + 1) : null,
               icon: const Icon(Icons.add),
               iconSize: 20,
-              tooltip: 'Increase',
+              tooltip: AppLocalizations.of(context)!.increase,
               splashRadius: 20,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -503,6 +502,7 @@ class _BuiltinInstanceSettingsPageState
   }
 
   Future<void> _saveSettings(Settings settings) async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSaving = true;
     });
@@ -516,8 +516,8 @@ class _BuiltinInstanceSettingsPageState
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Settings saved'),
+        SnackBar(
+          content: Text(l10n.settingsSaved),
           duration: Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
@@ -526,6 +526,7 @@ class _BuiltinInstanceSettingsPageState
   }
 
   Future<void> _saveAndApplySettings(Settings settings) async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSaving = true;
     });
@@ -541,9 +542,7 @@ class _BuiltinInstanceSettingsPageState
             children: [
               fl.SizedLoading.medium,
               const SizedBox(width: 16),
-              const Expanded(
-                child: Text('Restarting the built-in instance, please wait...'),
-              ),
+              Expanded(child: Text(l10n.restartingBuiltinInstance)),
             ],
           ),
         ),
@@ -557,7 +556,7 @@ class _BuiltinInstanceSettingsPageState
       );
       final builtinInstance = instanceManager.getBuiltinInstance();
       if (builtinInstance == null) {
-        throw Exception('Built-in instance is missing');
+        throw Exception(l10n.builtinInstanceMissing);
       }
 
       await instanceManager.disconnectInstance(builtinInstance);
@@ -590,8 +589,8 @@ class _BuiltinInstanceSettingsPageState
             SnackBar(
               content: Text(
                 applied
-                    ? 'Settings saved and applied successfully'
-                    : 'Settings saved and instance restarted, but applying settings via RPC failed',
+                    ? l10n.settingsSavedAppliedSuccess
+                    : l10n.settingsSavedRpcApplyFailed,
               ),
               duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
@@ -604,10 +603,8 @@ class _BuiltinInstanceSettingsPageState
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Settings were saved, but restarting the built-in instance failed',
-              ),
+            SnackBar(
+              content: Text(l10n.settingsSavedRestartFailed),
               duration: Duration(seconds: 3),
               behavior: SnackBarBehavior.floating,
               backgroundColor: Colors.red,
@@ -624,9 +621,7 @@ class _BuiltinInstanceSettingsPageState
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Settings were saved, but restarting the built-in instance failed: $e',
-            ),
+            content: Text(l10n.settingsSavedRestartFailedWithError('$e')),
             duration: const Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.red,
@@ -637,6 +632,7 @@ class _BuiltinInstanceSettingsPageState
   }
 
   void _showBackConfirmationDialog(BuildContext context, Settings settings) {
+    final l10n = AppLocalizations.of(context)!;
     if (!_hasChanges) {
       Navigator.pop(context);
       return;
@@ -645,10 +641,8 @@ class _BuiltinInstanceSettingsPageState
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Leave this page?'),
-        content: const Text(
-          'You have unsaved changes. What would you like to do?',
-        ),
+        title: Text(l10n.leavePage),
+        content: Text(l10n.unsavedChangesPrompt),
         actions: [
           TextButton(
             onPressed: () async {
@@ -658,7 +652,7 @@ class _BuiltinInstanceSettingsPageState
                 Navigator.pop(this.context);
               }
             },
-            child: const Text('Save & Apply'),
+            child: Text(l10n.saveAndApply),
           ),
           TextButton(
             onPressed: () async {
@@ -668,18 +662,18 @@ class _BuiltinInstanceSettingsPageState
                 Navigator.pop(this.context);
               }
             },
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               Navigator.pop(this.context);
             },
-            child: const Text('Discard'),
+            child: Text(l10n.discard),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
         ],
       ),

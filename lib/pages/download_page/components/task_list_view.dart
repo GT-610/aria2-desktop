@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../generated/l10n/l10n.dart';
+import '../../../services/instance_manager.dart';
 import '../models/download_task.dart';
 import '../services/download_task_service.dart';
 import 'task_list_item.dart';
-import '../../../services/instance_manager.dart';
 
 /// Component for displaying the list of download tasks with empty states handling
 class TaskListView extends StatelessWidget {
@@ -31,6 +32,7 @@ class TaskListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -50,13 +52,13 @@ class TaskListView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No connected instances. Connect an instance to view tasks.',
+              l10n.noConnectedInstancesTitle,
               style: theme.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'The download list combines tasks from the built-in instance and any connected remote instances.',
+              l10n.combinedTaskListHint,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -78,10 +80,10 @@ class TaskListView extends StatelessWidget {
               color: colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
-            Text('No tasks', style: theme.textTheme.titleMedium),
+            Text(l10n.noTasksTitle, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
-              'Add a task or switch filters to see downloads from connected instances.',
+              l10n.noTasksHint,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -116,9 +118,7 @@ class TaskListView extends StatelessWidget {
             final dir = task.dir;
             if (dir == null || dir.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('No download directory available'),
-                ),
+                SnackBar(content: Text(l10n.noDownloadDirectoryAvailable)),
               );
               return;
             }

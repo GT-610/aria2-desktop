@@ -4,6 +4,7 @@ import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
 import '../../../services/aria2_rpc_client.dart';
 import '../../../services/instance_manager.dart';
@@ -104,25 +105,27 @@ class DownloadTaskService with Loggable {
   }
 
   static (String, Color) getStatusInfo(
+    BuildContext context,
     DownloadTask task,
     ColorScheme colorScheme,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
-      return ('Paused', colorScheme.tertiary);
+      return (l10n.paused, colorScheme.tertiary);
     }
 
     if (task.status == DownloadStatus.stopped &&
         task.taskStatus == 'complete') {
-      return ('Completed', colorScheme.primaryContainer);
+      return (l10n.completed, colorScheme.primaryContainer);
     }
 
     switch (task.status) {
       case DownloadStatus.active:
-        return ('Downloading', colorScheme.primary);
+        return (l10n.downloading, colorScheme.primary);
       case DownloadStatus.waiting:
-        return ('Waiting', colorScheme.secondary);
+        return (l10n.waiting, colorScheme.secondary);
       case DownloadStatus.stopped:
-        return ('Stopped', colorScheme.errorContainer);
+        return (l10n.stopped, colorScheme.errorContainer);
     }
   }
 
@@ -151,6 +154,7 @@ class DownloadTaskService with Loggable {
     DownloadTask task,
     VoidCallback onTaskUpdated,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -164,9 +168,7 @@ class DownloadTaskService with Loggable {
         onTaskUpdated();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('The target instance is not connected.'),
-          ),
+          SnackBar(content: Text(l10n.targetInstanceNotConnected)),
         );
       }
     } catch (e) {
@@ -174,7 +176,7 @@ class DownloadTaskService with Loggable {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to pause the task: $e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.failedToPauseTask('$e'))));
       }
     }
   }
@@ -184,6 +186,7 @@ class DownloadTaskService with Loggable {
     DownloadTask task,
     VoidCallback onTaskUpdated,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -201,17 +204,15 @@ class DownloadTaskService with Loggable {
         onTaskUpdated();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('The target instance is not connected.'),
-          ),
+          SnackBar(content: Text(l10n.targetInstanceNotConnected)),
         );
       }
     } catch (e) {
       _logE('Error stopping task: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to remove the task: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.failedToRemoveTask('$e'))));
       }
     }
   }
@@ -221,6 +222,7 @@ class DownloadTaskService with Loggable {
     DownloadTask task,
     VoidCallback onTaskUpdated,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -234,17 +236,15 @@ class DownloadTaskService with Loggable {
         onTaskUpdated();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('The target instance is not connected.'),
-          ),
+          SnackBar(content: Text(l10n.targetInstanceNotConnected)),
         );
       }
     } catch (e) {
       _logE('Error resuming task: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to resume the task: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.failedToResumeTask('$e'))));
       }
     }
   }
@@ -254,6 +254,7 @@ class DownloadTaskService with Loggable {
     DownloadTask task,
     VoidCallback onTaskUpdated,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -273,16 +274,14 @@ class DownloadTaskService with Loggable {
         onTaskUpdated();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('The target instance is not connected.'),
-          ),
+          SnackBar(content: Text(l10n.targetInstanceNotConnected)),
         );
       }
     } catch (e) {
       _logE('Error removing failed task: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to remove the failed task: $e')),
+          SnackBar(content: Text(l10n.failedToRemoveFailedTask('$e'))),
         );
       }
     }

@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../../../generated/l10n/l10n.dart';
 import '../../../utils/logging.dart';
 
 /// Reusable directory picker component.
@@ -16,9 +17,9 @@ class DirectoryPicker extends StatefulWidget {
   const DirectoryPicker({
     super.key,
     required this.initialDirectory,
-    this.labelText = 'Save location',
-    this.hintText = 'Use the instance default directory',
-    this.dialogTitle = 'Choose save location',
+    this.labelText = '',
+    this.hintText = '',
+    this.dialogTitle = '',
     required this.onDirectoryChanged,
     this.onError,
   });
@@ -43,9 +44,12 @@ class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
   }
 
   Future<void> _selectDirectory() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final selectedDirectory = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: widget.dialogTitle,
+        dialogTitle: widget.dialogTitle.isNotEmpty
+            ? widget.dialogTitle
+            : l10n.chooseSaveLocation,
         initialDirectory: _directoryController.text.isNotEmpty
             ? _directoryController.text
             : null,
@@ -57,10 +61,10 @@ class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
     } catch (err) {
       this.e('Failed to select directory', error: err);
       if (widget.onError != null) {
-        widget.onError!('Failed to select directory: $err');
+        widget.onError!(l10n.failedToSelectDirectory('$err'));
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to select directory: $err')),
+          SnackBar(content: Text(l10n.failedToSelectDirectory('$err'))),
         );
       }
     }
@@ -73,14 +77,19 @@ class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
         Expanded(
           child: TextField(
             controller: _directoryController,
             decoration: InputDecoration(
-              labelText: widget.labelText,
-              hintText: widget.hintText,
+              labelText: widget.labelText.isNotEmpty
+                  ? widget.labelText
+                  : l10n.saveLocation,
+              hintText: widget.hintText.isNotEmpty
+                  ? widget.hintText
+                  : l10n.useInstanceDefaultDirectory,
               border: const OutlineInputBorder(),
             ),
             onChanged: _updateDirectory,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../generated/l10n/l10n.dart';
 import '../../../utils/format_utils.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
@@ -27,8 +28,9 @@ class TaskListItem extends StatelessWidget {
     required this.onOpenDirectory,
   });
 
-  String _getInstanceName(String instanceId) {
-    return instanceNames[instanceId] ?? 'Unknown instance';
+  String _getInstanceName(BuildContext context, String instanceId) {
+    return instanceNames[instanceId] ??
+        AppLocalizations.of(context)!.unknownInstance;
   }
 
   Future<void> _handlePauseTask(BuildContext context) async {
@@ -49,9 +51,11 @@ class TaskListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final (statusText, statusColor) = DownloadTaskService.getStatusInfo(
+      context,
       task,
       colorScheme,
     );
@@ -239,7 +243,7 @@ class TaskListItem extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
-                          _getInstanceName(task.instanceId),
+                          _getInstanceName(context, task.instanceId),
                           style: TextStyle(
                             color: colorScheme.tertiary,
                             fontSize: 12,
@@ -261,7 +265,7 @@ class TaskListItem extends StatelessWidget {
                     children: [
                       if (task.status == DownloadStatus.active) ...[
                         Tooltip(
-                          message: 'Pause',
+                          message: l10n.pause,
                           child: IconButton(
                             icon: const Icon(Icons.pause),
                             onPressed: () => _handlePauseTask(context),
@@ -271,7 +275,7 @@ class TaskListItem extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Tooltip(
-                          message: 'Stop',
+                          message: l10n.stop,
                           child: IconButton(
                             icon: const Icon(Icons.stop),
                             onPressed: () => _handleStopTask(context),
@@ -281,7 +285,7 @@ class TaskListItem extends StatelessWidget {
                         ),
                       ] else if (task.status == DownloadStatus.waiting) ...[
                         Tooltip(
-                          message: 'Resume',
+                          message: l10n.resume,
                           child: IconButton(
                             icon: const Icon(Icons.play_arrow),
                             onPressed: () => _handleResumeTask(context),
@@ -291,7 +295,7 @@ class TaskListItem extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Tooltip(
-                          message: 'Stop',
+                          message: l10n.stop,
                           child: IconButton(
                             icon: const Icon(Icons.stop),
                             onPressed: () => _handleStopTask(context),
@@ -302,7 +306,7 @@ class TaskListItem extends StatelessWidget {
                       ] else if (task.status == DownloadStatus.stopped &&
                           task.taskStatus != 'complete') ...[
                         Tooltip(
-                          message: 'Remove failed task',
+                          message: l10n.removeFailedTask,
                           child: IconButton(
                             icon: const Icon(Icons.delete_outline),
                             onPressed: () => _handleRemoveFailedTask(context),
@@ -313,7 +317,7 @@ class TaskListItem extends StatelessWidget {
                       ],
                       const SizedBox(width: 8),
                       Tooltip(
-                        message: 'Open download directory',
+                        message: l10n.openDownloadDir,
                         child: IconButton(
                           icon: const Icon(Icons.folder_open),
                           onPressed: () => onOpenDirectory(task),
