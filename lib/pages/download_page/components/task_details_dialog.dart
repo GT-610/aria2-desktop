@@ -1,8 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../generated/l10n/l10n.dart';
+import '../../../models/aria2_instance.dart';
+import '../../../services/aria2_rpc_client.dart';
+import '../../../services/instance_manager.dart';
 import '../../../utils/format_utils.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
@@ -12,20 +16,54 @@ class TaskDetailsDialog {
   static Future<void> showTaskDetailsDialog(
     BuildContext context,
     DownloadTask initialTask,
-    List<DownloadTask> allTasks,
+    List<DownloadTask> Function() getAllTasks,
     Map<String, String> instanceNames,
     (String, Color) Function(BuildContext, DownloadTask, ColorScheme)
-    getStatusInfo,
-  ) async {
+    getStatusInfo, {
+    VoidCallback? onTaskUpdated,
+  }) async {
+    final outerContext = context;
+
     showDialog(
-      context: context,
+      context: outerContext,
       builder: (context) {
         Timer? refreshTimer;
+        var hasFileSelectionChanges = false;
+        var isSavingFileSelection = false;
+        String? fileSelectionSourceSignature;
+        Map<int, bool> fileSelection = <int, bool>{};
+        var selectedTabIndex = 0;
+        var peersTaskKey = '';
+        var isLoadingPeers = false;
+        String? peersError;
+        List<Map<String, dynamic>> peers = <Map<String, dynamic>>[];
+
+        String buildFileSelectionSignature(List<Map<String, dynamic>> files) {
+          return files
+              .map(
+                (file) =>
+                    '${file['index'] ?? ''}:${file['selected'] as String? ?? 'true'}',
+              )
+              .join('|');
+        }
+
+        Map<int, bool> buildFileSelectionState(List<Map<String, dynamic>> files) {
+          final result = <int, bool>{};
+          for (final file in files) {
+            final index = int.tryParse(file['index']?.toString() ?? '');
+            if (index == null) {
+              continue;
+            }
+            result[index] = (file['selected'] as String? ?? 'true') == 'true';
+          }
+          return result;
+        }
 
         return StatefulBuilder(
           builder: (context, setState) {
             final l10n = AppLocalizations.of(context)!;
             DownloadTask getLatestTaskData() {
+              final allTasks = getAllTasks();
               return allTasks.firstWhere(
                 (task) =>
                     task.id == initialTask.id &&
@@ -46,6 +84,75 @@ class TaskDetailsDialog {
             }
 
             final currentTask = getLatestTaskData();
+            final currentFiles = List<Map<String, dynamic>>.from(
+              currentTask.files ?? const <Map<String, dynamic>>[],
+            );
+            final isBtTask =
+                (currentTask.trackers?.isNotEmpty ?? false) ||
+                currentTask.bittorrentInfo != null;
+            final currentSignature = buildFileSelectionSignature(currentFiles);
+            if (fileSelectionSourceSignature != currentSignature &&
+                !hasFileSelectionChanges) {
+              fileSelection = buildFileSelectionState(currentFiles);
+              fileSelectionSourceSignature = currentSignature;
+            }
+            final overviewTab = Tab(text: l10n.overview);
+            final piecesTab = Tab(text: l10n.pieces);
+            final filesTab = Tab(text: l10n.filesTitle);
+            final tabs = <Tab>[
+              overviewTab,
+              piecesTab,
+              filesTab,
+              if (isBtTask) const Tab(text: 'Trackers'),
+              if (isBtTask) const Tab(text: 'Peers'),
+            ];
+
+            Future<void> fetchPeersIfNeeded() async {
+              if (!isBtTask || tabs[selectedTabIndex].text != 'Peers') {
+                return;
+              }
+
+              final taskKey = '${currentTask.instanceId}:${currentTask.id}';
+              if (isLoadingPeers) {
+                return;
+              }
+
+              if (peersTaskKey != taskKey) {
+                peers = <Map<String, dynamic>>[];
+                peersError = null;
+                peersTaskKey = taskKey;
+              }
+
+              isLoadingPeers = true;
+              try {
+                final instanceManager = outerContext.read<InstanceManager>();
+                final instance = instanceManager.getInstanceById(
+                  currentTask.instanceId,
+                );
+                if (instance == null) {
+                  peersError = l10n.targetInstanceNotConnected;
+                  return;
+                }
+                final client = Aria2RpcClient(instance);
+                try {
+                  peers = await client.getPeers(currentTask.id);
+                  peersError = null;
+                } finally {
+                  client.close();
+                }
+              } catch (error) {
+                peersError = '$error';
+              } finally {
+                isLoadingPeers = false;
+                if (context.mounted) {
+                  setState(() {});
+                }
+              }
+            }
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              unawaited(fetchPeersIfNeeded());
+            });
             final statusInfo = getStatusInfo(
               context,
               currentTask,
@@ -58,7 +165,7 @@ class TaskDetailsDialog {
               canPop: true,
               onPopInvokedWithResult: (_, _) => disposeResources(),
               child: DefaultTabController(
-                length: 3,
+                length: tabs.length,
                 child: AlertDialog(
                   title: Text(l10n.taskDetails),
                   content: SizedBox(
@@ -80,11 +187,12 @@ class TaskDetailsDialog {
                         ),
                         const SizedBox(height: 12),
                         TabBar(
-                          tabs: [
-                            Tab(text: l10n.overview),
-                            Tab(text: l10n.pieces),
-                            Tab(text: l10n.filesTitle),
-                          ],
+                          tabs: tabs,
+                          onTap: (index) {
+                            setState(() {
+                              selectedTabIndex = index;
+                            });
+                          },
                           indicatorSize: TabBarIndicatorSize.tab,
                         ),
                         Expanded(
@@ -212,16 +320,198 @@ class TaskDetailsDialog {
                                       ),
                                     ),
                                     const SizedBox(height: 8),
-                                    if (currentTask.files != null &&
-                                        currentTask.files!.isNotEmpty)
+                                    if (currentFiles.isNotEmpty) ...[
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: [
+                                          FilledButton.tonal(
+                                            onPressed: () {
+                                              setState(() {
+                                                fileSelection = {
+                                                  for (final file
+                                                      in currentFiles)
+                                                    if (int.tryParse(
+                                                          file['index']
+                                                                  ?.toString() ??
+                                                              '',
+                                                        ) !=
+                                                        null)
+                                                      int.parse(
+                                                        file['index']
+                                                            .toString(),
+                                                      ): true,
+                                                };
+                                                hasFileSelectionChanges = true;
+                                              });
+                                            },
+                                            child: Text(
+                                              fileSelection.length ==
+                                                      currentFiles.length &&
+                                                  currentFiles.isNotEmpty
+                                              ? l10n.allVisibleSelected
+                                              : l10n.selectAllVisible,
+                                            ),
+                                          ),
+                                          TextButton(
+                                            onPressed: hasFileSelectionChanges
+                                                ? () {
+                                                    setState(() {
+                                                      fileSelection =
+                                                          buildFileSelectionState(
+                                                            currentFiles,
+                                                          );
+                                                      fileSelectionSourceSignature =
+                                                          currentSignature;
+                                                      hasFileSelectionChanges =
+                                                          false;
+                                                    });
+                                                  }
+                                                : null,
+                                            child: Text(l10n.discard),
+                                          ),
+                                          FilledButton(
+                                            onPressed:
+                                                hasFileSelectionChanges &&
+                                                    !isSavingFileSelection &&
+                                                    fileSelection.values.any(
+                                                      (selected) => selected,
+                                                    )
+                                                ? () async {
+                                                    final selectedIndexes =
+                                                        fileSelection.entries
+                                                            .where(
+                                                              (entry) =>
+                                                                  entry.value,
+                                                            )
+                                                            .map(
+                                                              (entry) =>
+                                                                  entry.key,
+                                                            )
+                                                            .toList()
+                                                          ..sort();
+                                                    final instanceManager =
+                                                        outerContext
+                                                            .read<
+                                                              InstanceManager
+                                                            >();
+                                                    final Aria2Instance?
+                                                    instance = instanceManager
+                                                        .getInstanceById(
+                                                          currentTask.instanceId,
+                                                        );
+                                                    if (instance == null) {
+                                                      if (outerContext.mounted) {
+                                                        ScaffoldMessenger.of(
+                                                          outerContext,
+                                                        ).showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                              l10n
+                                                                  .targetInstanceNotConnected,
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }
+                                                      return;
+                                                    }
+
+                                                    setState(() {
+                                                      isSavingFileSelection =
+                                                          true;
+                                                    });
+
+                                                    Aria2RpcClient? client;
+                                                    try {
+                                                      client = Aria2RpcClient(
+                                                        instance,
+                                                      );
+                                                      await client.changeOption(
+                                                        currentTask.id,
+                                                        {
+                                                          'select-file':
+                                                              selectedIndexes
+                                                                  .join(','),
+                                                        },
+                                                      );
+                                                      client.close();
+
+                                                      onTaskUpdated?.call();
+
+                                                      if (outerContext.mounted) {
+                                                        ScaffoldMessenger.of(
+                                                          outerContext,
+                                                        ).showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                              l10n.save,
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }
+
+                                                      setState(() {
+                                                        hasFileSelectionChanges =
+                                                            false;
+                                                        fileSelectionSourceSignature =
+                                                            currentSignature;
+                                                      });
+                                                    } catch (error) {
+                                                      if (outerContext.mounted) {
+                                                        ScaffoldMessenger.of(
+                                                          outerContext,
+                                                        ).showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                              l10n
+                                                                  .operationFailed(
+                                                                    '$error',
+                                                                  ),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }
+                                                    } finally {
+                                                      client?.close();
+                                                      setState(() {
+                                                        isSavingFileSelection =
+                                                            false;
+                                                      });
+                                                    }
+                                                  }
+                                                : null,
+                                            child: isSavingFileSelection
+                                                ? const SizedBox(
+                                                    width: 16,
+                                                    height: 16,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
+                                                  )
+                                                : Text(l10n.save),
+                                          ),
+                                          Text(
+                                            l10n.selectedCount(
+                                              fileSelection.values
+                                                  .where((selected) => selected)
+                                                  .length
+                                                  .toString(),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
                                       ListView.builder(
                                         shrinkWrap: true,
                                         physics:
                                             const NeverScrollableScrollPhysics(),
-                                        itemCount: currentTask.files!.length,
+                                        itemCount: currentFiles.length,
                                         itemBuilder: (context, index) {
-                                          final file =
-                                              currentTask.files![index];
+                                          final file = currentFiles[index];
+                                          final fileIndex = int.tryParse(
+                                            file['index']?.toString() ?? '',
+                                          );
                                           final filePath =
                                               file['path'] as String? ??
                                               l10n.unknownPath;
@@ -246,13 +536,19 @@ class TaskDetailsDialog {
                                                 0,
                                           );
                                           final selected =
-                                              (file['selected'] as String? ??
-                                                  'true') ==
-                                              'true';
+                                              fileIndex == null
+                                              ? (file['selected'] as String? ??
+                                                        'true') ==
+                                                    'true'
+                                              : (fileSelection[fileIndex] ??
+                                                    ((file['selected']
+                                                                as String? ??
+                                                            'true') ==
+                                                        'true'));
 
                                           return Container(
                                             padding: const EdgeInsets.symmetric(
-                                              vertical: 4,
+                                              vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
                                               border: Border(
@@ -261,42 +557,75 @@ class TaskDetailsDialog {
                                                 ),
                                               ),
                                             ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  fileName,
-                                                  style: TextStyle(
-                                                    fontWeight: selected
-                                                        ? FontWeight.normal
-                                                        : FontWeight.w300,
+                                            child: CheckboxListTile(
+                                              value: selected,
+                                              onChanged: fileIndex == null
+                                                  ? null
+                                                  : (value) {
+                                                      setState(() {
+                                                        fileSelection = {
+                                                          ...fileSelection,
+                                                          fileIndex: value ??
+                                                              false,
+                                                        };
+                                                        hasFileSelectionChanges =
+                                                            true;
+                                                      });
+                                                    },
+                                              controlAffinity:
+                                                  ListTileControlAffinity.leading,
+                                              contentPadding: EdgeInsets.zero,
+                                              title: Text(
+                                                fileName,
+                                                style: TextStyle(
+                                                  fontWeight: selected
+                                                      ? FontWeight.normal
+                                                      : FontWeight.w300,
+                                                ),
+                                              ),
+                                              subtitle: Row(
+                                                children: [
+                                                  Text(
+                                                    '$completedSize / $fileSize',
                                                   ),
-                                                ),
-                                                Row(
-                                                  children: [
+                                                  if (!selected)
                                                     Text(
-                                                      '$completedSize / $fileSize',
-                                                    ),
-                                                    if (!selected)
-                                                      Text(
-                                                        ' ${l10n.notSelected}',
-                                                        style: TextStyle(
-                                                          color: Colors.grey,
-                                                        ),
+                                                      ' ${l10n.notSelected}',
+                                                      style: TextStyle(
+                                                        color: Colors.grey,
                                                       ),
-                                                  ],
-                                                ),
-                                              ],
+                                                    ),
+                                                ],
+                                              ),
                                             ),
                                           );
                                         },
                                       )
+                                    ]
                                     else
                                       Text(l10n.noFileInformation),
                                   ],
                                 ),
                               ),
+                              if (isBtTask)
+                                SingleChildScrollView(
+                                  padding: const EdgeInsets.all(8),
+                                  child: (currentTask.trackers == null ||
+                                          currentTask.trackers!.isEmpty)
+                                      ? const Text('No tracker information')
+                                      : SelectableText(
+                                          currentTask.trackers!.join('\n'),
+                                        ),
+                                ),
+                              if (isBtTask)
+                                SingleChildScrollView(
+                                  padding: const EdgeInsets.all(8),
+                                  child: _buildPeersView(
+                                    peers: peers,
+                                    isLoading: isLoadingPeers,
+                                    error: peersError,
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -423,6 +752,63 @@ class TaskDetailsDialog {
         ),
       ],
     );
+  }
+
+  static Widget _buildPeersView({
+    required List<Map<String, dynamic>> peers,
+    required bool isLoading,
+    required String? error,
+  }) {
+    if (isLoading && peers.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (error != null && error.isNotEmpty && peers.isEmpty) {
+      return Text(error);
+    }
+
+    if (peers.isEmpty) {
+      return const Text('No peer information');
+    }
+
+    return Column(
+      children: peers.map((peer) {
+        final ip = peer['ip']?.toString() ?? '--';
+        final port = peer['port']?.toString() ?? '--';
+        final peerId = peer['peerId']?.toString() ?? '--';
+        final progress = _bitfieldToPercent(peer['bitfield']?.toString());
+        final uploadSpeed = formatBytes(
+          int.tryParse(peer['uploadSpeed']?.toString() ?? '0') ?? 0,
+        );
+        final downloadSpeed = formatBytes(
+          int.tryParse(peer['downloadSpeed']?.toString() ?? '0') ?? 0,
+        );
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: ListTile(
+            title: Text('$ip:$port'),
+            subtitle: Text(
+              'Client: $peerId\n'
+              'Progress: ${progress.toStringAsFixed(0)}%\n'
+              'Up: $uploadSpeed/s  Down: $downloadSpeed/s',
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  static double _bitfieldToPercent(String? bitfield) {
+    if (bitfield == null || bitfield.isEmpty) {
+      return 0;
+    }
+    final pieces = _parseHexBitfield(bitfield);
+    if (pieces.isEmpty) {
+      return 0;
+    }
+    final completed = pieces.fold<int>(0, (sum, value) => sum + value);
+    return (completed / (pieces.length * 15)) * 100;
   }
 
   static Widget _buildStatRow(String label, String value, [Color? color]) {

@@ -467,6 +467,25 @@ class Aria2RpcClient with Loggable {
     return response['result'] as String;
   }
 
+  /// Change task options.
+  Future<String> changeOption(String gid, Map<String, dynamic> options) async {
+    final response = await callRpc('aria2.changeOption', [gid, options]);
+    return response['result'] as String;
+  }
+
+  /// Get peer information for a BT task.
+  Future<List<Map<String, dynamic>>> getPeers(String gid) async {
+    final response = await callRpc('aria2.getPeers', [gid]);
+    final result = response['result'];
+    if (result is! List) {
+      return const [];
+    }
+    return result
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
   /// Add a download task with URI(s)
   Future<String> addUri(List<String> uris, Map<String, dynamic> options) async {
     // Build request parameters - [URL list, options]

@@ -166,10 +166,11 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     TaskDetailsDialog.showTaskDetailsDialog(
       context,
       task,
-      downloadDataService?.tasks ?? [],
+      () => downloadDataService?.tasks ?? const [],
       _instanceNames,
       (context, task, colorScheme) =>
           DownloadTaskService.getStatusInfo(context, task, colorScheme),
+      onTaskUpdated: _refreshTasksAndRestartTimer,
     );
   }
 
