@@ -43,8 +43,8 @@ class TaskListItem extends StatelessWidget {
     await DownloadTaskService.resumeTask(context, task, onTaskUpdated);
   }
 
-  Future<void> _handleRetryTask(BuildContext context) async {
-    await DownloadTaskService.retryTask(context, task, onTaskUpdated);
+  Future<void> _handleRemoveFailedTask(BuildContext context) async {
+    await DownloadTaskService.removeFailedTask(context, task, onTaskUpdated);
   }
 
   @override
@@ -302,10 +302,10 @@ class TaskListItem extends StatelessWidget {
                       ] else if (task.status == DownloadStatus.stopped &&
                           task.taskStatus != 'complete') ...[
                         Tooltip(
-                          message: 'Retry',
+                          message: 'Remove failed task',
                           child: IconButton(
-                            icon: const Icon(Icons.refresh),
-                            onPressed: () => _handleRetryTask(context),
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _handleRemoveFailedTask(context),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),

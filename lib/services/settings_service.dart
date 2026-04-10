@@ -7,6 +7,7 @@ import 'builtin_instance_service.dart';
 
 class SettingsService extends ChangeNotifier with Loggable {
   Settings? _settings;
+  static const int _indefiniteSeedTimeMinutes = 525600;
 
   void initialize(Settings settings) {
     _settings = settings;
@@ -37,7 +38,11 @@ class SettingsService extends ChangeNotifier with Loggable {
       'bt-save-metadata': settings.btSaveMetadata.toString(),
       'bt-require-crypto': settings.btForceEncryption.toString(),
       'bt-load-saved-metadata': settings.btLoadSavedMetadata.toString(),
-      'seed-time': (settings.keepSeeding ? 0 : settings.seedTime).toString(),
+      'seed-time':
+          (settings.keepSeeding
+                  ? _indefiniteSeedTimeMinutes
+                  : settings.seedTime)
+              .toString(),
       'seed-ratio': (settings.keepSeeding ? 0.0 : settings.seedRatio)
           .toString(),
       'bt-exclude-tracker': settings.btExcludeTracker,

@@ -249,7 +249,7 @@ class DownloadTaskService with Loggable {
     }
   }
 
-  static Future<void> retryTask(
+  static Future<void> removeFailedTask(
     BuildContext context,
     DownloadTask task,
     VoidCallback onTaskUpdated,
@@ -279,11 +279,11 @@ class DownloadTaskService with Loggable {
         );
       }
     } catch (e) {
-      _logE('Error retrying task: $e');
+      _logE('Error removing failed task: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to retry the task: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to remove the failed task: $e')),
+        );
       }
     }
   }

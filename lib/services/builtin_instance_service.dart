@@ -95,6 +95,26 @@ class BuiltinInstanceService with Loggable {
     return value > 0 ? '${value}K' : '0';
   }
 
+  int _effectiveSeedTime(bool keepSeeding, dynamic rawValue) {
+    if (keepSeeding) {
+      return 525600;
+    }
+
+    return rawValue is num
+        ? rawValue.toInt()
+        : int.tryParse(rawValue?.toString() ?? '') ?? 60;
+  }
+
+  double _effectiveSeedRatio(bool keepSeeding, dynamic rawValue) {
+    if (keepSeeding) {
+      return 0.0;
+    }
+
+    return rawValue is num
+        ? rawValue.toDouble()
+        : double.tryParse(rawValue?.toString() ?? '') ?? 1.0;
+  }
+
   bool checkBuiltinFiles() {
     final aria2cExists = File(_aria2cPath!).existsSync();
     final confExists = File(_aria2ConfPath!).existsSync();
@@ -106,8 +126,8 @@ class BuiltinInstanceService with Loggable {
     final rpcPort = _getConfiguredRpcPort();
     final rpcSecret = _getConfiguredRpcSecret();
     final keepSeeding = settings['keepSeeding'] == true;
-    final seedTime = keepSeeding ? 0 : (settings['seedTime'] ?? 60);
-    final seedRatio = keepSeeding ? 0.0 : (settings['seedRatio'] ?? 1.0);
+    final seedTime = _effectiveSeedTime(keepSeeding, settings['seedTime']);
+    final seedRatio = _effectiveSeedRatio(keepSeeding, settings['seedRatio']);
 
     final args = <String>[
       '--enable-rpc',
