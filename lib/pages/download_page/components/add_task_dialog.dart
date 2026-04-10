@@ -6,6 +6,7 @@ import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
 import '../../../utils/logging.dart';
 import 'directory_picker.dart';
@@ -107,12 +108,13 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
   }
 
   Future<void> _submitTask(String taskType) async {
+    final l10n = AppLocalizations.of(context)!;
     final targetInstanceId = _selectedTargetInstanceId;
     if (targetInstanceId == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Select a target instance first')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.selectTargetInstanceFirst)));
       }
       return;
     }
@@ -145,6 +147,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
   bool get _hasAvailableTargets => widget.targetInstances.isNotEmpty;
 
   String? _selectedTargetLabel() {
+    final l10n = AppLocalizations.of(context)!;
     final selectedId = _selectedTargetInstanceId;
     if (selectedId == null) return null;
 
@@ -159,26 +162,27 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
     if (selectedInstance == null) return null;
 
     return selectedInstance.type == InstanceType.builtin
-        ? '${selectedInstance.name} (Built-in default)'
+        ? l10n.builtInDefaultInstance(selectedInstance.name)
         : selectedInstance.name;
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return DefaultTabController(
       length: 3,
       child: AlertDialog(
-        title: const Text('Add task'),
+        title: Text(l10n.addTaskDialogTitle),
         content: SizedBox(
           width: 520,
           height: 500,
           child: Column(
             children: [
-              const TabBar(
+              TabBar(
                 tabs: [
-                  Tab(text: 'URI'),
-                  Tab(text: 'Torrent'),
-                  Tab(text: 'Metalink'),
+                  Tab(text: l10n.uriTab),
+                  Tab(text: l10n.torrentTab),
+                  Tab(text: l10n.metalinkTab),
                 ],
                 indicatorSize: TabBarIndicatorSize.tab,
               ),
@@ -194,20 +198,18 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                               children: [
                                 Input(
                                   controller: uriController,
-                                  label: 'URL or magnet link',
-                                  hint: 'Enter one or more links',
+                                  label: l10n.urlOrMagnetLink,
+                                  hint: l10n.enterOneOrMoreLinks,
                                   maxLines: 3,
                                 ),
                                 const SizedBox(height: 8),
                                 Btn.tile(
-                                  text: 'Paste from clipboard',
+                                  text: l10n.pasteFromClipboard,
                                   icon: const Icon(Icons.paste),
                                   onTap: _pasteFromClipboard,
                                 ),
                                 const SizedBox(height: 16),
-                                const Text(
-                                  'Supports HTTP/HTTPS, FTP, SFTP, magnet and more.',
-                                ),
+                                Text(l10n.uriSupportHint),
                               ],
                             ),
                           ),
@@ -219,14 +221,18 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                 const Icon(Icons.file_open, size: 64),
                                 const SizedBox(height: 16),
                                 Btn.tile(
-                                  text: 'Select torrent file',
+                                  text: l10n.selectTorrentFile,
                                   icon: const Icon(Icons.upload_file),
                                   onTap: _selectTorrentFile,
                                 ),
                                 const SizedBox(height: 16),
                                 if (selectedTorrentFilePath != null)
                                   Text(
-                                    'Selected: ${selectedTorrentFilePath!.split(Platform.pathSeparator).last}',
+                                    l10n.selectedFile(
+                                      selectedTorrentFilePath!
+                                          .split(Platform.pathSeparator)
+                                          .last,
+                                    ),
                                     textAlign: TextAlign.center,
                                   ),
                               ],
@@ -240,14 +246,18 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                 const Icon(Icons.file_open, size: 64),
                                 const SizedBox(height: 16),
                                 Btn.tile(
-                                  text: 'Select metalink file',
+                                  text: l10n.selectMetalinkFile,
                                   icon: const Icon(Icons.upload_file),
                                   onTap: _selectMetalinkFile,
                                 ),
                                 const SizedBox(height: 16),
                                 if (selectedMetalinkFilePath != null)
                                   Text(
-                                    'Selected: ${selectedMetalinkFilePath!.split(Platform.pathSeparator).last}',
+                                    l10n.selectedFile(
+                                      selectedMetalinkFilePath!
+                                          .split(Platform.pathSeparator)
+                                          .last,
+                                    ),
                                     textAlign: TextAlign.center,
                                   ),
                               ],
@@ -272,27 +282,25 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                 ).colorScheme.errorContainer,
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Text(
-                                'No connected instances are available. Connect the built-in or a remote instance first.',
-                              ),
+                              child: Text(l10n.noConnectedInstancesAvailable),
                             ),
                             const SizedBox(height: 12),
                           ] else if (_selectedTargetLabel() != null) ...[
                             Text(
-                              'Tasks will be sent to ${_selectedTargetLabel()!}.',
+                              l10n.tasksWillBeSentTo(_selectedTargetLabel()!),
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                             const SizedBox(height: 12),
                           ],
                           DropdownButtonFormField<String>(
                             initialValue: _selectedTargetInstanceId,
-                            decoration: const InputDecoration(
-                              labelText: 'Target instance',
+                            decoration: InputDecoration(
+                              labelText: l10n.targetInstance,
                             ),
                             items: widget.targetInstances.map((instance) {
                               final label =
                                   instance.type == InstanceType.builtin
-                                  ? '${instance.name} (Built-in)'
+                                  ? l10n.builtInInstance(instance.name)
                                   : instance.name;
                               return DropdownMenuItem(
                                 value: instance.id,
@@ -325,7 +333,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Show advanced options'),
+                              Text(l10n.showAdvancedOptions),
                               Switch(
                                 value: showAdvancedOptions,
                                 onChanged: (value) {
@@ -337,11 +345,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                             ],
                           ),
                           if (showAdvancedOptions)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.only(top: 12),
-                              child: Text(
-                                'Advanced per-task options are planned for a later stage.',
-                              ),
+                              child: Text(l10n.advancedOptionsPlanned),
                             ),
                         ],
                       ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
+import '../../../generated/l10n/l10n.dart';
 import '../models/download_task.dart';
 
 void _logE(String msg) => lprint('[TaskUtils] $msg');
@@ -18,14 +19,13 @@ class TaskUtils {
     BuildContext context,
     DownloadTask task,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       // Check if task has download directory information
       if (task.dir == null || task.dir!.isEmpty) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cannot get download directory information'),
-            ),
+            SnackBar(content: Text(l10n.cannotGetDownloadDirectoryInformation)),
           );
         }
         return;
@@ -37,7 +37,7 @@ class TaskUtils {
       if (!Directory(directoryPath).existsSync()) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Download directory does not exist')),
+            SnackBar(content: Text(l10n.downloadDirectoryDoesNotExist)),
           );
         }
         return;
@@ -56,7 +56,7 @@ class TaskUtils {
         } else {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Cannot open download directory')),
+              SnackBar(content: Text(l10n.cannotOpenDownloadDirectory)),
             );
           }
         }
@@ -64,9 +64,9 @@ class TaskUtils {
     } catch (e) {
       _logE('Error opening directory: $e');
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error opening directory: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.errorOpeningDirectory('$e'))),
+        );
       }
     }
   }

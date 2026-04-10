@@ -1,6 +1,7 @@
 import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 
+import '../../../../generated/l10n/l10n.dart';
 import '../../../../models/aria2_instance.dart';
 import '../../builtin_instance_settings_page.dart';
 
@@ -63,29 +64,34 @@ class _InstanceCardState extends State<InstanceCard> {
     }
   }
 
-  Chip _getStatusChip(ConnectionStatus status, ColorScheme colorScheme) {
+  Chip _getStatusChip(
+    BuildContext context,
+    ConnectionStatus status,
+    ColorScheme colorScheme,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
     late final String label;
     late final Color backgroundColor;
     late final Color textColor;
 
     switch (status) {
       case ConnectionStatus.disconnected:
-        label = 'Disconnected';
+        label = l10n.disconnected;
         backgroundColor = colorScheme.surfaceContainerHighest;
         textColor = colorScheme.onSurfaceVariant;
         break;
       case ConnectionStatus.connecting:
-        label = 'Connecting';
+        label = l10n.connecting;
         backgroundColor = colorScheme.primary.withValues(alpha: 0.2);
         textColor = colorScheme.primary;
         break;
       case ConnectionStatus.connected:
-        label = 'Connected';
+        label = l10n.connected;
         backgroundColor = colorScheme.secondary.withValues(alpha: 0.2);
         textColor = colorScheme.secondary;
         break;
       case ConnectionStatus.failed:
-        label = 'Failed';
+        label = l10n.failed;
         backgroundColor = colorScheme.error.withValues(alpha: 0.2);
         textColor = colorScheme.error;
         break;
@@ -117,20 +123,18 @@ class _InstanceCardState extends State<InstanceCard> {
     BuildContext context,
     VoidCallback onPressed,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
     if (widget.instance.type == InstanceType.builtin) {
       switch (status) {
         case ConnectionStatus.disconnected:
-          return FilledButton(
-            onPressed: onPressed,
-            child: const Text('Connect'),
-          );
+          return FilledButton(onPressed: onPressed, child: Text(l10n.connect));
         case ConnectionStatus.failed:
           return FilledButton(
             onPressed: onPressed,
             style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
-            child: const Text('Retry'),
+            child: Text(l10n.retry),
           );
         default:
           return const SizedBox.shrink();
@@ -139,7 +143,7 @@ class _InstanceCardState extends State<InstanceCard> {
 
     switch (status) {
       case ConnectionStatus.disconnected:
-        return FilledButton(onPressed: onPressed, child: const Text('Connect'));
+        return FilledButton(onPressed: onPressed, child: Text(l10n.connect));
       case ConnectionStatus.connecting:
         return FilledButton(
           onPressed: onPressed,
@@ -152,7 +156,7 @@ class _InstanceCardState extends State<InstanceCard> {
                 child: fl.SizedLoading.small,
               ),
               const SizedBox(width: 8),
-              const Text('Disconnect'),
+              Text(l10n.disconnect),
             ],
           ),
         );
@@ -162,18 +166,19 @@ class _InstanceCardState extends State<InstanceCard> {
           style: OutlinedButton.styleFrom(
             side: BorderSide(color: colorScheme.error),
           ),
-          child: const Text('Disconnect'),
+          child: Text(l10n.disconnect),
         );
       case ConnectionStatus.failed:
         return FilledButton(
           onPressed: onPressed,
           style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
-          child: const Text('Retry'),
+          child: Text(l10n.retry),
         );
     }
   }
 
   Widget _buildCheckStatusButton(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return TextButton.icon(
       onPressed: widget.isChecking
           ? null
@@ -181,7 +186,7 @@ class _InstanceCardState extends State<InstanceCard> {
       icon: widget.isChecking
           ? const SizedBox(width: 16, height: 16, child: fl.SizedLoading.small)
           : const Icon(Icons.wifi_find_outlined, size: 18),
-      label: const Text('Check'),
+      label: Text(l10n.check),
     );
   }
 
@@ -235,8 +240,8 @@ class _InstanceCardState extends State<InstanceCard> {
                       Chip(
                         label: Text(
                           widget.instance.type == InstanceType.builtin
-                              ? 'Built-in'
-                              : 'Remote',
+                              ? AppLocalizations.of(context)!.builtin
+                              : AppLocalizations.of(context)!.remote,
                           style: const TextStyle(fontSize: 12),
                         ),
                         backgroundColor:
@@ -253,7 +258,7 @@ class _InstanceCardState extends State<InstanceCard> {
                       ),
                     ],
                   ),
-                  _getStatusChip(widget.instance.status, colorScheme),
+                  _getStatusChip(context, widget.instance.status, colorScheme),
                 ],
               ),
               const SizedBox(height: 8),
@@ -266,8 +271,12 @@ class _InstanceCardState extends State<InstanceCard> {
                 Text(
                   widget.instance.version != null &&
                           widget.instance.version!.isNotEmpty
-                      ? 'Aria2 version: ${widget.instance.version}'
-                      : 'Version will appear after connection',
+                      ? AppLocalizations.of(
+                          context,
+                        )!.aria2Version(widget.instance.version!)
+                      : AppLocalizations.of(
+                          context,
+                        )!.versionWillAppearAfterConnection,
                   style: TextStyle(color: colorScheme.tertiary, fontSize: 12),
                 ),
               if (widget.instance.errorMessage != null &&
@@ -309,17 +318,17 @@ class _InstanceCardState extends State<InstanceCard> {
                           ),
                         );
                       },
-                      child: const Text('Settings'),
+                      child: Text(AppLocalizations.of(context)!.settings),
                     ),
                   if (widget.instance.type != InstanceType.builtin) ...[
                     TextButton(
                       onPressed: () => widget.onEdit(widget.instance),
-                      child: const Text('Edit'),
+                      child: Text(AppLocalizations.of(context)!.edit),
                     ),
                     TextButton(
                       onPressed: () => widget.onDelete(widget.instance),
                       child: Text(
-                        'Delete',
+                        AppLocalizations.of(context)!.delete,
                         style: TextStyle(color: colorScheme.error),
                       ),
                     ),

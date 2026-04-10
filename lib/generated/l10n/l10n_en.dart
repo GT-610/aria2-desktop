@@ -542,4 +542,537 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get portInvalid => 'Port must be between 1 and 65535';
+
+  @override
+  String get failed => 'Failed';
+
+  @override
+  String get check => 'Check';
+
+  @override
+  String get addInstanceTooltip => 'Add instance';
+
+  @override
+  String get instanceReachable => 'Instance is reachable';
+
+  @override
+  String get instanceOfflineUnreachable => 'Instance is offline or unreachable';
+
+  @override
+  String failedToDeleteInstance(Object error) {
+    return 'Failed to delete instance: $error';
+  }
+
+  @override
+  String get disconnectedSuccessfully => 'Disconnected successfully';
+
+  @override
+  String get versionWillAppearAfterConnection =>
+      'Version will appear after connection';
+
+  @override
+  String builtInDefaultInstance(Object name) {
+    return '$name (Built-in default)';
+  }
+
+  @override
+  String builtInInstance(Object name) {
+    return '$name (Built-in)';
+  }
+
+  @override
+  String get searchTasksHint => 'Search tasks by name, path, or instance';
+
+  @override
+  String get sortTasks => 'Sort tasks';
+
+  @override
+  String get ascending => 'Ascending';
+
+  @override
+  String get descending => 'Descending';
+
+  @override
+  String get name => 'Name';
+
+  @override
+  String get progress => 'Progress';
+
+  @override
+  String get size => 'Size';
+
+  @override
+  String get speed => 'Speed';
+
+  @override
+  String get pauseAll => 'Pause All';
+
+  @override
+  String get resumeAll => 'Resume All';
+
+  @override
+  String get deleteAll => 'Delete All';
+
+  @override
+  String get allTasksLabel => 'All tasks';
+
+  @override
+  String get byStatus => 'By status';
+
+  @override
+  String get byType => 'By type';
+
+  @override
+  String get byInstance => 'By instance';
+
+  @override
+  String get allInstances => 'All instances';
+
+  @override
+  String get chooseCategory => 'Choose a category';
+
+  @override
+  String get stoppedCompleted => 'Stopped / Completed';
+
+  @override
+  String get unknownPath => 'Unknown path';
+
+  @override
+  String selectedFile(Object name) {
+    return 'Selected: $name';
+  }
+
+  @override
+  String get addTaskDialogTitle => 'Add task';
+
+  @override
+  String get uriTab => 'URI';
+
+  @override
+  String get torrentTab => 'Torrent';
+
+  @override
+  String get metalinkTab => 'Metalink';
+
+  @override
+  String get urlOrMagnetLink => 'URL or magnet link';
+
+  @override
+  String get enterOneOrMoreLinks => 'Enter one or more links';
+
+  @override
+  String get pasteFromClipboard => 'Paste from clipboard';
+
+  @override
+  String get uriSupportHint =>
+      'Supports HTTP/HTTPS, FTP, SFTP, magnet and more.';
+
+  @override
+  String get selectTorrentFile => 'Select torrent file';
+
+  @override
+  String get selectMetalinkFile => 'Select metalink file';
+
+  @override
+  String get targetInstance => 'Target instance';
+
+  @override
+  String get selectTargetInstanceFirst => 'Select a target instance first';
+
+  @override
+  String get noConnectedInstancesAvailable =>
+      'No connected instances are available. Connect the built-in or a remote instance first.';
+
+  @override
+  String tasksWillBeSentTo(Object target) {
+    return 'Tasks will be sent to $target.';
+  }
+
+  @override
+  String get showAdvancedOptions => 'Show advanced options';
+
+  @override
+  String get advancedOptionsPlanned =>
+      'Advanced per-task options are planned for a later stage.';
+
+  @override
+  String get saveLocation => 'Save location';
+
+  @override
+  String get useInstanceDefaultDirectory =>
+      'Use the instance default directory';
+
+  @override
+  String get chooseSaveLocation => 'Choose save location';
+
+  @override
+  String failedToSelectDirectory(Object error) {
+    return 'Failed to select directory: $error';
+  }
+
+  @override
+  String selectedCount(Object count) {
+    return '$count selected';
+  }
+
+  @override
+  String get allVisibleSelected => 'All visible selected';
+
+  @override
+  String get selectAllVisible => 'Select all visible';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String failedToRefreshTasks(Object error) {
+    return 'Failed to refresh tasks: $error';
+  }
+
+  @override
+  String failedToLoadInstanceNames(Object error) {
+    return 'Failed to load instance names: $error';
+  }
+
+  @override
+  String get connectBeforeAddingTasks =>
+      'Connect the built-in instance or a remote instance before adding tasks.';
+
+  @override
+  String taskAddedToInstanceSuccess(Object name) {
+    return 'Task added to $name successfully';
+  }
+
+  @override
+  String get resumeTasks => 'Resume tasks';
+
+  @override
+  String get pauseTasks => 'Pause tasks';
+
+  @override
+  String get deleteTasks => 'Delete tasks';
+
+  @override
+  String actionAcrossAllInstances(Object action) {
+    return '$action across all connected instances';
+  }
+
+  @override
+  String actionInInstance(Object action, Object instance) {
+    return '$action in $instance';
+  }
+
+  @override
+  String get chooseActionScope => 'Choose where to apply this action.';
+
+  @override
+  String get noConnectedInstancesForAction =>
+      'No connected instances are available for this action.';
+
+  @override
+  String get noConnectedInstancesTitle =>
+      'No connected instances. Connect an instance to view tasks.';
+
+  @override
+  String get combinedTaskListHint =>
+      'The download list combines tasks from the built-in instance and any connected remote instances.';
+
+  @override
+  String get noTasksTitle => 'No tasks';
+
+  @override
+  String get noTasksHint =>
+      'Add a task or switch filters to see downloads from connected instances.';
+
+  @override
+  String get noDownloadDirectoryAvailable => 'No download directory available';
+
+  @override
+  String get targetInstanceNotConnected =>
+      'The target instance is not connected.';
+
+  @override
+  String failedToPauseTask(Object error) {
+    return 'Failed to pause the task: $error';
+  }
+
+  @override
+  String failedToRemoveTask(Object error) {
+    return 'Failed to remove the task: $error';
+  }
+
+  @override
+  String failedToResumeTask(Object error) {
+    return 'Failed to resume the task: $error';
+  }
+
+  @override
+  String failedToRemoveFailedTask(Object error) {
+    return 'Failed to remove the failed task: $error';
+  }
+
+  @override
+  String get paused => 'Paused';
+
+  @override
+  String get completed => 'Completed';
+
+  @override
+  String get downloading => 'Downloading';
+
+  @override
+  String get waiting => 'Waiting';
+
+  @override
+  String get stopped => 'Stopped';
+
+  @override
+  String get removeFailedTask => 'Remove failed task';
+
+  @override
+  String get taskDetails => 'Task details';
+
+  @override
+  String get overview => 'Overview';
+
+  @override
+  String get pieces => 'Pieces';
+
+  @override
+  String taskId(Object id) {
+    return 'Task ID: $id';
+  }
+
+  @override
+  String statusWithValue(Object status) {
+    return 'Status: $status';
+  }
+
+  @override
+  String sizeWithValue(Object bytes, Object size) {
+    return 'Size: $size ($bytes bytes)';
+  }
+
+  @override
+  String downloadedWithValue(Object bytes, Object size) {
+    return 'Downloaded: $size ($bytes bytes)';
+  }
+
+  @override
+  String progressWithValue(Object progress) {
+    return 'Progress: $progress%';
+  }
+
+  @override
+  String downloadSpeedWithValue(Object bytes, Object speed) {
+    return 'Download speed: $speed ($bytes bytes/s)';
+  }
+
+  @override
+  String uploadSpeedWithValue(Object bytes, Object speed) {
+    return 'Upload speed: $speed ($bytes bytes/s)';
+  }
+
+  @override
+  String connectionsWithValue(Object value) {
+    return 'Connections: $value';
+  }
+
+  @override
+  String saveLocationWithValue(Object value) {
+    return 'Save location: $value';
+  }
+
+  @override
+  String taskTypeWithValue(Object value) {
+    return 'Task type: $value';
+  }
+
+  @override
+  String errorWithValue(Object value) {
+    return 'Error: $value';
+  }
+
+  @override
+  String remainingTimeWithValue(Object value) {
+    return 'Remaining time: $value';
+  }
+
+  @override
+  String get filesTitle => 'Files';
+
+  @override
+  String get notSelected => '(not selected)';
+
+  @override
+  String get noFileInformation => 'No file information';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get noPieceInformation =>
+      'No piece information available for this task.';
+
+  @override
+  String get noPieceInformationHint =>
+      'The task may not have started yet, or Aria2 did not expose piece data.';
+
+  @override
+  String get pieceStatistics => 'Piece statistics';
+
+  @override
+  String get totalPieces => 'Total pieces';
+
+  @override
+  String get partial => 'Partial';
+
+  @override
+  String get missing => 'Missing';
+
+  @override
+  String completion(Object value) {
+    return 'Completion: $value%';
+  }
+
+  @override
+  String get pieceMap => 'Piece map';
+
+  @override
+  String get legend => 'Legend';
+
+  @override
+  String get highProgress => 'High progress (8-b)';
+
+  @override
+  String get mediumProgress => 'Medium progress (4-7)';
+
+  @override
+  String get lowProgress => 'Low progress (1-3)';
+
+  @override
+  String get cannotGetDownloadDirectoryInformation =>
+      'Cannot get download directory information';
+
+  @override
+  String get downloadDirectoryDoesNotExist =>
+      'Download directory does not exist';
+
+  @override
+  String get cannotOpenDownloadDirectory => 'Cannot open download directory';
+
+  @override
+  String errorOpeningDirectory(Object error) {
+    return 'Error opening directory: $error';
+  }
+
+  @override
+  String get connectionSection => 'Connection';
+
+  @override
+  String get transferSection => 'Transfer';
+
+  @override
+  String get speedLimits => 'Speed Limits';
+
+  @override
+  String get btPtSection => 'BT / PT';
+
+  @override
+  String get networkSection => 'Network';
+
+  @override
+  String get filesSection => 'Files';
+
+  @override
+  String get leaveEmptyToDisableSecretAuth =>
+      'Leave empty to disable secret auth';
+
+  @override
+  String get splitCount => 'Split count';
+
+  @override
+  String get continueUnfinishedDownloads => 'Continue unfinished downloads';
+
+  @override
+  String get maxOverallDownloadLimit => 'Max overall download limit (KB/s)';
+
+  @override
+  String get maxOverallUploadLimit => 'Max overall upload limit (KB/s)';
+
+  @override
+  String get keepSeedingAfterCompletion => 'Keep seeding after completion';
+
+  @override
+  String get seedRatio => 'Seed ratio';
+
+  @override
+  String get seedTimeMinutes => 'Seed time (minutes)';
+
+  @override
+  String get exampleProxy => 'Example: http://proxy:port';
+
+  @override
+  String get noProxyHosts => 'No-proxy hosts';
+
+  @override
+  String get multipleHostsComma => 'Separate multiple hosts with commas';
+
+  @override
+  String get autoRenameFiles => 'Auto rename files';
+
+  @override
+  String get allowOverwrite => 'Allow overwrite';
+
+  @override
+  String get userAgent => 'User agent';
+
+  @override
+  String get decrease => 'Decrease';
+
+  @override
+  String get increase => 'Increase';
+
+  @override
+  String get settingsSaved => 'Settings saved';
+
+  @override
+  String get restartingBuiltinInstance =>
+      'Restarting the built-in instance, please wait...';
+
+  @override
+  String get builtinInstanceMissing => 'Built-in instance is missing';
+
+  @override
+  String get settingsSavedAppliedSuccess =>
+      'Settings saved and applied successfully';
+
+  @override
+  String get settingsSavedRpcApplyFailed =>
+      'Settings saved and instance restarted, but applying settings via RPC failed';
+
+  @override
+  String get settingsSavedRestartFailed =>
+      'Settings were saved, but restarting the built-in instance failed';
+
+  @override
+  String settingsSavedRestartFailedWithError(Object error) {
+    return 'Settings were saved, but restarting the built-in instance failed: $error';
+  }
+
+  @override
+  String get leavePage => 'Leave this page?';
+
+  @override
+  String get unsavedChangesPrompt =>
+      'You have unsaved changes. What would you like to do?';
+
+  @override
+  String get discard => 'Discard';
+
+  @override
+  String get english => 'English';
+
+  @override
+  String get chinese => 'Chinese';
 }

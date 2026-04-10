@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../generated/l10n/l10n.dart';
 import '../../services/aria2_rpc_client.dart';
 import '../../services/download_data_service.dart';
 import '../../services/instance_manager.dart';
@@ -126,7 +127,11 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to refresh tasks: $lastError')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.failedToRefreshTasks(lastError),
+          ),
+        ),
       );
     });
   }
@@ -163,7 +168,8 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       task,
       downloadDataService?.tasks ?? [],
       _instanceNames,
-      DownloadTaskService.getStatusInfo,
+      (context, task, colorScheme) =>
+          DownloadTaskService.getStatusInfo(context, task, colorScheme),
     );
   }
 
@@ -183,7 +189,11 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       this.e('Failed to load instance names', error: e, stackTrace: stackTrace);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load instance names: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.failedToLoadInstanceNames('$e'),
+            ),
+          ),
         );
       }
     }
@@ -388,6 +398,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     context.watch<InstanceManager>();
     context.watch<DownloadDataService>();
     final filteredTasks = _filterTasks();
@@ -411,6 +422,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
             _SelectionToolbar(
               selectedCount: _selectedTasksFrom(filteredTasks).length,
               visibleCount: filteredTasks.length,
+              l10n: l10n,
               onClearSelection: _clearSelection,
               onSelectAll: () => _selectAllVisibleTasks(filteredTasks),
               onPauseSelected: () => _showPauseDialog(
@@ -489,6 +501,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   }
 
   void _showAddTaskDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final instanceManager = Provider.of<InstanceManager>(
       context,
       listen: false,
@@ -497,13 +510,9 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     final defaultTarget = instanceManager.getPreferredTargetInstance();
 
     if (targetInstances.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Connect the built-in instance or a remote instance before adding tasks.',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.connectBeforeAddingTasks)));
       return;
     }
 
@@ -533,9 +542,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                   if (targetInstance == null) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('No connected instance available'),
-                        ),
+                        SnackBar(content: Text(l10n.noConnectedInstance)),
                       );
                     }
                     return;
@@ -574,7 +581,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Task added to ${targetInstance.name} successfully',
+                          l10n.taskAddedToInstanceSuccess(targetInstance.name),
                         ),
                       ),
                     );
@@ -587,7 +594,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                   );
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to add task: $e')),
+                      SnackBar(content: Text(l10n.addTaskFailed('$e'))),
                     );
                   }
                 }
@@ -601,6 +608,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
 class _SelectionToolbar extends StatelessWidget {
   final int selectedCount;
   final int visibleCount;
+  final AppLocalizations l10n;
   final VoidCallback onClearSelection;
   final VoidCallback onSelectAll;
   final VoidCallback onPauseSelected;
@@ -610,6 +618,7 @@ class _SelectionToolbar extends StatelessWidget {
   const _SelectionToolbar({
     required this.selectedCount,
     required this.visibleCount,
+    required this.l10n,
     required this.onClearSelection,
     required this.onSelectAll,
     required this.onPauseSelected,
@@ -631,30 +640,30 @@ class _SelectionToolbar extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
-            '$selectedCount selected',
+            l10n.selectedCount(selectedCount.toString()),
             style: Theme.of(context).textTheme.titleSmall,
           ),
           OutlinedButton(
             onPressed: onSelectAll,
             child: Text(
               selectedCount == visibleCount
-                  ? 'All visible selected'
-                  : 'Select all visible',
+                  ? l10n.allVisibleSelected
+                  : l10n.selectAllVisible,
             ),
           ),
           FilledButton.tonal(
             onPressed: selectedCount > 0 ? onPauseSelected : null,
-            child: const Text('Pause'),
+            child: Text(l10n.pause),
           ),
           FilledButton.tonal(
             onPressed: selectedCount > 0 ? onResumeSelected : null,
-            child: const Text('Resume'),
+            child: Text(l10n.resume),
           ),
           FilledButton.tonal(
             onPressed: selectedCount > 0 ? onDeleteSelected : null,
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
-          TextButton(onPressed: onClearSelection, child: const Text('Clear')),
+          TextButton(onPressed: onClearSelection, child: Text(l10n.clear)),
         ],
       ),
     );

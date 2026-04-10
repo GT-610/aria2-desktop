@@ -27,7 +27,7 @@ class _InstancePageState extends State<InstancePage> {
       body: _buildInstanceListView(),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openInstanceDialog(),
-        tooltip: 'Add instance',
+        tooltip: l10n.addInstanceTooltip,
         child: const Icon(Icons.add),
       ),
     );
@@ -89,6 +89,7 @@ class _InstancePageState extends State<InstancePage> {
   }
 
   Future<void> _handleCheckStatus(Aria2Instance instance) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       setState(() {
         _isChecking = true;
@@ -105,8 +106,8 @@ class _InstancePageState extends State<InstancePage> {
           SnackBar(
             content: Text(
               isOnline
-                  ? 'Instance is reachable'
-                  : 'Instance is offline or unreachable',
+                  ? l10n.instanceReachable
+                  : l10n.instanceOfflineUnreachable,
             ),
           ),
         );
@@ -115,7 +116,7 @@ class _InstancePageState extends State<InstancePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to check instance status: $e'),
+            content: Text(l10n.checkStatusFailed('$e')),
             backgroundColor: Colors.red,
           ),
         );
@@ -130,6 +131,7 @@ class _InstancePageState extends State<InstancePage> {
   }
 
   Future<void> _handleToggleConnection(Aria2Instance instance) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       setState(() {
         _isConnectionInProgress = true;
@@ -144,7 +146,7 @@ class _InstancePageState extends State<InstancePage> {
         await instanceManager.disconnectInstance(instance);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Disconnected successfully')),
+            SnackBar(content: Text(l10n.disconnectedSuccessfully)),
           );
         }
       } else {
@@ -164,6 +166,7 @@ class _InstancePageState extends State<InstancePage> {
   }
 
   Future<void> _handleDeleteInstance(Aria2Instance instance) async {
+    final l10n = AppLocalizations.of(context)!;
     final instanceManager = Provider.of<InstanceManager>(
       context,
       listen: false,
@@ -171,17 +174,17 @@ class _InstancePageState extends State<InstancePage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete instance'),
-        content: Text('Delete instance "${instance.name}"?'),
+        title: Text(l10n.confirmDelete),
+        content: Text(l10n.confirmDeleteInstance(instance.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
-              'Delete',
+              l10n.delete,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
@@ -198,15 +201,15 @@ class _InstancePageState extends State<InstancePage> {
         await instanceManager.deleteInstance(instance.id);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Instance deleted successfully')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.instanceDeletedSuccess)));
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to delete instance: $e'),
+              content: Text(l10n.failedToDeleteInstance('$e')),
               backgroundColor: Colors.red,
             ),
           );
@@ -216,6 +219,7 @@ class _InstancePageState extends State<InstancePage> {
   }
 
   Future<void> _openInstanceDialog({Aria2Instance? instance}) async {
+    final l10n = AppLocalizations.of(context)!;
     final instanceManager = Provider.of<InstanceManager>(
       context,
       listen: false,
@@ -231,22 +235,22 @@ class _InstancePageState extends State<InstancePage> {
           await instanceManager.updateInstance(result);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Instance updated successfully')),
+              SnackBar(content: Text(l10n.instanceUpdatedSuccess)),
             );
           }
         } else {
           await instanceManager.addInstance(result);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Instance added successfully')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.instanceAddedSuccess)));
           }
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Operation failed: $e'),
+              content: Text(l10n.operationFailed('$e')),
               backgroundColor: Colors.red,
             ),
           );
@@ -256,6 +260,7 @@ class _InstancePageState extends State<InstancePage> {
   }
 
   Future<void> _handleConnectInstance(Aria2Instance instance) async {
+    final l10n = AppLocalizations.of(context)!;
     final instanceManager = Provider.of<InstanceManager>(
       context,
       listen: false,
@@ -265,14 +270,12 @@ class _InstancePageState extends State<InstancePage> {
       if (mounted) {
         if (connectSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Connected to ${instance.name} successfully'),
-            ),
+            SnackBar(content: Text(l10n.successConnected(instance.name))),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Connection failed. Check the instance settings.'),
+            SnackBar(
+              content: Text(l10n.connectionFailedCheckConfig),
               backgroundColor: Colors.red,
             ),
           );
@@ -282,7 +285,7 @@ class _InstancePageState extends State<InstancePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Connection failed: $e'),
+            content: Text(l10n.connectionFailedError('$e')),
             backgroundColor: Colors.red,
           ),
         );

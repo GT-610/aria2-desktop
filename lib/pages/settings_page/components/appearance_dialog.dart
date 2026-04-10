@@ -101,9 +101,9 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                   try {
                     widget.settings.setThemeMode(themeMode);
                   } catch (e) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('设置主题模式失败: $e')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.failedToSetThemeMode('$e'))),
+                    );
                   }
                 }
               },
@@ -148,9 +148,11 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                       try {
                         widget.settings.setPrimaryColor(color, isCustom: false);
                       } catch (e) {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text('设置主题色失败: $e')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(l10n.failedToSetThemeColor('$e')),
+                          ),
+                        );
                       }
                     },
                     child: Container(
@@ -233,7 +235,11 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                             );
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('设置自定义主题色失败: $e')),
+                              SnackBar(
+                                content: Text(
+                                  l10n.failedToSetCustomThemeColor('$e'),
+                                ),
+                              ),
                             );
                           }
                         },

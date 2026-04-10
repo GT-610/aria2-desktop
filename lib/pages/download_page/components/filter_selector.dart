@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../generated/l10n/l10n.dart';
 import '../enums.dart';
 import 'task_action_dialogs.dart';
 
@@ -27,6 +28,7 @@ class FilterSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
@@ -51,7 +53,7 @@ class FilterSelector extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Text(_getCurrentCategoryText()),
+                Text(_getCurrentCategoryText(l10n)),
                 const SizedBox(width: 4),
                 const Icon(Icons.arrow_drop_down),
               ],
@@ -60,7 +62,7 @@ class FilterSelector extends StatelessWidget {
           if (currentCategoryType != CategoryType.all)
             if (currentCategoryType == CategoryType.byInstance) ...[
               FilterChip(
-                label: const Text('All instances'),
+                label: Text(l10n.allInstances),
                 selected: selectedInstanceId == null,
                 onSelected: (_) => onInstanceSelected(null),
                 shape: RoundedRectangleBorder(
@@ -71,7 +73,7 @@ class FilterSelector extends StatelessWidget {
                 final isSelected = selectedInstanceId == instanceId;
                 final instanceColor = colorScheme.tertiary;
                 final instanceName =
-                    instanceNames[instanceId] ?? 'Unknown instance';
+                    instanceNames[instanceId] ?? l10n.unknownInstance;
 
                 return FilterChip(
                   label: Text(
@@ -95,7 +97,7 @@ class FilterSelector extends StatelessWidget {
 
                 return FilterChip(
                   label: Text(
-                    _getFilterText(option),
+                    _getFilterText(l10n, option),
                     style: TextStyle(color: filterColor),
                   ),
                   selected: isSelected,
@@ -116,18 +118,19 @@ class FilterSelector extends StatelessWidget {
   }
 
   void _showCategoryDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Choose a category'),
+          title: Text(l10n.chooseCategory),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TaskActionDialogs.buildDialogOption(
                 context,
-                'All tasks',
+                l10n.allTasksLabel,
                 onTap: () {
                   onCategoryChanged(CategoryType.all);
                   Navigator.pop(context);
@@ -136,7 +139,7 @@ class FilterSelector extends StatelessWidget {
               const SizedBox(height: 8),
               TaskActionDialogs.buildDialogOption(
                 context,
-                'By status',
+                l10n.byStatus,
                 onTap: () {
                   onCategoryChanged(CategoryType.byStatus);
                   onFilterChanged(FilterOption.active);
@@ -146,7 +149,7 @@ class FilterSelector extends StatelessWidget {
               const SizedBox(height: 8),
               TaskActionDialogs.buildDialogOption(
                 context,
-                'By type',
+                l10n.byType,
                 onTap: () {
                   onCategoryChanged(CategoryType.byType);
                   onFilterChanged(FilterOption.local);
@@ -156,7 +159,7 @@ class FilterSelector extends StatelessWidget {
               const SizedBox(height: 8),
               TaskActionDialogs.buildDialogOption(
                 context,
-                'By instance',
+                l10n.byInstance,
                 onTap: () {
                   onCategoryChanged(CategoryType.byInstance);
                   onInstanceSelected(null);
@@ -170,16 +173,16 @@ class FilterSelector extends StatelessWidget {
     );
   }
 
-  String _getCurrentCategoryText() {
+  String _getCurrentCategoryText(AppLocalizations l10n) {
     switch (currentCategoryType) {
       case CategoryType.all:
-        return 'All tasks';
+        return l10n.allTasksLabel;
       case CategoryType.byStatus:
-        return 'By status';
+        return l10n.byStatus;
       case CategoryType.byType:
-        return 'By type';
+        return l10n.byType;
       case CategoryType.byInstance:
-        return 'By instance';
+        return l10n.byInstance;
     }
   }
 
@@ -204,22 +207,22 @@ class FilterSelector extends StatelessWidget {
     }
   }
 
-  String _getFilterText(FilterOption filter) {
+  String _getFilterText(AppLocalizations l10n, FilterOption filter) {
     switch (filter) {
       case FilterOption.all:
-        return 'All';
+        return l10n.filterAll;
       case FilterOption.active:
-        return 'Downloading';
+        return l10n.downloading;
       case FilterOption.waiting:
-        return 'Waiting';
+        return l10n.waiting;
       case FilterOption.stopped:
-        return 'Stopped / Completed';
+        return l10n.stoppedCompleted;
       case FilterOption.local:
-        return 'Built-in';
+        return l10n.builtin;
       case FilterOption.remote:
-        return 'Remote';
+        return l10n.remote;
       case FilterOption.instance:
-        return 'Instance';
+        return l10n.instance;
     }
   }
 

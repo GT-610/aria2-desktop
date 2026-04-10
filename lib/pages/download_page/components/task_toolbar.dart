@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../generated/l10n/l10n.dart';
 import '../enums.dart';
 
 class TaskToolbar extends StatelessWidget {
@@ -28,23 +29,24 @@ class TaskToolbar extends StatelessWidget {
     required this.onSortDirectionChanged,
   });
 
-  String _sortLabel(TaskSortOption option) {
+  String _sortLabel(AppLocalizations l10n, TaskSortOption option) {
     switch (option) {
       case TaskSortOption.name:
-        return 'Name';
+        return l10n.name;
       case TaskSortOption.progress:
-        return 'Progress';
+        return l10n.progress;
       case TaskSortOption.size:
-        return 'Size';
+        return l10n.size;
       case TaskSortOption.speed:
-        return 'Speed';
+        return l10n.speed;
       case TaskSortOption.instance:
-        return 'Instance';
+        return l10n.instance;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
@@ -61,7 +63,7 @@ class TaskToolbar extends StatelessWidget {
             children: [
               Expanded(
                 child: _ToolbarActionButton(
-                  label: 'Add Task',
+                  label: l10n.addTask,
                   icon: Icons.add,
                   onPressed: onAddTask,
                   variant: _ToolbarActionButtonVariant.filled,
@@ -70,7 +72,7 @@ class TaskToolbar extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _ToolbarActionButton(
-                  label: 'Pause All',
+                  label: l10n.pauseAll,
                   icon: Icons.pause,
                   onPressed: onPauseAll,
                 ),
@@ -78,7 +80,7 @@ class TaskToolbar extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _ToolbarActionButton(
-                  label: 'Resume All',
+                  label: l10n.resumeAll,
                   icon: Icons.play_arrow,
                   onPressed: onResumeAll,
                 ),
@@ -86,7 +88,7 @@ class TaskToolbar extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _ToolbarActionButton(
-                  label: 'Delete All',
+                  label: l10n.deleteAll,
                   icon: Icons.delete_outline,
                   onPressed: onDeleteAll,
                   variant: _ToolbarActionButtonVariant.error,
@@ -103,7 +105,7 @@ class TaskToolbar extends StatelessWidget {
                   onChanged: onSearchChanged,
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.search),
-                    hintText: 'Search tasks by name, path, or instance',
+                    hintText: l10n.searchTasksHint,
                     filled: true,
                     fillColor: colorScheme.surfaceContainerLowest,
                     border: OutlineInputBorder(
@@ -124,7 +126,7 @@ class TaskToolbar extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               PopupMenuButton<TaskSortOption>(
-                tooltip: 'Sort tasks',
+                tooltip: l10n.sortTasks,
                 onSelected: onSortChanged,
                 itemBuilder: (context) => TaskSortOption.values.map((option) {
                   return PopupMenuItem<TaskSortOption>(
@@ -136,7 +138,7 @@ class TaskToolbar extends StatelessWidget {
                         else
                           const SizedBox(width: 18),
                         const SizedBox(width: 8),
-                        Text(_sortLabel(option)),
+                        Text(_sortLabel(l10n, option)),
                       ],
                     ),
                   );
@@ -144,12 +146,12 @@ class TaskToolbar extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: null,
                   icon: const Icon(Icons.sort),
-                  label: Text(_sortLabel(sortOption)),
+                  label: Text(_sortLabel(l10n, sortOption)),
                 ),
               ),
               const SizedBox(width: 8),
               IconButton.filledTonal(
-                tooltip: sortDescending ? 'Descending' : 'Ascending',
+                tooltip: sortDescending ? l10n.descending : l10n.ascending,
                 onPressed: () => onSortDirectionChanged(!sortDescending),
                 icon: Icon(
                   sortDescending

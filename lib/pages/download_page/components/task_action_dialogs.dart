@@ -2,6 +2,7 @@ import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart' as p;
 
+import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
 import '../../../services/aria2_rpc_client.dart';
 import '../../../services/download_data_service.dart';
@@ -22,6 +23,7 @@ class TaskActionDialogs {
     VoidCallback? onActionCompleted,
     List<DownloadTask>? tasks,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final instanceManager = p.Provider.of<InstanceManager>(
       context,
       listen: false,
@@ -38,19 +40,19 @@ class TaskActionDialogs {
 
     switch (actionType) {
       case TaskActionType.resume:
-        title = 'Resume tasks';
-        allInstancesText = 'Resume tasks across all connected instances';
-        instanceActionPrefix = 'Resume tasks in ';
+        title = l10n.resumeTasks;
+        allInstancesText = l10n.actionAcrossAllInstances(l10n.resumeTasks);
+        instanceActionPrefix = l10n.resumeTasks;
         break;
       case TaskActionType.pause:
-        title = 'Pause tasks';
-        allInstancesText = 'Pause tasks across all connected instances';
-        instanceActionPrefix = 'Pause tasks in ';
+        title = l10n.pauseTasks;
+        allInstancesText = l10n.actionAcrossAllInstances(l10n.pauseTasks);
+        instanceActionPrefix = l10n.pauseTasks;
         break;
       case TaskActionType.delete:
-        title = 'Delete tasks';
-        allInstancesText = 'Delete tasks across all connected instances';
-        instanceActionPrefix = 'Delete tasks in ';
+        title = l10n.deleteTasks;
+        allInstancesText = l10n.actionAcrossAllInstances(l10n.deleteTasks);
+        instanceActionPrefix = l10n.deleteTasks;
         break;
     }
 
@@ -58,11 +60,7 @@ class TaskActionDialogs {
 
     if (targetInstances.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No connected instances are available for this action.',
-          ),
-        ),
+        SnackBar(content: Text(l10n.noConnectedInstancesForAction)),
       );
       return;
     }
@@ -79,7 +77,7 @@ class TaskActionDialogs {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Choose where to apply this action.',
+                l10n.chooseActionScope,
                 style: Theme.of(dialogContext).textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
@@ -107,7 +105,7 @@ class TaskActionDialogs {
                   children: [
                     buildDialogOption(
                       dialogContext,
-                      '$instanceActionPrefix${instance.name} (${instanceTasks.length})',
+                      '${l10n.actionInInstance(instanceActionPrefix, instance.name)} (${instanceTasks.length})',
                       onTap: () async {
                         Navigator.pop(dialogContext);
                         await _performActionForInstance(
@@ -127,7 +125,7 @@ class TaskActionDialogs {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
           ],
         );
