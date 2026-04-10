@@ -1,4 +1,3 @@
-import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
 
 import '../enums.dart';
@@ -58,32 +57,40 @@ class TaskToolbar extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
+          Row(
             children: [
-              Btn.elevated(
-                text: 'Add Task',
-                icon: const Icon(Icons.add),
-                onTap: onAddTask,
+              Expanded(
+                child: _ToolbarActionButton(
+                  label: 'Add Task',
+                  icon: Icons.add,
+                  onPressed: onAddTask,
+                  variant: _ToolbarActionButtonVariant.filled,
+                ),
               ),
               const SizedBox(width: 12),
-              Btn.tile(
-                text: 'Pause All',
-                icon: const Icon(Icons.pause),
-                onTap: onPauseAll,
+              Expanded(
+                child: _ToolbarActionButton(
+                  label: 'Pause All',
+                  icon: Icons.pause,
+                  onPressed: onPauseAll,
+                ),
               ),
               const SizedBox(width: 12),
-              Btn.tile(
-                text: 'Resume All',
-                icon: const Icon(Icons.play_arrow),
-                onTap: onResumeAll,
+              Expanded(
+                child: _ToolbarActionButton(
+                  label: 'Resume All',
+                  icon: Icons.play_arrow,
+                  onPressed: onResumeAll,
+                ),
               ),
               const SizedBox(width: 12),
-              Btn.tile(
-                text: 'Delete All',
-                icon: const Icon(Icons.delete),
-                onTap: onDeleteAll,
+              Expanded(
+                child: _ToolbarActionButton(
+                  label: 'Delete All',
+                  icon: Icons.delete_outline,
+                  onPressed: onDeleteAll,
+                  variant: _ToolbarActionButtonVariant.error,
+                ),
               ),
             ],
           ),
@@ -155,5 +162,60 @@ class TaskToolbar extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+enum _ToolbarActionButtonVariant { filled, tonal, error }
+
+class _ToolbarActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onPressed;
+  final _ToolbarActionButtonVariant variant;
+
+  const _ToolbarActionButton({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.variant = _ToolbarActionButtonVariant.tonal,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final buttonStyle = FilledButton.styleFrom(
+      minimumSize: const Size.fromHeight(44),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    );
+
+    switch (variant) {
+      case _ToolbarActionButtonVariant.filled:
+        return FilledButton.icon(
+          onPressed: onPressed,
+          style: buttonStyle,
+          icon: Icon(icon),
+          label: Text(label),
+        );
+      case _ToolbarActionButtonVariant.error:
+        return FilledButton.icon(
+          onPressed: onPressed,
+          style: buttonStyle.copyWith(
+            backgroundColor: WidgetStatePropertyAll(colorScheme.errorContainer),
+            foregroundColor: WidgetStatePropertyAll(
+              colorScheme.onErrorContainer,
+            ),
+          ),
+          icon: Icon(icon),
+          label: Text(label),
+        );
+      case _ToolbarActionButtonVariant.tonal:
+        return FilledButton.tonalIcon(
+          onPressed: onPressed,
+          style: buttonStyle,
+          icon: Icon(icon),
+          label: Text(label),
+        );
+    }
   }
 }
