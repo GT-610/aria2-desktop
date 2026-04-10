@@ -142,7 +142,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     }
 
     _refreshTimer = downloadDataService!.startPeriodicRefresh(
-      connectedInstances,
+      () => instanceManager?.getConnectedInstances() ?? const [],
     );
     if (_refreshTimer != null) {
       downloadDataService!.refreshTasks(connectedInstances);

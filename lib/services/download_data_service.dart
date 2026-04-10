@@ -23,6 +23,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   int _refreshInterval = 1000;
 
   final Map<String, Aria2RpcClient> _clientCache = {};
+  List<Aria2Instance> Function()? _connectedInstancesProvider;
 
   List<DownloadTask> get tasks => _tasks;
   bool get isRefreshing => _isRefreshing;
@@ -46,8 +47,11 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     _restartTimer();
   }
 
-  Timer? startPeriodicRefresh(List<Aria2Instance> instances) {
-    _restartTimer(instances);
+  Timer? startPeriodicRefresh(
+    List<Aria2Instance> Function() connectedInstancesProvider,
+  ) {
+    _connectedInstancesProvider = connectedInstancesProvider;
+    _restartTimer();
     return _refreshTimer;
   }
 
@@ -190,12 +194,10 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     return left.name.toLowerCase().compareTo(right.name.toLowerCase());
   }
 
-  void _restartTimer([List<Aria2Instance> instances = const []]) {
+  void _restartTimer() {
     stopPeriodicRefresh();
 
-    final connectedInstances = instances
-        .where((instance) => instance.status == ConnectionStatus.connected)
-        .toList();
+    final connectedInstances = _connectedInstancesProvider?.call() ?? const [];
 
     if (connectedInstances.isNotEmpty) {
       this.i(
@@ -206,7 +208,9 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       ) {
         if (timer.isActive && !_isRefreshing) {
           this.d('Timer triggered task refresh');
-          refreshTasks(connectedInstances);
+          final latestConnectedInstances =
+              _connectedInstancesProvider?.call() ?? const [];
+          refreshTasks(latestConnectedInstances);
         }
       });
       this.i(

@@ -88,6 +88,13 @@ class BuiltinInstanceService with Loggable {
     return settings['rpcSecret'] as String? ?? '';
   }
 
+  String _formatSpeedLimitArg(dynamic rawValue) {
+    final value = rawValue is num
+        ? rawValue.toInt()
+        : int.tryParse(rawValue?.toString() ?? '') ?? 0;
+    return value > 0 ? '${value}K' : '0';
+  }
+
   bool checkBuiltinFiles() {
     final aria2cExists = File(_aria2cPath!).existsSync();
     final confExists = File(_aria2ConfPath!).existsSync();
@@ -111,8 +118,8 @@ class BuiltinInstanceService with Loggable {
       '--max-connection-per-server=${settings['maxConnectionPerServer'] ?? 16}',
       '--min-split-size=10M',
       '--split=${settings['split'] ?? 16}',
-      '--max-overall-download-limit=${settings['maxOverallDownloadLimit'] ?? 0}',
-      '--max-overall-upload-limit=${settings['maxOverallUploadLimit'] ?? 0}',
+      '--max-overall-download-limit=${_formatSpeedLimitArg(settings['maxOverallDownloadLimit'])}',
+      '--max-overall-upload-limit=${_formatSpeedLimitArg(settings['maxOverallUploadLimit'])}',
       '--max-download-limit=0',
       '--max-upload-limit=0',
       '--file-allocation=prealloc',

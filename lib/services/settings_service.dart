@@ -12,6 +12,10 @@ class SettingsService extends ChangeNotifier with Loggable {
     _settings = settings;
   }
 
+  String _formatSpeedLimitOption(int value) {
+    return value > 0 ? '${value}K' : '0';
+  }
+
   Map<String, dynamic> _convertSettingsToAria2Options() {
     if (_settings == null) {
       w('Settings is null, cannot convert to Aria2 options');
@@ -24,12 +28,12 @@ class SettingsService extends ChangeNotifier with Loggable {
       'max-connection-per-server': settings.maxConnectionPerServer.toString(),
       'split': settings.split.toString(),
       'continue': settings.continueDownloads.toString(),
-      'max-overall-download-limit': settings.maxOverallDownloadLimit > 0
-          ? settings.maxOverallDownloadLimit.toString()
-          : '0',
-      'max-overall-upload-limit': settings.maxOverallUploadLimit > 0
-          ? settings.maxOverallUploadLimit.toString()
-          : '0',
+      'max-overall-download-limit': _formatSpeedLimitOption(
+        settings.maxOverallDownloadLimit,
+      ),
+      'max-overall-upload-limit': _formatSpeedLimitOption(
+        settings.maxOverallUploadLimit,
+      ),
       'bt-save-metadata': settings.btSaveMetadata.toString(),
       'bt-require-crypto': settings.btForceEncryption.toString(),
       'bt-load-saved-metadata': settings.btLoadSavedMetadata.toString(),
@@ -94,12 +98,12 @@ class SettingsService extends ChangeNotifier with Loggable {
 
     try {
       final options = <String, dynamic>{
-        'max-overall-download-limit': _settings!.maxOverallDownloadLimit > 0
-            ? _settings!.maxOverallDownloadLimit.toString()
-            : '0',
-        'max-overall-upload-limit': _settings!.maxOverallUploadLimit > 0
-            ? _settings!.maxOverallUploadLimit.toString()
-            : '0',
+        'max-overall-download-limit': _formatSpeedLimitOption(
+          _settings!.maxOverallDownloadLimit,
+        ),
+        'max-overall-upload-limit': _formatSpeedLimitOption(
+          _settings!.maxOverallUploadLimit,
+        ),
       };
       return await client.setGlobalOption(options);
     } catch (err, stackTrace) {
