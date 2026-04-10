@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+
 import '../models/aria2_instance.dart';
 import '../utils/logging.dart';
 
@@ -17,7 +19,6 @@ class BuiltinInstanceService with Loggable {
   StreamSubscription<String>? _stdoutSubscription;
   StreamSubscription<String>? _stderrSubscription;
 
-  /// Singleton instance
   factory BuiltinInstanceService() {
     _instance ??= BuiltinInstanceService._internal();
     return _instance!;
@@ -27,59 +28,153 @@ class BuiltinInstanceService with Loggable {
     _initializePaths();
   }
 
-  /// Initialize paths for built-in instance
   void _initializePaths() {
-    // Get the executable path
-    String executablePath = Platform.resolvedExecutable;
-    Directory executableDir = Directory(executablePath).parent;
+    final executablePath = Platform.resolvedExecutable;
+    final executableDir = Directory(executablePath).parent;
+    final coreDirPath = '${executableDir.path}/data/core';
+    final coreDir = Directory(coreDirPath);
 
-    // Use data/core directory relative to executable
-    String coreDirPath = '${executableDir.path}/data/core';
-
-    // Ensure core directory exists
-    Directory coreDir = Directory(coreDirPath);
     if (!coreDir.existsSync()) {
       this.w('Core directory does not exist: $coreDirPath, creating it...');
       coreDir.createSync(recursive: true);
     }
 
-    // Set paths
     _aria2cPath = '$coreDirPath/aria2c.exe';
     _aria2ConfPath = '$coreDirPath/aria2.conf';
     _sessionPath = '$coreDirPath/aria2.session';
     _logPath = '$coreDirPath/aria2.log';
-
-    this.i('Built-in instance paths initialized:');
-    this.i('  aria2cPath: $_aria2cPath');
-    this.i('  aria2ConfPath: $_aria2ConfPath');
-    this.i('  sessionPath: $_sessionPath');
-    this.i('  logPath: $_logPath');
   }
 
-  /// Check if the built-in Aria2 files exist
+  String _getSettingsFilePath() {
+    final executablePath = Platform.resolvedExecutable;
+    final executableDir = Directory(executablePath).parent;
+    final configDir = Directory('${executableDir.path}/data/config');
+    if (!configDir.existsSync()) {
+      configDir.createSync(recursive: true);
+    }
+    return '${configDir.path}/settings.json';
+  }
+
+  Map<String, dynamic> _readSettingsSnapshot() {
+    try {
+      final file = File(_getSettingsFilePath());
+      if (!file.existsSync()) {
+        return {};
+      }
+      final content = file.readAsStringSync();
+      final decoded = jsonDecode(content);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (e, stackTrace) {
+      this.e(
+        'Failed to read built-in settings snapshot',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+    return {};
+  }
+
+  int _getConfiguredRpcPort() {
+    final settings = _readSettingsSnapshot();
+    return settings['rpcListenPort'] is int
+        ? settings['rpcListenPort'] as int
+        : 16800;
+  }
+
+  String _getConfiguredRpcSecret() {
+    final settings = _readSettingsSnapshot();
+    return settings['rpcSecret'] as String? ?? '';
+  }
+
   bool checkBuiltinFiles() {
     final aria2cExists = File(_aria2cPath!).existsSync();
     final confExists = File(_aria2ConfPath!).existsSync();
-
-    this.i('Checking built-in files:');
-    this.i('  aria2c.exe exists: $aria2cExists');
-    this.i('  aria2.conf exists: $confExists');
-
     return aria2cExists && confExists;
   }
 
-  /// Start the built-in Aria2 instance
+  List<String> _buildArgs() {
+    final settings = _readSettingsSnapshot();
+    final rpcPort = _getConfiguredRpcPort();
+    final rpcSecret = _getConfiguredRpcSecret();
+
+    final args = <String>[
+      '--enable-rpc',
+      '--rpc-listen-all=false',
+      '--rpc-allow-origin-all',
+      '--rpc-listen-port=$rpcPort',
+      '--rpc-save-upload-metadata=true',
+      '--rpc-max-request-size=10M',
+      '--continue=${settings['continueDownloads'] ?? true}',
+      '--max-concurrent-downloads=${settings['maxConcurrentDownloads'] ?? 5}',
+      '--max-connection-per-server=${settings['maxConnectionPerServer'] ?? 16}',
+      '--min-split-size=10M',
+      '--split=${settings['split'] ?? 16}',
+      '--max-overall-download-limit=${settings['maxOverallDownloadLimit'] ?? 0}',
+      '--max-overall-upload-limit=${settings['maxOverallUploadLimit'] ?? 0}',
+      '--max-download-limit=0',
+      '--max-upload-limit=0',
+      '--file-allocation=prealloc',
+      '--disk-cache=64M',
+      '--allow-overwrite=${settings['allowOverwrite'] ?? false}',
+      '--allow-piece-length-change=true',
+      '--auto-file-renaming=${settings['autoFileRenaming'] ?? true}',
+      '--check-integrity=true',
+      '--remote-time=true',
+      '--follow-torrent=mem',
+      '--seed-time=${settings['seedTime'] ?? 60}',
+      '--bt-enable-lpd=true',
+      '--bt-max-peers=100',
+      '--bt-require-crypto=${settings['btForceEncryption'] ?? false}',
+      '--bt-save-metadata=${settings['btSaveMetadata'] ?? true}',
+      '--bt-load-saved-metadata=${settings['btLoadSavedMetadata'] ?? true}',
+      '--bt-seed-unverified=${settings['keepSeeding'] ?? false}',
+      '--listen-port=6881-6999',
+      '--dht-listen-port=${settings['dhtListenPort'] ?? 26701}',
+      '--enable-dht6=${settings['enableDht6'] ?? true}',
+      '--conf-path=$_aria2ConfPath',
+      '--save-session=$_sessionPath',
+      '--log-level=info',
+      '--log=$_logPath',
+    ];
+
+    final allProxy = settings['allProxy'] as String? ?? '';
+    final noProxy = settings['noProxy'] as String? ?? '';
+    final userAgent = settings['userAgent'] as String? ?? '';
+    final btExcludeTracker = settings['btExcludeTracker'] as String? ?? '';
+
+    if (rpcSecret.isNotEmpty) {
+      args.add('--rpc-secret=$rpcSecret');
+    }
+    if (allProxy.isNotEmpty) {
+      args.add('--all-proxy=$allProxy');
+    }
+    if (noProxy.isNotEmpty) {
+      args.add('--no-proxy=$noProxy');
+    }
+    if (userAgent.isNotEmpty) {
+      args.add('--user-agent=$userAgent');
+    }
+    if (btExcludeTracker.isNotEmpty) {
+      args.add('--bt-exclude-tracker=$btExcludeTracker');
+    }
+    if (File(_sessionPath!).existsSync()) {
+      args.add('--input-file=$_sessionPath');
+    }
+
+    return args;
+  }
+
   Future<bool> startInstance() async {
     try {
       _isConnected = false;
 
-      // Check if built-in files exist
       if (!checkBuiltinFiles()) {
         this.e('Built-in Aria2 files are missing, cannot start instance');
         return false;
       }
 
-      // Check if process is already running
       if (_aria2Process != null) {
         this.w(
           'Built-in Aria2 process is already running, PID: ${_aria2Process!.pid}',
@@ -87,54 +182,7 @@ class BuiltinInstanceService with Loggable {
         return true;
       }
 
-      // Build command arguments
-      final List<String> args = [
-        '--enable-rpc',
-        '--rpc-listen-all=false',
-        '--rpc-allow-origin-all',
-        '--rpc-listen-port=16800',
-        '--rpc-save-upload-metadata=true',
-        '--rpc-max-request-size=10M',
-        '--continue=true',
-        '--max-concurrent-downloads=5',
-        '--max-connection-per-server=16',
-        '--min-split-size=10M',
-        '--split=10',
-        '--max-overall-download-limit=0',
-        '--max-overall-upload-limit=0',
-        '--max-download-limit=0',
-        '--max-upload-limit=0',
-        '--file-allocation=prealloc',
-        '--disk-cache=64M',
-        '--allow-overwrite=true',
-        '--allow-piece-length-change=true',
-        '--auto-file-renaming=true',
-        '--check-integrity=true',
-        '--remote-time=true',
-        '--follow-torrent=mem',
-        '--seed-time=0',
-        '--bt-enable-lpd=true',
-        '--bt-max-peers=100',
-        '--bt-require-crypto=true',
-        '--bt-save-metadata=true',
-        '--bt-seed-unverified=true',
-        '--listen-port=6881-6999',
-        '--dht-listen-port=6881-6999',
-        '--conf-path=$_aria2ConfPath',
-        '--save-session=$_sessionPath',
-        '--log-level=info',
-        '--log=$_logPath',
-      ];
-
-      // Check if session file exists and add input-file parameter
-      if (File(_sessionPath!).existsSync()) {
-        args.add('--input-file=$_sessionPath');
-      }
-
-      this.i('Starting built-in Aria2 instance with command:');
-      this.i('  $_aria2cPath ${args.join(' ')}');
-
-      // Start the process
+      final args = _buildArgs();
       _aria2Process = await Process.start(
         _aria2cPath!,
         args,
@@ -142,18 +190,12 @@ class BuiltinInstanceService with Loggable {
         mode: ProcessStartMode.normal,
       );
 
-      this.i(
-        'Built-in Aria2 instance started successfully, PID: ${_aria2Process!.pid}',
-      );
-
-      // Monitor process exit
       _aria2Process!.exitCode.then((exitCode) {
         this.w('Built-in Aria2 process exited with code: $exitCode');
         _aria2Process = null;
         _isConnected = false;
       });
 
-      // Monitor stdout and stderr in debug mode
       if (kDebugMode) {
         _monitorProcessOutput();
       }
@@ -169,7 +211,6 @@ class BuiltinInstanceService with Loggable {
     }
   }
 
-  /// Stop the built-in Aria2 instance
   Future<bool> stopInstance() async {
     try {
       if (_aria2Process == null) {
@@ -177,15 +218,12 @@ class BuiltinInstanceService with Loggable {
         return true;
       }
 
-      this.i('Stopping built-in Aria2 instance, PID: ${_aria2Process!.pid}');
-
       await _stdoutSubscription?.cancel();
       await _stderrSubscription?.cancel();
 
       _aria2Process!.kill();
       await _aria2Process!.exitCode.timeout(const Duration(seconds: 5));
 
-      this.i('Built-in Aria2 instance stopped successfully');
       _aria2Process = null;
       _isConnected = false;
       return true;
@@ -199,17 +237,12 @@ class BuiltinInstanceService with Loggable {
     }
   }
 
-  /// Check if the built-in instance is running
   bool isRunning() {
     return _aria2Process != null;
   }
 
-  /// Get the PID of the running Aria2 process
-  int? get pid {
-    return _aria2Process?.pid;
-  }
+  int? get pid => _aria2Process?.pid;
 
-  /// Monitor process output for debugging
   void _monitorProcessOutput() {
     if (_aria2Process == null) return;
 
@@ -230,31 +263,27 @@ class BuiltinInstanceService with Loggable {
     });
   }
 
-  /// Called when connection to Aria2 is successful
   void onConnected() {
     _isConnected = true;
     _stdoutSubscription?.cancel();
     _stderrSubscription?.cancel();
     _stdoutSubscription = null;
     _stderrSubscription = null;
-    this.i('Built-in instance connected, output monitoring stopped');
   }
 
-  /// Get the built-in instance configuration
   Aria2Instance getBuiltinInstanceConfig() {
     return Aria2Instance(
       id: 'builtin',
-      name: '内建实例',
+      name: 'Built-in Instance',
       type: InstanceType.builtin,
       protocol: 'ws',
       host: '127.0.0.1',
-      port: 16800,
-      secret: '',
+      port: _getConfiguredRpcPort(),
+      secret: _getConfiguredRpcSecret(),
       status: ConnectionStatus.disconnected,
     );
   }
 
-  /// Dispose the service
   void dispose() {
     if (_aria2Process != null) {
       stopInstance();

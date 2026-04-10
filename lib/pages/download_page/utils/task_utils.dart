@@ -1,7 +1,8 @@
-import 'dart:io';
+import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:fl_lib/fl_lib.dart';
+import 'dart:io';
+
 import '../models/download_task.dart';
 
 void _logE(String msg) => lprint('[TaskUtils] $msg');
@@ -75,6 +76,6 @@ class TaskUtils {
     Map<String, String> instanceNames,
     String instanceId,
   ) {
-    return instanceNames[instanceId] ?? 'Unknown Instance';
+    return instanceNames[instanceId] ?? 'Unknown instance';
   }
 }

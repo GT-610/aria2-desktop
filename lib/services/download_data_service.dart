@@ -46,8 +46,8 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     _restartTimer();
   }
 
-  Timer? startPeriodicRefresh(Aria2Instance? instance) {
-    _restartTimer(instance);
+  Timer? startPeriodicRefresh(List<Aria2Instance> instances) {
+    _restartTimer(instances);
     return _refreshTimer;
   }
 
@@ -57,19 +57,35 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     this.d('Timer stopped');
   }
 
-  Future<void> refreshTasks(Aria2Instance? instance) async {
-    if (_isRefreshing || instance == null) return;
+  Future<void> refreshTasks(List<Aria2Instance> instances) async {
+    if (_isRefreshing) return;
+
+    final connectedInstances = instances
+        .where((instance) => instance.status == ConnectionStatus.connected)
+        .toList();
+
+    if (connectedInstances.isEmpty) {
+      final hadTasks = _tasks.isNotEmpty;
+      _tasks = [];
+      _lastError = null;
+      if (hadTasks) {
+        notifyListeners();
+      }
+      return;
+    }
 
     try {
       _isRefreshing = true;
       _lastError = null;
 
-      final newTasks = await _fetchTasks(instance);
+      final taskGroups = await Future.wait(
+        connectedInstances.map(_fetchTasksForInstance),
+      );
+      final newTasks = taskGroups.expand((tasks) => tasks).toList()
+        ..sort(_compareTasks);
 
-      if (newTasks != null) {
-        _tasks = newTasks;
-        notifyListeners();
-      }
+      _tasks = newTasks;
+      notifyListeners();
     } catch (e, stackTrace) {
       _lastError = e.toString();
       this.e('Failed to refresh tasks', error: e, stackTrace: stackTrace);
@@ -78,17 +94,19 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     }
   }
 
-  Future<List<DownloadTask>?> _fetchTasks(Aria2Instance instance) async {
+  Future<List<DownloadTask>> _fetchTasksForInstance(
+    Aria2Instance instance,
+  ) async {
     if (instance.status != ConnectionStatus.connected) {
       this.w('Instance not connected, skipping task fetch: ${instance.name}');
-      return null;
+      return [];
     }
 
     final instanceId = instance.id;
     final isLocal = instance.type == InstanceType.builtin;
 
     try {
-      List<DownloadTask> allTasks = [];
+      final allTasks = <DownloadTask>[];
 
       final client = _getClient(instance);
       final results = await client.getDownloadStatus();
@@ -147,27 +165,50 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         error: e,
         stackTrace: stackTrace,
       );
-      return null;
+      return [];
     }
   }
 
-  void _restartTimer([Aria2Instance? instance]) {
+  int _compareTasks(DownloadTask left, DownloadTask right) {
+    final statusOrder = {
+      DownloadStatus.active: 0,
+      DownloadStatus.waiting: 1,
+      DownloadStatus.stopped: 2,
+    };
+    final leftOrder = statusOrder[left.status] ?? 99;
+    final rightOrder = statusOrder[right.status] ?? 99;
+    if (leftOrder != rightOrder) {
+      return leftOrder.compareTo(rightOrder);
+    }
+
+    if (left.instanceId != right.instanceId) {
+      return left.instanceId.compareTo(right.instanceId);
+    }
+
+    return left.name.toLowerCase().compareTo(right.name.toLowerCase());
+  }
+
+  void _restartTimer([List<Aria2Instance> instances = const []]) {
     stopPeriodicRefresh();
 
-    if (instance != null && instance.status == ConnectionStatus.connected) {
+    final connectedInstances = instances
+        .where((instance) => instance.status == ConnectionStatus.connected)
+        .toList();
+
+    if (connectedInstances.isNotEmpty) {
       this.i(
-        'Preparing to start timer: ${instance.name}, fixed interval ${_refreshInterval}ms',
+        'Preparing to start timer for ${connectedInstances.length} connected instance(s), fixed interval ${_refreshInterval}ms',
       );
       _refreshTimer = Timer.periodic(Duration(milliseconds: _refreshInterval), (
         timer,
       ) {
         if (timer.isActive && !_isRefreshing) {
           this.d('Timer triggered task refresh');
-          refreshTasks(instance);
+          refreshTasks(connectedInstances);
         }
       });
       this.i(
-        'Timer started successfully: ${instance.name}, interval ${_refreshInterval}ms',
+        'Timer started successfully for ${connectedInstances.length} connected instance(s), interval ${_refreshInterval}ms',
       );
     }
   }

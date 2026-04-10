@@ -1,23 +1,21 @@
+import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart' as p;
-import 'package:fl_lib/fl_lib.dart';
-import '../../../services/instance_manager.dart';
+
+import '../../../models/aria2_instance.dart';
 import '../../../services/aria2_rpc_client.dart';
 import '../../../services/download_data_service.dart';
-import '../../../models/aria2_instance.dart';
-import '../models/download_task.dart';
+import '../../../services/instance_manager.dart';
 import '../enums.dart';
+import '../models/download_task.dart';
 
 void _logE(String message) {
   lprint('[TaskActionDialogs] $message');
 }
 
-/// Task operation type enumeration
 enum TaskActionType { resume, pause, delete }
 
-/// Task operation dialog component class
 class TaskActionDialogs {
-  /// Show task operation dialog
   static Future<void> showTaskActionDialog(
     BuildContext context,
     TaskActionType actionType, {
@@ -35,31 +33,39 @@ class TaskActionDialogs {
 
     final String title;
     final String allInstancesText;
-    final String instanceActionText;
-    final List<Aria2Instance> targetInstances;
+    final String instanceActionPrefix;
+    final targetInstances = instanceManager.getConnectedInstances();
 
     switch (actionType) {
       case TaskActionType.resume:
-        title = '继续任务';
-        allInstancesText = '继续所有实例的任务';
-        instanceActionText = '继续实例 "';
-        targetInstances = instanceManager.getConnectedInstances();
+        title = 'Resume tasks';
+        allInstancesText = 'Resume tasks across all connected instances';
+        instanceActionPrefix = 'Resume tasks in ';
         break;
       case TaskActionType.pause:
-        title = '暂停任务';
-        allInstancesText = '暂停所有实例的任务';
-        instanceActionText = '暂停实例 "';
-        targetInstances = instanceManager.getConnectedInstances();
+        title = 'Pause tasks';
+        allInstancesText = 'Pause tasks across all connected instances';
+        instanceActionPrefix = 'Pause tasks in ';
         break;
       case TaskActionType.delete:
-        title = '删除任务';
-        allInstancesText = '删除所有实例的任务';
-        instanceActionText = '删除实例 "';
-        targetInstances = instanceManager.getConnectedInstances();
+        title = 'Delete tasks';
+        allInstancesText = 'Delete tasks across all connected instances';
+        instanceActionPrefix = 'Delete tasks in ';
         break;
     }
 
     final allTasks = tasks ?? downloadDataService.tasks;
+
+    if (targetInstances.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No connected instances are available for this action.',
+          ),
+        ),
+      );
+      return;
+    }
 
     showDialog(
       context: context,
@@ -72,9 +78,14 @@ class TaskActionDialogs {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Text(
+                'Choose where to apply this action.',
+                style: Theme.of(dialogContext).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 12),
               buildDialogOption(
                 dialogContext,
-                allInstancesText,
+                '$allInstancesText (${allTasks.length})',
                 onTap: () async {
                   Navigator.pop(dialogContext);
                   await _performActionForAllInstances(
@@ -90,13 +101,13 @@ class TaskActionDialogs {
               const SizedBox(height: 8),
               ...targetInstances.map((instance) {
                 final instanceTasks = allTasks
-                    .where((t) => t.instanceId == instance.id)
+                    .where((task) => task.instanceId == instance.id)
                     .toList();
                 return Column(
                   children: [
                     buildDialogOption(
                       dialogContext,
-                      '$instanceActionText${instance.name}" 的任务 (${instanceTasks.length})',
+                      '$instanceActionPrefix${instance.name} (${instanceTasks.length})',
                       onTap: () async {
                         Navigator.pop(dialogContext);
                         await _performActionForInstance(
@@ -116,7 +127,7 @@ class TaskActionDialogs {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('取消'),
+              child: const Text('Cancel'),
             ),
           ],
         );
@@ -124,7 +135,6 @@ class TaskActionDialogs {
     );
   }
 
-  /// Build dialog option
   static Widget buildDialogOption(
     BuildContext context,
     String text, {
@@ -140,7 +150,6 @@ class TaskActionDialogs {
     );
   }
 
-  /// Perform action for all instances
   static Future<void> _performActionForAllInstances(
     TaskActionType actionType,
     List<DownloadTask> allTasks,
@@ -150,13 +159,12 @@ class TaskActionDialogs {
 
     for (final instance in connectedInstances) {
       final instanceTasks = allTasks
-          .where((t) => t.instanceId == instance.id)
+          .where((task) => task.instanceId == instance.id)
           .toList();
       await _performActionForInstance(instance, actionType, instanceTasks);
     }
   }
 
-  /// Perform action for single instance
   static Future<void> _performActionForInstance(
     Aria2Instance instance,
     TaskActionType actionType,
@@ -168,8 +176,8 @@ class TaskActionDialogs {
     }
 
     Aria2RpcClient? client;
-    int successCount = 0;
-    int failCount = 0;
+    var successCount = 0;
+    var failCount = 0;
 
     try {
       client = Aria2RpcClient(instance);

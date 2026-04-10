@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../enums.dart';
 import 'task_action_dialogs.dart';
 
-/// Filter selector component, responsible for displaying and managing download task filter options
 class FilterSelector extends StatelessWidget {
   final CategoryType currentCategoryType;
   final FilterOption selectedFilter;
@@ -28,16 +28,20 @@ class FilterSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        border: Border(bottom: BorderSide(color: colorScheme.surfaceContainerHighest)),
+        border: Border(
+          bottom: BorderSide(color: colorScheme.surfaceContainerHighest),
+        ),
       ),
-      child: Row(
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          // Category button - always displayed, used to switch category methods
           FilledButton.tonal(
             onPressed: () => _showCategoryDialog(context),
             style: FilledButton.styleFrom(
@@ -53,67 +57,57 @@ class FilterSelector extends StatelessWidget {
               ],
             ),
           ),
-          // Only display filter tags when not in 'all' category
-          if (currentCategoryType != CategoryType.all) 
-            const SizedBox(width: 12),
-          // Dynamically display filter tags based on current category
-          if (currentCategoryType != CategoryType.all) 
-            // Special handling for instance category
-            if (currentCategoryType == CategoryType.byInstance)
+          if (currentCategoryType != CategoryType.all)
+            if (currentCategoryType == CategoryType.byInstance) ...[
+              FilterChip(
+                label: const Text('All instances'),
+                selected: selectedInstanceId == null,
+                onSelected: (_) => onInstanceSelected(null),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
               ..._getInstanceFilterOptions().map((instanceId) {
                 final isSelected = selectedInstanceId == instanceId;
                 final instanceColor = colorScheme.tertiary;
-                final instanceName = instanceNames[instanceId] ?? '未知实例';
-                
-                return Row(
-                  children: [
-                    FilterChip(
-                      label: Text(
-                        instanceName,
-                        style: TextStyle(
-                          color: instanceColor,
-                        ),
-                      ),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        onInstanceSelected(selected ? instanceId : null);
-                      },
-                      selectedColor: instanceColor.withValues(alpha: 0.1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
+                final instanceName =
+                    instanceNames[instanceId] ?? 'Unknown instance';
+
+                return FilterChip(
+                  label: Text(
+                    instanceName,
+                    style: TextStyle(color: instanceColor),
+                  ),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    onInstanceSelected(selected ? instanceId : null);
+                  },
+                  selectedColor: instanceColor.withValues(alpha: 0.1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 );
-              })
-            else
+              }),
+            ] else
               ..._getFilterOptionsForCurrentCategory().map((option) {
                 final isSelected = selectedFilter == option;
                 final filterColor = _getFilterColor(option, colorScheme);
-                
-                return Row(
-                  children: [
-                    FilterChip(
-                      label: Text(
-                        _getFilterText(option),
-                        style: TextStyle(
-                          color: filterColor,
-                        ),
-                      ),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (selected) {
-                          onFilterChanged(option);
-                        }
-                      },
-                      selectedColor: filterColor.withValues(alpha: 0.1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
+
+                return FilterChip(
+                  label: Text(
+                    _getFilterText(option),
+                    style: TextStyle(color: filterColor),
+                  ),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    if (selected) {
+                      onFilterChanged(option);
+                    }
+                  },
+                  selectedColor: filterColor.withValues(alpha: 0.1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 );
               }),
         ],
@@ -121,31 +115,28 @@ class FilterSelector extends StatelessWidget {
     );
   }
 
-  // Show category selection dialog
   void _showCategoryDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('选择分类方式'),
+          title: const Text('Choose a category'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // All options
               TaskActionDialogs.buildDialogOption(
                 context,
-                '全部',
+                'All tasks',
                 onTap: () {
                   onCategoryChanged(CategoryType.all);
                   Navigator.pop(context);
                 },
               ),
               const SizedBox(height: 8),
-              // By status
               TaskActionDialogs.buildDialogOption(
                 context,
-                '按状态',
+                'By status',
                 onTap: () {
                   onCategoryChanged(CategoryType.byStatus);
                   onFilterChanged(FilterOption.active);
@@ -153,10 +144,9 @@ class FilterSelector extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 8),
-              // By type
               TaskActionDialogs.buildDialogOption(
                 context,
-                '按类型',
+                'By type',
                 onTap: () {
                   onCategoryChanged(CategoryType.byType);
                   onFilterChanged(FilterOption.local);
@@ -164,13 +154,12 @@ class FilterSelector extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 8),
-              // By instance
               TaskActionDialogs.buildDialogOption(
                 context,
-                '按实例',
+                'By instance',
                 onTap: () {
                   onCategoryChanged(CategoryType.byInstance);
-                  onInstanceSelected(null); // reset selected instance
+                  onInstanceSelected(null);
                   Navigator.pop(context);
                 },
               ),
@@ -181,60 +170,59 @@ class FilterSelector extends StatelessWidget {
     );
   }
 
-  // Get current category display text
   String _getCurrentCategoryText() {
     switch (currentCategoryType) {
       case CategoryType.all:
-        return '全部';
+        return 'All tasks';
       case CategoryType.byStatus:
-        return '按状态';
+        return 'By status';
       case CategoryType.byType:
-        return '按类型';
+        return 'By type';
       case CategoryType.byInstance:
-        return '按实例';
+        return 'By instance';
     }
   }
 
-  // Get instance ID list as filter options
   List<String> _getInstanceFilterOptions() {
     return instanceIds;
   }
 
-  // Get filter options based on current category
   List<FilterOption> _getFilterOptionsForCurrentCategory() {
     switch (currentCategoryType) {
       case CategoryType.byStatus:
-        return [FilterOption.active, FilterOption.waiting, FilterOption.stopped];
+        return [
+          FilterOption.active,
+          FilterOption.waiting,
+          FilterOption.stopped,
+        ];
       case CategoryType.byType:
         return [FilterOption.local, FilterOption.remote];
       case CategoryType.byInstance:
         return [FilterOption.instance];
-      default:
+      case CategoryType.all:
         return [];
     }
   }
 
-  // Get filter option display text
   String _getFilterText(FilterOption filter) {
     switch (filter) {
       case FilterOption.all:
-        return '全部';
+        return 'All';
       case FilterOption.active:
-        return '下载中';
+        return 'Downloading';
       case FilterOption.waiting:
-        return '等待中';
+        return 'Waiting';
       case FilterOption.stopped:
-        return '已停止 / 已完成';
+        return 'Stopped / Completed';
       case FilterOption.local:
-        return '内建';
+        return 'Built-in';
       case FilterOption.remote:
-        return '远程';
+        return 'Remote';
       case FilterOption.instance:
-        return '实例';
+        return 'Instance';
     }
   }
 
-  // Get filter option color
   Color _getFilterColor(FilterOption filter, ColorScheme colorScheme) {
     switch (filter) {
       case FilterOption.all:

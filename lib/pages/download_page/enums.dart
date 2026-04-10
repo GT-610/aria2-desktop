@@ -2,26 +2,29 @@
 
 /// Define download task status enum
 enum DownloadStatus {
-  active,   // Active
-  waiting,  // Waiting
-  stopped   // Stopped
+  active, // Active
+  waiting, // Waiting
+  stopped, // Stopped
 }
 
 /// Define category type enum
 enum CategoryType {
-  all,      // All
+  all, // All
   byStatus, // By status
-  byType,   // By type
-  byInstance // By instance
+  byType, // By type
+  byInstance, // By instance
 }
 
 /// Define filter option enum
 enum FilterOption {
-  all,      // All items
-  active,   // Active status
-  waiting,  // Waiting status
-  stopped,  // Stopped status
-  local,    // Local type
-  remote,   // Remote type
+  all, // All items
+  active, // Active status
+  waiting, // Waiting status
+  stopped, // Stopped status
+  local, // Local type
+  remote, // Remote type
   instance, // Instance filter (dynamic)
 }
+
+/// Define task sort option enum
+enum TaskSortOption { name, progress, size, speed, instance }
