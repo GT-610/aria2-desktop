@@ -37,8 +37,9 @@ class SettingsService extends ChangeNotifier with Loggable {
       'bt-save-metadata': settings.btSaveMetadata.toString(),
       'bt-require-crypto': settings.btForceEncryption.toString(),
       'bt-load-saved-metadata': settings.btLoadSavedMetadata.toString(),
-      'seed-time': settings.seedTime.toString(),
-      'seed-ratio': settings.seedRatio.toString(),
+      'seed-time': (settings.keepSeeding ? 0 : settings.seedTime).toString(),
+      'seed-ratio': (settings.keepSeeding ? 0.0 : settings.seedRatio)
+          .toString(),
       'bt-exclude-tracker': settings.btExcludeTracker,
       'dht-listen-port': settings.dhtListenPort.toString(),
       'enable-dht6': settings.enableDht6.toString(),

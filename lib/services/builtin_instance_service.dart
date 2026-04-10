@@ -105,6 +105,9 @@ class BuiltinInstanceService with Loggable {
     final settings = _readSettingsSnapshot();
     final rpcPort = _getConfiguredRpcPort();
     final rpcSecret = _getConfiguredRpcSecret();
+    final keepSeeding = settings['keepSeeding'] == true;
+    final seedTime = keepSeeding ? 0 : (settings['seedTime'] ?? 60);
+    final seedRatio = keepSeeding ? 0.0 : (settings['seedRatio'] ?? 1.0);
 
     final args = <String>[
       '--enable-rpc',
@@ -130,8 +133,8 @@ class BuiltinInstanceService with Loggable {
       '--check-integrity=true',
       '--remote-time=true',
       '--follow-torrent=mem',
-      '--seed-time=${settings['seedTime'] ?? 60}',
-      '--seed-ratio=${settings['seedRatio'] ?? 1.0}',
+      '--seed-time=$seedTime',
+      '--seed-ratio=$seedRatio',
       '--bt-enable-lpd=true',
       '--bt-max-peers=100',
       '--bt-require-crypto=${settings['btForceEncryption'] ?? false}',
