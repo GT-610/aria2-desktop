@@ -66,9 +66,10 @@ class DownloadDataService extends ChangeNotifier with Loggable {
 
     if (connectedInstances.isEmpty) {
       final hadTasks = _tasks.isNotEmpty;
+      final hadError = _lastError != null;
       _tasks = [];
       _lastError = null;
-      if (hadTasks) {
+      if (hadTasks || hadError) {
         notifyListeners();
       }
       return;
@@ -89,6 +90,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     } catch (e, stackTrace) {
       _lastError = e.toString();
       this.e('Failed to refresh tasks', error: e, stackTrace: stackTrace);
+      notifyListeners();
     } finally {
       _isRefreshing = false;
     }

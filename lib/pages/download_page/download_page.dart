@@ -37,7 +37,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   String _searchQuery = '';
   final Set<String> _selectedTaskKeys = <String>{};
   Timer? _refreshTimer;
-  String _lastConnectionSignature = '';
+  String? _lastShownRefreshError;
   late final TextEditingController _searchController;
 
   @override
@@ -51,20 +51,35 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    downloadDataService = Provider.of<DownloadDataService>(
+    final nextInstanceManager = Provider.of<InstanceManager>(
+      context,
+      listen: false,
+    );
+    final nextDownloadDataService = Provider.of<DownloadDataService>(
       context,
       listen: false,
     );
 
+    if (instanceManager != nextInstanceManager) {
+      instanceManager?.removeListener(_handleInstanceChanges);
+      instanceManager = nextInstanceManager;
+      instanceManager?.addListener(_handleInstanceChanges);
+    }
+
+    if (downloadDataService != nextDownloadDataService) {
+      downloadDataService?.removeListener(_handleDownloadDataChanges);
+      downloadDataService = nextDownloadDataService;
+      downloadDataService?.addListener(_handleDownloadDataChanges);
+    }
+
     _loadInstanceNames(instanceManager!);
-    instanceManager?.removeListener(_handleInstanceChanges);
-    instanceManager?.addListener(_handleInstanceChanges);
+    _updateRefreshTimer();
   }
 
   @override
   void dispose() {
     instanceManager?.removeListener(_handleInstanceChanges);
+    downloadDataService?.removeListener(_handleDownloadDataChanges);
     downloadDataService?.stopPeriodicRefresh();
     _refreshTimer?.cancel();
     _searchController.dispose();
@@ -79,6 +94,35 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       _loadInstanceNames(instanceManager!);
     }
     setState(() {});
+  }
+
+  void _handleDownloadDataChanges() {
+    if (!mounted || downloadDataService == null) {
+      return;
+    }
+
+    _pruneSelection();
+
+    final lastError = downloadDataService!.lastError;
+    if (lastError == null) {
+      _lastShownRefreshError = null;
+      return;
+    }
+
+    if (lastError == _lastShownRefreshError) {
+      return;
+    }
+
+    _lastShownRefreshError = lastError;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to refresh tasks: $lastError')),
+      );
+    });
   }
 
   void _updateRefreshTimer() {
@@ -338,25 +382,9 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
 
   @override
   Widget build(BuildContext context) {
-    final watchedInstanceManager = context.watch<InstanceManager>();
-    final lastError = context.watch<DownloadDataService>().lastError;
+    context.watch<InstanceManager>();
+    context.watch<DownloadDataService>();
     final filteredTasks = _filterTasks();
-    final connectionSignature = watchedInstanceManager.instances
-        .map((instance) => '${instance.id}:${instance.status.name}')
-        .join('|');
-
-    if (connectionSignature != _lastConnectionSignature) {
-      _lastConnectionSignature = connectionSignature;
-      _updateRefreshTimer();
-    }
-
-    if (lastError != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to refresh tasks: $lastError')),
-        );
-      });
-    }
 
     return Scaffold(
       body: Column(

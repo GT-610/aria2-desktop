@@ -211,7 +211,7 @@ class _BuiltinInstanceSettingsPageState
                     _markChanged();
                   },
                 ),
-                if (settings.keepSeeding) ...[
+                if (!settings.keepSeeding) ...[
                   _buildNumberSetting(
                     'Seed ratio',
                     settings.seedRatio.toInt(),
