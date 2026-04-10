@@ -32,7 +32,6 @@ class TaskDetailsDialog {
         var isSavingFileSelection = false;
         String? fileSelectionSourceSignature;
         Map<int, bool> fileSelection = <int, bool>{};
-        var selectedTabIndex = 0;
         var peersTaskKey = '';
         var isLoadingPeers = false;
         String? peersError;
@@ -106,9 +105,24 @@ class TaskDetailsDialog {
               if (isBtTask) const Tab(text: 'Trackers'),
               if (isBtTask) const Tab(text: 'Peers'),
             ];
+            final tabController = DefaultTabController.of(context);
+            final selectedTabIndex = tabController.index;
+            final allFilesSelected =
+                currentFiles.isNotEmpty &&
+                currentFiles.every((file) {
+                  final fileIndex = int.tryParse(file['index'].toString());
+                  if (fileIndex == null) {
+                    return (file['selected'] as String? ?? 'true') == 'true';
+                  }
+                  return fileSelection[fileIndex] ??
+                      ((file['selected'] as String? ?? 'true') == 'true');
+                });
 
             Future<void> fetchPeersIfNeeded() async {
-              if (!isBtTask || tabs[selectedTabIndex].text != 'Peers') {
+              if (!isBtTask ||
+                  selectedTabIndex < 0 ||
+                  selectedTabIndex >= tabs.length ||
+                  tabs[selectedTabIndex].text != 'Peers') {
                 return;
               }
 
@@ -188,11 +202,6 @@ class TaskDetailsDialog {
                         const SizedBox(height: 12),
                         TabBar(
                           tabs: tabs,
-                          onTap: (index) {
-                            setState(() {
-                              selectedTabIndex = index;
-                            });
-                          },
                           indicatorSize: TabBarIndicatorSize.tab,
                         ),
                         Expanded(
@@ -346,9 +355,7 @@ class TaskDetailsDialog {
                                               });
                                             },
                                             child: Text(
-                                              fileSelection.length ==
-                                                      currentFiles.length &&
-                                                  currentFiles.isNotEmpty
+                                              allFilesSelected
                                               ? l10n.allVisibleSelected
                                               : l10n.selectAllVisible,
                                             ),
