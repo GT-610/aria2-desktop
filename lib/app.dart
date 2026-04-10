@@ -4,16 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'generated/l10n/l10n.dart';
+import 'models/aria2_instance.dart';
+import 'models/settings.dart';
 import 'pages/download_page/download_page.dart';
+import 'pages/download_page/enums.dart';
 import 'pages/instance_page/instance_page.dart';
 import 'pages/settings_page/settings_page.dart';
-import 'models/global_stat.dart';
-import 'services/instance_manager.dart';
 import 'services/download_data_service.dart';
+import 'services/instance_manager.dart';
 import 'services/settings_service.dart';
 import 'services/system_tray_service.dart';
-import 'models/settings.dart';
-import 'models/aria2_instance.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -118,10 +118,7 @@ class _HomeWrapperState extends State<_HomeWrapper> {
       context,
       listen: false,
     );
-    settingsService.initialize(
-      settings,
-      instanceManager.getConnectedInstance(),
-    );
+    settingsService.initialize(settings);
 
     // Check if built-in instance failed to connect
     final builtinInstance = instanceManager.getInstanceById('builtin');
@@ -174,7 +171,6 @@ class MainWindow extends StatefulWidget {
 
 class _MainWindowState extends State<MainWindow> with WindowListener {
   int _selectedIndex = 0;
-  final GlobalStat _globalStat = GlobalStat();
   late final PageController _pageController;
   bool _switchingPage = false;
 
@@ -222,25 +218,35 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
     _switchingPage = true;
     _pageController
         .animateToPage(
-      index,
-      duration: const Duration(milliseconds: 677),
-      curve: Curves.fastLinearToSlowEaseIn,
-    )
+          index,
+          duration: const Duration(milliseconds: 677),
+          curve: Curves.fastLinearToSlowEaseIn,
+        )
         .then((_) {
-      if (mounted) {
-        _switchingPage = false;
-      }
-    });
+          if (mounted) {
+            _switchingPage = false;
+          }
+        });
   }
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> pages = [
+    final pages = [
       const DownloadPage(),
       const InstancePage(),
       const SettingsPage(),
     ];
-
+    final tasks = context.watch<DownloadDataService>().tasks;
+    final activeTasks = tasks
+        .where((task) => task.status == DownloadStatus.active)
+        .toList();
+    final waitingTasks = tasks
+        .where((task) => task.status == DownloadStatus.waiting)
+        .length;
+    final totalDownloadSpeed = activeTasks.fold<int>(
+      0,
+      (sum, task) => sum + task.downloadSpeedBytes,
+    );
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -335,7 +341,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
               children: [
                 Chip(
                   label: Text(
-                    l10n.totalSpeed(_formatSpeed(_globalStat.downloadSpeed)),
+                    l10n.totalSpeed(_formatSpeed(totalDownloadSpeed)),
                   ),
                   avatar: const Icon(Icons.speed, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
@@ -345,9 +351,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
                   ),
                 ),
                 Chip(
-                  label: Text(
-                    l10n.activeTasks(_globalStat.activeTasks.toString()),
-                  ),
+                  label: Text(l10n.activeTasks(activeTasks.length.toString())),
                   avatar: const Icon(Icons.task_alt, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.symmetric(
@@ -356,9 +360,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
                   ),
                 ),
                 Chip(
-                  label: Text(
-                    l10n.waitingTasks(_globalStat.waitingTasks.toString()),
-                  ),
+                  label: Text(l10n.waitingTasks(waitingTasks.toString())),
                   avatar: const Icon(Icons.pending, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.symmetric(

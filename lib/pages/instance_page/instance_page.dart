@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../generated/l10n/l10n.dart';
-import '../../services/instance_manager.dart';
 import '../../models/aria2_instance.dart';
-import 'components/instance_dialog.dart';
+import '../../services/instance_manager.dart';
 import 'components/instance_card.dart';
+import 'components/instance_dialog.dart';
 
 class InstancePage extends StatefulWidget {
   const InstancePage({super.key});
@@ -19,22 +20,17 @@ class _InstancePageState extends State<InstancePage> {
   bool _isConnectionInProgress = false;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.instance)),
-      body: _buildContent(),
-      floatingActionButton: _buildFAB(),
+      body: _buildInstanceListView(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _openInstanceDialog(),
+        tooltip: 'Add instance',
+        child: const Icon(Icons.add),
+      ),
     );
-  }
-
-  Widget _buildContent() {
-    return _buildInstanceListView();
   }
 
   Widget _buildInstanceListView() {
@@ -44,45 +40,46 @@ class _InstancePageState extends State<InstancePage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return instances.isEmpty
-        ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.cloud_off_outlined,
-                  size: 64,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(height: 16),
-                Text(l10n.noSavedInstances, style: theme.textTheme.bodyLarge),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.clickToAddInstance,
-                  style: TextStyle(color: colorScheme.onSurfaceVariant),
-                ),
-              ],
+    if (instances.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 64,
+              color: colorScheme.onSurfaceVariant,
             ),
-          )
-        : ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: instances.length,
-            itemBuilder: (context, index) {
-              final instance = instances[index];
+            const SizedBox(height: 16),
+            Text(l10n.noSavedInstances, style: theme.textTheme.bodyLarge),
+            const SizedBox(height: 8),
+            Text(
+              l10n.clickToAddInstance,
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      );
+    }
 
-              return InstanceCard(
-                instance: instance,
-                isSelected: _selectedInstance?.id == instance.id,
-                isChecking: _isChecking,
-                isConnectionInProgress: _isConnectionInProgress,
-                onSelect: _handleSelectInstance,
-                onCheckStatus: _handleCheckStatus,
-                onToggleConnection: _handleToggleConnection,
-                onEdit: _handleEditInstance,
-                onDelete: _handleDeleteInstance,
-              );
-            },
-          );
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: instances.length,
+      itemBuilder: (context, index) {
+        final instance = instances[index];
+        return InstanceCard(
+          instance: instance,
+          isSelected: _selectedInstance?.id == instance.id,
+          isChecking: _isChecking,
+          isConnectionInProgress: _isConnectionInProgress,
+          onSelect: _handleSelectInstance,
+          onCheckStatus: _handleCheckStatus,
+          onToggleConnection: _handleToggleConnection,
+          onEdit: _handleEditInstance,
+          onDelete: _handleDeleteInstance,
+        );
+      },
+    );
   }
 
   void _handleSelectInstance(Aria2Instance instance) {
@@ -105,13 +102,22 @@ class _InstancePageState extends State<InstancePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isOnline ? '实例在线' : '实例离线或无法连接')),
+          SnackBar(
+            content: Text(
+              isOnline
+                  ? 'Instance is reachable'
+                  : 'Instance is offline or unreachable',
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('检查状态失败: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Failed to check instance status: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -137,9 +143,9 @@ class _InstancePageState extends State<InstancePage> {
       if (instance.status == ConnectionStatus.connected) {
         await instanceManager.disconnectInstance(instance);
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('已断开连接')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Disconnected successfully')),
+          );
         }
       } else {
         await _handleConnectInstance(instance);
@@ -153,12 +159,10 @@ class _InstancePageState extends State<InstancePage> {
     }
   }
 
-  // Handle edit instance
   void _handleEditInstance(Aria2Instance instance) {
     _openInstanceDialog(instance: instance);
   }
 
-  // Handle delete instance
   Future<void> _handleDeleteInstance(Aria2Instance instance) async {
     final instanceManager = Provider.of<InstanceManager>(
       context,
@@ -167,17 +171,17 @@ class _InstancePageState extends State<InstancePage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: Text('确定要删除实例 "${instance.name}" 吗？'),
+        title: const Text('Delete instance'),
+        content: Text('Delete instance "${instance.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
-              '删除',
+              'Delete',
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
@@ -187,7 +191,6 @@ class _InstancePageState extends State<InstancePage> {
 
     if (confirmed == true) {
       try {
-        // 如果实例已连接，先断开连接
         if (instance.status == ConnectionStatus.connected) {
           await instanceManager.disconnectInstance(instance);
         }
@@ -195,22 +198,24 @@ class _InstancePageState extends State<InstancePage> {
         await instanceManager.deleteInstance(instance.id);
 
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('实例删除成功')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Instance deleted successfully')),
+          );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('删除失败: $e'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Failed to delete instance: $e'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     }
   }
 
-  // Open edit or add instance dialog
-  void _openInstanceDialog({Aria2Instance? instance}) async {
+  Future<void> _openInstanceDialog({Aria2Instance? instance}) async {
     final instanceManager = Provider.of<InstanceManager>(
       context,
       listen: false,
@@ -223,41 +228,33 @@ class _InstancePageState extends State<InstancePage> {
     if (result != null) {
       try {
         if (instance != null) {
-          // Update existing instance
           await instanceManager.updateInstance(result);
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('实例更新成功')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Instance updated successfully')),
+            );
           }
         } else {
-          // Add new instance
           await instanceManager.addInstance(result);
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('实例添加成功')));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Instance added successfully')),
+            );
           }
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('操作失败: $e'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Operation failed: $e'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     }
   }
 
-  Widget? _buildFAB() {
-    return FloatingActionButton(
-      onPressed: () => _openInstanceDialog(),
-      tooltip: '添加实例',
-      child: const Icon(Icons.add),
-    );
-  }
-
-  // Connect to instance
   Future<void> _handleConnectInstance(Aria2Instance instance) async {
     final instanceManager = Provider.of<InstanceManager>(
       context,
@@ -267,13 +264,15 @@ class _InstancePageState extends State<InstancePage> {
       final connectSuccess = await instanceManager.connectInstance(instance);
       if (mounted) {
         if (connectSuccess) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('成功连接到实例: ${instance.name}')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Connected to ${instance.name} successfully'),
+            ),
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('连接失败，请检查配置'),
+              content: Text('Connection failed. Check the instance settings.'),
               backgroundColor: Colors.red,
             ),
           );
@@ -282,7 +281,10 @@ class _InstancePageState extends State<InstancePage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('连接失败: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Connection failed: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }

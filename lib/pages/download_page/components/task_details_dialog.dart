@@ -1,181 +1,253 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../../../utils/format_utils.dart';
+import '../enums.dart';
 import '../models/download_task.dart';
 import '../utils/task_utils.dart';
-import '../enums.dart';
 
-/// Task details dialog component
 class TaskDetailsDialog {
-  /// Show task details dialog
   static Future<void> showTaskDetailsDialog(
     BuildContext context,
     DownloadTask initialTask,
     List<DownloadTask> allTasks,
+    Map<String, String> instanceNames,
     (String, Color) Function(DownloadTask, ColorScheme) getStatusInfo,
   ) async {
     showDialog(
       context: context,
       builder: (context) {
+        Timer? refreshTimer;
+
         return StatefulBuilder(
           builder: (context, setState) {
-            // Get the latest task data from the main loop's task list
             DownloadTask getLatestTaskData() {
-              // First try to find in the main loop's task list
-              final taskFromList = allTasks.firstWhere(
-                (t) => t.id == initialTask.id,
-                orElse: () => initialTask, // 如果找不到，使用传入的task作为默认值
+              return allTasks.firstWhere(
+                (task) =>
+                    task.id == initialTask.id &&
+                    task.instanceId == initialTask.instanceId,
+                orElse: () => initialTask,
               );
-              return taskFromList;
             }
-            
-            // Create a timer that refreshes every second, consistent with the main loop's refresh frequency
-            // This allows the details page to display the latest task status in real-time
-            Timer? refreshTimer;
-            refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+
+            refreshTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
               if (context.mounted) {
-                setState(() {
-                  // Trigger rebuild to get latest data from main loop
-                });
+                setState(() {});
               }
             });
-            
-            // Add cleanup operation when dialog is closed
+
             void disposeResources() {
-              if (refreshTimer != null) {
-                refreshTimer!.cancel();
-                refreshTimer = null;
-              }
+              refreshTimer?.cancel();
+              refreshTimer = null;
             }
-            
-            // Get latest task data
+
             final currentTask = getLatestTaskData();
-                  
+            final statusInfo = getStatusInfo(
+              currentTask,
+              Theme.of(context).colorScheme,
+            );
+            final progressPercent = (currentTask.progress * 100)
+                .toStringAsFixed(2);
+
             return PopScope(
               canPop: true,
-              onPopInvokedWithResult: (bool didPop, dynamic result) {
-                disposeResources();
-              },
+              onPopInvokedWithResult: (_, _) => disposeResources(),
               child: DefaultTabController(
                 length: 3,
-                initialIndex: 0,
                 child: AlertDialog(
-                  title: Text('任务详情 - ${currentTask.name}'),
+                  title: const Text('Task details'),
                   content: SizedBox(
                     width: 600,
                     height: 450,
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Tab bar
-                        TabBar(
-                          tabs: const [
-                            Tab(text: '总览'),
-                            Tab(text: '下载状态'),
-                            Tab(text: '文件列表'),
+                        Text(
+                          currentTask.name,
+                          style: Theme.of(context).textTheme.titleMedium,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Instance: ${instanceNames[currentTask.instanceId] ?? currentTask.instanceId}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 12),
+                        const TabBar(
+                          tabs: [
+                            Tab(text: 'Overview'),
+                            Tab(text: 'Pieces'),
+                            Tab(text: 'Files'),
                           ],
                           indicatorSize: TabBarIndicatorSize.tab,
                         ),
-                        // Tab content
                         Expanded(
                           child: TabBarView(
                             children: [
-                              // Overview tab - show extended details
                               SingleChildScrollView(
-                                padding: EdgeInsets.all(8),
+                                padding: const EdgeInsets.all(8),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Basic information
-                                    Text('任务ID: ${currentTask.id}'),
-                                    SizedBox(height: 8),
+                                    Text('Task ID: ${currentTask.id}'),
+                                    const SizedBox(height: 8),
                                     Row(
                                       children: [
-                                        Text('任务状态: '),
+                                        const Text('Status: '),
                                         Text(
-                                          getStatusInfo(currentTask, Theme.of(context).colorScheme).$1,
-                                          style: TextStyle(color: getStatusInfo(currentTask, Theme.of(context).colorScheme).$2),
+                                          statusInfo.$1,
+                                          style: TextStyle(
+                                            color: statusInfo.$2,
+                                          ),
                                         ),
                                       ],
                                     ),
-                                    SizedBox(height: 8),
-                                    Text('任务大小: ${currentTask.size} (${currentTask.totalLengthBytes} 字节)'),
-                                    SizedBox(height: 8),
-                                    Text('已下载: ${currentTask.completedSize} (${currentTask.completedLengthBytes} 字节)'),
-                                    SizedBox(height: 8),
-                                    Text('进度: ${(currentTask.progress * 100).toStringAsFixed(2)}%'),
-                                    SizedBox(height: 12),
-                                    // Speed information
-                                    Text('下载速度: ${currentTask.downloadSpeed} (${currentTask.downloadSpeedBytes} 字节/秒)'),
-                                    SizedBox(height: 8),
-                                    Text('上传速度: ${currentTask.uploadSpeed} (${currentTask.uploadSpeedBytes} 字节/秒)'),
-                                    SizedBox(height: 12),
-                                    // Other information
-                                    Text('连接数: ${currentTask.connections ?? '--'}'),
-                                    SizedBox(height: 8),
-                                    Text('下载路径: ${currentTask.dir ?? '--'}'),
-                                    SizedBox(height: 8),
-                                    // Show error message if any
-                                    if (currentTask.errorMessage != null && currentTask.errorMessage!.isNotEmpty) 
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Size: ${currentTask.size} (${currentTask.totalLengthBytes} bytes)',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Downloaded: ${currentTask.completedSize} (${currentTask.completedLengthBytes} bytes)',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text('Progress: $progressPercent%'),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Download speed: ${currentTask.downloadSpeed} (${currentTask.downloadSpeedBytes} bytes/s)',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Upload speed: ${currentTask.uploadSpeed} (${currentTask.uploadSpeedBytes} bytes/s)',
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Connections: ${currentTask.connections ?? '--'}',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Save location: ${currentTask.dir ?? '--'}',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Task type: ${currentTask.isLocal ? 'Built-in' : 'Remote'}',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    if (currentTask.errorMessage != null &&
+                                        currentTask.errorMessage!.isNotEmpty)
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text('错误信息: ${currentTask.errorMessage}', style: TextStyle(color: Colors.red)),
-                                          SizedBox(height: 8),
+                                          Text(
+                                            'Error: ${currentTask.errorMessage}',
+                                            style: const TextStyle(
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
                                         ],
                                       ),
-                                    // Calculate and show remaining time
-                                    if (currentTask.status == DownloadStatus.active && currentTask.downloadSpeedBytes > 0)
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('剩余时间: ${TaskUtils.calculateRemainingTime(currentTask.progress, currentTask.downloadSpeed)}'),
-                                          SizedBox(height: 8),
-                                        ],
+                                    if (currentTask.status ==
+                                            DownloadStatus.active &&
+                                        currentTask.downloadSpeedBytes > 0)
+                                      Text(
+                                        'Remaining time: ${TaskUtils.calculateRemainingTime(currentTask.progress, currentTask.downloadSpeed)}',
                                       ),
                                   ],
                                 ),
                               ),
-                               
-                              // Block information tab - implement visual display
                               SingleChildScrollView(
-                                padding: EdgeInsets.all(16),
+                                padding: const EdgeInsets.all(16),
                                 child: _buildBitfieldVisualization(currentTask),
                               ),
-                                
-                              // File information tab - display under file list tab
                               SingleChildScrollView(
-                                padding: EdgeInsets.all(8),
+                                padding: const EdgeInsets.all(8),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('文件列表:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                    SizedBox(height: 8),
-                                    if (currentTask.files != null && currentTask.files!.isNotEmpty) 
+                                    const Text(
+                                      'Files',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    if (currentTask.files != null &&
+                                        currentTask.files!.isNotEmpty)
                                       ListView.builder(
                                         shrinkWrap: true,
-                                        physics: NeverScrollableScrollPhysics(),
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
                                         itemCount: currentTask.files!.length,
                                         itemBuilder: (context, index) {
-                                          final file = currentTask.files![index];
-                                          final filePath = file['path'] as String? ?? '未知路径';
-                                          final fileName = filePath.split('/').last.split('\\').last;
-                                          final fileSize = formatBytes(int.tryParse(file['length'] as String? ?? '0') ?? 0);
-                                          final completedSize = formatBytes(int.tryParse(file['completedLength'] as String? ?? '0') ?? 0);
-                                          final selected = (file['selected'] as String? ?? 'true') == 'true';
-                                            
+                                          final file =
+                                              currentTask.files![index];
+                                          final filePath =
+                                              file['path'] as String? ??
+                                              'Unknown path';
+                                          final fileName = filePath
+                                              .split('/')
+                                              .last
+                                              .split('\\')
+                                              .last;
+                                          final fileSize = formatBytes(
+                                            int.tryParse(
+                                                  file['length'] as String? ??
+                                                      '0',
+                                                ) ??
+                                                0,
+                                          );
+                                          final completedSize = formatBytes(
+                                            int.tryParse(
+                                                  file['completedLength']
+                                                          as String? ??
+                                                      '0',
+                                                ) ??
+                                                0,
+                                          );
+                                          final selected =
+                                              (file['selected'] as String? ??
+                                                  'true') ==
+                                              'true';
+
                                           return Container(
-                                            padding: EdgeInsets.symmetric(vertical: 4),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 4,
+                                            ),
                                             decoration: BoxDecoration(
-                                              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                                              border: Border(
+                                                bottom: BorderSide(
+                                                  color: Colors.grey.shade200,
+                                                ),
+                                              ),
                                             ),
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                Text(fileName, style: TextStyle(fontWeight: selected ? FontWeight.normal : FontWeight.w300)),
+                                                Text(
+                                                  fileName,
+                                                  style: TextStyle(
+                                                    fontWeight: selected
+                                                        ? FontWeight.normal
+                                                        : FontWeight.w300,
+                                                  ),
+                                                ),
                                                 Row(
                                                   children: [
-                                                    Text('$completedSize / $fileSize'),
-                                                    if (!selected) Text(' (未选择)', style: TextStyle(color: Colors.grey)),
+                                                    Text(
+                                                      '$completedSize / $fileSize',
+                                                    ),
+                                                    if (!selected)
+                                                      const Text(
+                                                        ' (not selected)',
+                                                        style: TextStyle(
+                                                          color: Colors.grey,
+                                                        ),
+                                                      ),
                                                   ],
                                                 ),
                                               ],
@@ -184,7 +256,7 @@ class TaskDetailsDialog {
                                         },
                                       )
                                     else
-                                      Text('无文件信息'),
+                                      const Text('No file information'),
                                   ],
                                 ),
                               ),
@@ -200,7 +272,7 @@ class TaskDetailsDialog {
                         disposeResources();
                         Navigator.of(context).pop();
                       },
-                      child: const Text('关闭'),
+                      child: const Text('Close'),
                     ),
                   ],
                 ),
@@ -209,31 +281,27 @@ class TaskDetailsDialog {
           },
         );
       },
-    ).then((_) {
-      // Clear state when dialog is closed
-    });
+    );
   }
-  
-  // Build bitfield visualization
+
   static Widget _buildBitfieldVisualization(DownloadTask task) {
-    // Get bitfield directly from task object
-    String? bitfield = task.bitfield;
-    
+    final bitfield = task.bitfield;
+
     if (bitfield == null || bitfield.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.info_outline, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            Icon(Icons.info_outline, size: 64, color: Colors.grey[600]),
+            const SizedBox(height: 16),
             Text(
-              '当前任务没有区块信息',
+              'No piece information available for this task.',
               style: TextStyle(fontSize: 16, color: Colors.grey[700]),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              '任务可能尚未开始或没有可用的区块数据',
+              'The task may not have started yet, or Aria2 did not expose piece data.',
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
@@ -241,137 +309,73 @@ class TaskDetailsDialog {
         ),
       );
     }
-    
-    // Parse bitfield into piece status array
-    List<int> pieces = _parseHexBitfield(bitfield);
-    
-    // Calculate statistics
-    int totalPieces = pieces.length;
-    int completedPieces = pieces.where((piece) => piece == 15).length; // 完全下载完成 (f)
-    int partialPieces = pieces.where((piece) => piece > 0 && piece < 15).length; // 部分下载 (1-14)
-    int missingPieces = pieces.where((piece) => piece == 0).length; // 未下载 (0)
-    
-    // Calculate completion percentage
-    double completionPercentage = totalPieces > 0 
-      ? ((completedPieces + partialPieces * 0.5) / totalPieces) * 100 
-      : 0;
-    
+
+    final pieces = _parseHexBitfield(bitfield);
+    final totalPieces = pieces.length;
+    final completedPieces = pieces.where((piece) => piece == 15).length;
+    final partialPieces = pieces
+        .where((piece) => piece > 0 && piece < 15)
+        .length;
+    final missingPieces = pieces.where((piece) => piece == 0).length;
+    final completionPercentage = totalPieces > 0
+        ? ((completedPieces + partialPieces * 0.5) / totalPieces) * 100
+        : 0.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Statistics
         Card(
           elevation: 2,
-          margin: EdgeInsets.only(bottom: 16),
+          margin: const EdgeInsets.only(bottom: 16),
           child: Padding(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('区块统计:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('总区块数:'),
-                    Text('$totalPieces'),
-                  ],
+                const Text(
+                  'Piece statistics',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(width: 12, height: 12, color: Colors.green, margin: EdgeInsets.only(right: 8)),
-                        Text('已完成:'),
-                      ],
-                    ),
-                    Text('$completedPieces'),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(width: 12, height: 12, color: Colors.yellow, margin: EdgeInsets.only(right: 8)),
-                        Text('部分完成:'),
-                      ],
-                    ),
-                    Text('$partialPieces'),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(width: 12, height: 12, color: Colors.grey, margin: EdgeInsets.only(right: 8)),
-                        Text('未下载:'),
-                      ],
-                    ),
-                    Text('$missingPieces'),
-                  ],
-                ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
+                _buildStatRow('Total pieces', '$totalPieces'),
+                _buildStatRow('Completed', '$completedPieces', Colors.green),
+                _buildStatRow('Partial', '$partialPieces', Colors.yellow),
+                _buildStatRow('Missing', '$missingPieces', Colors.grey),
+                const SizedBox(height: 8),
                 LinearProgressIndicator(
                   value: completionPercentage / 100,
                   backgroundColor: Colors.grey.shade200,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                 ),
-                SizedBox(height: 4),
-                Text('区块完成度: ${completionPercentage.toStringAsFixed(2)}%', textAlign: TextAlign.right),
+                const SizedBox(height: 4),
+                Text('Completion: ${completionPercentage.toStringAsFixed(2)}%'),
               ],
             ),
           ),
         ),
-        
-        // Download status visual grid
-        Text('下载状态分布:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        SizedBox(height: 12),
+        const Text(
+          'Piece map',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 12),
         _buildPiecesGrid(pieces),
-        
-        // Legend explanation
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         Card(
           elevation: 1,
           child: Padding(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('图例说明:', style: TextStyle(fontWeight: FontWeight.bold)),
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(width: 12, height: 12, color: Colors.green, margin: EdgeInsets.only(right: 8)),
-                    Text('完全下载完成 (f)'),
-                  ],
+                const Text(
+                  'Legend',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                Row(
-                  children: [
-                    Container(width: 12, height: 12, color: Colors.lightGreen, margin: EdgeInsets.only(right: 8)),
-                    Text('高完成度 (8-b)'),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Container(width: 12, height: 12, color: Colors.yellow, margin: EdgeInsets.only(right: 8)),
-                    Text('中等完成度 (4-7)'),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Container(width: 12, height: 12, color: Colors.orange, margin: EdgeInsets.only(right: 8)),
-                    Text('低完成度 (1-3)'),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Container(width: 12, height: 12, color: Colors.grey, margin: EdgeInsets.only(right: 8)),
-                    Text('未下载 (0)'),
-                  ],
-                ),
+                const SizedBox(height: 8),
+                _buildLegendRow(Colors.green, 'Completed (f)'),
+                _buildLegendRow(Colors.lightGreen, 'High progress (8-b)'),
+                _buildLegendRow(Colors.yellow, 'Medium progress (4-7)'),
+                _buildLegendRow(Colors.orange, 'Low progress (1-3)'),
+                _buildLegendRow(Colors.grey, 'Missing (0)'),
               ],
             ),
           ),
@@ -380,72 +384,103 @@ class TaskDetailsDialog {
     );
   }
 
-  // Parse hexadecimal bitfield into piece status array
+  static Widget _buildStatRow(String label, String value, [Color? color]) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            if (color != null) ...[
+              Container(
+                width: 12,
+                height: 12,
+                margin: const EdgeInsets.only(right: 8),
+                color: color,
+              ),
+            ],
+            Text(label),
+          ],
+        ),
+        Text(value),
+      ],
+    );
+  }
+
+  static Widget _buildLegendRow(Color color, String text) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          margin: const EdgeInsets.only(right: 8),
+          color: color,
+        ),
+        Text(text),
+      ],
+    );
+  }
+
   static List<int> _parseHexBitfield(String bitfield) {
-    List<int> pieces = [];
-    
-    // Each character represents a piece's status (0-f)
-    for (int i = 0; i < bitfield.length; i++) {
-      String hexChar = bitfield[i];
+    final pieces = <int>[];
+    for (var i = 0; i < bitfield.length; i++) {
       try {
-        int pieceValue = int.parse(hexChar, radix: 16);
-        pieces.add(pieceValue);
-      } catch (e) {
-        // If parsing fails, default to not downloaded
+        pieces.add(int.parse(bitfield[i], radix: 16));
+      } catch (_) {
         pieces.add(0);
       }
     }
-    
     return pieces;
   }
-  
-  // Build pieces grid visualization
+
   static Widget _buildPiecesGrid(List<int> pieces) {
-    // Determine grid size based on number of pieces
-    double pieceSize = pieces.length > 1000 ? 4.0 : (pieces.length > 500 ? 6.0 : 8.0);
-    
+    final pieceSize = pieces.length > 1000
+        ? 4.0
+        : (pieces.length > 500 ? 6.0 : 8.0);
+
     return Wrap(
-      spacing: 1.0,
-      runSpacing: 1.0,
+      spacing: 1,
+      runSpacing: 1,
       children: List.generate(pieces.length, (index) {
         return Container(
           width: pieceSize,
           height: pieceSize,
           decoration: BoxDecoration(
             color: _getPieceColor(pieces[index]),
-            border: Border.all(width: 0.5, color: Colors.black.withValues(alpha: 0.1)),
+            border: Border.all(
+              width: 0.5,
+              color: Colors.black.withValues(alpha: 0.1),
+            ),
           ),
         );
       }),
     );
   }
-  
-  // Get corresponding color based on piece value
+
   static Color _getPieceColor(int pieceValue) {
     switch (pieceValue) {
       case 0:
-        return Colors.grey; // 未下载
+        return Colors.grey;
       case 1:
       case 2:
       case 3:
-        return Colors.orange; // 低完成度
+        return Colors.orange;
       case 4:
       case 5:
       case 6:
       case 7:
-        return Colors.yellow; // 中等完成度
+        return Colors.yellow;
       case 8:
       case 9:
       case 10:
       case 11:
-        return Colors.lightGreen; // 高完成度
+        return Colors.lightGreen;
       case 12:
       case 13:
       case 14:
       case 15:
-        return Colors.green; // 完全下载完成
+        return Colors.green;
       default:
-        return Colors.grey; // 默认未下载
+        return Colors.grey;
     }
   }
 }

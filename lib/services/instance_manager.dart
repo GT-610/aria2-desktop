@@ -36,6 +36,28 @@ class InstanceManager extends ChangeNotifier with Loggable {
         .toList();
   }
 
+  /// Get the built-in instance if it exists
+  Aria2Instance? getBuiltinInstance() {
+    try {
+      return _instances.firstWhere(
+        (instance) => instance.type == InstanceType.builtin,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Prefer the connected built-in instance, otherwise use the first connected instance.
+  Aria2Instance? getPreferredTargetInstance() {
+    final connectedInstances = getConnectedInstances();
+    for (final instance in connectedInstances) {
+      if (instance.type == InstanceType.builtin) {
+        return instance;
+      }
+    }
+    return connectedInstances.isNotEmpty ? connectedInstances.first : null;
+  }
+
   /// Get program data directory
   Directory _getDataDirectory() {
     // Get the executable path
@@ -92,6 +114,8 @@ class InstanceManager extends ChangeNotifier with Loggable {
         await _saveInstances();
         this.i('Migrated builtin instance protocol from http to ws');
       }
+
+      await refreshBuiltinInstanceConfig();
 
       // Automatically connect to built-in instance on startup
       final builtinInstance = _instances.firstWhere(
@@ -290,8 +314,15 @@ class InstanceManager extends ChangeNotifier with Loggable {
   /// Connect to instance
   Future<bool> connectInstance(Aria2Instance instance) async {
     try {
+      var resolvedInstance = instance;
+
       // If it's a built-in instance, start the process first
       if (instance.type == InstanceType.builtin) {
+        await refreshBuiltinInstanceConfig(
+          preserveStatus: instance.status,
+          preserveVersion: instance.version,
+        );
+        resolvedInstance = getBuiltinInstance() ?? instance;
         this.i('Connecting to built-in instance, starting Aria2 process...');
         final isStarted = await _builtinInstanceService.startInstance();
         if (!isStarted) {
@@ -305,10 +336,10 @@ class InstanceManager extends ChangeNotifier with Loggable {
       }
 
       // Test connection
-      final canConnect = await checkConnection(instance);
+      final canConnect = await checkConnection(resolvedInstance);
       if (!canConnect) {
         this.w(
-          'Connection test failed, cannot connect to instance: ${instance.name}',
+          'Connection test failed, cannot connect to instance: ${resolvedInstance.name}',
         );
 
         // If it's a built-in instance, stop the process if it was started
@@ -321,7 +352,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
       }
 
       // Create RPC client to get version information
-      final client = Aria2RpcClient(instance);
+      final client = Aria2RpcClient(resolvedInstance);
       String? version;
       try {
         version = await client.getVersion();
@@ -344,11 +375,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
       }
 
       this.d(
-        'Instance connection status set - Instance: ${instance.name}, Status: ${ConnectionStatus.connected}',
+        'Instance connection status set - Instance: ${resolvedInstance.name}, Status: ${ConnectionStatus.connected}',
       );
 
       await _saveInstances();
-      this.i('Successfully connected to instance: ${instance.name}');
+      this.i('Successfully connected to instance: ${resolvedInstance.name}');
       notifyListeners();
 
       return true;
@@ -412,5 +443,30 @@ class InstanceManager extends ChangeNotifier with Loggable {
       this.d('Cannot find instance with ID $instanceId');
       return null;
     }
+  }
+
+  Future<void> refreshBuiltinInstanceConfig({
+    ConnectionStatus? preserveStatus,
+    String? preserveVersion,
+  }) async {
+    final builtinIndex = _instances.indexWhere(
+      (instance) => instance.id == 'builtin',
+    );
+    if (builtinIndex == -1) {
+      return;
+    }
+
+    final current = _instances[builtinIndex];
+    final refreshed = _builtinInstanceService
+        .getBuiltinInstanceConfig()
+        .copyWith(
+          status: preserveStatus ?? current.status,
+          version: preserveVersion ?? current.version,
+          errorMessage: current.errorMessage,
+        );
+
+    _instances[builtinIndex] = refreshed;
+    await _saveInstances();
+    notifyListeners();
   }
 }

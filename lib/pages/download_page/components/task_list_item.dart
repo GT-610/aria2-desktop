@@ -1,23 +1,17 @@
-// Flutter & third-party packages
 import 'package:flutter/material.dart';
 
-// Models
-import '../models/download_task.dart';
+import '../../../utils/format_utils.dart';
 import '../enums.dart';
-
-// Services
+import '../models/download_task.dart';
 import '../services/download_task_service.dart';
 
-// Utilities
-import '../../../utils/format_utils.dart';
-
-// Task list item component for displaying individual download tasks
 class TaskListItem extends StatelessWidget {
   final DownloadTask task;
   final Map<String, String> instanceNames;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
   final bool isSelected;
+  final bool showSelectionControl;
   final VoidCallback onTaskUpdated;
   final Function(DownloadTask) onOpenDirectory;
 
@@ -28,33 +22,29 @@ class TaskListItem extends StatelessWidget {
     required this.onTap,
     this.onLongPress,
     this.isSelected = false,
+    this.showSelectionControl = false,
     required this.onTaskUpdated,
     required this.onOpenDirectory,
   });
 
-  // Get instance name by ID
   String _getInstanceName(String instanceId) {
-    return instanceNames[instanceId] ?? '未知实例';
+    return instanceNames[instanceId] ?? 'Unknown instance';
   }
 
-  // Handle task pause
   Future<void> _handlePauseTask(BuildContext context) async {
-    await DownloadTaskService.pauseTask(context, task.id, onTaskUpdated);
+    await DownloadTaskService.pauseTask(context, task, onTaskUpdated);
   }
 
-  // Handle task stop
   Future<void> _handleStopTask(BuildContext context) async {
-    await DownloadTaskService.stopTask(context, task.id, onTaskUpdated);
+    await DownloadTaskService.stopTask(context, task, onTaskUpdated);
   }
 
-  // Handle task resume
   Future<void> _handleResumeTask(BuildContext context) async {
-    await DownloadTaskService.resumeTask(context, task.id, onTaskUpdated);
+    await DownloadTaskService.resumeTask(context, task, onTaskUpdated);
   }
 
-  // Handle task retry
-  Future<void> _handleRetryTask(BuildContext context) async {
-    await DownloadTaskService.retryTask(context, task, onTaskUpdated);
+  Future<void> _handleRemoveFailedTask(BuildContext context) async {
+    await DownloadTaskService.removeFailedTask(context, task, onTaskUpdated);
   }
 
   @override
@@ -71,7 +61,15 @@ class TaskListItem extends StatelessWidget {
       elevation: 1,
       shadowColor: colorScheme.shadow,
       surfaceTintColor: colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: isSelected
+          ? colorScheme.primaryContainer.withValues(alpha: 0.35)
+          : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: isSelected
+            ? BorderSide(color: colorScheme.primary, width: 1.2)
+            : BorderSide.none,
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
@@ -81,12 +79,21 @@ class TaskListItem extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Task name and status icon
               Row(
                 children: [
+                  if (showSelectionControl) ...[
+                    Icon(
+                      isSelected
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 12),
+                  ],
                   DownloadTaskService.getStatusIcon(task, statusColor),
                   const SizedBox(width: 12),
-                  // Progress percentage - styled like download speed
                   if (task.progress > 0)
                     Container(
                       margin: const EdgeInsets.only(right: 8),
@@ -98,17 +105,13 @@ class TaskListItem extends StatelessWidget {
                         color: statusColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Row(
-                        children: [
-                          Text(
-                            '${(task.progress * 100).toInt()}%',
-                            style: TextStyle(
-                              color: statusColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        '${(task.progress * 100).toInt()}%',
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   Expanded(
@@ -118,11 +121,9 @@ class TaskListItem extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  // Download and upload speed display
                   if (task.status == DownloadStatus.active)
                     Row(
                       children: [
-                        // Upload speed
                         Container(
                           margin: const EdgeInsets.only(right: 8),
                           padding: const EdgeInsets.symmetric(
@@ -152,7 +153,6 @@ class TaskListItem extends StatelessWidget {
                             ],
                           ),
                         ),
-                        // Download speed
                         Container(
                           margin: const EdgeInsets.only(right: 8),
                           padding: const EdgeInsets.symmetric(
@@ -184,7 +184,6 @@ class TaskListItem extends StatelessWidget {
                         ),
                       ],
                     ),
-                  // Status label
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -205,41 +204,30 @@ class TaskListItem extends StatelessWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
-              // Progress bar (shown for all statuses with slight style variation for non-active)
-              Stack(
-                children: [
-                  LinearProgressIndicator(
-                    value: task.progress,
-                    borderRadius: BorderRadius.circular(12),
-                    minHeight: 8,
-                    backgroundColor: colorScheme.surfaceContainerHighest,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      // Use tertiary color for paused tasks
-                      (task.status == DownloadStatus.waiting &&
-                              task.taskStatus == 'paused')
-                          ? colorScheme.tertiary
-                          : (task.status == DownloadStatus.active
-                                ? statusColor
-                                : statusColor.withValues(alpha: 0.6)),
-                    ),
-                  ),
-                ],
+              LinearProgressIndicator(
+                value: task.progress,
+                borderRadius: BorderRadius.circular(12),
+                minHeight: 8,
+                backgroundColor: colorScheme.surfaceContainerHighest,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  (task.status == DownloadStatus.waiting &&
+                          task.taskStatus == 'paused')
+                      ? colorScheme.tertiary
+                      : (task.status == DownloadStatus.active
+                            ? statusColor
+                            : statusColor.withValues(alpha: 0.6)),
+                ),
               ),
-
               const SizedBox(height: 8),
-
-              // Task details
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                runSpacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  // File size info and instance name
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Instance name
                       Container(
                         margin: const EdgeInsets.only(bottom: 4),
                         padding: const EdgeInsets.symmetric(
@@ -259,7 +247,6 @@ class TaskListItem extends StatelessWidget {
                           ),
                         ),
                       ),
-                      // Size info with remaining time
                       Text(
                         '${task.completedSize} / ${task.size} (${calculateRemainingTime(task.progress, task.downloadSpeed)})',
                         style: TextStyle(
@@ -269,75 +256,69 @@ class TaskListItem extends StatelessWidget {
                       ),
                     ],
                   ),
-                  // Action buttons - Dynamic based on task status
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       if (task.status == DownloadStatus.active) ...[
-                        // Pause button
                         Tooltip(
-                          message: '暂停',
+                          message: 'Pause',
                           child: IconButton(
                             icon: const Icon(Icons.pause),
                             onPressed: () => _handlePauseTask(context),
                             padding: EdgeInsets.zero,
-                            constraints: BoxConstraints(),
+                            constraints: const BoxConstraints(),
                           ),
                         ),
-                        SizedBox(width: 8), // Add spacing between buttons
-                        // Stop button
+                        const SizedBox(width: 8),
                         Tooltip(
-                          message: '停止',
+                          message: 'Stop',
                           child: IconButton(
                             icon: const Icon(Icons.stop),
                             onPressed: () => _handleStopTask(context),
                             padding: EdgeInsets.zero,
-                            constraints: BoxConstraints(),
+                            constraints: const BoxConstraints(),
                           ),
                         ),
                       ] else if (task.status == DownloadStatus.waiting) ...[
-                        // Resume button
                         Tooltip(
-                          message: '继续',
+                          message: 'Resume',
                           child: IconButton(
                             icon: const Icon(Icons.play_arrow),
                             onPressed: () => _handleResumeTask(context),
                             padding: EdgeInsets.zero,
-                            constraints: BoxConstraints(),
+                            constraints: const BoxConstraints(),
                           ),
                         ),
-                        SizedBox(width: 8), // Add spacing between buttons
-                        // Stop button
+                        const SizedBox(width: 8),
                         Tooltip(
-                          message: '停止',
+                          message: 'Stop',
                           child: IconButton(
                             icon: const Icon(Icons.stop),
                             onPressed: () => _handleStopTask(context),
                             padding: EdgeInsets.zero,
-                            constraints: BoxConstraints(),
+                            constraints: const BoxConstraints(),
                           ),
                         ),
                       ] else if (task.status == DownloadStatus.stopped &&
                           task.taskStatus != 'complete') ...[
-                        // Retry button - Don't show for completed tasks
                         Tooltip(
-                          message: '重试',
+                          message: 'Remove failed task',
                           child: IconButton(
-                            icon: const Icon(Icons.refresh),
-                            onPressed: () => _handleRetryTask(context),
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _handleRemoveFailedTask(context),
                             padding: EdgeInsets.zero,
-                            constraints: BoxConstraints(),
+                            constraints: const BoxConstraints(),
                           ),
                         ),
                       ],
-                      SizedBox(width: 8), // Add spacing between buttons
-                      // Open directory button - Show for all statuses
+                      const SizedBox(width: 8),
                       Tooltip(
-                        message: '打开下载目录',
+                        message: 'Open download directory',
                         child: IconButton(
                           icon: const Icon(Icons.folder_open),
                           onPressed: () => onOpenDirectory(task),
                           padding: EdgeInsets.zero,
-                          constraints: BoxConstraints(),
+                          constraints: const BoxConstraints(),
                         ),
                       ),
                     ],

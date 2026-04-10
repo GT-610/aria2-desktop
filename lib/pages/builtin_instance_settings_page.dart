@@ -1,8 +1,9 @@
 import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../models/settings.dart';
-import '../services/builtin_instance_service.dart';
+import '../services/instance_manager.dart';
 import '../services/settings_service.dart';
 
 class BuiltinInstanceSettingsPage extends StatefulWidget {
@@ -15,11 +16,8 @@ class BuiltinInstanceSettingsPage extends StatefulWidget {
 
 class _BuiltinInstanceSettingsPageState
     extends State<BuiltinInstanceSettingsPage> {
-  // 用于跟踪表单是否有未保存的更改
   bool _hasChanges = false;
   bool _isSaving = false;
-  final BuiltinInstanceService _builtinInstanceService =
-      BuiltinInstanceService();
 
   @override
   Widget build(BuildContext context) {
@@ -29,25 +27,19 @@ class _BuiltinInstanceSettingsPageState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('内建实例设置'),
+        title: const Text('Built-in Instance Settings'),
         backgroundColor: colorScheme.surface,
         elevation: 0,
         shadowColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            _showBackConfirmationDialog(context, settings);
-          },
+          onPressed: () => _showBackConfirmationDialog(context, settings),
         ),
         actions: [
           TextButton(
-            onPressed: _hasChanges
-                ? () async {
-                    await _saveSettings(settings);
-                  }
-                : null,
+            onPressed: _hasChanges ? () => _saveSettings(settings) : null,
             child: Text(
-              '保存',
+              'Save',
               style: TextStyle(
                 color: _hasChanges
                     ? colorScheme.primary
@@ -57,9 +49,7 @@ class _BuiltinInstanceSettingsPageState
           ),
           TextButton(
             onPressed: _hasChanges
-                ? () async {
-                    await _saveAndApplySettings(settings);
-                  }
+                ? () => _saveAndApplySettings(settings)
                 : null,
             child: _isSaving
                 ? const SizedBox(
@@ -68,7 +58,7 @@ class _BuiltinInstanceSettingsPageState
                     child: fl.SizedLoading.small,
                   )
                 : Text(
-                    '保存并应用',
+                    'Save & Apply',
                     style: TextStyle(
                       color: _hasChanges
                           ? colorScheme.primary
@@ -84,234 +74,243 @@ class _BuiltinInstanceSettingsPageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 基础设置
-            _buildSectionHeader('基础设置', theme),
+            _buildSectionHeader('Connection', theme),
             _buildCard(
+              theme: theme,
               children: [
                 _buildTextFieldSetting(
-                  'RPC监听端口',
+                  'RPC listen port',
                   settings.rpcListenPort.toString(),
                   (value) {
-                    final port = int.tryParse(value) ?? 16800;
-                    settings.setRpcListenPort(port);
-                    _hasChanges = true;
+                    settings.setRpcListenPort(int.tryParse(value) ?? 16800);
+                    _markChanged();
                   },
                   keyboardType: TextInputType.number,
-                  helperText: '默认端口：16800',
+                  helperText: 'Default: 16800',
                 ),
                 _buildTextFieldSetting(
-                  'RPC密钥',
+                  'RPC secret',
                   settings.rpcSecret,
                   (value) {
                     settings.setRpcSecret(value);
-                    _hasChanges = true;
+                    _markChanged();
                   },
                   obscureText: true,
-                  helperText: '留空则不需要密钥',
+                  helperText: 'Leave empty to disable secret auth',
                 ),
               ],
-              theme: theme,
             ),
-
-            // 传输设置
-            _buildSectionHeader('传输设置', theme),
+            _buildSectionHeader('Transfer', theme),
             _buildCard(
+              theme: theme,
               children: [
                 _buildNumberSetting(
-                  '最大并发下载数',
+                  'Max concurrent downloads',
                   settings.maxConcurrentDownloads,
                   (value) {
                     settings.setMaxConcurrentDownloads(value);
-                    _hasChanges = true;
+                    _markChanged();
                   },
                   min: 1,
                   max: 16,
                 ),
                 _buildNumberSetting(
-                  '单服务器最大连接数',
+                  'Max connections per server',
                   settings.maxConnectionPerServer,
                   (value) {
                     settings.setMaxConnectionPerServer(value);
-                    _hasChanges = true;
+                    _markChanged();
                   },
                   min: 1,
                   max: 128,
                 ),
                 _buildNumberSetting(
-                  '下载分片数',
+                  'Split count',
                   settings.split,
                   (value) {
                     settings.setSplit(value);
-                    _hasChanges = true;
+                    _markChanged();
                   },
                   min: 1,
                   max: 128,
                 ),
-                _buildSwitchSetting('允许断点续传', settings.continueDownloads, (
-                  value,
-                ) {
-                  settings.setContinueDownloads(value);
-                  _hasChanges = true;
-                }),
+                _buildSwitchSetting(
+                  'Continue unfinished downloads',
+                  settings.continueDownloads,
+                  (value) {
+                    settings.setContinueDownloads(value);
+                    _markChanged();
+                  },
+                ),
               ],
-              theme: theme,
             ),
-
-            // 速度限制
-            _buildSectionHeader('速度限制', theme),
+            _buildSectionHeader('Speed Limits', theme),
             _buildCard(
+              theme: theme,
               children: [
                 _buildNumberSetting(
-                  '全局下载限速 (KB/s)',
+                  'Max overall download limit (KB/s)',
                   settings.maxOverallDownloadLimit,
                   (value) {
                     settings.setMaxOverallDownloadLimit(value);
-                    _hasChanges = true;
+                    _markChanged();
                   },
                   min: 0,
                   max: 65535,
-                  suffix: '0表示不限速',
+                  suffix: '0 means unlimited',
                 ),
                 _buildNumberSetting(
-                  '全局上传限速 (KB/s)',
+                  'Max overall upload limit (KB/s)',
                   settings.maxOverallUploadLimit,
                   (value) {
                     settings.setMaxOverallUploadLimit(value);
-                    _hasChanges = true;
+                    _markChanged();
                   },
                   min: 0,
                   max: 65535,
-                  suffix: '0表示不限速',
+                  suffix: '0 means unlimited',
                 ),
               ],
-              theme: theme,
             ),
-
-            // BT/PT 设置
-            _buildSectionHeader('BT/PT 设置', theme),
+            _buildSectionHeader('BT / PT', theme),
             _buildCard(
+              theme: theme,
               children: [
-                _buildSwitchSetting('保存BT元数据', settings.btSaveMetadata, (
-                  value,
-                ) {
-                  settings.setBtSaveMetadata(value);
-                  _hasChanges = true;
-                }),
                 _buildSwitchSetting(
-                  '加载已保存的BT元数据',
+                  'Save BT metadata',
+                  settings.btSaveMetadata,
+                  (value) {
+                    settings.setBtSaveMetadata(value);
+                    _markChanged();
+                  },
+                ),
+                _buildSwitchSetting(
+                  'Load saved BT metadata',
                   settings.btLoadSavedMetadata,
                   (value) {
                     settings.setBtLoadSavedMetadata(value);
-                    _hasChanges = true;
+                    _markChanged();
                   },
                 ),
-                _buildSwitchSetting('强制BT加密', settings.btForceEncryption, (
-                  value,
-                ) {
-                  settings.setBtForceEncryption(value);
-                  _hasChanges = true;
-                }),
-                _buildSwitchSetting('持续做种', settings.keepSeeding, (value) {
-                  settings.setKeepSeeding(value);
-                  _hasChanges = true;
-                }),
-                AnimatedCrossFade(
-                  duration: const Duration(milliseconds: 300),
-                  crossFadeState: settings.keepSeeding
-                      ? CrossFadeState.showFirst
-                      : CrossFadeState.showSecond,
-                  firstChild: const SizedBox(height: 0),
-                  secondChild: Column(
-                    children: [
-                      _buildNumberSetting(
-                        '做种比率',
-                        settings.seedRatio.toInt(),
-                        (value) {
-                          settings.setSeedRatio(value.toDouble());
-                          _hasChanges = true;
-                        },
-                        min: 0,
-                        max: 100,
-                        suffix: '0表示无限做种',
-                      ),
-                      _buildNumberSetting(
-                        '做种时间 (分钟)',
-                        settings.seedTime,
-                        (value) {
-                          settings.setSeedTime(value);
-                          _hasChanges = true;
-                        },
-                        min: 0,
-                        max: 10080, // 7天
-                        suffix: '0表示无限做种',
-                      ),
-                    ],
-                  ),
+                _buildSwitchSetting(
+                  'Force BT encryption',
+                  settings.btForceEncryption,
+                  (value) {
+                    settings.setBtForceEncryption(value);
+                    _markChanged();
+                  },
                 ),
+                _buildSwitchSetting(
+                  'Keep seeding after completion',
+                  settings.keepSeeding,
+                  (value) {
+                    settings.setKeepSeeding(value);
+                    _markChanged();
+                  },
+                ),
+                if (!settings.keepSeeding) ...[
+                  _buildNumberSetting(
+                    'Seed ratio',
+                    settings.seedRatio.toInt(),
+                    (value) {
+                      settings.setSeedRatio(value.toDouble());
+                      _markChanged();
+                    },
+                    min: 0,
+                    max: 100,
+                    suffix: '0 means unlimited',
+                  ),
+                  _buildNumberSetting(
+                    'Seed time (minutes)',
+                    settings.seedTime,
+                    (value) {
+                      settings.setSeedTime(value);
+                      _markChanged();
+                    },
+                    min: 0,
+                    max: 10080,
+                    suffix: '0 means unlimited',
+                  ),
+                ],
                 _buildTextFieldSetting(
-                  '排除的Tracker',
+                  'Excluded trackers',
                   settings.btExcludeTracker,
                   (value) {
                     settings.setBtExcludeTracker(value);
-                    _hasChanges = true;
+                    _markChanged();
                   },
-                  helperText: '多个Tracker用逗号分隔',
+                  helperText: 'Separate multiple trackers with commas',
                   maxLines: 2,
                 ),
               ],
-              theme: theme,
             ),
-
-            // 网络设置
-            _buildSectionHeader('网络设置', theme),
+            _buildSectionHeader('Network', theme),
             _buildCard(
+              theme: theme,
               children: [
-                _buildTextFieldSetting('全局代理', settings.allProxy, (value) {
-                  settings.setAllProxy(value);
-                  _hasChanges = true;
-                }, helperText: '格式: http://proxy:port'),
-                _buildTextFieldSetting('不使用代理的地址', settings.noProxy, (value) {
-                  settings.setNoProxy(value);
-                  _hasChanges = true;
-                }, helperText: '多个地址用逗号分隔'),
+                _buildTextFieldSetting(
+                  'Global proxy',
+                  settings.allProxy,
+                  (value) {
+                    settings.setAllProxy(value);
+                    _markChanged();
+                  },
+                  helperText: 'Example: http://proxy:port',
+                ),
+                _buildTextFieldSetting(
+                  'No-proxy hosts',
+                  settings.noProxy,
+                  (value) {
+                    settings.setNoProxy(value);
+                    _markChanged();
+                  },
+                  helperText: 'Separate multiple hosts with commas',
+                ),
                 _buildNumberSetting(
-                  'DHT监听端口',
+                  'DHT listen port',
                   settings.dhtListenPort,
                   (value) {
                     settings.setDhtListenPort(value);
-                    _hasChanges = true;
+                    _markChanged();
                   },
                   min: 1024,
                   max: 65535,
                 ),
-                _buildSwitchSetting('启用DHT6', settings.enableDht6, (value) {
-                  settings.setEnableDht6(value);
-                  _hasChanges = true;
-                }),
-              ],
-              theme: theme,
-            ),
-
-            // 文件设置
-            _buildSectionHeader('文件设置', theme),
-            _buildCard(
-              children: [
-                _buildSwitchSetting('自动文件重命名', settings.autoFileRenaming, (
+                _buildSwitchSetting('Enable DHT6', settings.enableDht6, (
                   value,
                 ) {
-                  settings.setAutoFileRenaming(value);
-                  _hasChanges = true;
+                  settings.setEnableDht6(value);
+                  _markChanged();
                 }),
-                _buildSwitchSetting('允许覆盖文件', settings.allowOverwrite, (value) {
-                  settings.setAllowOverwrite(value);
-                  _hasChanges = true;
-                }),
-                _buildTextFieldSetting('用户代理', settings.userAgent, (value) {
-                  settings.setUserAgent(value);
-                  _hasChanges = true;
-                }, maxLines: 1),
               ],
+            ),
+            _buildSectionHeader('Files', theme),
+            _buildCard(
               theme: theme,
+              children: [
+                _buildSwitchSetting(
+                  'Auto rename files',
+                  settings.autoFileRenaming,
+                  (value) {
+                    settings.setAutoFileRenaming(value);
+                    _markChanged();
+                  },
+                ),
+                _buildSwitchSetting(
+                  'Allow overwrite',
+                  settings.allowOverwrite,
+                  (value) {
+                    settings.setAllowOverwrite(value);
+                    _markChanged();
+                  },
+                ),
+                _buildTextFieldSetting('User agent', settings.userAgent, (
+                  value,
+                ) {
+                  settings.setUserAgent(value);
+                  _markChanged();
+                }),
+              ],
             ),
           ],
         ),
@@ -319,7 +318,14 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 
-  // 构建节标题
+  void _markChanged() {
+    if (!_hasChanges) {
+      setState(() {
+        _hasChanges = true;
+      });
+    }
+  }
+
   Widget _buildSectionHeader(String title, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 16, 0, 8),
@@ -333,7 +339,6 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 
-  // 构建卡片容器
   Widget _buildCard({
     required List<Widget> children,
     required ThemeData theme,
@@ -368,11 +373,10 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 
-  // 构建开关设置项
   Widget _buildSwitchSetting(
     String title,
     bool value,
-    Function(bool) onChanged,
+    ValueChanged<bool> onChanged,
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -390,11 +394,10 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 
-  // 构建数字输入设置项
   Widget _buildNumberSetting(
     String title,
     int value,
-    Function(int) onChanged, {
+    ValueChanged<int> onChanged, {
     int min = 0,
     int max = 100,
     String suffix = '',
@@ -419,17 +422,10 @@ class _BuiltinInstanceSettingsPageState
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             IconButton(
-              onPressed: () {
-                if (value > min) {
-                  onChanged(value - 1);
-                }
-              },
+              onPressed: value > min ? () => onChanged(value - 1) : null,
               icon: const Icon(Icons.remove),
               iconSize: 20,
-              tooltip: '减少',
-              color: value > min
-                  ? colorScheme.onSurface
-                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+              tooltip: 'Decrease',
               splashRadius: 20,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -451,17 +447,10 @@ class _BuiltinInstanceSettingsPageState
               ),
             ),
             IconButton(
-              onPressed: () {
-                if (value < max) {
-                  onChanged(value + 1);
-                }
-              },
+              onPressed: value < max ? () => onChanged(value + 1) : null,
               icon: const Icon(Icons.add),
               iconSize: 20,
-              tooltip: '增加',
-              color: value < max
-                  ? colorScheme.onSurface
-                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+              tooltip: 'Increase',
               splashRadius: 20,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -473,11 +462,10 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 
-  // 构建文本输入设置项
   Widget _buildTextFieldSetting(
     String title,
     String initialValue,
-    Function(String) onChanged, {
+    ValueChanged<String> onChanged, {
     TextInputType keyboardType = TextInputType.text,
     bool obscureText = false,
     String helperText = '',
@@ -514,13 +502,11 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 
-  // 保存设置
   Future<void> _saveSettings(Settings settings) async {
     setState(() {
       _isSaving = true;
     });
 
-    // 保存设置到本地
     await settings.saveAllSettings();
 
     setState(() {
@@ -528,11 +514,10 @@ class _BuiltinInstanceSettingsPageState
       _isSaving = false;
     });
 
-    // 使用当前State对象的mounted属性来检查组件是否仍然挂载
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('设置已保存'),
+          content: Text('Settings saved'),
           duration: Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
@@ -540,16 +525,13 @@ class _BuiltinInstanceSettingsPageState
     }
   }
 
-  // 保存并应用设置（重启内建实例）
   Future<void> _saveAndApplySettings(Settings settings) async {
     setState(() {
       _isSaving = true;
     });
 
-    // 保存设置到本地
     await settings.saveAllSettings();
 
-    // 显示等待对话框
     if (mounted) {
       showDialog(
         context: context,
@@ -559,7 +541,9 @@ class _BuiltinInstanceSettingsPageState
             children: [
               fl.SizedLoading.medium,
               const SizedBox(width: 16),
-              Expanded(child: Text('内建实例正在重启，请稍候...')),
+              const Expanded(
+                child: Text('Restarting the built-in instance, please wait...'),
+              ),
             ],
           ),
         ),
@@ -567,21 +551,35 @@ class _BuiltinInstanceSettingsPageState
     }
 
     try {
-      // 重启内建实例
-      await _builtinInstanceService.stopInstance();
-      await Future.delayed(const Duration(milliseconds: 500)); // 等待进程完全退出
-      final success = await _builtinInstanceService.startInstance();
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
+      final builtinInstance = instanceManager.getBuiltinInstance();
+      if (builtinInstance == null) {
+        throw Exception('Built-in instance is missing');
+      }
+
+      await instanceManager.disconnectInstance(builtinInstance);
+      await Future.delayed(const Duration(milliseconds: 500));
+      final refreshedBuiltinInstance =
+          instanceManager.getBuiltinInstance() ?? builtinInstance;
+      final success = await instanceManager.connectInstance(
+        refreshedBuiltinInstance,
+      );
 
       if (mounted) {
-        Navigator.pop(context); // 关闭等待对话框
+        Navigator.pop(context);
 
         if (success) {
-          // 应用设置到 Aria2
           final settingsService = Provider.of<SettingsService>(
             context,
             listen: false,
           );
-          final applied = await settingsService.applySettingsToAria2();
+          final applied = await settingsService.applySettingsToBuiltin();
+          if (!mounted) {
+            return;
+          }
 
           setState(() {
             _hasChanges = false;
@@ -590,7 +588,11 @@ class _BuiltinInstanceSettingsPageState
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(applied ? '设置已保存并应用' : '设置已保存并重启实例，但应用设置到Aria2失败'),
+              content: Text(
+                applied
+                    ? 'Settings saved and applied successfully'
+                    : 'Settings saved and instance restarted, but applying settings via RPC failed',
+              ),
               duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
               backgroundColor: applied ? null : Colors.orange,
@@ -603,7 +605,9 @@ class _BuiltinInstanceSettingsPageState
 
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('设置保存成功，但内建实例重启失败'),
+              content: Text(
+                'Settings were saved, but restarting the built-in instance failed',
+              ),
               duration: Duration(seconds: 3),
               behavior: SnackBarBehavior.floating,
               backgroundColor: Colors.red,
@@ -613,15 +617,16 @@ class _BuiltinInstanceSettingsPageState
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context); // 关闭等待对话框
-
+        Navigator.pop(context);
         setState(() {
           _isSaving = false;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('设置保存成功，但内建实例重启时发生错误：$e'),
+            content: Text(
+              'Settings were saved, but restarting the built-in instance failed: $e',
+            ),
             duration: const Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Colors.red,
@@ -631,7 +636,6 @@ class _BuiltinInstanceSettingsPageState
     }
   }
 
-  // 显示返回确认对话框
   void _showBackConfirmationDialog(BuildContext context, Settings settings) {
     if (!_hasChanges) {
       Navigator.pop(context);
@@ -641,41 +645,41 @@ class _BuiltinInstanceSettingsPageState
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认离开'),
-        content: const Text('您有未保存的设置，确定要离开吗？'),
+        title: const Text('Leave this page?'),
+        content: const Text(
+          'You have unsaved changes. What would you like to do?',
+        ),
         actions: [
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // 关闭对话框
+              Navigator.pop(context);
               await _saveAndApplySettings(settings);
               if (mounted) {
-                Navigator.pop(this.context); // 返回上一页
+                Navigator.pop(this.context);
               }
             },
-            child: const Text('保存并应用'),
+            child: const Text('Save & Apply'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // 关闭对话框
+              Navigator.pop(context);
               await _saveSettings(settings);
               if (mounted) {
-                Navigator.pop(this.context); // 返回上一页
+                Navigator.pop(this.context);
               }
             },
-            child: const Text('保存'),
+            child: const Text('Save'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // 关闭对话框
-              Navigator.pop(this.context); // 返回上一页
+              Navigator.pop(context);
+              Navigator.pop(this.context);
             },
-            child: const Text('不保存'),
+            child: const Text('Discard'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context); // 关闭对话框
-            },
-            child: const Text('取消'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
         ],
       ),

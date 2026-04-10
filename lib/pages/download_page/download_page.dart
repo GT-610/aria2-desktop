@@ -1,31 +1,21 @@
-// Dart core imports
 import 'dart:async';
 
-// Flutter & third-party packages
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-// Services
-import '../../services/instance_manager.dart';
 import '../../services/aria2_rpc_client.dart';
 import '../../services/download_data_service.dart';
-
-// Models
-import '../../models/aria2_instance.dart';
-import 'models/download_task.dart';
-
-// Page-specific components
+import '../../services/instance_manager.dart';
+import '../../utils/logging.dart';
 import 'components/add_task_dialog.dart';
-import 'components/task_action_dialogs.dart';
 import 'components/filter_selector.dart';
+import 'components/task_action_dialogs.dart';
+import 'components/task_details_dialog.dart';
 import 'components/task_list_view.dart';
 import 'components/task_toolbar.dart';
-import 'components/task_details_dialog.dart';
-import 'services/download_task_service.dart';
-
-// Utilities
 import 'enums.dart';
-import '../../utils/logging.dart';
+import 'models/download_task.dart';
+import 'services/download_task_service.dart';
 
 class DownloadPage extends StatefulWidget {
   const DownloadPage({super.key});
@@ -37,19 +27,23 @@ class DownloadPage extends StatefulWidget {
 class _DownloadPageState extends State<DownloadPage> with Loggable {
   FilterOption _selectedFilter = FilterOption.all;
   CategoryType _currentCategoryType = CategoryType.all;
-
-  // Instance name mapping for displaying instance names
+  TaskSortOption _sortOption = TaskSortOption.name;
+  bool _sortDescending = false;
   Map<String, String> _instanceNames = {};
 
-  // InstanceManager instance
   InstanceManager? instanceManager;
-
-  // DownloadDataService instance
   DownloadDataService? downloadDataService;
+  String? _selectedInstanceId;
+  String _searchQuery = '';
+  final Set<String> _selectedTaskKeys = <String>{};
+  Timer? _refreshTimer;
+  String? _lastShownRefreshError;
+  late final TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController();
     d('DownloadPage initialized');
   }
 
@@ -57,112 +51,123 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    instanceManager = Provider.of<InstanceManager>(context, listen: false);
-    downloadDataService = Provider.of<DownloadDataService>(
+    final nextInstanceManager = Provider.of<InstanceManager>(
+      context,
+      listen: false,
+    );
+    final nextDownloadDataService = Provider.of<DownloadDataService>(
       context,
       listen: false,
     );
 
-    _loadInstanceNames(instanceManager!);
-    instanceManager?.removeListener(_handleInstanceChanges);
-    instanceManager?.addListener(_handleInstanceChanges);
+    if (instanceManager != nextInstanceManager) {
+      instanceManager?.removeListener(_handleInstanceChanges);
+      instanceManager = nextInstanceManager;
+      instanceManager?.addListener(_handleInstanceChanges);
+    }
 
-    d('DownloadPage initialized');
+    if (downloadDataService != nextDownloadDataService) {
+      downloadDataService?.removeListener(_handleDownloadDataChanges);
+      downloadDataService = nextDownloadDataService;
+      downloadDataService?.addListener(_handleDownloadDataChanges);
+    }
+
+    _loadInstanceNames(instanceManager!);
+    _updateRefreshTimer();
   }
 
   @override
   void dispose() {
-    if (instanceManager != null) {
-      instanceManager!.removeListener(_handleInstanceChanges);
-    }
-
+    instanceManager?.removeListener(_handleInstanceChanges);
+    downloadDataService?.removeListener(_handleDownloadDataChanges);
     downloadDataService?.stopPeriodicRefresh();
     _refreshTimer?.cancel();
-    _refreshTimer = null;
-
+    _searchController.dispose();
     super.dispose();
   }
 
-  // Method to handle instance status changes
   void _handleInstanceChanges() {
-    if (mounted) {
-      // Update refresh timer when instance changes
-      _updateRefreshTimer();
+    if (!mounted) return;
 
-      // Reload instance names
-      if (instanceManager != null) {
-        _loadInstanceNames(instanceManager!);
-      }
-
-      // Trigger UI rebuild
-      setState(() {});
+    _updateRefreshTimer();
+    if (instanceManager != null) {
+      _loadInstanceNames(instanceManager!);
     }
+    setState(() {});
   }
 
-  // Update the refresh timer based on the connected instance
-  void _updateRefreshTimer() {
-    if (instanceManager == null || downloadDataService == null || !mounted)
+  void _handleDownloadDataChanges() {
+    if (!mounted || downloadDataService == null) {
       return;
+    }
 
-    final connectedInstance = instanceManager!.getConnectedInstance();
+    _pruneSelection();
 
-    // Record debug information to help locate issues
-    this.d(
-      'Updating refresh timer - Connected instance: ${connectedInstance?.name}, Status: ${connectedInstance?.status}',
+    final lastError = downloadDataService!.lastError;
+    if (lastError == null) {
+      _lastShownRefreshError = null;
+      return;
+    }
+
+    if (lastError == _lastShownRefreshError) {
+      return;
+    }
+
+    _lastShownRefreshError = lastError;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to refresh tasks: $lastError')),
+      );
+    });
+  }
+
+  void _updateRefreshTimer() {
+    if (instanceManager == null || downloadDataService == null || !mounted) {
+      return;
+    }
+
+    final connectedInstances = instanceManager!.getConnectedInstances();
+    d(
+      'Updating refresh timer for ${connectedInstances.length} connected instance(s)',
     );
 
-    if (connectedInstance != null) {
-      // Start or update the refresh timer with the connected instance
-      this.d(
-        'Starting periodic refresh for instance: ${connectedInstance.name}',
-      );
-      // Store timer reference for status tracking
-      _refreshTimer = downloadDataService!.startPeriodicRefresh(
-        connectedInstance,
-      );
-      // Force an immediate refresh only when the timer starts for the first time, avoiding triggering refresh on every UI update
-      if (_refreshTimer != null) {
-        this.d('Performing initial refresh');
-        downloadDataService!.refreshTasks(connectedInstance);
-      }
-    } else {
-      // Stop the refresh timer when there's no connected instance
-      this.d('Stopping periodic refresh - No connected instance');
+    if (connectedInstances.isEmpty) {
       downloadDataService!.stopPeriodicRefresh();
-      _refreshTimer = null; // Clear timer reference
+      _refreshTimer = null;
+      return;
+    }
+
+    _refreshTimer = downloadDataService!.startPeriodicRefresh(
+      () => instanceManager?.getConnectedInstances() ?? const [],
+    );
+    if (_refreshTimer != null) {
+      downloadDataService!.refreshTasks(connectedInstances);
     }
   }
 
-  // Show task details dialog
   void _showTaskDetails(BuildContext context, DownloadTask task) {
-    // Get complete task information from the global service
-    this.d('Show task details dialog for: ${task.name} (ID: ${task.id})');
+    d('Show task details dialog for: ${task.name} (ID: ${task.id})');
 
-    // Get all tasks from the downloadDataService
-    final allTasks = downloadDataService?.tasks ?? [];
-
-    // Show the task details dialog
     TaskDetailsDialog.showTaskDetailsDialog(
       context,
       task,
-      allTasks,
+      downloadDataService?.tasks ?? [],
+      _instanceNames,
       DownloadTaskService.getStatusInfo,
     );
   }
 
-  // Load instance names
   Future<void> _loadInstanceNames(InstanceManager instanceManager) async {
     try {
-      // Get all instances
-      final instances = instanceManager.instances;
-
-      // Build mapping from instance ID to name
-      final Map<String, String> instanceMap = {};
-      for (final instance in instances) {
+      final instanceMap = <String, String>{};
+      for (final instance in instanceManager.instances) {
         instanceMap[instance.id] = instance.name;
       }
 
-      // Update state
       if (mounted) {
         setState(() {
           _instanceNames = instanceMap;
@@ -170,64 +175,68 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       }
     } catch (e, stackTrace) {
       this.e('Failed to load instance names', error: e, stackTrace: stackTrace);
-      // Notify user when error occurs
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load instance names: $e'),
-            duration: const Duration(seconds: 3),
-          ),
+          SnackBar(content: Text('Failed to load instance names: $e')),
         );
-        // Keep _instanceNames empty to avoid displaying incorrect instance information
       }
     }
   }
 
-  // Get all instance ID list
   List<String> _getAllInstanceIds() {
     if (downloadDataService == null) return [];
 
-    // Extract all unique instance IDs from tasks
     return downloadDataService!.tasks
         .map((task) => task.instanceId)
         .toSet()
         .toList();
   }
 
-  // Refresh tasks and restart timer
   void _refreshTasksAndRestartTimer() {
     if (instanceManager == null || downloadDataService == null) return;
 
-    final connectedInstance = instanceManager!.getConnectedInstance();
-    if (connectedInstance != null) {
-      // Directly refresh task data
-      downloadDataService!.refreshTasks(connectedInstance);
+    final connectedInstances = instanceManager!.getConnectedInstances();
+    if (connectedInstances.isNotEmpty) {
+      downloadDataService!.refreshTasks(connectedInstances);
+    }
+
+    _pruneSelection();
+  }
+
+  String _taskKey(DownloadTask task) => '${task.instanceId}::${task.id}';
+
+  bool get _isSelectionMode => _selectedTaskKeys.isNotEmpty;
+
+  List<DownloadTask> _selectedTasksFrom(List<DownloadTask> visibleTasks) {
+    return visibleTasks
+        .where((task) => _selectedTaskKeys.contains(_taskKey(task)))
+        .toList();
+  }
+
+  void _pruneSelection() {
+    if (downloadDataService == null || _selectedTaskKeys.isEmpty) return;
+
+    final validKeys = downloadDataService!.tasks.map(_taskKey).toSet();
+    final before = _selectedTaskKeys.length;
+    _selectedTaskKeys.removeWhere((key) => !validKeys.contains(key));
+    if (before != _selectedTaskKeys.length && mounted) {
+      setState(() {});
     }
   }
 
-  // Store currently selected instance ID
-  String? _selectedInstanceId;
-
-  // Store timer reference for checking timer status
-  Timer? _refreshTimer;
-
-  // Filter tasks based on selected criteria
   List<DownloadTask> _filterTasks() {
     if (downloadDataService == null) return [];
 
-    List<DownloadTask> tasks = downloadDataService!.tasks;
+    var tasks = List<DownloadTask>.from(downloadDataService!.tasks);
 
-    // If filtering by instance, use _selectedInstanceId
     if (_currentCategoryType == CategoryType.byInstance &&
         _selectedInstanceId != null) {
       tasks = tasks
           .where((task) => task.instanceId == _selectedInstanceId)
           .toList();
     } else {
-      // Other categories use _selectedFilter
       switch (_selectedFilter) {
         case FilterOption.all:
-          // All tasks, no filtering
           break;
         case FilterOption.active:
           tasks = tasks
@@ -245,91 +254,172 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
               .toList();
           break;
         case FilterOption.local:
-          tasks = tasks.where((task) => task.isLocal == true).toList();
+          tasks = tasks.where((task) => task.isLocal).toList();
           break;
         case FilterOption.remote:
-          tasks = tasks.where((task) => task.isLocal == false).toList();
+          tasks = tasks.where((task) => !task.isLocal).toList();
           break;
         case FilterOption.instance:
-          // Instance filtering is already handled above
           break;
       }
     }
 
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      tasks = tasks.where((task) {
+        final instanceName = (_instanceNames[task.instanceId] ?? '')
+            .toLowerCase();
+        final taskDir = (task.dir ?? '').toLowerCase();
+        final taskName = task.name.toLowerCase();
+        return taskName.contains(query) ||
+            taskDir.contains(query) ||
+            instanceName.contains(query);
+      }).toList();
+    }
+
+    tasks.sort((left, right) {
+      int result;
+      switch (_sortOption) {
+        case TaskSortOption.name:
+          result = left.name.toLowerCase().compareTo(right.name.toLowerCase());
+          break;
+        case TaskSortOption.progress:
+          result = left.progress.compareTo(right.progress);
+          break;
+        case TaskSortOption.size:
+          result = left.totalLengthBytes.compareTo(right.totalLengthBytes);
+          break;
+        case TaskSortOption.speed:
+          result = left.downloadSpeedBytes.compareTo(right.downloadSpeedBytes);
+          break;
+        case TaskSortOption.instance:
+          final leftName = _instanceNames[left.instanceId] ?? left.instanceId;
+          final rightName =
+              _instanceNames[right.instanceId] ?? right.instanceId;
+          result = leftName.toLowerCase().compareTo(rightName.toLowerCase());
+          break;
+      }
+
+      if (result == 0) {
+        result = left.id.compareTo(right.id);
+      }
+      return _sortDescending ? -result : result;
+    });
+
     return tasks;
   }
 
-  // Handle category changes
-  void _handleCategoryChanged(CategoryType newCategory) {
+  void _handleSearchChanged(String value) {
     setState(() {
-      _currentCategoryType = newCategory;
+      _searchQuery = value.trim();
     });
   }
 
-  // Handle filter option changes
+  void _handleSortChanged(TaskSortOption option) {
+    setState(() {
+      _sortOption = option;
+    });
+  }
+
+  void _handleSortDirectionChanged(bool descending) {
+    setState(() {
+      _sortDescending = descending;
+    });
+  }
+
+  void _handleCategoryChanged(CategoryType newCategory) {
+    setState(() {
+      _currentCategoryType = newCategory;
+      if (newCategory != CategoryType.byInstance) {
+        _selectedInstanceId = null;
+      }
+    });
+  }
+
   void _handleFilterChanged(FilterOption newFilter) {
     setState(() {
       _selectedFilter = newFilter;
     });
   }
 
-  // Handle instance selection changes
   void _handleInstanceSelected(String? instanceId) {
     setState(() {
       _selectedInstanceId = instanceId;
     });
   }
 
-  // Store the last connected instance ID and status for detecting real changes
-  String? _lastConnectedInstanceId;
-  ConnectionStatus? _lastConnectedInstanceStatus;
+  void _toggleTaskSelection(DownloadTask task) {
+    final key = _taskKey(task);
+    setState(() {
+      if (_selectedTaskKeys.contains(key)) {
+        _selectedTaskKeys.remove(key);
+      } else {
+        _selectedTaskKeys.add(key);
+      }
+    });
+  }
+
+  void _startTaskSelection(DownloadTask task) {
+    final key = _taskKey(task);
+    setState(() {
+      _selectedTaskKeys.add(key);
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedTaskKeys.clear();
+    });
+  }
+
+  void _selectAllVisibleTasks(List<DownloadTask> tasks) {
+    setState(() {
+      _selectedTaskKeys
+        ..clear()
+        ..addAll(tasks.map(_taskKey));
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Listen for InstanceManager changes to ensure immediate response when instance status changes
-    final instanceManager = context.watch<InstanceManager>();
-
-    // Get the latest data from DownloadDataService via Provider for responsive updates
-    final lastError = context.watch<DownloadDataService>().lastError;
-
-    // Get current connected instance information
-    final currentConnectedInstance = instanceManager.getConnectedInstance();
-    final currentInstanceId = currentConnectedInstance?.id;
-    final currentInstanceStatus = currentConnectedInstance?.status;
-
-    // Only update the timer when the connected instance truly changes (ID or status changes)
-    if (currentInstanceId != _lastConnectedInstanceId ||
-        currentInstanceStatus != _lastConnectedInstanceStatus) {
-      // Update recorded instance information
-      _lastConnectedInstanceId = currentInstanceId;
-      _lastConnectedInstanceStatus = currentInstanceStatus;
-
-      // Update refresh timer
-      _updateRefreshTimer();
-    }
-
-    // Display error message
-    if (lastError != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('获取任务数据失败: $lastError')));
-      });
-    }
+    context.watch<InstanceManager>();
+    context.watch<DownloadDataService>();
+    final filteredTasks = _filterTasks();
 
     return Scaffold(
       body: Column(
         children: [
-          // Task action toolbar
           TaskToolbar(
             onAddTask: () => _showAddTaskDialog(context),
             onPauseAll: () => _showPauseDialog(context),
             onResumeAll: () => _showResumeDialog(context),
             onDeleteAll: () => _showDeleteDialog(context),
-            onSearch: () {},
+            searchController: _searchController,
+            onSearchChanged: _handleSearchChanged,
+            sortOption: _sortOption,
+            sortDescending: _sortDescending,
+            onSortChanged: _handleSortChanged,
+            onSortDirectionChanged: _handleSortDirectionChanged,
           ),
-
-          // Filter selector
+          if (_isSelectionMode)
+            _SelectionToolbar(
+              selectedCount: _selectedTasksFrom(filteredTasks).length,
+              visibleCount: filteredTasks.length,
+              onClearSelection: _clearSelection,
+              onSelectAll: () => _selectAllVisibleTasks(filteredTasks),
+              onPauseSelected: () => _showPauseDialog(
+                context,
+                tasks: _selectedTasksFrom(filteredTasks),
+              ),
+              onResumeSelected: () => _showResumeDialog(
+                context,
+                tasks: _selectedTasksFrom(filteredTasks),
+              ),
+              onDeleteSelected: () => _showDeleteDialog(
+                context,
+                tasks: _selectedTasksFrom(filteredTasks),
+              ),
+            ),
           FilterSelector(
             currentCategoryType: _currentCategoryType,
             selectedFilter: _selectedFilter,
@@ -340,13 +430,14 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
             onFilterChanged: _handleFilterChanged,
             onInstanceSelected: _handleInstanceSelected,
           ),
-
-          // Task list - Material You style
           Expanded(
             child: TaskListView(
-              tasks: _filterTasks(),
+              tasks: filteredTasks,
               instanceNames: _instanceNames,
               onTaskTap: (task) => _showTaskDetails(context, task),
+              onTaskLongPress: _startTaskSelection,
+              onTaskSelectionToggle: _toggleTaskSelection,
+              selectedTaskKeys: _selectedTaskKeys,
               onTaskUpdated: _refreshTasksAndRestartTimer,
             ),
           ),
@@ -355,113 +446,211 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     );
   }
 
-  // Show resume dialog
-  void _showResumeDialog(BuildContext context) {
+  void _showResumeDialog(BuildContext context, {List<DownloadTask>? tasks}) {
     TaskActionDialogs.showTaskActionDialog(
       context,
       TaskActionType.resume,
-      onActionCompleted: _refreshTasksAndRestartTimer,
+      tasks: tasks,
+      onActionCompleted: () {
+        _clearSelection();
+        _refreshTasksAndRestartTimer();
+      },
     );
   }
 
-  // Show pause dialog
-  void _showPauseDialog(BuildContext context) {
+  void _showPauseDialog(BuildContext context, {List<DownloadTask>? tasks}) {
     TaskActionDialogs.showTaskActionDialog(
       context,
       TaskActionType.pause,
-      onActionCompleted: _refreshTasksAndRestartTimer,
+      tasks: tasks,
+      onActionCompleted: () {
+        _clearSelection();
+        _refreshTasksAndRestartTimer();
+      },
     );
   }
 
-  // Show delete dialog
-  void _showDeleteDialog(BuildContext context) {
+  void _showDeleteDialog(BuildContext context, {List<DownloadTask>? tasks}) {
     TaskActionDialogs.showTaskActionDialog(
       context,
       TaskActionType.delete,
-      onActionCompleted: _refreshTasksAndRestartTimer,
+      tasks: tasks,
+      onActionCompleted: () {
+        _clearSelection();
+        _refreshTasksAndRestartTimer();
+      },
     );
   }
 
-  // Show add task dialog
   void _showAddTaskDialog(BuildContext context) {
+    final instanceManager = Provider.of<InstanceManager>(
+      context,
+      listen: false,
+    );
+    final targetInstances = instanceManager.getConnectedInstances();
+    final defaultTarget = instanceManager.getPreferredTargetInstance();
+
+    if (targetInstances.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Connect the built-in instance or a remote instance before adding tasks.',
+          ),
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) {
         return AddTaskDialog(
-          onAddTask: (taskType, uri, downloadDir, fileContent) async {
-            try {
-              // Get instance manager and connected instance
-              final instanceManager = Provider.of<InstanceManager>(
-                context,
-                listen: false,
-              );
-              final connectedInstance = instanceManager.getConnectedInstance();
-
-              if (connectedInstance != null) {
-                final client = Aria2RpcClient(connectedInstance);
-
-                // Build download options
-                final options = {'dir': downloadDir};
-
-                // Add task based on task type
-                switch (taskType) {
-                  case 'uri':
-                    if (uri.isNotEmpty) {
-                      // Split URI by newlines to support multiple URLs
-                      final uris = uri
-                          .split('\n')
-                          .map((u) => u.trim())
-                          .where((u) => u.isNotEmpty)
-                          .toList();
-
-                      // Add URI task
-                      await client.addUri(uris, options);
-                    }
-                    break;
-                  case 'torrent':
-                    if (fileContent != null) {
-                      // Add torrent task with base64 encoded content
-                      await client.addTorrent(fileContent, options);
-                    }
-                    break;
-                  case 'metalink':
-                    if (fileContent != null) {
-                      // Add metalink task with base64 encoded content
-                      await client.addMetalink(fileContent, options);
-                    }
-                    break;
-                }
-
-                // Immediately refresh task list and reset timer
-                _refreshTasksAndRestartTimer();
-
-                client.close();
-
-                // Show success message
-                if (context.mounted) {
-                  ScaffoldMessenger.of(
+          targetInstances: targetInstances,
+          defaultTargetInstanceId: defaultTarget?.id,
+          onAddTask:
+              (
+                taskType,
+                uri,
+                downloadDir,
+                fileContent,
+                targetInstanceId,
+              ) async {
+                try {
+                  final instanceManager = Provider.of<InstanceManager>(
                     context,
-                  ).showSnackBar(const SnackBar(content: Text('任务添加成功')));
+                    listen: false,
+                  );
+                  final targetInstance = instanceManager.getInstanceById(
+                    targetInstanceId,
+                  );
+
+                  if (targetInstance == null) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No connected instance available'),
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
+                  final client = Aria2RpcClient(targetInstance);
+                  final options = {'dir': downloadDir};
+
+                  switch (taskType) {
+                    case 'uri':
+                      if (uri.isNotEmpty) {
+                        final uris = uri
+                            .split('\n')
+                            .map((u) => u.trim())
+                            .where((u) => u.isNotEmpty)
+                            .toList();
+                        await client.addUri(uris, options);
+                      }
+                      break;
+                    case 'torrent':
+                      if (fileContent != null) {
+                        await client.addTorrent(fileContent, options);
+                      }
+                      break;
+                    case 'metalink':
+                      if (fileContent != null) {
+                        await client.addMetalink(fileContent, options);
+                      }
+                      break;
+                  }
+
+                  client.close();
+                  _refreshTasksAndRestartTimer();
+
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Task added to ${targetInstance.name} successfully',
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e, stackTrace) {
+                  this.e(
+                    'Failed to add task',
+                    error: e,
+                    stackTrace: stackTrace,
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to add task: $e')),
+                    );
+                  }
                 }
-              } else {
-                // Show error message when no active instance
-                if (context.mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('当前没有连接的实例')));
-                }
-              }
-            } catch (e, stackTrace) {
-              this.e('Failed to add task', error: e, stackTrace: stackTrace);
-              if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('添加任务失败: $e')));
-              }
-            }
-          },
+              },
         );
       },
+    );
+  }
+}
+
+class _SelectionToolbar extends StatelessWidget {
+  final int selectedCount;
+  final int visibleCount;
+  final VoidCallback onClearSelection;
+  final VoidCallback onSelectAll;
+  final VoidCallback onPauseSelected;
+  final VoidCallback onResumeSelected;
+  final VoidCallback onDeleteSelected;
+
+  const _SelectionToolbar({
+    required this.selectedCount,
+    required this.visibleCount,
+    required this.onClearSelection,
+    required this.onSelectAll,
+    required this.onPauseSelected,
+    required this.onResumeSelected,
+    required this.onDeleteSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: colorScheme.primaryContainer.withValues(alpha: 0.45),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            '$selectedCount selected',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          OutlinedButton(
+            onPressed: onSelectAll,
+            child: Text(
+              selectedCount == visibleCount
+                  ? 'All visible selected'
+                  : 'Select all visible',
+            ),
+          ),
+          FilledButton.tonal(
+            onPressed: selectedCount > 0 ? onPauseSelected : null,
+            child: const Text('Pause'),
+          ),
+          FilledButton.tonal(
+            onPressed: selectedCount > 0 ? onResumeSelected : null,
+            child: const Text('Resume'),
+          ),
+          FilledButton.tonal(
+            onPressed: selectedCount > 0 ? onDeleteSelected : null,
+            child: const Text('Delete'),
+          ),
+          TextButton(onPressed: onClearSelection, child: const Text('Clear')),
+        ],
+      ),
     );
   }
 }

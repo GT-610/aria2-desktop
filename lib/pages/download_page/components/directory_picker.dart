@@ -1,34 +1,24 @@
-import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+
 import '../../../utils/logging.dart';
 
-/// Reusable directory picker component
-/// Used to select file save location, supporting both text editing and directory browsing
+/// Reusable directory picker component.
+/// Used to select a save location with both text editing and browsing.
 class DirectoryPicker extends StatefulWidget {
-  /// Initial directory path
   final String initialDirectory;
-
-  /// Label text
   final String labelText;
-
-  /// Hint text
   final String hintText;
-
-  /// Dialog title when selecting directory
   final String dialogTitle;
-
-  /// Directory path change callback
   final ValueChanged<String> onDirectoryChanged;
-
-  /// Directory selection error callback
   final ValueChanged<String>? onError;
 
   const DirectoryPicker({
     super.key,
     required this.initialDirectory,
-    this.labelText = '保存位置',
-    this.hintText = '默认下载目录',
-    this.dialogTitle = '选择保存位置',
+    this.labelText = 'Save location',
+    this.hintText = 'Use the instance default directory',
+    this.dialogTitle = 'Choose save location',
     required this.onDirectoryChanged,
     this.onError,
   });
@@ -38,7 +28,7 @@ class DirectoryPicker extends StatefulWidget {
 }
 
 class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
-  late TextEditingController _directoryController;
+  late final TextEditingController _directoryController;
 
   @override
   void initState() {
@@ -52,10 +42,9 @@ class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
     super.dispose();
   }
 
-  /// Select save directory
   Future<void> _selectDirectory() async {
     try {
-      String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+      final selectedDirectory = await FilePicker.platform.getDirectoryPath(
         dialogTitle: widget.dialogTitle,
         initialDirectory: _directoryController.text.isNotEmpty
             ? _directoryController.text
@@ -67,18 +56,16 @@ class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
       }
     } catch (err) {
       this.e('Failed to select directory', error: err);
-      final mountedContext = context;
       if (widget.onError != null) {
         widget.onError!('Failed to select directory: $err');
-      } else if (mountedContext.mounted) {
-        ScaffoldMessenger.of(mountedContext).showSnackBar(
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to select directory: $err')),
         );
       }
     }
   }
 
-  /// Update directory path
   void _updateDirectory(String newDirectory) {
     _directoryController.text = newDirectory;
     widget.onDirectoryChanged(newDirectory);
