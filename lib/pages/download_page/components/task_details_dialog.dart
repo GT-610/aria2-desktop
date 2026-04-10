@@ -105,8 +105,6 @@ class TaskDetailsDialog {
               if (isBtTask) const Tab(text: 'Trackers'),
               if (isBtTask) const Tab(text: 'Peers'),
             ];
-            final tabController = DefaultTabController.of(context);
-            final selectedTabIndex = tabController.index;
             final allFilesSelected =
                 currentFiles.isNotEmpty &&
                 currentFiles.every((file) {
@@ -118,55 +116,6 @@ class TaskDetailsDialog {
                       ((file['selected'] as String? ?? 'true') == 'true');
                 });
 
-            Future<void> fetchPeersIfNeeded() async {
-              if (!isBtTask ||
-                  selectedTabIndex < 0 ||
-                  selectedTabIndex >= tabs.length ||
-                  tabs[selectedTabIndex].text != 'Peers') {
-                return;
-              }
-
-              final taskKey = '${currentTask.instanceId}:${currentTask.id}';
-              if (isLoadingPeers) {
-                return;
-              }
-
-              if (peersTaskKey != taskKey) {
-                peers = <Map<String, dynamic>>[];
-                peersError = null;
-                peersTaskKey = taskKey;
-              }
-
-              isLoadingPeers = true;
-              try {
-                final instanceManager = outerContext.read<InstanceManager>();
-                final instance = instanceManager.getInstanceById(
-                  currentTask.instanceId,
-                );
-                if (instance == null) {
-                  peersError = l10n.targetInstanceNotConnected;
-                  return;
-                }
-                final client = Aria2RpcClient(instance);
-                try {
-                  peers = await client.getPeers(currentTask.id);
-                  peersError = null;
-                } finally {
-                  client.close();
-                }
-              } catch (error) {
-                peersError = '$error';
-              } finally {
-                isLoadingPeers = false;
-                if (context.mounted) {
-                  setState(() {});
-                }
-              }
-            }
-
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              unawaited(fetchPeersIfNeeded());
-            });
             final statusInfo = getStatusInfo(
               context,
               currentTask,
@@ -180,7 +129,64 @@ class TaskDetailsDialog {
               onPopInvokedWithResult: (_, _) => disposeResources(),
               child: DefaultTabController(
                 length: tabs.length,
-                child: AlertDialog(
+                child: Builder(
+                  builder: (tabContext) {
+                    final selectedTabIndex =
+                        DefaultTabController.of(tabContext).index;
+
+                    Future<void> fetchPeersIfNeeded() async {
+                      if (!isBtTask ||
+                          selectedTabIndex < 0 ||
+                          selectedTabIndex >= tabs.length ||
+                          tabs[selectedTabIndex].text != 'Peers') {
+                        return;
+                      }
+
+                      final taskKey =
+                          '${currentTask.instanceId}:${currentTask.id}';
+                      if (isLoadingPeers) {
+                        return;
+                      }
+
+                      if (peersTaskKey != taskKey) {
+                        peers = <Map<String, dynamic>>[];
+                        peersError = null;
+                        peersTaskKey = taskKey;
+                      }
+
+                      isLoadingPeers = true;
+                      try {
+                        final instanceManager =
+                            outerContext.read<InstanceManager>();
+                        final instance = instanceManager.getInstanceById(
+                          currentTask.instanceId,
+                        );
+                        if (instance == null) {
+                          peersError = l10n.targetInstanceNotConnected;
+                          return;
+                        }
+                        final client = Aria2RpcClient(instance);
+                        try {
+                          peers = await client.getPeers(currentTask.id);
+                          peersError = null;
+                        } finally {
+                          client.close();
+                        }
+                      } catch (error) {
+                        peersError = '$error';
+                      } finally {
+                        isLoadingPeers = false;
+                        if (context.mounted) {
+                          setState(() {});
+                        }
+                      }
+                    }
+
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      unawaited(fetchPeersIfNeeded());
+                    });
+
+                    return AlertDialog(
                   title: Text(l10n.taskDetails),
                   content: SizedBox(
                     width: 600,
@@ -457,12 +463,14 @@ class TaskDetailsDialog {
                                                         );
                                                       }
 
-                                                      setState(() {
-                                                        hasFileSelectionChanges =
-                                                            false;
-                                                        fileSelectionSourceSignature =
-                                                            currentSignature;
-                                                      });
+                                                      if (context.mounted) {
+                                                        setState(() {
+                                                          hasFileSelectionChanges =
+                                                              false;
+                                                          fileSelectionSourceSignature =
+                                                              currentSignature;
+                                                        });
+                                                      }
                                                     } catch (error) {
                                                       if (outerContext.mounted) {
                                                         ScaffoldMessenger.of(
@@ -480,10 +488,12 @@ class TaskDetailsDialog {
                                                       }
                                                     } finally {
                                                       client?.close();
-                                                      setState(() {
-                                                        isSavingFileSelection =
-                                                            false;
-                                                      });
+                                                      if (context.mounted) {
+                                                        setState(() {
+                                                          isSavingFileSelection =
+                                                              false;
+                                                        });
+                                                      }
                                                     }
                                                   }
                                                 : null,
@@ -648,6 +658,8 @@ class TaskDetailsDialog {
                       child: Text(l10n.close),
                     ),
                   ],
+                    );
+                  },
                 ),
               ),
             );
