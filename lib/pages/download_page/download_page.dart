@@ -51,6 +51,8 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
+    var dependenciesChanged = false;
+
     final nextInstanceManager = Provider.of<InstanceManager>(
       context,
       listen: false,
@@ -64,16 +66,20 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       instanceManager?.removeListener(_handleInstanceChanges);
       instanceManager = nextInstanceManager;
       instanceManager?.addListener(_handleInstanceChanges);
+      dependenciesChanged = true;
     }
 
     if (downloadDataService != nextDownloadDataService) {
       downloadDataService?.removeListener(_handleDownloadDataChanges);
       downloadDataService = nextDownloadDataService;
       downloadDataService?.addListener(_handleDownloadDataChanges);
+      dependenciesChanged = true;
     }
 
-    _loadInstanceNames(instanceManager!);
-    _updateRefreshTimer();
+    if (dependenciesChanged) {
+      _loadInstanceNames(instanceManager!);
+      _updateRefreshTimer();
+    }
   }
 
   @override
