@@ -577,6 +577,9 @@ class _BuiltinInstanceSettingsPageState
             listen: false,
           );
           final applied = await settingsService.applySettingsToBuiltin();
+          if (!mounted) {
+            return;
+          }
 
           setState(() {
             _hasChanges = false;
