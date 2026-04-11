@@ -89,8 +89,11 @@ class TaskActionDialogs {
                   Navigator.pop(dialogContext);
                   bool deleteDownloadedFiles = false;
                   if (actionType == TaskActionType.delete) {
-                    final choice = await DownloadTaskService
-                        .promptDeleteDownloadedFiles(context, allTasks);
+                    final choice =
+                        await DownloadTaskService.promptDeleteDownloadedFiles(
+                          context,
+                          allTasks,
+                        );
                     if (choice == null) {
                       return;
                     }
@@ -121,8 +124,8 @@ class TaskActionDialogs {
                         Navigator.pop(dialogContext);
                         bool deleteDownloadedFiles = false;
                         if (actionType == TaskActionType.delete) {
-                          final choice = await DownloadTaskService
-                              .promptDeleteDownloadedFiles(
+                          final choice =
+                              await DownloadTaskService.promptDeleteDownloadedFiles(
                                 context,
                                 instanceTasks,
                               );
@@ -230,11 +233,16 @@ class TaskActionDialogs {
               }
               break;
             case TaskActionType.delete:
-              await DownloadTaskService.deleteTaskWithClient(
+              final result = await DownloadTaskService.deleteTaskWithClient(
                 client,
                 task,
                 deleteDownloadedFiles: deleteDownloadedFiles,
               );
+              if (result.hasFileDeletionErrors) {
+                _logE(
+                  'Task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
+                );
+              }
               successCount++;
               break;
           }
