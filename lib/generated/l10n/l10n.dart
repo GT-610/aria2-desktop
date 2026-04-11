@@ -1454,6 +1454,24 @@ abstract class AppLocalizations {
   /// **'Delete tasks'**
   String get deleteTasks;
 
+  /// No description provided for @removeOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove only'**
+  String get removeOnly;
+
+  /// No description provided for @removeAndDeleteFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove and delete files'**
+  String get removeAndDeleteFiles;
+
+  /// No description provided for @deleteFilesOptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only downloaded files from built-in tasks will be deleted.'**
+  String get deleteFilesOptionHint;
+
   /// No description provided for @actionAcrossAllInstances.
   ///
   /// In en, this message translates to:

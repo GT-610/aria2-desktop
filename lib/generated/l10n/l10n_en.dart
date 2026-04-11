@@ -753,6 +753,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteTasks => 'Delete tasks';
 
   @override
+  String get removeOnly => 'Remove only';
+
+  @override
+  String get removeAndDeleteFiles => 'Remove and delete files';
+
+  @override
+  String get deleteFilesOptionHint =>
+      'Only downloaded files from built-in tasks will be deleted.';
+
+  @override
   String actionAcrossAllInstances(Object action) {
     return '$action across all connected instances';
   }

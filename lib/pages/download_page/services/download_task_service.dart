@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import '../../../generated/l10n/l10n.dart';
@@ -14,11 +15,103 @@ import '../enums.dart';
 import '../models/download_task.dart';
 
 void _logE(String msg) => fl.lprint('[DownloadTaskService] $msg');
+void _logW(String msg) => fl.lprint('[DownloadTaskService][WARN] $msg');
+
+class DeleteTaskResult {
+  const DeleteTaskResult({
+    required this.removedFromAria2,
+    this.fileDeletionErrors = const [],
+  });
+
+  final bool removedFromAria2;
+  final List<String> fileDeletionErrors;
+
+  bool get hasFileDeletionErrors => fileDeletionErrors.isNotEmpty;
+}
 
 class DownloadTaskService with Loggable {
   static final DownloadTaskService _instance = DownloadTaskService._();
   DownloadTaskService._();
   static DownloadTaskService get instance => _instance;
+
+  static Future<bool?> promptDeleteDownloadedFiles(
+    BuildContext context,
+    List<DownloadTask> tasks,
+  ) async {
+    final localTasks = tasks.where((task) => task.isLocal).toList();
+    if (localTasks.isEmpty) {
+      return false;
+    }
+
+    final l10n = AppLocalizations.of(context)!;
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(l10n.deleteTasks),
+          content: Text(l10n.deleteFilesOptionHint),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(null),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.removeOnly),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.removeAndDeleteFiles),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  static Future<DeleteTaskResult> deleteTaskWithClient(
+    Aria2RpcClient client,
+    DownloadTask task, {
+    bool deleteDownloadedFiles = false,
+    Future<void> Function()? removeTaskOverride,
+    Future<List<String>> Function(DownloadTask task)? deleteFilesOverride,
+  }) async {
+    if (task.status == DownloadStatus.stopped) {
+      if (removeTaskOverride != null) {
+        await removeTaskOverride();
+      } else {
+        await client.removeDownloadResult(task.id);
+      }
+    } else {
+      if (removeTaskOverride != null) {
+        await removeTaskOverride();
+      } else {
+        await client.removeTask(task.id);
+      }
+    }
+
+    var fileDeletionErrors = const <String>[];
+    if (deleteDownloadedFiles && task.isLocal) {
+      try {
+        fileDeletionErrors = deleteFilesOverride != null
+            ? await deleteFilesOverride(task)
+            : await _deleteDownloadedFiles(task);
+      } catch (error) {
+        fileDeletionErrors = ['$error'];
+      }
+    }
+
+    if (fileDeletionErrors.isNotEmpty) {
+      _logW(
+        'Task ${task.id} was removed from Aria2, but file cleanup had issues: ${fileDeletionErrors.join(', ')}',
+      );
+    }
+
+    return DeleteTaskResult(
+      removedFromAria2: true,
+      fileDeletionErrors: fileDeletionErrors,
+    );
+  }
 
   static DownloadTask parseTask(
     Map<String, dynamic> taskData,
@@ -192,13 +285,25 @@ class DownloadTaskService with Loggable {
         context,
         listen: false,
       );
+      final deleteDownloadedFiles = await promptDeleteDownloadedFiles(context, [
+        task,
+      ]);
+      if (deleteDownloadedFiles == null) {
+        return;
+      }
+
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
         final client = Aria2RpcClient(targetInstance!);
-        if (task.status == DownloadStatus.stopped) {
-          await client.removeDownloadResult(task.id);
-        } else {
-          await client.removeTask(task.id);
+        final result = await deleteTaskWithClient(
+          client,
+          task,
+          deleteDownloadedFiles: deleteDownloadedFiles,
+        );
+        if (result.hasFileDeletionErrors) {
+          _logW(
+            'Task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
+          );
         }
         client.close();
         onTaskUpdated();
@@ -260,14 +365,26 @@ class DownloadTaskService with Loggable {
         context,
         listen: false,
       );
+      final deleteDownloadedFiles = await promptDeleteDownloadedFiles(context, [
+        task,
+      ]);
+      if (deleteDownloadedFiles == null) {
+        return;
+      }
+
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
 
       if (targetInstance?.status == ConnectionStatus.connected) {
         final client = Aria2RpcClient(targetInstance!);
-        if (task.status == DownloadStatus.stopped) {
-          await client.removeDownloadResult(task.id);
-        } else {
-          await client.removeTask(task.id);
+        final result = await deleteTaskWithClient(
+          client,
+          task,
+          deleteDownloadedFiles: deleteDownloadedFiles,
+        );
+        if (result.hasFileDeletionErrors) {
+          _logW(
+            'Failed task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
+          );
         }
 
         client.close();
@@ -304,6 +421,135 @@ class DownloadTaskService with Loggable {
       }
     }
   }
+
+  static Future<List<String>> _deleteDownloadedFiles(DownloadTask task) async {
+    final dir = task.dir;
+    if (dir == null || dir.isEmpty) {
+      return const [];
+    }
+
+    final baseDir = _normalizePath(dir);
+    final targets = <String>{};
+
+    if (task.files != null && task.files!.isNotEmpty) {
+      for (final file in task.files!) {
+        final path = file['path']?.toString() ?? '';
+        if (path.isEmpty) {
+          continue;
+        }
+        final normalizedPath = _normalizePath(path);
+        targets.add(normalizedPath);
+        targets.add(_normalizePath('$normalizedPath.aria2'));
+      }
+    } else {
+      if (task.name.trim().isEmpty) {
+        return const [
+          'Skipped file deletion because task name is empty and no file list is available.',
+        ];
+      }
+      final defaultTarget = _normalizePath(p.join(dir, task.name));
+      targets.add(defaultTarget);
+      targets.add(_normalizePath('$defaultTarget.aria2'));
+    }
+
+    final failedTargets = <String>[];
+    final parentDirectories = <String>{};
+    final sortedTargets = targets.toList()
+      ..sort((left, right) => right.length.compareTo(left.length));
+
+    for (final target in sortedTargets) {
+      if (!_isWithinBaseDirectory(target, baseDir)) {
+        failedTargets.add('Skipped path outside base directory: $target');
+        continue;
+      }
+
+      try {
+        final entityType = await FileSystemEntity.type(target);
+        switch (entityType) {
+          case FileSystemEntityType.file:
+          case FileSystemEntityType.link:
+            await File(target).delete();
+            parentDirectories.add(_normalizePath(File(target).parent.path));
+            break;
+          case FileSystemEntityType.directory:
+            if (target == baseDir) {
+              failedTargets.add(
+                'Skipped recursive deletion of base directory: $target',
+              );
+              break;
+            }
+            await Directory(target).delete(recursive: true);
+            parentDirectories.add(
+              _normalizePath(Directory(target).parent.path),
+            );
+            break;
+          case FileSystemEntityType.notFound:
+            break;
+          default:
+            break;
+        }
+      } catch (error) {
+        failedTargets.add('$target ($error)');
+      }
+    }
+
+    for (final parent
+        in parentDirectories.toList()
+          ..sort((left, right) => right.length.compareTo(left.length))) {
+      await _cleanupEmptyDirectories(parent, baseDir);
+    }
+
+    return failedTargets;
+  }
+
+  static Future<void> _cleanupEmptyDirectories(
+    String startPath,
+    String stopAtPath,
+  ) async {
+    var currentPath = _normalizePath(startPath);
+    final stopPath = _normalizePath(stopAtPath);
+
+    while (_isWithinBaseDirectory(currentPath, stopPath) &&
+        currentPath != stopPath) {
+      final directory = Directory(currentPath);
+      if (!directory.existsSync()) {
+        currentPath = _normalizePath(directory.parent.path);
+        continue;
+      }
+
+      final children = directory.listSync();
+      if (children.isNotEmpty) {
+        break;
+      }
+
+      await directory.delete();
+      currentPath = _normalizePath(directory.parent.path);
+    }
+  }
+
+  static bool _isWithinBaseDirectory(String targetPath, String baseDirPath) {
+    final normalizedTarget = _normalizePath(targetPath);
+    final normalizedBase = _normalizePath(baseDirPath);
+    return normalizedTarget == normalizedBase ||
+        normalizedTarget.startsWith('$normalizedBase${Platform.pathSeparator}');
+  }
+
+  static String _normalizePath(String path) {
+    var normalized = p.canonicalize(p.absolute(path));
+    if (normalized.length > 1 && normalized.endsWith(Platform.pathSeparator)) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+    return Platform.isWindows ? normalized.toLowerCase() : normalized;
+  }
+
+  static bool isWithinBaseDirectoryForTesting(
+    String targetPath,
+    String baseDirPath,
+  ) => _isWithinBaseDirectory(targetPath, baseDirPath);
+
+  static Future<List<String>> deleteDownloadedFilesForTesting(
+    DownloadTask task,
+  ) => _deleteDownloadedFiles(task);
 
   static List<DownloadTask> filterTasks(
     List<DownloadTask> tasks,
