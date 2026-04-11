@@ -442,6 +442,11 @@ class DownloadTaskService with Loggable {
         targets.add(_normalizePath('$normalizedPath.aria2'));
       }
     } else {
+      if (task.name.trim().isEmpty) {
+        return const [
+          'Skipped file deletion because task name is empty and no file list is available.',
+        ];
+      }
       final defaultTarget = _normalizePath(p.join(dir, task.name));
       targets.add(defaultTarget);
       targets.add(_normalizePath('$defaultTarget.aria2'));
@@ -467,6 +472,12 @@ class DownloadTaskService with Loggable {
             parentDirectories.add(_normalizePath(File(target).parent.path));
             break;
           case FileSystemEntityType.directory:
+            if (target == baseDir) {
+              failedTargets.add(
+                'Skipped recursive deletion of base directory: $target',
+              );
+              break;
+            }
             await Directory(target).delete(recursive: true);
             parentDirectories.add(
               _normalizePath(Directory(target).parent.path),

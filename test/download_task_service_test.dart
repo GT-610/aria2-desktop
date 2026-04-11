@@ -77,6 +77,47 @@ void main() {
         );
       },
     );
+
+    test(
+      'does not delete the base directory when task name is empty and files are missing',
+      () async {
+        final tempRoot = await Directory.systemTemp.createTemp(
+          'download-task-service-',
+        );
+        addTearDown(() => tempRoot.deleteSync(recursive: true));
+
+        final baseDir = Directory(p.join(tempRoot.path, 'base'))..createSync();
+        final preservedFile = File(p.join(baseDir.path, 'keep.txt'))
+          ..writeAsStringSync('keep me');
+
+        final task = DownloadTask(
+          id: 'task-empty-name',
+          name: '',
+          status: DownloadStatus.stopped,
+          progress: 0,
+          downloadSpeed: '0 B/s',
+          uploadSpeed: '0 B/s',
+          size: '0 B',
+          completedSize: '0 B',
+          isLocal: true,
+          instanceId: 'local',
+          dir: baseDir.path,
+          files: null,
+        );
+
+        final errors =
+            await DownloadTaskService.deleteDownloadedFilesForTesting(task);
+
+        expect(baseDir.existsSync(), isTrue);
+        expect(preservedFile.existsSync(), isTrue);
+        expect(
+          errors,
+          contains(
+            'Skipped file deletion because task name is empty and no file list is available.',
+          ),
+        );
+      },
+    );
   });
 
   group('DownloadTaskService deleteTaskWithClient', () {
