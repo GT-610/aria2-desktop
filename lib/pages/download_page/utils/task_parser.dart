@@ -50,6 +50,7 @@ class TaskParser {
             uploadSpeedBytes: parsedTask.uploadSpeedBytes,
             files: parsedTask.files,
             bittorrentInfo: parsedTask.bittorrentInfo,
+            trackers: parsedTask.trackers,
             uris: parsedTask.uris,
             errorMessage: parsedTask.errorMessage,
             startTime: parsedTask.startTime,
@@ -135,8 +136,22 @@ class TaskParser {
 
     // Parse BT metadata
     String? bittorrentInfo;
+    List<String>? trackers;
     if (taskData.containsKey('bittorrent') && taskData['bittorrent'] is Map) {
-      bittorrentInfo = json.encode(taskData['bittorrent']);
+      final bittorrent = taskData['bittorrent'] as Map<String, dynamic>;
+      bittorrentInfo = json.encode(bittorrent);
+      final announceList = bittorrent['announceList'];
+      if (announceList is List) {
+        trackers = announceList.expand((item) {
+          if (item is List) {
+            return item
+                .whereType<String>()
+                .where((value) => value.isNotEmpty)
+                .take(1);
+          }
+          return const <String>[];
+        }).toList();
+      }
     }
 
     // Parse download links
@@ -201,6 +216,7 @@ class TaskParser {
       uploadSpeedBytes: uploadSpeedBytes,
       files: files,
       bittorrentInfo: bittorrentInfo,
+      trackers: trackers,
       uris: uris,
       errorMessage: errorMessage,
       bitfield: bitfield,

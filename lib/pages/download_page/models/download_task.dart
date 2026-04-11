@@ -20,6 +20,7 @@ class DownloadTask {
   final int uploadSpeedBytes;
   final List<Map<String, dynamic>>? files;
   final String? bittorrentInfo;
+  final List<String>? trackers;
   final List<String>? uris;
   final String? errorMessage;
   final DateTime? startTime;
@@ -45,6 +46,7 @@ class DownloadTask {
     this.uploadSpeedBytes = 0,
     this.files,
     this.bittorrentInfo,
+    this.trackers,
     this.uris,
     this.errorMessage,
     this.startTime,
@@ -72,6 +74,7 @@ class DownloadTask {
       uploadSpeedBytes: json['uploadSpeedBytes'] ?? 0,
       files: json['files'] != null ? List<Map<String, dynamic>>.from(json['files']) : null,
       bittorrentInfo: json['bittorrentInfo'],
+      trackers: json['trackers'] != null ? List<String>.from(json['trackers']) : null,
       uris: json['uris'] != null ? List<String>.from(json['uris']) : null,
       errorMessage: json['errorMessage'],
       startTime: json['startTime'] != null ? DateTime.tryParse(json['startTime']) : null,
@@ -113,6 +116,7 @@ class DownloadTask {
       'uploadSpeedBytes': uploadSpeedBytes,
       'files': files,
       'bittorrentInfo': bittorrentInfo,
+      'trackers': trackers,
       'uris': uris,
       'errorMessage': errorMessage,
       'startTime': startTime?.toIso8601String(),
