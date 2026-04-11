@@ -116,12 +116,7 @@ class TaskDetailsDialog {
               if (isBtTask) const Tab(text: 'Peers'),
             ];
             refreshTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
-              if (isBtTask &&
-                  currentTabIndex >= 0 &&
-                  currentTabIndex < tabs.length &&
-                  tabs[currentTabIndex].text == 'Peers') {
-                unawaited(requestPeersIfNeeded?.call() ?? Future.value());
-              }
+              unawaited(requestPeersIfNeeded?.call() ?? Future.value());
               if (context.mounted) {
                 setState(() {});
               }
@@ -225,12 +220,10 @@ class TaskDetailsDialog {
                       activeTabListener = () {
                         if (!tabController.indexIsChanging) {
                           currentTabIndex = tabController.index;
-                          if (isBtTask &&
-                              currentTabIndex >= 0 &&
-                              currentTabIndex < tabs.length &&
-                              tabs[currentTabIndex].text == 'Peers') {
-                            unawaited(fetchPeersIfNeeded(force: true));
-                          }
+                          unawaited(
+                            requestPeersIfNeeded?.call(force: true) ??
+                                Future.value(),
+                          );
                           if (context.mounted) {
                             setState(() {});
                           }
