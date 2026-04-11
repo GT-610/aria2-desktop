@@ -439,8 +439,8 @@ class DownloadTaskService with Loggable {
     String startPath,
     String stopAtPath,
   ) async {
-    var currentPath = Directory(startPath).absolute.path;
-    final stopPath = Directory(stopAtPath).absolute.path;
+    var currentPath = _normalizePath(Directory(startPath).absolute.path);
+    final stopPath = _normalizePath(Directory(stopAtPath).absolute.path);
 
     while (_isWithinBaseDirectory(currentPath, stopPath) &&
         currentPath != stopPath) {
@@ -470,9 +470,13 @@ class DownloadTaskService with Loggable {
   }
 
   static String _normalizePath(String path) {
-    final normalized = path
+    var normalized = path
         .replaceAll('\\', Platform.pathSeparator)
         .replaceAll('/', Platform.pathSeparator);
+    while (normalized.length > 1 &&
+        normalized.endsWith(Platform.pathSeparator)) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
     return Platform.isWindows ? normalized.toLowerCase() : normalized;
   }
 
