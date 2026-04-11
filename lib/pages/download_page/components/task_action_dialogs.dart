@@ -9,6 +9,7 @@ import '../../../services/download_data_service.dart';
 import '../../../services/instance_manager.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
+import '../services/download_task_service.dart';
 
 void _logE(String message) {
   lprint('[TaskActionDialogs] $message');
@@ -86,10 +87,20 @@ class TaskActionDialogs {
                 '$allInstancesText (${allTasks.length})',
                 onTap: () async {
                   Navigator.pop(dialogContext);
+                  bool deleteDownloadedFiles = false;
+                  if (actionType == TaskActionType.delete) {
+                    final choice = await DownloadTaskService
+                        .promptDeleteDownloadedFiles(context, allTasks);
+                    if (choice == null) {
+                      return;
+                    }
+                    deleteDownloadedFiles = choice;
+                  }
                   await _performActionForAllInstances(
                     actionType,
                     allTasks,
                     instanceManager,
+                    deleteDownloadedFiles: deleteDownloadedFiles,
                   );
                   onActionCompleted?.call();
                 },
@@ -108,10 +119,23 @@ class TaskActionDialogs {
                       '${l10n.actionInInstance(instanceActionPrefix, instance.name)} (${instanceTasks.length})',
                       onTap: () async {
                         Navigator.pop(dialogContext);
+                        bool deleteDownloadedFiles = false;
+                        if (actionType == TaskActionType.delete) {
+                          final choice = await DownloadTaskService
+                              .promptDeleteDownloadedFiles(
+                                context,
+                                instanceTasks,
+                              );
+                          if (choice == null) {
+                            return;
+                          }
+                          deleteDownloadedFiles = choice;
+                        }
                         await _performActionForInstance(
                           instance,
                           actionType,
                           instanceTasks,
+                          deleteDownloadedFiles: deleteDownloadedFiles,
                         );
                         onActionCompleted?.call();
                       },
@@ -151,23 +175,30 @@ class TaskActionDialogs {
   static Future<void> _performActionForAllInstances(
     TaskActionType actionType,
     List<DownloadTask> allTasks,
-    InstanceManager instanceManager,
-  ) async {
+    InstanceManager instanceManager, {
+    bool deleteDownloadedFiles = false,
+  }) async {
     final connectedInstances = instanceManager.getConnectedInstances();
 
     for (final instance in connectedInstances) {
       final instanceTasks = allTasks
           .where((task) => task.instanceId == instance.id)
           .toList();
-      await _performActionForInstance(instance, actionType, instanceTasks);
+      await _performActionForInstance(
+        instance,
+        actionType,
+        instanceTasks,
+        deleteDownloadedFiles: deleteDownloadedFiles,
+      );
     }
   }
 
   static Future<void> _performActionForInstance(
     Aria2Instance instance,
     TaskActionType actionType,
-    List<DownloadTask> tasks,
-  ) async {
+    List<DownloadTask> tasks, {
+    bool deleteDownloadedFiles = false,
+  }) async {
     if (tasks.isEmpty) {
       _logE('No tasks to process for instance: ${instance.name}');
       return;
@@ -199,11 +230,11 @@ class TaskActionDialogs {
               }
               break;
             case TaskActionType.delete:
-              if (task.status == DownloadStatus.stopped) {
-                await client.removeDownloadResult(task.id);
-              } else {
-                await client.removeTask(task.id);
-              }
+              await DownloadTaskService.deleteTaskWithClient(
+                client,
+                task,
+                deleteDownloadedFiles: deleteDownloadedFiles,
+              );
               successCount++;
               break;
           }

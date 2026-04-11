@@ -20,6 +20,57 @@ class DownloadTaskService with Loggable {
   DownloadTaskService._();
   static DownloadTaskService get instance => _instance;
 
+  static Future<bool?> promptDeleteDownloadedFiles(
+    BuildContext context,
+    List<DownloadTask> tasks,
+  ) async {
+    final localTasks = tasks.where((task) => task.isLocal).toList();
+    if (localTasks.isEmpty) {
+      return false;
+    }
+
+    final l10n = AppLocalizations.of(context)!;
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(l10n.deleteTasks),
+          content: Text(l10n.deleteFilesOptionHint),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(null),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.removeOnly),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.removeAndDeleteFiles),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  static Future<void> deleteTaskWithClient(
+    Aria2RpcClient client,
+    DownloadTask task, {
+    bool deleteDownloadedFiles = false,
+  }) async {
+    if (task.status == DownloadStatus.stopped) {
+      await client.removeDownloadResult(task.id);
+    } else {
+      await client.removeTask(task.id);
+    }
+
+    if (deleteDownloadedFiles && task.isLocal) {
+      await _deleteDownloadedFiles(task);
+    }
+  }
+
   static DownloadTask parseTask(
     Map<String, dynamic> taskData,
     String instanceId,
@@ -188,6 +239,12 @@ class DownloadTaskService with Loggable {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     try {
+      final deleteDownloadedFiles =
+          await promptDeleteDownloadedFiles(context, [task]);
+      if (deleteDownloadedFiles == null) {
+        return;
+      }
+
       final instanceManager = Provider.of<InstanceManager>(
         context,
         listen: false,
@@ -195,11 +252,11 @@ class DownloadTaskService with Loggable {
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
         final client = Aria2RpcClient(targetInstance!);
-        if (task.status == DownloadStatus.stopped) {
-          await client.removeDownloadResult(task.id);
-        } else {
-          await client.removeTask(task.id);
-        }
+        await deleteTaskWithClient(
+          client,
+          task,
+          deleteDownloadedFiles: deleteDownloadedFiles,
+        );
         client.close();
         onTaskUpdated();
       } else if (context.mounted) {
@@ -256,6 +313,12 @@ class DownloadTaskService with Loggable {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     try {
+      final deleteDownloadedFiles =
+          await promptDeleteDownloadedFiles(context, [task]);
+      if (deleteDownloadedFiles == null) {
+        return;
+      }
+
       final instanceManager = Provider.of<InstanceManager>(
         context,
         listen: false,
@@ -264,11 +327,11 @@ class DownloadTaskService with Loggable {
 
       if (targetInstance?.status == ConnectionStatus.connected) {
         final client = Aria2RpcClient(targetInstance!);
-        if (task.status == DownloadStatus.stopped) {
-          await client.removeDownloadResult(task.id);
-        } else {
-          await client.removeTask(task.id);
-        }
+        await deleteTaskWithClient(
+          client,
+          task,
+          deleteDownloadedFiles: deleteDownloadedFiles,
+        );
 
         client.close();
         onTaskUpdated();
@@ -303,6 +366,114 @@ class DownloadTaskService with Loggable {
         }
       }
     }
+  }
+
+  static Future<void> _deleteDownloadedFiles(DownloadTask task) async {
+    final dir = task.dir;
+    if (dir == null || dir.isEmpty) {
+      return;
+    }
+
+    final baseDir = Directory(dir).absolute.path;
+    final targets = <String>{};
+
+    if (task.files != null && task.files!.isNotEmpty) {
+      for (final file in task.files!) {
+        final path = file['path']?.toString() ?? '';
+        if (path.isEmpty) {
+          continue;
+        }
+        targets.add(File(path).absolute.path);
+        targets.add('${File(path).absolute.path}.aria2');
+      }
+    } else {
+      final defaultTarget =
+          File('$dir${Platform.pathSeparator}${task.name}').absolute.path;
+      targets.add(defaultTarget);
+      targets.add('$defaultTarget.aria2');
+    }
+
+    final failedTargets = <String>[];
+    final parentDirectories = <String>{};
+    final sortedTargets = targets.toList()
+      ..sort((left, right) => right.length.compareTo(left.length));
+
+    for (final target in sortedTargets) {
+      if (!_isWithinBaseDirectory(target, baseDir)) {
+        continue;
+      }
+
+      try {
+        final entityType = await FileSystemEntity.type(target);
+        switch (entityType) {
+          case FileSystemEntityType.file:
+          case FileSystemEntityType.link:
+            await File(target).delete();
+            parentDirectories.add(File(target).parent.path);
+            break;
+          case FileSystemEntityType.directory:
+            await Directory(target).delete(recursive: true);
+            parentDirectories.add(Directory(target).parent.path);
+            break;
+          case FileSystemEntityType.notFound:
+            break;
+          default:
+            break;
+        }
+      } catch (error) {
+        failedTargets.add('$target ($error)');
+      }
+    }
+
+    for (final parent in parentDirectories.toList()
+      ..sort((left, right) => right.length.compareTo(left.length))) {
+      await _cleanupEmptyDirectories(parent, baseDir);
+    }
+
+    if (failedTargets.isNotEmpty) {
+      throw Exception(failedTargets.join(', '));
+    }
+  }
+
+  static Future<void> _cleanupEmptyDirectories(
+    String startPath,
+    String stopAtPath,
+  ) async {
+    var currentPath = Directory(startPath).absolute.path;
+    final stopPath = Directory(stopAtPath).absolute.path;
+
+    while (_isWithinBaseDirectory(currentPath, stopPath) &&
+        currentPath != stopPath) {
+      final directory = Directory(currentPath);
+      if (!directory.existsSync()) {
+        currentPath = directory.parent.path;
+        continue;
+      }
+
+      final children = directory.listSync();
+      if (children.isNotEmpty) {
+        break;
+      }
+
+      await directory.delete();
+      currentPath = directory.parent.path;
+    }
+  }
+
+  static bool _isWithinBaseDirectory(String targetPath, String baseDirPath) {
+    final normalizedTarget = _normalizePath(targetPath);
+    final normalizedBase = _normalizePath(baseDirPath);
+    return normalizedTarget == normalizedBase ||
+        normalizedTarget.startsWith(
+          '$normalizedBase${Platform.pathSeparator}',
+        );
+  }
+
+  static String _normalizePath(String path) {
+    final normalized = path
+        .replaceAll('\\', Platform.pathSeparator)
+        .replaceAll('/', Platform.pathSeparator);
+    return Platform.isWindows ? normalized.toLowerCase() : normalized;
   }
 
   static List<DownloadTask> filterTasks(

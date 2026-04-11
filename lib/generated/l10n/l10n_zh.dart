@@ -739,6 +739,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteTasks => '删除任务';
 
   @override
+  String get removeOnly => '仅移除任务';
+
+  @override
+  String get removeAndDeleteFiles => '移除任务并删除文件';
+
+  @override
+  String get deleteFilesOptionHint => '只会删除内建实例任务已下载到本地的文件。';
+
+  @override
   String actionAcrossAllInstances(Object action) {
     return '在全部已连接实例中$action';
   }
