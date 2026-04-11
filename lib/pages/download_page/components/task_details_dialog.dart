@@ -32,8 +32,15 @@ class TaskDetailsDialog {
         var isSavingFileSelection = false;
         String? fileSelectionSourceSignature;
         Map<int, bool> fileSelection = <int, bool>{};
+        TabController? activeTabController;
+        VoidCallback? activeTabListener;
+        Future<void> Function({bool force})? requestPeersIfNeeded;
+        var currentTabIndex = 0;
         var peersTaskKey = '';
+        String? peersClientKey;
+        Aria2RpcClient? peersClient;
         var isLoadingPeers = false;
+        DateTime? lastPeersFetchTime;
         String? peersError;
         List<Map<String, dynamic>> peers = <Map<String, dynamic>>[];
 
@@ -71,15 +78,18 @@ class TaskDetailsDialog {
               );
             }
 
-            refreshTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
-              if (context.mounted) {
-                setState(() {});
-              }
-            });
-
             void disposeResources() {
               refreshTimer?.cancel();
               refreshTimer = null;
+              if (activeTabController != null && activeTabListener != null) {
+                activeTabController!.removeListener(activeTabListener!);
+              }
+              activeTabController = null;
+              activeTabListener = null;
+              requestPeersIfNeeded = null;
+              peersClient?.close();
+              peersClient = null;
+              peersClientKey = null;
             }
 
             final currentTask = getLatestTaskData();
@@ -105,6 +115,17 @@ class TaskDetailsDialog {
               if (isBtTask) const Tab(text: 'Trackers'),
               if (isBtTask) const Tab(text: 'Peers'),
             ];
+            refreshTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+              if (isBtTask &&
+                  currentTabIndex >= 0 &&
+                  currentTabIndex < tabs.length &&
+                  tabs[currentTabIndex].text == 'Peers') {
+                unawaited(requestPeersIfNeeded?.call() ?? Future.value());
+              }
+              if (context.mounted) {
+                setState(() {});
+              }
+            });
             final allFilesSelected =
                 currentFiles.isNotEmpty &&
                 currentFiles.every((file) {
@@ -131,14 +152,14 @@ class TaskDetailsDialog {
                 length: tabs.length,
                 child: Builder(
                   builder: (tabContext) {
-                    final selectedTabIndex =
-                        DefaultTabController.of(tabContext).index;
+                    final tabController = DefaultTabController.of(tabContext);
+                    currentTabIndex = tabController.index;
 
-                    Future<void> fetchPeersIfNeeded() async {
+                    Future<void> fetchPeersIfNeeded({bool force = false}) async {
                       if (!isBtTask ||
-                          selectedTabIndex < 0 ||
-                          selectedTabIndex >= tabs.length ||
-                          tabs[selectedTabIndex].text != 'Peers') {
+                          currentTabIndex < 0 ||
+                          currentTabIndex >= tabs.length ||
+                          tabs[currentTabIndex].text != 'Peers') {
                         return;
                       }
 
@@ -154,7 +175,16 @@ class TaskDetailsDialog {
                         peersTaskKey = taskKey;
                       }
 
+                      final now = DateTime.now();
+                      if (!force &&
+                          lastPeersFetchTime != null &&
+                          now.difference(lastPeersFetchTime!) <
+                              const Duration(seconds: 1)) {
+                        return;
+                      }
+
                       isLoadingPeers = true;
+                      lastPeersFetchTime = now;
                       try {
                         final instanceManager =
                             outerContext.read<InstanceManager>();
@@ -165,13 +195,16 @@ class TaskDetailsDialog {
                           peersError = l10n.targetInstanceNotConnected;
                           return;
                         }
-                        final client = Aria2RpcClient(instance);
-                        try {
-                          peers = await client.getPeers(currentTask.id);
-                          peersError = null;
-                        } finally {
-                          client.close();
+                        final nextClientKey =
+                            '${instance.id}_${instance.protocol}_${instance.host}_${instance.port}_${instance.secret}';
+                        if (peersClientKey != nextClientKey ||
+                            peersClient == null) {
+                          peersClient?.close();
+                          peersClient = Aria2RpcClient(instance);
+                          peersClientKey = nextClientKey;
                         }
+                        peers = await peersClient!.getPeers(currentTask.id);
+                        peersError = null;
                       } catch (error) {
                         peersError = '$error';
                       } finally {
@@ -182,9 +215,31 @@ class TaskDetailsDialog {
                       }
                     }
 
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      unawaited(fetchPeersIfNeeded());
-                    });
+                    if (activeTabController != tabController) {
+                      if (activeTabController != null &&
+                          activeTabListener != null) {
+                        activeTabController!.removeListener(activeTabListener!);
+                      }
+
+                      activeTabController = tabController;
+                      activeTabListener = () {
+                        if (!tabController.indexIsChanging) {
+                          currentTabIndex = tabController.index;
+                          if (isBtTask &&
+                              currentTabIndex >= 0 &&
+                              currentTabIndex < tabs.length &&
+                              tabs[currentTabIndex].text == 'Peers') {
+                            unawaited(fetchPeersIfNeeded(force: true));
+                          }
+                          if (context.mounted) {
+                            setState(() {});
+                          }
+                        }
+                      };
+                      activeTabController!.addListener(activeTabListener!);
+                    }
+
+                    requestPeersIfNeeded = fetchPeersIfNeeded;
 
                     return AlertDialog(
                   title: Text(l10n.taskDetails),
