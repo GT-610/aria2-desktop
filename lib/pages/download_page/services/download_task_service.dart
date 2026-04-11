@@ -281,6 +281,10 @@ class DownloadTaskService with Loggable {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     try {
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
       final deleteDownloadedFiles = await promptDeleteDownloadedFiles(context, [
         task,
       ]);
@@ -288,10 +292,6 @@ class DownloadTaskService with Loggable {
         return;
       }
 
-      final instanceManager = Provider.of<InstanceManager>(
-        context,
-        listen: false,
-      );
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
         final client = Aria2RpcClient(targetInstance!);
@@ -361,6 +361,10 @@ class DownloadTaskService with Loggable {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     try {
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
       final deleteDownloadedFiles = await promptDeleteDownloadedFiles(context, [
         task,
       ]);
@@ -368,10 +372,6 @@ class DownloadTaskService with Loggable {
         return;
       }
 
-      final instanceManager = Provider.of<InstanceManager>(
-        context,
-        listen: false,
-      );
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
 
       if (targetInstance?.status == ConnectionStatus.connected) {
