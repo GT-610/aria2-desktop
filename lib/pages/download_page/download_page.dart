@@ -565,6 +565,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                 downloadDir,
                 fileContent,
                 targetInstanceId,
+                taskOptions,
               ) async {
                 final dialogInstanceManager = Provider.of<InstanceManager>(
                   context,
@@ -586,7 +587,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                   }
 
                   client = Aria2RpcClient(targetInstance);
-                  final options = <String, dynamic>{};
+                  final options = <String, dynamic>{...taskOptions};
                   if (downloadDir.trim().isNotEmpty) {
                     options['dir'] = downloadDir.trim();
                   }

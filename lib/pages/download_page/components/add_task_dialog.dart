@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
 import '../../../utils/logging.dart';
+import '../utils/add_task_options.dart';
 import 'directory_picker.dart';
 
 class AddTaskDialog extends StatefulWidget {
@@ -20,6 +21,7 @@ class AddTaskDialog extends StatefulWidget {
     String downloadDir,
     String? fileContent,
     String targetInstanceId,
+    Map<String, dynamic> taskOptions,
   )
   onAddTask;
 
@@ -37,8 +39,14 @@ class AddTaskDialog extends StatefulWidget {
 class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
   String saveLocation = '';
   final TextEditingController uriController = TextEditingController();
+  final TextEditingController taskNameController = TextEditingController();
+  final TextEditingController splitController = TextEditingController();
+  final TextEditingController userAgentController = TextEditingController();
   bool showAdvancedOptions = false;
   bool _isSubmitting = false;
+  bool continueDownloads = true;
+  bool autoFileRenaming = true;
+  bool allowOverwrite = false;
   String? selectedTorrentFilePath;
   String? selectedMetalinkFilePath;
   late String? _selectedTargetInstanceId;
@@ -57,7 +65,30 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
   @override
   void dispose() {
     uriController.dispose();
+    taskNameController.dispose();
+    splitController.dispose();
+    userAgentController.dispose();
     super.dispose();
+  }
+
+  Map<String, dynamic>? _buildTaskOptions(AppLocalizations l10n) {
+    try {
+      return buildAria2TaskOptions(
+        AddTaskOptionsData(
+          taskName: taskNameController.text,
+          split: splitController.text,
+          userAgent: userAgentController.text,
+          continueDownloads: continueDownloads,
+          autoFileRenaming: autoFileRenaming,
+          allowOverwrite: allowOverwrite,
+        ),
+      );
+    } on FormatException {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.splitCount)));
+      return null;
+    }
   }
 
   Future<void> _pasteFromClipboard() async {
@@ -127,6 +158,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
     final downloadDir = saveLocation;
     final uri = uriController.text.trim();
     String? fileContent;
+    final taskOptions = _buildTaskOptions(l10n);
+    if (taskOptions == null) {
+      return;
+    }
 
     if (taskType == 'uri' && uri.isEmpty) {
       if (mounted) {
@@ -174,6 +209,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
         downloadDir,
         fileContent,
         targetInstanceId,
+        taskOptions,
       );
 
       if (added && mounted) {
@@ -373,6 +409,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                             },
                           ),
                           const SizedBox(height: 12),
+                          Text(
+                            l10n.saveLocation,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 8),
                           DirectoryPicker(
                             initialDirectory: saveLocation,
                             onDirectoryChanged: (newLocation) {
@@ -410,8 +451,76 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                           ),
                           if (showAdvancedOptions)
                             Padding(
-                              padding: EdgeInsets.only(top: 12),
-                              child: Text(l10n.advancedOptionsPlanned),
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Column(
+                                children: [
+                                  TextField(
+                                    controller: taskNameController,
+                                    enabled: !_isSubmitting,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.taskName,
+                                      helperText: l10n.taskNameTip,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextField(
+                                    controller: splitController,
+                                    enabled: !_isSubmitting,
+                                    keyboardType: TextInputType.number,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.splitCount,
+                                      helperText:
+                                          l10n.continueUnfinishedDownloads,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  SwitchListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    value: continueDownloads,
+                                    onChanged: _isSubmitting
+                                        ? null
+                                        : (value) {
+                                            setState(() {
+                                              continueDownloads = value;
+                                            });
+                                          },
+                                    title: Text(
+                                      l10n.continueUnfinishedDownloads,
+                                    ),
+                                  ),
+                                  SwitchListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    value: autoFileRenaming,
+                                    onChanged: _isSubmitting
+                                        ? null
+                                        : (value) {
+                                            setState(() {
+                                              autoFileRenaming = value;
+                                            });
+                                          },
+                                    title: Text(l10n.autoRenameFiles),
+                                  ),
+                                  SwitchListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    value: allowOverwrite,
+                                    onChanged: _isSubmitting
+                                        ? null
+                                        : (value) {
+                                            setState(() {
+                                              allowOverwrite = value;
+                                            });
+                                          },
+                                    title: Text(l10n.allowOverwrite),
+                                  ),
+                                  TextField(
+                                    controller: userAgentController,
+                                    enabled: !_isSubmitting,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.userAgent,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                         ],
                       ),
