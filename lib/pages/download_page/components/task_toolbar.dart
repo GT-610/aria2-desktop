@@ -5,9 +5,9 @@ import '../enums.dart';
 
 class TaskToolbar extends StatelessWidget {
   final VoidCallback onAddTask;
-  final VoidCallback onPauseAll;
-  final VoidCallback onResumeAll;
-  final VoidCallback onDeleteAll;
+  final VoidCallback? onPauseAll;
+  final VoidCallback? onResumeAll;
+  final VoidCallback? onDeleteAll;
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
   final TaskSortOption sortOption;
@@ -172,7 +172,7 @@ enum _ToolbarActionButtonVariant { filled, tonal, error }
 class _ToolbarActionButton extends StatelessWidget {
   final String label;
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final _ToolbarActionButtonVariant variant;
 
   const _ToolbarActionButton({

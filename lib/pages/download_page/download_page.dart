@@ -230,6 +230,13 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
         .toList();
   }
 
+  int _countActionableTasks(
+    List<DownloadTask> tasks,
+    TaskActionType actionType,
+  ) {
+    return TaskActionDialogs.actionableTasks(tasks, actionType).length;
+  }
+
   void _pruneSelection() {
     if (downloadDataService == null || _selectedTaskKeys.isEmpty) return;
 
@@ -403,15 +410,46 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     context.watch<InstanceManager>();
     context.watch<DownloadDataService>();
     final filteredTasks = _filterTasks();
+    final selectedTasks = _selectedTasksFrom(filteredTasks);
+    final pauseableVisibleCount = _countActionableTasks(
+      filteredTasks,
+      TaskActionType.pause,
+    );
+    final resumableVisibleCount = _countActionableTasks(
+      filteredTasks,
+      TaskActionType.resume,
+    );
+    final deletableVisibleCount = _countActionableTasks(
+      filteredTasks,
+      TaskActionType.delete,
+    );
+    final pauseableSelectedCount = _countActionableTasks(
+      selectedTasks,
+      TaskActionType.pause,
+    );
+    final resumableSelectedCount = _countActionableTasks(
+      selectedTasks,
+      TaskActionType.resume,
+    );
+    final deletableSelectedCount = _countActionableTasks(
+      selectedTasks,
+      TaskActionType.delete,
+    );
 
     return Scaffold(
       body: Column(
         children: [
           TaskToolbar(
             onAddTask: () => _showAddTaskDialog(context),
-            onPauseAll: () => _showPauseDialog(context),
-            onResumeAll: () => _showResumeDialog(context),
-            onDeleteAll: () => _showDeleteDialog(context),
+            onPauseAll: pauseableVisibleCount > 0
+                ? () => _showPauseDialog(context)
+                : null,
+            onResumeAll: resumableVisibleCount > 0
+                ? () => _showResumeDialog(context)
+                : null,
+            onDeleteAll: deletableVisibleCount > 0
+                ? () => _showDeleteDialog(context)
+                : null,
             searchController: _searchController,
             onSearchChanged: _handleSearchChanged,
             sortOption: _sortOption,
@@ -421,23 +459,20 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
           ),
           if (_isSelectionMode)
             _SelectionToolbar(
-              selectedCount: _selectedTasksFrom(filteredTasks).length,
+              selectedCount: selectedTasks.length,
               visibleCount: filteredTasks.length,
+              pauseableSelectedCount: pauseableSelectedCount,
+              resumableSelectedCount: resumableSelectedCount,
+              deletableSelectedCount: deletableSelectedCount,
               l10n: l10n,
               onClearSelection: _clearSelection,
               onSelectAll: () => _selectAllVisibleTasks(filteredTasks),
-              onPauseSelected: () => _showPauseDialog(
-                context,
-                tasks: _selectedTasksFrom(filteredTasks),
-              ),
-              onResumeSelected: () => _showResumeDialog(
-                context,
-                tasks: _selectedTasksFrom(filteredTasks),
-              ),
-              onDeleteSelected: () => _showDeleteDialog(
-                context,
-                tasks: _selectedTasksFrom(filteredTasks),
-              ),
+              onPauseSelected: () =>
+                  _showPauseDialog(context, tasks: selectedTasks),
+              onResumeSelected: () =>
+                  _showResumeDialog(context, tasks: selectedTasks),
+              onDeleteSelected: () =>
+                  _showDeleteDialog(context, tasks: selectedTasks),
             ),
           FilterSelector(
             currentCategoryType: _currentCategoryType,
@@ -619,6 +654,9 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
 class _SelectionToolbar extends StatelessWidget {
   final int selectedCount;
   final int visibleCount;
+  final int pauseableSelectedCount;
+  final int resumableSelectedCount;
+  final int deletableSelectedCount;
   final AppLocalizations l10n;
   final VoidCallback onClearSelection;
   final VoidCallback onSelectAll;
@@ -629,6 +667,9 @@ class _SelectionToolbar extends StatelessWidget {
   const _SelectionToolbar({
     required this.selectedCount,
     required this.visibleCount,
+    required this.pauseableSelectedCount,
+    required this.resumableSelectedCount,
+    required this.deletableSelectedCount,
     required this.l10n,
     required this.onClearSelection,
     required this.onSelectAll,
@@ -663,15 +704,15 @@ class _SelectionToolbar extends StatelessWidget {
             ),
           ),
           FilledButton.tonal(
-            onPressed: selectedCount > 0 ? onPauseSelected : null,
+            onPressed: pauseableSelectedCount > 0 ? onPauseSelected : null,
             child: Text(l10n.pause),
           ),
           FilledButton.tonal(
-            onPressed: selectedCount > 0 ? onResumeSelected : null,
+            onPressed: resumableSelectedCount > 0 ? onResumeSelected : null,
             child: Text(l10n.resume),
           ),
           FilledButton.tonal(
-            onPressed: selectedCount > 0 ? onDeleteSelected : null,
+            onPressed: deletableSelectedCount > 0 ? onDeleteSelected : null,
             child: Text(l10n.delete),
           ),
           TextButton(onPressed: onClearSelection, child: Text(l10n.clear)),
