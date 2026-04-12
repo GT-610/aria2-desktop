@@ -143,10 +143,25 @@ class TaskToolbar extends StatelessWidget {
                     ),
                   );
                 }).toList(),
-                child: OutlinedButton.icon(
-                  onPressed: null,
-                  icon: const Icon(Icons.sort),
-                  label: Text(_sortLabel(l10n, sortOption)),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: colorScheme.outline.withValues(alpha: 0.5),
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.sort),
+                      const SizedBox(width: 8),
+                      Text(_sortLabel(l10n, sortOption)),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 8),

@@ -336,6 +336,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   void _handleSearchChanged(String value) {
     setState(() {
       _searchQuery = value.trim();
+      _pruneSelectionToVisible();
     });
   }
 
@@ -357,18 +358,21 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       if (newCategory != CategoryType.byInstance) {
         _selectedInstanceId = null;
       }
+      _pruneSelectionToVisible();
     });
   }
 
   void _handleFilterChanged(FilterOption newFilter) {
     setState(() {
       _selectedFilter = newFilter;
+      _pruneSelectionToVisible();
     });
   }
 
   void _handleInstanceSelected(String? instanceId) {
     setState(() {
       _selectedInstanceId = instanceId;
+      _pruneSelectionToVisible();
     });
   }
 
@@ -398,10 +402,24 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
 
   void _selectAllVisibleTasks(List<DownloadTask> tasks) {
     setState(() {
-      _selectedTaskKeys
-        ..clear()
-        ..addAll(tasks.map(_taskKey));
+      final visibleKeys = tasks.map(_taskKey).toSet();
+      final allVisibleSelected =
+          visibleKeys.isNotEmpty &&
+          visibleKeys.every(_selectedTaskKeys.contains);
+
+      if (allVisibleSelected) {
+        _selectedTaskKeys.removeAll(visibleKeys);
+      } else {
+        _selectedTaskKeys
+          ..clear()
+          ..addAll(visibleKeys);
+      }
     });
+  }
+
+  void _pruneSelectionToVisible() {
+    final visibleKeys = _filterTasks().map(_taskKey).toSet();
+    _selectedTaskKeys.removeWhere((key) => !visibleKeys.contains(key));
   }
 
   @override
