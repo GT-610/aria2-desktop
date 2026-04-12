@@ -442,13 +442,13 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
           TaskToolbar(
             onAddTask: () => _showAddTaskDialog(context),
             onPauseAll: pauseableVisibleCount > 0
-                ? () => _showPauseDialog(context)
+                ? () => _showPauseDialog(context, tasks: filteredTasks)
                 : null,
             onResumeAll: resumableVisibleCount > 0
-                ? () => _showResumeDialog(context)
+                ? () => _showResumeDialog(context, tasks: filteredTasks)
                 : null,
             onDeleteAll: deletableVisibleCount > 0
-                ? () => _showDeleteDialog(context)
+                ? () => _showDeleteDialog(context, tasks: filteredTasks)
                 : null,
             searchController: _searchController,
             onSearchChanged: _handleSearchChanged,
