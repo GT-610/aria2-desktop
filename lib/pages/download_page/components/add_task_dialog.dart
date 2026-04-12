@@ -155,19 +155,19 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
       return;
     }
 
-    if (taskType == 'torrent' && selectedTorrentFilePath != null) {
-      final file = File(selectedTorrentFilePath!);
-      fileContent = base64Encode(await file.readAsBytes());
-    } else if (taskType == 'metalink' && selectedMetalinkFilePath != null) {
-      final file = File(selectedMetalinkFilePath!);
-      fileContent = base64Encode(await file.readAsBytes());
-    }
-
     setState(() {
       _isSubmitting = true;
     });
 
     try {
+      if (taskType == 'torrent' && selectedTorrentFilePath != null) {
+        final file = File(selectedTorrentFilePath!);
+        fileContent = base64Encode(await file.readAsBytes());
+      } else if (taskType == 'metalink' && selectedMetalinkFilePath != null) {
+        final file = File(selectedMetalinkFilePath!);
+        fileContent = base64Encode(await file.readAsBytes());
+      }
+
       final added = await widget.onAddTask(
         taskType,
         uri,
