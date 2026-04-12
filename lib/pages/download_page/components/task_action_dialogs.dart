@@ -45,6 +45,27 @@ class _TaskActionOutcome {
 }
 
 class TaskActionDialogs {
+  static bool canPerformAction(DownloadTask task, TaskActionType actionType) {
+    switch (actionType) {
+      case TaskActionType.resume:
+        return task.status == DownloadStatus.waiting &&
+            task.taskStatus == 'paused';
+      case TaskActionType.pause:
+        return (task.status == DownloadStatus.active ||
+                task.status == DownloadStatus.waiting) &&
+            task.taskStatus != 'paused';
+      case TaskActionType.delete:
+        return true;
+    }
+  }
+
+  static List<DownloadTask> actionableTasks(
+    List<DownloadTask> tasks,
+    TaskActionType actionType,
+  ) {
+    return tasks.where((task) => canPerformAction(task, actionType)).toList();
+  }
+
   static Future<void> showTaskActionDialog(
     BuildContext context,
     TaskActionType actionType, {
@@ -85,10 +106,22 @@ class TaskActionDialogs {
     }
 
     final allTasks = tasks ?? downloadDataService.tasks;
+    final actionableAllTasks = actionableTasks(allTasks, actionType);
 
     if (targetInstances.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.noConnectedInstancesForAction)),
+      );
+      return;
+    }
+
+    if (actionableAllTasks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.taskActionNoMatchingTasks(_actionLabel(l10n, actionType)),
+          ),
+        ),
       );
       return;
     }
@@ -111,8 +144,8 @@ class TaskActionDialogs {
               const SizedBox(height: 12),
               buildDialogOption(
                 dialogContext,
-                '$allInstancesText (${allTasks.length})',
-                enabled: allTasks.isNotEmpty,
+                '$allInstancesText (${actionableAllTasks.length})',
+                enabled: actionableAllTasks.isNotEmpty,
                 onTap: () async {
                   Navigator.pop(dialogContext);
                   bool deleteDownloadedFiles = false;
@@ -120,7 +153,7 @@ class TaskActionDialogs {
                     final choice =
                         await DownloadTaskService.promptDeleteDownloadedFiles(
                           context,
-                          allTasks,
+                          actionableAllTasks,
                         );
                     if (choice == null) {
                       return;
@@ -130,7 +163,7 @@ class TaskActionDialogs {
                   await _performActionForAllInstances(
                     context,
                     actionType,
-                    allTasks,
+                    actionableAllTasks,
                     instanceManager,
                     deleteDownloadedFiles: deleteDownloadedFiles,
                   );
@@ -141,9 +174,12 @@ class TaskActionDialogs {
               Container(height: 1, color: colorScheme.surfaceContainerHighest),
               const SizedBox(height: 8),
               ...targetInstances.map((instance) {
-                final instanceTasks = allTasks
-                    .where((task) => task.instanceId == instance.id)
-                    .toList();
+                final instanceTasks = actionableTasks(
+                  allTasks
+                      .where((task) => task.instanceId == instance.id)
+                      .toList(),
+                  actionType,
+                );
                 return Column(
                   children: [
                     buildDialogOption(
