@@ -802,6 +802,34 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get taskRemovedWithFileWarnings => '任务已移除，但部分文件未能删除。';
+
+  @override
+  String taskActionNoMatchingTasks(Object action) {
+    return '$action：没有匹配的任务。';
+  }
+
+  @override
+  String taskActionSummarySuccess(Object action, int success) {
+    return '$action：成功 $success 项。';
+  }
+
+  @override
+  String taskActionSummaryDetailed(
+    Object action,
+    int success,
+    int failed,
+    int skipped,
+  ) {
+    return '$action：成功 $success 项，失败 $failed 项，跳过 $skipped 项。';
+  }
+
+  @override
+  String fileDeletionWarningsSummary(int count) {
+    return '$count 个任务存在文件删除警告。';
+  }
+
+  @override
   String get paused => '已暂停';
 
   @override

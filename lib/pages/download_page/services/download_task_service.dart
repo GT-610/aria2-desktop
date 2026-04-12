@@ -248,6 +248,7 @@ class DownloadTaskService with Loggable {
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+    Aria2RpcClient? client;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -255,9 +256,8 @@ class DownloadTaskService with Loggable {
       );
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
-        final client = Aria2RpcClient(targetInstance!);
+        client = Aria2RpcClient(targetInstance!);
         await client.pauseTask(task.id);
-        client.close();
         onTaskUpdated();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -271,6 +271,8 @@ class DownloadTaskService with Loggable {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.failedToPauseTask('$e'))));
       }
+    } finally {
+      client?.close();
     }
   }
 
@@ -280,6 +282,7 @@ class DownloadTaskService with Loggable {
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+    Aria2RpcClient? client;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -294,7 +297,7 @@ class DownloadTaskService with Loggable {
 
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
-        final client = Aria2RpcClient(targetInstance!);
+        client = Aria2RpcClient(targetInstance!);
         final result = await deleteTaskWithClient(
           client,
           task,
@@ -304,8 +307,12 @@ class DownloadTaskService with Loggable {
           _logW(
             'Task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
           );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.taskRemovedWithFileWarnings)),
+            );
+          }
         }
-        client.close();
         onTaskUpdated();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -319,6 +326,8 @@ class DownloadTaskService with Loggable {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.failedToRemoveTask('$e'))));
       }
+    } finally {
+      client?.close();
     }
   }
 
@@ -328,6 +337,7 @@ class DownloadTaskService with Loggable {
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+    Aria2RpcClient? client;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -335,9 +345,8 @@ class DownloadTaskService with Loggable {
       );
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
-        final client = Aria2RpcClient(targetInstance!);
+        client = Aria2RpcClient(targetInstance!);
         await client.unpauseTask(task.id);
-        client.close();
         onTaskUpdated();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -351,6 +360,8 @@ class DownloadTaskService with Loggable {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.failedToResumeTask('$e'))));
       }
+    } finally {
+      client?.close();
     }
   }
 
@@ -360,6 +371,7 @@ class DownloadTaskService with Loggable {
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+    Aria2RpcClient? client;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -375,7 +387,7 @@ class DownloadTaskService with Loggable {
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
 
       if (targetInstance?.status == ConnectionStatus.connected) {
-        final client = Aria2RpcClient(targetInstance!);
+        client = Aria2RpcClient(targetInstance!);
         final result = await deleteTaskWithClient(
           client,
           task,
@@ -385,9 +397,13 @@ class DownloadTaskService with Loggable {
           _logW(
             'Failed task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
           );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.taskRemovedWithFileWarnings)),
+            );
+          }
         }
 
-        client.close();
         onTaskUpdated();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -401,6 +417,8 @@ class DownloadTaskService with Loggable {
           SnackBar(content: Text(l10n.failedToRemoveFailedTask('$e'))),
         );
       }
+    } finally {
+      client?.close();
     }
   }
 

@@ -17,6 +17,33 @@ void _logE(String message) {
 
 enum TaskActionType { resume, pause, delete }
 
+class _TaskActionOutcome {
+  const _TaskActionOutcome({
+    this.successCount = 0,
+    this.failCount = 0,
+    this.skippedCount = 0,
+    this.fileDeletionWarningCount = 0,
+  });
+
+  final int successCount;
+  final int failCount;
+  final int skippedCount;
+  final int fileDeletionWarningCount;
+
+  _TaskActionOutcome operator +(_TaskActionOutcome other) {
+    return _TaskActionOutcome(
+      successCount: successCount + other.successCount,
+      failCount: failCount + other.failCount,
+      skippedCount: skippedCount + other.skippedCount,
+      fileDeletionWarningCount:
+          fileDeletionWarningCount + other.fileDeletionWarningCount,
+    );
+  }
+
+  bool get hasAnyWork =>
+      successCount > 0 || failCount > 0 || fileDeletionWarningCount > 0;
+}
+
 class TaskActionDialogs {
   static Future<void> showTaskActionDialog(
     BuildContext context,
@@ -85,6 +112,7 @@ class TaskActionDialogs {
               buildDialogOption(
                 dialogContext,
                 '$allInstancesText (${allTasks.length})',
+                enabled: allTasks.isNotEmpty,
                 onTap: () async {
                   Navigator.pop(dialogContext);
                   bool deleteDownloadedFiles = false;
@@ -100,6 +128,7 @@ class TaskActionDialogs {
                     deleteDownloadedFiles = choice;
                   }
                   await _performActionForAllInstances(
+                    context,
                     actionType,
                     allTasks,
                     instanceManager,
@@ -120,6 +149,7 @@ class TaskActionDialogs {
                     buildDialogOption(
                       dialogContext,
                       '${l10n.actionInInstance(instanceActionPrefix, instance.name)} (${instanceTasks.length})',
+                      enabled: instanceTasks.isNotEmpty,
                       onTap: () async {
                         Navigator.pop(dialogContext);
                         bool deleteDownloadedFiles = false;
@@ -135,6 +165,7 @@ class TaskActionDialogs {
                           deleteDownloadedFiles = choice;
                         }
                         await _performActionForInstance(
+                          context,
                           instance,
                           actionType,
                           instanceTasks,
@@ -164,39 +195,53 @@ class TaskActionDialogs {
     BuildContext context,
     String text, {
     required VoidCallback onTap,
+    bool enabled = true,
   }) {
     return InkWell(
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Text(text, style: Theme.of(context).textTheme.bodyLarge),
+        child: Text(
+          text,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: enabled
+                ? null
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }
 
   static Future<void> _performActionForAllInstances(
+    BuildContext context,
     TaskActionType actionType,
     List<DownloadTask> allTasks,
     InstanceManager instanceManager, {
     bool deleteDownloadedFiles = false,
   }) async {
     final connectedInstances = instanceManager.getConnectedInstances();
+    var totalOutcome = const _TaskActionOutcome();
 
     for (final instance in connectedInstances) {
       final instanceTasks = allTasks
           .where((task) => task.instanceId == instance.id)
           .toList();
-      await _performActionForInstance(
+      totalOutcome += await _performActionForInstance(
+        context,
         instance,
         actionType,
         instanceTasks,
         deleteDownloadedFiles: deleteDownloadedFiles,
       );
     }
+
+    _showActionOutcome(context, actionType, totalOutcome);
   }
 
-  static Future<void> _performActionForInstance(
+  static Future<_TaskActionOutcome> _performActionForInstance(
+    BuildContext context,
     Aria2Instance instance,
     TaskActionType actionType,
     List<DownloadTask> tasks, {
@@ -204,12 +249,14 @@ class TaskActionDialogs {
   }) async {
     if (tasks.isEmpty) {
       _logE('No tasks to process for instance: ${instance.name}');
-      return;
+      return const _TaskActionOutcome();
     }
 
     Aria2RpcClient? client;
     var successCount = 0;
     var failCount = 0;
+    var skippedCount = 0;
+    var fileDeletionWarningCount = 0;
 
     try {
       client = Aria2RpcClient(instance);
@@ -222,6 +269,8 @@ class TaskActionDialogs {
                   task.taskStatus == 'paused') {
                 await client.unpauseTask(task.id);
                 successCount++;
+              } else {
+                skippedCount++;
               }
               break;
             case TaskActionType.pause:
@@ -230,6 +279,8 @@ class TaskActionDialogs {
                   task.taskStatus != 'paused') {
                 await client.pauseTask(task.id);
                 successCount++;
+              } else {
+                skippedCount++;
               }
               break;
             case TaskActionType.delete:
@@ -239,6 +290,7 @@ class TaskActionDialogs {
                 deleteDownloadedFiles: deleteDownloadedFiles,
               );
               if (result.hasFileDeletionErrors) {
+                fileDeletionWarningCount++;
                 _logE(
                   'Task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
                 );
@@ -253,12 +305,70 @@ class TaskActionDialogs {
       }
 
       _logE(
-        'Action ${actionType.name} completed for instance ${instance.name}: $successCount success, $failCount failed',
+        'Action ${actionType.name} completed for instance ${instance.name}: $successCount success, $failCount failed, $skippedCount skipped',
       );
     } catch (e) {
       _logE('Error executing task operation for instance ${instance.name}: $e');
+      failCount += tasks.length;
     } finally {
       client?.close();
+    }
+
+    return _TaskActionOutcome(
+      successCount: successCount,
+      failCount: failCount,
+      skippedCount: skippedCount,
+      fileDeletionWarningCount: fileDeletionWarningCount,
+    );
+  }
+
+  static void _showActionOutcome(
+    BuildContext context,
+    TaskActionType actionType,
+    _TaskActionOutcome outcome,
+  ) {
+    if (!context.mounted) {
+      return;
+    }
+
+    final l10n = AppLocalizations.of(context)!;
+    final actionLabel = _actionLabel(l10n, actionType);
+
+    String message;
+    if (!outcome.hasAnyWork && outcome.skippedCount > 0) {
+      message = l10n.taskActionNoMatchingTasks(actionLabel);
+    } else if (outcome.failCount == 0 && outcome.skippedCount == 0) {
+      message = l10n.taskActionSummarySuccess(
+        actionLabel,
+        outcome.successCount,
+      );
+    } else {
+      message = l10n.taskActionSummaryDetailed(
+        actionLabel,
+        outcome.successCount,
+        outcome.failCount,
+        outcome.skippedCount,
+      );
+    }
+
+    if (outcome.fileDeletionWarningCount > 0) {
+      message =
+          '$message ${l10n.fileDeletionWarningsSummary(outcome.fileDeletionWarningCount)}';
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  static String _actionLabel(AppLocalizations l10n, TaskActionType actionType) {
+    switch (actionType) {
+      case TaskActionType.resume:
+        return l10n.resumeTasks;
+      case TaskActionType.pause:
+        return l10n.pauseTasks;
+      case TaskActionType.delete:
+        return l10n.deleteTasks;
     }
   }
 }

@@ -1556,6 +1556,41 @@ abstract class AppLocalizations {
   /// **'Failed to remove the failed task: {error}'**
   String failedToRemoveFailedTask(Object error);
 
+  /// No description provided for @taskRemovedWithFileWarnings.
+  ///
+  /// In en, this message translates to:
+  /// **'Task removed, but some files could not be deleted.'**
+  String get taskRemovedWithFileWarnings;
+
+  /// No description provided for @taskActionNoMatchingTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching tasks for {action}.'**
+  String taskActionNoMatchingTasks(Object action);
+
+  /// No description provided for @taskActionSummarySuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'{action}: {success} succeeded.'**
+  String taskActionSummarySuccess(Object action, int success);
+
+  /// No description provided for @taskActionSummaryDetailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{action}: {success} succeeded, {failed} failed, {skipped} skipped.'**
+  String taskActionSummaryDetailed(
+    Object action,
+    int success,
+    int failed,
+    int skipped,
+  );
+
+  /// No description provided for @fileDeletionWarningsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Some files could not be deleted for {count} task(s).'**
+  String fileDeletionWarningsSummary(int count);
+
   /// No description provided for @paused.
   ///
   /// In en, this message translates to:
