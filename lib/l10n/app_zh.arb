@@ -356,6 +356,20 @@
   "leavePage": "离开此页面？",
   "unsavedChangesPrompt": "你有未保存的更改。你想怎么做？",
   "discard": "丢弃",
+  "startedAtWithValue": "开始时间: {value}",
+  "@startedAtWithValue": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "sourceLinks": "来源链接",
+  "trackers": "Trackers",
+  "peers": "Peers",
+  "noTrackerInformation": "没有 Tracker 信息",
+  "noPeerInformation": "没有 Peer 信息",
+  "clientLabel": "客户端",
+  "uploadShort": "上传",
+  "downloadShort": "下载",
   "english": "English",
   "chinese": "中文"
 }

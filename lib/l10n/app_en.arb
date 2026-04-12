@@ -356,6 +356,20 @@
   "leavePage": "Leave this page?",
   "unsavedChangesPrompt": "You have unsaved changes. What would you like to do?",
   "discard": "Discard",
+  "startedAtWithValue": "Started at: {value}",
+  "@startedAtWithValue": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "sourceLinks": "Source links",
+  "trackers": "Trackers",
+  "peers": "Peers",
+  "noTrackerInformation": "No tracker information",
+  "noPeerInformation": "No peer information",
+  "clientLabel": "Client",
+  "uploadShort": "Up",
+  "downloadShort": "Down",
   "english": "English",
   "chinese": "Chinese"
 }

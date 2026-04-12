@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../generated/l10n/l10n.dart';
-import '../../../utils/format_utils.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
 import '../services/download_task_service.dart';
+import '../utils/task_utils.dart';
 
 class TaskListItem extends StatelessWidget {
   final DownloadTask task;
@@ -252,7 +252,7 @@ class TaskListItem extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${task.completedSize} / ${task.size} (${calculateRemainingTime(task.progress, task.downloadSpeed)})',
+                        '${task.completedSize} / ${task.size} (${TaskUtils.calculateRemainingTime(task)})',
                         style: TextStyle(
                           color: colorScheme.onSurfaceVariant,
                           fontSize: 13,

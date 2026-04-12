@@ -1,4 +1,3 @@
-// Import necessary libraries
 import 'dart:convert';
 import 'dart:math';
 
@@ -7,90 +6,61 @@ import 'package:flutter/material.dart';
 
 class FormatUtils {}
 
-// Format bytes for display
 String formatBytes(int bytes, {int decimals = 2}) {
   if (bytes <= 0) return '0 B';
 
   const suffixes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-  int i = (bytes == 0) ? 0 : (log(bytes) / log(1024)).floor();
-
-  // Ensure i doesn't exceed the range of suffixes
+  var i = (log(bytes) / log(1024)).floor();
   i = i.clamp(0, suffixes.length - 1);
 
   return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
 }
 
-// Calculate remaining time
-String calculateRemainingTime(double progress, String downloadSpeed) {
-  if (progress >= 1.0 || downloadSpeed == '0' || downloadSpeed.isEmpty) {
-    return 'Completed';
+String formatRemainingTime({
+  required int totalBytes,
+  required int completedBytes,
+  required int downloadSpeedBytes,
+}) {
+  if (totalBytes <= 0) {
+    return '--';
   }
 
-  // 解析下载速度
-  int speedBytes = 0;
-  final speedRegex = RegExp(r'^(\d+(?:\.\d+)?)\s*([KMG]?)B\/s$');
-  final match = speedRegex.firstMatch(downloadSpeed);
-
-  if (match != null) {
-    final value = double.tryParse(match.group(1) ?? '0') ?? 0;
-    final unit = match.group(2) ?? '';
-
-    switch (unit) {
-      case 'K':
-        speedBytes = (value * 1024).toInt();
-        break;
-      case 'M':
-        speedBytes = (value * 1024 * 1024).toInt();
-        break;
-      case 'G':
-        speedBytes = (value * 1024 * 1024 * 1024).toInt();
-        break;
-      default:
-        speedBytes = value.toInt();
-        break;
-    }
+  final remainingBytes = totalBytes - completedBytes;
+  if (remainingBytes <= 0) {
+    return '0s';
   }
 
-  // If speed is 0, return unknown
-  if (speedBytes == 0) {
-    return 'Unknown';
+  if (downloadSpeedBytes <= 0) {
+    return '--';
   }
 
-  // 计算剩余秒数
-  double remainingPercentage = 1.0 - progress;
-  // 这里假设总大小为100%，实际应用中需要根据实际大小计算
-  int remainingSeconds = (remainingPercentage / (speedBytes / 100)).toInt();
-
-  // Format remaining time
+  final remainingSeconds = (remainingBytes / downloadSpeedBytes).ceil();
   if (remainingSeconds < 60) {
     return '${remainingSeconds}s';
-  } else if (remainingSeconds < 3600) {
-    int minutes = remainingSeconds ~/ 60;
-    int seconds = remainingSeconds % 60;
-    return '${minutes}m${seconds}s';
-  } else if (remainingSeconds < 86400) {
-    int hours = remainingSeconds ~/ 3600;
-    int minutes = (remainingSeconds % 3600) ~/ 60;
-    return '${hours}h${minutes}m';
-  } else {
-    int days = remainingSeconds ~/ 86400;
-    int hours = (remainingSeconds % 86400) ~/ 3600;
-    return '${days}d${hours}h';
   }
+  if (remainingSeconds < 3600) {
+    final minutes = remainingSeconds ~/ 60;
+    final seconds = remainingSeconds % 60;
+    return '${minutes}m ${seconds}s';
+  }
+  if (remainingSeconds < 86400) {
+    final hours = remainingSeconds ~/ 3600;
+    final minutes = (remainingSeconds % 3600) ~/ 60;
+    return '${hours}h ${minutes}m';
+  }
+
+  final days = remainingSeconds ~/ 86400;
+  final hours = (remainingSeconds % 86400) ~/ 3600;
+  return '${days}d ${hours}h';
 }
 
-// Parse hexadecimal bitfield into piece status array
 List<int> parseHexBitfield(String bitfield) {
-  List<int> pieces = [];
+  final pieces = <int>[];
 
-  // Each character represents a piece's status (0-f)
-  for (int i = 0; i < bitfield.length; i++) {
-    String hexChar = bitfield[i];
+  for (var i = 0; i < bitfield.length; i++) {
     try {
-      int pieceValue = int.parse(hexChar, radix: 16);
-      pieces.add(pieceValue);
+      pieces.add(int.parse(bitfield[i], radix: 16));
     } catch (e) {
-      // If parsing fails, default to not downloaded
       pieces.add(0);
     }
   }
@@ -98,18 +68,17 @@ List<int> parseHexBitfield(String bitfield) {
   return pieces;
 }
 
-// Parse task data to get bitfield
 String? parseBitfield(String? bittorrentInfo) {
   if (bittorrentInfo != null && bittorrentInfo.isNotEmpty) {
     try {
-      Map<String, dynamic> bittorrentData = json.decode(bittorrentInfo);
+      final bittorrentData =
+          json.decode(bittorrentInfo) as Map<String, dynamic>;
       if (bittorrentData.containsKey('bitfield') &&
           bittorrentData['bitfield'] is String) {
         return bittorrentData['bitfield'] as String;
       }
       if (bittorrentData.containsKey('info') && bittorrentData['info'] is Map) {
-        Map<String, dynamic> info =
-            bittorrentData['info'] as Map<String, dynamic>;
+        final info = bittorrentData['info'] as Map<String, dynamic>;
         if (info.containsKey('bitfield') && info['bitfield'] is String) {
           return info['bitfield'] as String;
         }
@@ -121,31 +90,30 @@ String? parseBitfield(String? bittorrentInfo) {
   return null;
 }
 
-// Get corresponding color based on piece value
 Color getPieceColor(int pieceValue) {
   switch (pieceValue) {
     case 0:
-      return Colors.grey; // Not downloaded
+      return Colors.grey;
     case 1:
     case 2:
     case 3:
-      return Colors.orange; // Low completion
+      return Colors.orange;
     case 4:
     case 5:
     case 6:
     case 7:
-      return Colors.yellow; // Medium completion
+      return Colors.yellow;
     case 8:
     case 9:
     case 10:
     case 11:
-      return Colors.lightGreen; // High completion
+      return Colors.lightGreen;
     case 12:
     case 13:
     case 14:
     case 15:
-      return Colors.green; // Fully downloaded
+      return Colors.green;
     default:
-      return Colors.grey; // Default not downloaded
+      return Colors.grey;
   }
 }

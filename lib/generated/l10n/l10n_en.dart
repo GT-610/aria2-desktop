@@ -1110,6 +1110,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discard => 'Discard';
 
   @override
+  String startedAtWithValue(Object value) {
+    return 'Started at: $value';
+  }
+
+  @override
+  String get sourceLinks => 'Source links';
+
+  @override
+  String get trackers => 'Trackers';
+
+  @override
+  String get peers => 'Peers';
+
+  @override
+  String get noTrackerInformation => 'No tracker information';
+
+  @override
+  String get noPeerInformation => 'No peer information';
+
+  @override
+  String get clientLabel => 'Client';
+
+  @override
+  String get uploadShort => 'Up';
+
+  @override
+  String get downloadShort => 'Down';
+
+  @override
   String get english => 'English';
 
   @override
