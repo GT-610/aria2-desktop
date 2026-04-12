@@ -244,6 +244,45 @@
   "failedToRemoveTask": "删除任务失败: {error}",
   "failedToResumeTask": "继续任务失败: {error}",
   "failedToRemoveFailedTask": "删除失败任务失败: {error}",
+  "taskRemovedWithFileWarnings": "任务已移除，但部分文件未能删除。",
+  "taskActionNoMatchingTasks": "{action}：没有匹配的任务。",
+  "@taskActionNoMatchingTasks": {
+    "placeholders": {
+      "action": {}
+    }
+  },
+  "taskActionSummarySuccess": "{action}：成功 {success} 项。",
+  "@taskActionSummarySuccess": {
+    "placeholders": {
+      "action": {},
+      "success": {
+        "type": "int"
+      }
+    }
+  },
+  "taskActionSummaryDetailed": "{action}：成功 {success} 项，失败 {failed} 项，跳过 {skipped} 项。",
+  "@taskActionSummaryDetailed": {
+    "placeholders": {
+      "action": {},
+      "success": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "fileDeletionWarningsSummary": "{count} 个任务存在文件删除警告。",
+  "@fileDeletionWarningsSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "paused": "已暂停",
   "completed": "已完成",
   "downloading": "下载中",

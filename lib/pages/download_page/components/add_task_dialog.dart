@@ -14,7 +14,7 @@ import 'directory_picker.dart';
 class AddTaskDialog extends StatefulWidget {
   final List<Aria2Instance> targetInstances;
   final String? defaultTargetInstanceId;
-  final Future<void> Function(
+  final Future<bool> Function(
     String taskType,
     String uri,
     String downloadDir,
@@ -38,6 +38,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
   String saveLocation = '';
   final TextEditingController uriController = TextEditingController();
   bool showAdvancedOptions = false;
+  bool _isSubmitting = false;
   String? selectedTorrentFilePath;
   String? selectedMetalinkFilePath;
   late String? _selectedTargetInstanceId;
@@ -109,6 +110,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
 
   Future<void> _submitTask(String taskType) async {
     final l10n = AppLocalizations.of(context)!;
+    if (_isSubmitting) {
+      return;
+    }
+
     final targetInstanceId = _selectedTargetInstanceId;
     if (targetInstanceId == null) {
       if (mounted) {
@@ -120,27 +125,66 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
     }
 
     final downloadDir = saveLocation;
-    final uri = uriController.text;
+    final uri = uriController.text.trim();
     String? fileContent;
 
-    if (taskType == 'torrent' && selectedTorrentFilePath != null) {
-      final file = File(selectedTorrentFilePath!);
-      fileContent = base64Encode(await file.readAsBytes());
-    } else if (taskType == 'metalink' && selectedMetalinkFilePath != null) {
-      final file = File(selectedMetalinkFilePath!);
-      fileContent = base64Encode(await file.readAsBytes());
+    if (taskType == 'uri' && uri.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.enterOneOrMoreLinks)));
+      }
+      return;
     }
 
-    await widget.onAddTask(
-      taskType,
-      uri,
-      downloadDir,
-      fileContent,
-      targetInstanceId,
-    );
+    if (taskType == 'torrent' && selectedTorrentFilePath == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.selectTorrentFile)));
+      }
+      return;
+    }
 
-    if (mounted) {
-      Navigator.pop(context);
+    if (taskType == 'metalink' && selectedMetalinkFilePath == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.selectMetalinkFile)));
+      }
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      if (taskType == 'torrent' && selectedTorrentFilePath != null) {
+        final file = File(selectedTorrentFilePath!);
+        fileContent = base64Encode(await file.readAsBytes());
+      } else if (taskType == 'metalink' && selectedMetalinkFilePath != null) {
+        final file = File(selectedMetalinkFilePath!);
+        fileContent = base64Encode(await file.readAsBytes());
+      }
+
+      final added = await widget.onAddTask(
+        taskType,
+        uri,
+        downloadDir,
+        fileContent,
+        targetInstanceId,
+      );
+
+      if (added && mounted) {
+        Navigator.pop(context);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -179,6 +223,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
           child: Column(
             children: [
               TabBar(
+                physics: _isSubmitting
+                    ? const NeverScrollableScrollPhysics()
+                    : null,
                 tabs: [
                   Tab(text: l10n.uriTab),
                   Tab(text: l10n.torrentTab),
@@ -191,6 +238,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                   children: [
                     Expanded(
                       child: TabBarView(
+                        physics: _isSubmitting
+                            ? const NeverScrollableScrollPhysics()
+                            : null,
                         children: [
                           Padding(
                             padding: const EdgeInsets.all(8),
@@ -206,7 +256,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                 Btn.tile(
                                   text: l10n.pasteFromClipboard,
                                   icon: const Icon(Icons.paste),
-                                  onTap: _pasteFromClipboard,
+                                  onTap: _isSubmitting
+                                      ? null
+                                      : _pasteFromClipboard,
                                 ),
                                 const SizedBox(height: 16),
                                 Text(l10n.uriSupportHint),
@@ -223,7 +275,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                 Btn.tile(
                                   text: l10n.selectTorrentFile,
                                   icon: const Icon(Icons.upload_file),
-                                  onTap: _selectTorrentFile,
+                                  onTap: _isSubmitting
+                                      ? null
+                                      : _selectTorrentFile,
                                 ),
                                 const SizedBox(height: 16),
                                 if (selectedTorrentFilePath != null)
@@ -248,7 +302,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                                 Btn.tile(
                                   text: l10n.selectMetalinkFile,
                                   icon: const Icon(Icons.upload_file),
-                                  onTap: _selectMetalinkFile,
+                                  onTap: _isSubmitting
+                                      ? null
+                                      : _selectMetalinkFile,
                                 ),
                                 const SizedBox(height: 16),
                                 if (selectedMetalinkFilePath != null)
@@ -308,6 +364,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                               );
                             }).toList(),
                             onChanged: (value) {
+                              if (_isSubmitting) {
+                                return;
+                              }
                               setState(() {
                                 _selectedTargetInstanceId = value;
                               });
@@ -317,6 +376,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                           DirectoryPicker(
                             initialDirectory: saveLocation,
                             onDirectoryChanged: (newLocation) {
+                              if (_isSubmitting) {
+                                return;
+                              }
                               setState(() {
                                 saveLocation = newLocation;
                               });
@@ -336,11 +398,13 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                               Text(l10n.showAdvancedOptions),
                               Switch(
                                 value: showAdvancedOptions,
-                                onChanged: (value) {
-                                  setState(() {
-                                    showAdvancedOptions = value;
-                                  });
-                                },
+                                onChanged: _isSubmitting
+                                    ? null
+                                    : (value) {
+                                        setState(() {
+                                          showAdvancedOptions = value;
+                                        });
+                                      },
                               ),
                             ],
                           ),
@@ -359,9 +423,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
           ),
         ),
         actions: [
-          Btn.cancel(onTap: () => Navigator.of(context).pop()),
+          Btn.cancel(
+            onTap: _isSubmitting ? null : () => Navigator.of(context).pop(),
+          ),
           Btn.ok(
-            onTap: _hasAvailableTargets
+            onTap: _hasAvailableTargets && !_isSubmitting
                 ? () {
                     final currentTab = DefaultTabController.of(context).index;
                     final taskType = switch (currentTab) {

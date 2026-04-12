@@ -822,6 +822,35 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get taskRemovedWithFileWarnings =>
+      'Task removed, but some files could not be deleted.';
+
+  @override
+  String taskActionNoMatchingTasks(Object action) {
+    return 'No matching tasks for $action.';
+  }
+
+  @override
+  String taskActionSummarySuccess(Object action, int success) {
+    return '$action: $success succeeded.';
+  }
+
+  @override
+  String taskActionSummaryDetailed(
+    Object action,
+    int success,
+    int failed,
+    int skipped,
+  ) {
+    return '$action: $success succeeded, $failed failed, $skipped skipped.';
+  }
+
+  @override
+  String fileDeletionWarningsSummary(int count) {
+    return 'Some files could not be deleted for $count task(s).';
+  }
+
+  @override
   String get paused => 'Paused';
 
   @override

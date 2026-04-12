@@ -531,12 +531,13 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                 fileContent,
                 targetInstanceId,
               ) async {
+                final dialogInstanceManager = Provider.of<InstanceManager>(
+                  context,
+                  listen: false,
+                );
+                Aria2RpcClient? client;
                 try {
-                  final instanceManager = Provider.of<InstanceManager>(
-                    context,
-                    listen: false,
-                  );
-                  final targetInstance = instanceManager.getInstanceById(
+                  final targetInstance = dialogInstanceManager.getInstanceById(
                     targetInstanceId,
                   );
 
@@ -546,36 +547,41 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                         SnackBar(content: Text(l10n.noConnectedInstance)),
                       );
                     }
-                    return;
+                    return false;
                   }
 
-                  final client = Aria2RpcClient(targetInstance);
-                  final options = {'dir': downloadDir};
+                  client = Aria2RpcClient(targetInstance);
+                  final options = <String, dynamic>{};
+                  if (downloadDir.trim().isNotEmpty) {
+                    options['dir'] = downloadDir.trim();
+                  }
 
                   switch (taskType) {
                     case 'uri':
-                      if (uri.isNotEmpty) {
-                        final uris = uri
-                            .split('\n')
-                            .map((u) => u.trim())
-                            .where((u) => u.isNotEmpty)
-                            .toList();
-                        await client.addUri(uris, options);
+                      final uris = uri
+                          .split('\n')
+                          .map((u) => u.trim())
+                          .where((u) => u.isNotEmpty)
+                          .toList();
+                      if (uris.isEmpty) {
+                        return false;
                       }
+                      await client.addUri(uris, options);
                       break;
                     case 'torrent':
-                      if (fileContent != null) {
-                        await client.addTorrent(fileContent, options);
+                      if (fileContent == null) {
+                        return false;
                       }
+                      await client.addTorrent(fileContent, options);
                       break;
                     case 'metalink':
-                      if (fileContent != null) {
-                        await client.addMetalink(fileContent, options);
+                      if (fileContent == null) {
+                        return false;
                       }
+                      await client.addMetalink(fileContent, options);
                       break;
                   }
 
-                  client.close();
                   _refreshTasksAndRestartTimer();
 
                   if (context.mounted) {
@@ -587,6 +593,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                       ),
                     );
                   }
+                  return true;
                 } catch (e, stackTrace) {
                   this.e(
                     'Failed to add task',
@@ -598,6 +605,9 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                       SnackBar(content: Text(l10n.addTaskFailed('$e'))),
                     );
                   }
+                  return false;
+                } finally {
+                  client?.close();
                 }
               },
         );

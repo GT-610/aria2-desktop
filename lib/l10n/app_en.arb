@@ -244,6 +244,45 @@
   "failedToRemoveTask": "Failed to remove the task: {error}",
   "failedToResumeTask": "Failed to resume the task: {error}",
   "failedToRemoveFailedTask": "Failed to remove the failed task: {error}",
+  "taskRemovedWithFileWarnings": "Task removed, but some files could not be deleted.",
+  "taskActionNoMatchingTasks": "No matching tasks for {action}.",
+  "@taskActionNoMatchingTasks": {
+    "placeholders": {
+      "action": {}
+    }
+  },
+  "taskActionSummarySuccess": "{action}: {success} succeeded.",
+  "@taskActionSummarySuccess": {
+    "placeholders": {
+      "action": {},
+      "success": {
+        "type": "int"
+      }
+    }
+  },
+  "taskActionSummaryDetailed": "{action}: {success} succeeded, {failed} failed, {skipped} skipped.",
+  "@taskActionSummaryDetailed": {
+    "placeholders": {
+      "action": {},
+      "success": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "fileDeletionWarningsSummary": "Some files could not be deleted for {count} task(s).",
+  "@fileDeletionWarningsSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "paused": "Paused",
   "completed": "Completed",
   "downloading": "Downloading",
