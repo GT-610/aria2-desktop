@@ -1079,6 +1079,35 @@ class AppLocalizationsZh extends AppLocalizations {
   String get discard => '丢弃';
 
   @override
+  String startedAtWithValue(Object value) {
+    return '开始时间: $value';
+  }
+
+  @override
+  String get sourceLinks => '来源链接';
+
+  @override
+  String get trackers => 'Trackers';
+
+  @override
+  String get peers => 'Peers';
+
+  @override
+  String get noTrackerInformation => '没有 Tracker 信息';
+
+  @override
+  String get noPeerInformation => '没有 Peer 信息';
+
+  @override
+  String get clientLabel => '客户端';
+
+  @override
+  String get uploadShort => '上传';
+
+  @override
+  String get downloadShort => '下载';
+
+  @override
   String get english => 'English';
 
   @override

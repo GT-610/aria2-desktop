@@ -102,11 +102,10 @@ class TaskParser {
     String name = '';
     List<Map<String, dynamic>>? files;
 
-    if (taskData.containsKey('files') &&
-        taskData['files'] is List &&
-        (taskData['files'] as List).isNotEmpty) {
+    final rawFiles = taskData['files'];
+    if (rawFiles is List && rawFiles.isNotEmpty) {
       // Store complete files information for detailed view
-      files = (taskData['files'] as List).map((file) {
+      files = rawFiles.map((file) {
         if (file is Map) {
           return <String, dynamic>{
             ...file,
@@ -120,9 +119,9 @@ class TaskParser {
       }).toList();
 
       // Extract first file name for display
-      final firstFile = (taskData['files'] as List)[0];
+      final firstFile = rawFiles[0];
       if (firstFile is Map && firstFile.containsKey('path')) {
-        final path = firstFile['path'] as String;
+        final path = firstFile['path'] as String? ?? '';
         name = path.split('/').last.split('\\').last;
       }
     }
@@ -140,6 +139,12 @@ class TaskParser {
     if (taskData.containsKey('bittorrent') && taskData['bittorrent'] is Map) {
       final bittorrent = taskData['bittorrent'] as Map<String, dynamic>;
       bittorrentInfo = json.encode(bittorrent);
+      final torrentName = bittorrent['info'] is Map
+          ? (bittorrent['info'] as Map)['name'] as String?
+          : null;
+      if (torrentName != null && torrentName.trim().isNotEmpty) {
+        name = torrentName.trim();
+      }
       final announceList = bittorrent['announceList'];
       if (announceList is List) {
         trackers = announceList.expand((item) {
@@ -156,7 +161,27 @@ class TaskParser {
 
     // Parse download links
     List<String>? uris;
-    if (taskData.containsKey('uris') && taskData['uris'] is List) {
+    if (rawFiles is List && rawFiles.isNotEmpty) {
+      uris = rawFiles
+          .expand((file) {
+            if (file is! Map) {
+              return const <String>[];
+            }
+            final fileUris = file['uris'];
+            if (fileUris is! List) {
+              return const <String>[];
+            }
+            return fileUris
+                .whereType<Map>()
+                .map((uri) => uri['uri'] as String? ?? '')
+                .where((s) => s.isNotEmpty);
+          })
+          .toSet()
+          .toList();
+    }
+    if ((uris == null || uris.isEmpty) &&
+        taskData.containsKey('uris') &&
+        taskData['uris'] is List) {
       uris = (taskData['uris'] as List).expand((uriList) {
         if (uriList is List) {
           return uriList
@@ -167,6 +192,18 @@ class TaskParser {
         }
         return <String>[];
       }).toList();
+    }
+
+    DateTime? startTime;
+    final completedFromMap = taskData['completedAt'];
+    final startedFromMap = taskData['startTime'] ?? taskData['startedAt'];
+    final timestampValue = startedFromMap ?? completedFromMap;
+    final timestamp = int.tryParse(timestampValue?.toString() ?? '');
+    if (timestamp != null && timestamp > 0) {
+      startTime = DateTime.fromMillisecondsSinceEpoch(
+        timestamp * 1000,
+        isUtc: true,
+      ).toLocal();
     }
 
     // Parse error message
@@ -219,6 +256,7 @@ class TaskParser {
       trackers: trackers,
       uris: uris,
       errorMessage: errorMessage,
+      startTime: startTime,
       bitfield: bitfield,
     );
   }

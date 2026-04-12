@@ -4,14 +4,18 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
 import '../../../generated/l10n/l10n.dart';
+import '../../../utils/format_utils.dart';
 import '../models/download_task.dart';
 
 void _logE(String msg) => lprint('[TaskUtils] $msg');
 
 class TaskUtils {
-  static String calculateRemainingTime(double progress, String downloadSpeed) {
-    // Implementation will be added later
-    return '';
+  static String calculateRemainingTime(DownloadTask task) {
+    return formatRemainingTime(
+      totalBytes: task.totalLengthBytes,
+      completedBytes: task.completedLengthBytes,
+      downloadSpeedBytes: task.downloadSpeedBytes,
+    );
   }
 
   // Open download directory

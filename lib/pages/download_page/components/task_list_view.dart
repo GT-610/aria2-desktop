@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../generated/l10n/l10n.dart';
 import '../../../services/instance_manager.dart';
 import '../models/download_task.dart';
-import '../services/download_task_service.dart';
+import '../utils/task_utils.dart';
 import 'task_list_item.dart';
 
 /// Component for displaying the list of download tasks with empty states handling
@@ -115,15 +115,7 @@ class TaskListView extends StatelessWidget {
           showSelectionControl: selectedTaskKeys.isNotEmpty,
           onTaskUpdated: onTaskUpdated,
           onOpenDirectory: (task) async {
-            final dir = task.dir;
-            if (dir == null || dir.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.noDownloadDirectoryAvailable)),
-              );
-              return;
-            }
-
-            DownloadTaskService.openDirectory(task);
+            await TaskUtils.openDownloadDirectory(context, task);
           },
         );
       },

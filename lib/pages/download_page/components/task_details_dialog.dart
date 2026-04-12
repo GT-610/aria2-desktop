@@ -53,7 +53,9 @@ class TaskDetailsDialog {
               .join('|');
         }
 
-        Map<int, bool> buildFileSelectionState(List<Map<String, dynamic>> files) {
+        Map<int, bool> buildFileSelectionState(
+          List<Map<String, dynamic>> files,
+        ) {
           final result = <int, bool>{};
           for (final file in files) {
             final index = int.tryParse(file['index']?.toString() ?? '');
@@ -112,8 +114,8 @@ class TaskDetailsDialog {
               overviewTab,
               piecesTab,
               filesTab,
-              if (isBtTask) const Tab(text: 'Trackers'),
-              if (isBtTask) const Tab(text: 'Peers'),
+              if (isBtTask) Tab(text: l10n.trackers),
+              if (isBtTask) Tab(text: l10n.peers),
             ];
             refreshTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
               unawaited(requestPeersIfNeeded?.call() ?? Future.value());
@@ -139,6 +141,13 @@ class TaskDetailsDialog {
             );
             final progressPercent = (currentTask.progress * 100)
                 .toStringAsFixed(2);
+            final taskDisplayName = currentTask.name.trim().isEmpty
+                ? currentTask.id
+                : currentTask.name;
+            final saveLocation =
+                currentTask.dir == null || currentTask.dir!.trim().isEmpty
+                ? l10n.unknownPath
+                : currentTask.dir!;
 
             return PopScope(
               canPop: true,
@@ -150,11 +159,13 @@ class TaskDetailsDialog {
                     final tabController = DefaultTabController.of(tabContext);
                     currentTabIndex = tabController.index;
 
-                    Future<void> fetchPeersIfNeeded({bool force = false}) async {
+                    Future<void> fetchPeersIfNeeded({
+                      bool force = false,
+                    }) async {
                       if (!isBtTask ||
                           currentTabIndex < 0 ||
                           currentTabIndex >= tabs.length ||
-                          tabs[currentTabIndex].text != 'Peers') {
+                          tabs[currentTabIndex].text != l10n.peers) {
                         return;
                       }
 
@@ -181,8 +192,8 @@ class TaskDetailsDialog {
                       isLoadingPeers = true;
                       lastPeersFetchTime = now;
                       try {
-                        final instanceManager =
-                            outerContext.read<InstanceManager>();
+                        final instanceManager = outerContext
+                            .read<InstanceManager>();
                         final instance = instanceManager.getInstanceById(
                           currentTask.instanceId,
                         );
@@ -235,477 +246,549 @@ class TaskDetailsDialog {
                     requestPeersIfNeeded = fetchPeersIfNeeded;
 
                     return AlertDialog(
-                  title: Text(l10n.taskDetails),
-                  content: SizedBox(
-                    width: 600,
-                    height: 450,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          currentTask.name,
-                          style: Theme.of(context).textTheme.titleMedium,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${l10n.instance}: ${instanceNames[currentTask.instanceId] ?? currentTask.instanceId}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 12),
-                        TabBar(
-                          tabs: tabs,
-                          indicatorSize: TabBarIndicatorSize.tab,
-                        ),
-                        Expanded(
-                          child: TabBarView(
-                            children: [
-                              SingleChildScrollView(
-                                padding: const EdgeInsets.all(8),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(l10n.taskId(currentTask.id)),
-                                    const SizedBox(height: 8),
-                                    Row(
+                      title: Text(l10n.taskDetails),
+                      content: SizedBox(
+                        width: 600,
+                        height: 450,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              taskDisplayName,
+                              style: Theme.of(context).textTheme.titleMedium,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${l10n.instance}: ${instanceNames[currentTask.instanceId] ?? currentTask.instanceId}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: 12),
+                            TabBar(
+                              tabs: tabs,
+                              indicatorSize: TabBarIndicatorSize.tab,
+                            ),
+                            Expanded(
+                              child: TabBarView(
+                                children: [
+                                  SingleChildScrollView(
+                                    padding: const EdgeInsets.all(8),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
+                                        Text(l10n.taskId(currentTask.id)),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              l10n.statusWithValue(
+                                                statusInfo.$1,
+                                              ),
+                                              style: TextStyle(
+                                                color: statusInfo.$2,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
                                         Text(
-                                          l10n.statusWithValue(statusInfo.$1),
-                                          style: TextStyle(
-                                            color: statusInfo.$2,
+                                          l10n.sizeWithValue(
+                                            currentTask.totalLengthBytes
+                                                .toString(),
+                                            currentTask.size,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      l10n.sizeWithValue(
-                                        currentTask.totalLengthBytes.toString(),
-                                        currentTask.size,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      l10n.downloadedWithValue(
-                                        currentTask.completedLengthBytes
-                                            .toString(),
-                                        currentTask.completedSize,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      l10n.progressWithValue(progressPercent),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      l10n.downloadSpeedWithValue(
-                                        currentTask.downloadSpeedBytes
-                                            .toString(),
-                                        currentTask.downloadSpeed,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      l10n.uploadSpeedWithValue(
-                                        currentTask.uploadSpeedBytes.toString(),
-                                        currentTask.uploadSpeed,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      l10n.connectionsWithValue(
-                                        '${currentTask.connections ?? '--'}',
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      l10n.saveLocationWithValue(
-                                        currentTask.dir ?? '--',
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      l10n.taskTypeWithValue(
-                                        currentTask.isLocal
-                                            ? l10n.builtin
-                                            : l10n.remote,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    if (currentTask.errorMessage != null &&
-                                        currentTask.errorMessage!.isNotEmpty)
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            l10n.errorWithValue(
-                                              currentTask.errorMessage!,
-                                            ),
-                                            style: const TextStyle(
-                                              color: Colors.red,
-                                            ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          l10n.downloadedWithValue(
+                                            currentTask.completedLengthBytes
+                                                .toString(),
+                                            currentTask.completedSize,
                                           ),
-                                          const SizedBox(height: 8),
-                                        ],
-                                      ),
-                                    if (currentTask.status ==
-                                            DownloadStatus.active &&
-                                        currentTask.downloadSpeedBytes > 0)
-                                      Text(
-                                        l10n.remainingTimeWithValue(
-                                          TaskUtils.calculateRemainingTime(
-                                            currentTask.progress,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          l10n.progressWithValue(
+                                            progressPercent,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          l10n.downloadSpeedWithValue(
+                                            currentTask.downloadSpeedBytes
+                                                .toString(),
                                             currentTask.downloadSpeed,
                                           ),
                                         ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              SingleChildScrollView(
-                                padding: const EdgeInsets.all(16),
-                                child: _buildBitfieldVisualization(
-                                  context,
-                                  currentTask,
-                                ),
-                              ),
-                              SingleChildScrollView(
-                                padding: const EdgeInsets.all(8),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      l10n.filesTitle,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    if (currentFiles.isNotEmpty) ...[
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: [
-                                          FilledButton.tonal(
-                                            onPressed: () {
-                                              setState(() {
-                                                fileSelection = {
-                                                  for (final file
-                                                      in currentFiles)
-                                                    if (int.tryParse(
-                                                          file['index']
-                                                                  ?.toString() ??
-                                                              '',
-                                                        ) !=
-                                                        null)
-                                                      int.parse(
-                                                        file['index']
-                                                            .toString(),
-                                                      ): true,
-                                                };
-                                                hasFileSelectionChanges = true;
-                                              });
-                                            },
-                                            child: Text(
-                                              allFilesSelected
-                                              ? l10n.allVisibleSelected
-                                              : l10n.selectAllVisible,
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          l10n.uploadSpeedWithValue(
+                                            currentTask.uploadSpeedBytes
+                                                .toString(),
+                                            currentTask.uploadSpeed,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          l10n.connectionsWithValue(
+                                            '${currentTask.connections ?? '--'}',
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          l10n.saveLocationWithValue(
+                                            saveLocation,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          l10n.taskTypeWithValue(
+                                            currentTask.isLocal
+                                                ? l10n.builtin
+                                                : l10n.remote,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        if (currentTask.errorMessage != null &&
+                                            currentTask
+                                                .errorMessage!
+                                                .isNotEmpty)
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                l10n.errorWithValue(
+                                                  currentTask.errorMessage!,
+                                                ),
+                                                style: const TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                            ],
+                                          ),
+                                        if (currentTask.status ==
+                                                DownloadStatus.active &&
+                                            currentTask.downloadSpeedBytes > 0)
+                                          Text(
+                                            l10n.remainingTimeWithValue(
+                                              TaskUtils.calculateRemainingTime(
+                                                currentTask,
+                                              ),
                                             ),
                                           ),
-                                          TextButton(
-                                            onPressed: hasFileSelectionChanges
-                                                ? () {
-                                                    setState(() {
-                                                      fileSelection =
-                                                          buildFileSelectionState(
-                                                            currentFiles,
-                                                          );
-                                                      fileSelectionSourceSignature =
-                                                          currentSignature;
-                                                      hasFileSelectionChanges =
-                                                          false;
-                                                    });
-                                                  }
-                                                : null,
-                                            child: Text(l10n.discard),
-                                          ),
-                                          FilledButton(
-                                            onPressed:
-                                                hasFileSelectionChanges &&
-                                                    !isSavingFileSelection &&
-                                                    fileSelection.values.any(
-                                                      (selected) => selected,
-                                                    )
-                                                ? () async {
-                                                    final selectedIndexes =
-                                                        fileSelection.entries
-                                                            .where(
-                                                              (entry) =>
-                                                                  entry.value,
-                                                            )
-                                                            .map(
-                                                              (entry) =>
-                                                                  entry.key,
-                                                            )
-                                                            .toList()
-                                                          ..sort();
-                                                    final instanceManager =
-                                                        outerContext
-                                                            .read<
-                                                              InstanceManager
-                                                            >();
-                                                    final Aria2Instance?
-                                                    instance = instanceManager
-                                                        .getInstanceById(
-                                                          currentTask.instanceId,
-                                                        );
-                                                    if (instance == null) {
-                                                      if (outerContext.mounted) {
-                                                        ScaffoldMessenger.of(
-                                                          outerContext,
-                                                        ).showSnackBar(
-                                                          SnackBar(
-                                                            content: Text(
-                                                              l10n
-                                                                  .targetInstanceNotConnected,
-                                                            ),
-                                                          ),
-                                                        );
-                                                      }
-                                                      return;
-                                                    }
-
-                                                    setState(() {
-                                                      isSavingFileSelection =
-                                                          true;
-                                                    });
-
-                                                    Aria2RpcClient? client;
-                                                    try {
-                                                      client = Aria2RpcClient(
-                                                        instance,
-                                                      );
-                                                      await client.changeOption(
-                                                        currentTask.id,
-                                                        {
-                                                          'select-file':
-                                                              selectedIndexes
-                                                                  .join(','),
-                                                        },
-                                                      );
-                                                      client.close();
-
-                                                      onTaskUpdated?.call();
-
-                                                      if (outerContext.mounted) {
-                                                        ScaffoldMessenger.of(
-                                                          outerContext,
-                                                        ).showSnackBar(
-                                                          SnackBar(
-                                                            content: Text(
-                                                              l10n.save,
-                                                            ),
-                                                          ),
-                                                        );
-                                                      }
-
-                                                      if (context.mounted) {
-                                                        setState(() {
-                                                          hasFileSelectionChanges =
-                                                              false;
-                                                          fileSelectionSourceSignature =
-                                                              currentSignature;
-                                                        });
-                                                      }
-                                                    } catch (error) {
-                                                      if (outerContext.mounted) {
-                                                        ScaffoldMessenger.of(
-                                                          outerContext,
-                                                        ).showSnackBar(
-                                                          SnackBar(
-                                                            content: Text(
-                                                              l10n
-                                                                  .operationFailed(
-                                                                    '$error',
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                        );
-                                                      }
-                                                    } finally {
-                                                      client?.close();
-                                                      if (context.mounted) {
-                                                        setState(() {
-                                                          isSavingFileSelection =
-                                                              false;
-                                                        });
-                                                      }
-                                                    }
-                                                  }
-                                                : null,
-                                            child: isSavingFileSelection
-                                                ? const SizedBox(
-                                                    width: 16,
-                                                    height: 16,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                        ),
-                                                  )
-                                                : Text(l10n.save),
-                                          ),
+                                        if (currentTask.startTime != null) ...[
+                                          const SizedBox(height: 8),
                                           Text(
-                                            l10n.selectedCount(
-                                              fileSelection.values
-                                                  .where((selected) => selected)
-                                                  .length
+                                            l10n.startedAtWithValue(
+                                              currentTask.startTime!
+                                                  .toLocal()
                                                   .toString(),
                                             ),
                                           ),
                                         ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      ListView.builder(
-                                        shrinkWrap: true,
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        itemCount: currentFiles.length,
-                                        itemBuilder: (context, index) {
-                                          final file = currentFiles[index];
-                                          final fileIndex = int.tryParse(
-                                            file['index']?.toString() ?? '',
-                                          );
-                                          final filePath =
-                                              file['path'] as String? ??
-                                              l10n.unknownPath;
-                                          final fileName = filePath
-                                              .split('/')
-                                              .last
-                                              .split('\\')
-                                              .last;
-                                          final fileSize = formatBytes(
-                                            int.tryParse(
-                                                  file['length'] as String? ??
-                                                      '0',
-                                                ) ??
-                                                0,
-                                          );
-                                          final completedSize = formatBytes(
-                                            int.tryParse(
-                                                  file['completedLength']
-                                                          as String? ??
-                                                      '0',
-                                                ) ??
-                                                0,
-                                          );
-                                          final selected =
-                                              fileIndex == null
-                                              ? (file['selected'] as String? ??
-                                                        'true') ==
-                                                    'true'
-                                              : (fileSelection[fileIndex] ??
-                                                    ((file['selected']
+                                        if (currentTask.uris != null &&
+                                            currentTask.uris!.isNotEmpty) ...[
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            l10n.sourceLinks,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          SelectableText(
+                                            currentTask.uris!.join('\n'),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  SingleChildScrollView(
+                                    padding: const EdgeInsets.all(16),
+                                    child: _buildBitfieldVisualization(
+                                      context,
+                                      currentTask,
+                                    ),
+                                  ),
+                                  SingleChildScrollView(
+                                    padding: const EdgeInsets.all(8),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          l10n.filesTitle,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        if (currentFiles.isNotEmpty) ...[
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: [
+                                              FilledButton.tonal(
+                                                onPressed: () {
+                                                  setState(() {
+                                                    fileSelection = {
+                                                      for (final file
+                                                          in currentFiles)
+                                                        if (int.tryParse(
+                                                              file['index']
+                                                                      ?.toString() ??
+                                                                  '',
+                                                            ) !=
+                                                            null)
+                                                          int.parse(
+                                                            file['index']
+                                                                .toString(),
+                                                          ): true,
+                                                    };
+                                                    hasFileSelectionChanges =
+                                                        true;
+                                                  });
+                                                },
+                                                child: Text(
+                                                  allFilesSelected
+                                                      ? l10n.allVisibleSelected
+                                                      : l10n.selectAllVisible,
+                                                ),
+                                              ),
+                                              TextButton(
+                                                onPressed:
+                                                    hasFileSelectionChanges
+                                                    ? () {
+                                                        setState(() {
+                                                          fileSelection =
+                                                              buildFileSelectionState(
+                                                                currentFiles,
+                                                              );
+                                                          fileSelectionSourceSignature =
+                                                              currentSignature;
+                                                          hasFileSelectionChanges =
+                                                              false;
+                                                        });
+                                                      }
+                                                    : null,
+                                                child: Text(l10n.discard),
+                                              ),
+                                              FilledButton(
+                                                onPressed:
+                                                    hasFileSelectionChanges &&
+                                                        !isSavingFileSelection &&
+                                                        fileSelection.values
+                                                            .any(
+                                                              (selected) =>
+                                                                  selected,
+                                                            )
+                                                    ? () async {
+                                                        final selectedIndexes =
+                                                            fileSelection
+                                                                .entries
+                                                                .where(
+                                                                  (
+                                                                    entry,
+                                                                  ) => entry
+                                                                      .value,
+                                                                )
+                                                                .map(
+                                                                  (entry) =>
+                                                                      entry.key,
+                                                                )
+                                                                .toList()
+                                                              ..sort();
+                                                        final instanceManager =
+                                                            outerContext
+                                                                .read<
+                                                                  InstanceManager
+                                                                >();
+                                                        final Aria2Instance?
+                                                        instance = instanceManager
+                                                            .getInstanceById(
+                                                              currentTask
+                                                                  .instanceId,
+                                                            );
+                                                        if (instance == null) {
+                                                          if (outerContext
+                                                              .mounted) {
+                                                            ScaffoldMessenger.of(
+                                                              outerContext,
+                                                            ).showSnackBar(
+                                                              SnackBar(
+                                                                content: Text(
+                                                                  l10n.targetInstanceNotConnected,
+                                                                ),
+                                                              ),
+                                                            );
+                                                          }
+                                                          return;
+                                                        }
+
+                                                        setState(() {
+                                                          isSavingFileSelection =
+                                                              true;
+                                                        });
+
+                                                        Aria2RpcClient? client;
+                                                        try {
+                                                          client =
+                                                              Aria2RpcClient(
+                                                                instance,
+                                                              );
+                                                          await client.changeOption(
+                                                            currentTask.id,
+                                                            {
+                                                              'select-file':
+                                                                  selectedIndexes
+                                                                      .join(
+                                                                        ',',
+                                                                      ),
+                                                            },
+                                                          );
+                                                          client.close();
+
+                                                          onTaskUpdated?.call();
+
+                                                          if (outerContext
+                                                              .mounted) {
+                                                            ScaffoldMessenger.of(
+                                                              outerContext,
+                                                            ).showSnackBar(
+                                                              SnackBar(
+                                                                content: Text(
+                                                                  l10n.save,
+                                                                ),
+                                                              ),
+                                                            );
+                                                          }
+
+                                                          if (context.mounted) {
+                                                            setState(() {
+                                                              hasFileSelectionChanges =
+                                                                  false;
+                                                              fileSelectionSourceSignature =
+                                                                  currentSignature;
+                                                            });
+                                                          }
+                                                        } catch (error) {
+                                                          if (outerContext
+                                                              .mounted) {
+                                                            ScaffoldMessenger.of(
+                                                              outerContext,
+                                                            ).showSnackBar(
+                                                              SnackBar(
+                                                                content: Text(
+                                                                  l10n.operationFailed(
+                                                                    '$error',
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            );
+                                                          }
+                                                        } finally {
+                                                          client?.close();
+                                                          if (context.mounted) {
+                                                            setState(() {
+                                                              isSavingFileSelection =
+                                                                  false;
+                                                            });
+                                                          }
+                                                        }
+                                                      }
+                                                    : null,
+                                                child: isSavingFileSelection
+                                                    ? const SizedBox(
+                                                        width: 16,
+                                                        height: 16,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                            ),
+                                                      )
+                                                    : Text(l10n.save),
+                                              ),
+                                              Text(
+                                                l10n.selectedCount(
+                                                  fileSelection.values
+                                                      .where(
+                                                        (selected) => selected,
+                                                      )
+                                                      .length
+                                                      .toString(),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 12),
+                                          ListView.builder(
+                                            shrinkWrap: true,
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            itemCount: currentFiles.length,
+                                            itemBuilder: (context, index) {
+                                              final file = currentFiles[index];
+                                              final fileIndex = int.tryParse(
+                                                file['index']?.toString() ?? '',
+                                              );
+                                              final rawFilePath =
+                                                  file['path'] as String? ?? '';
+                                              final filePath =
+                                                  rawFilePath.trim().isEmpty
+                                                  ? l10n.unknownPath
+                                                  : rawFilePath;
+                                              final fileName = filePath
+                                                  .split('/')
+                                                  .last
+                                                  .split('\\')
+                                                  .last;
+                                              final displayName =
+                                                  fileName.trim().isEmpty
+                                                  ? l10n.unknownPath
+                                                  : fileName;
+                                              final fileSize = formatBytes(
+                                                int.tryParse(
+                                                      file['length']
+                                                              as String? ??
+                                                          '0',
+                                                    ) ??
+                                                    0,
+                                              );
+                                              final completedSize = formatBytes(
+                                                int.tryParse(
+                                                      file['completedLength']
+                                                              as String? ??
+                                                          '0',
+                                                    ) ??
+                                                    0,
+                                              );
+                                              final selected = fileIndex == null
+                                                  ? (file['selected']
                                                                 as String? ??
                                                             'true') ==
-                                                        'true'));
+                                                        'true'
+                                                  : (fileSelection[fileIndex] ??
+                                                        ((file['selected']
+                                                                    as String? ??
+                                                                'true') ==
+                                                            'true'));
 
-                                          return Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              border: Border(
-                                                bottom: BorderSide(
-                                                  color: Colors.grey.shade200,
-                                                ),
-                                              ),
-                                            ),
-                                            child: CheckboxListTile(
-                                              value: selected,
-                                              onChanged: fileIndex == null
-                                                  ? null
-                                                  : (value) {
-                                                      setState(() {
-                                                        fileSelection = {
-                                                          ...fileSelection,
-                                                          fileIndex: value ??
-                                                              false,
-                                                        };
-                                                        hasFileSelectionChanges =
-                                                            true;
-                                                      });
-                                                    },
-                                              controlAffinity:
-                                                  ListTileControlAffinity.leading,
-                                              contentPadding: EdgeInsets.zero,
-                                              title: Text(
-                                                fileName,
-                                                style: TextStyle(
-                                                  fontWeight: selected
-                                                      ? FontWeight.normal
-                                                      : FontWeight.w300,
-                                                ),
-                                              ),
-                                              subtitle: Row(
-                                                children: [
-                                                  Text(
-                                                    '$completedSize / $fileSize',
-                                                  ),
-                                                  if (!selected)
-                                                    Text(
-                                                      ' ${l10n.notSelected}',
-                                                      style: TextStyle(
-                                                        color: Colors.grey,
-                                                      ),
+                                              return Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 2,
                                                     ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      )
-                                    ]
-                                    else
-                                      Text(l10n.noFileInformation),
-                                  ],
-                                ),
-                              ),
-                              if (isBtTask)
-                                SingleChildScrollView(
-                                  padding: const EdgeInsets.all(8),
-                                  child: (currentTask.trackers == null ||
-                                          currentTask.trackers!.isEmpty)
-                                      ? const Text('No tracker information')
-                                      : SelectableText(
-                                          currentTask.trackers!.join('\n'),
-                                        ),
-                                ),
-                              if (isBtTask)
-                                SingleChildScrollView(
-                                  padding: const EdgeInsets.all(8),
-                                  child: _buildPeersView(
-                                    peers: peers,
-                                    isLoading: isLoadingPeers,
-                                    error: peersError,
+                                                decoration: BoxDecoration(
+                                                  border: Border(
+                                                    bottom: BorderSide(
+                                                      color:
+                                                          Colors.grey.shade200,
+                                                    ),
+                                                  ),
+                                                ),
+                                                child: CheckboxListTile(
+                                                  value: selected,
+                                                  onChanged: fileIndex == null
+                                                      ? null
+                                                      : (value) {
+                                                          setState(() {
+                                                            fileSelection = {
+                                                              ...fileSelection,
+                                                              fileIndex:
+                                                                  value ??
+                                                                  false,
+                                                            };
+                                                            hasFileSelectionChanges =
+                                                                true;
+                                                          });
+                                                        },
+                                                  controlAffinity:
+                                                      ListTileControlAffinity
+                                                          .leading,
+                                                  contentPadding:
+                                                      EdgeInsets.zero,
+                                                  title: Text(
+                                                    displayName,
+                                                    style: TextStyle(
+                                                      fontWeight: selected
+                                                          ? FontWeight.normal
+                                                          : FontWeight.w300,
+                                                    ),
+                                                  ),
+                                                  subtitle: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        '$completedSize / $fileSize',
+                                                      ),
+                                                      Text(
+                                                        filePath,
+                                                        style: TextStyle(
+                                                          color:
+                                                              Colors.grey[600],
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                      if (!selected)
+                                                        Text(
+                                                          l10n.notSelected,
+                                                          style: TextStyle(
+                                                            color: Colors.grey,
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ] else
+                                          Text(l10n.noFileInformation),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                            ],
-                          ),
+                                  if (isBtTask)
+                                    SingleChildScrollView(
+                                      padding: const EdgeInsets.all(8),
+                                      child:
+                                          (currentTask.trackers == null ||
+                                              currentTask.trackers!.isEmpty)
+                                          ? Text(l10n.noTrackerInformation)
+                                          : SelectableText(
+                                              currentTask.trackers!.join('\n'),
+                                            ),
+                                    ),
+                                  if (isBtTask)
+                                    SingleChildScrollView(
+                                      padding: const EdgeInsets.all(8),
+                                      child: _buildPeersView(
+                                        context: context,
+                                        peers: peers,
+                                        isLoading: isLoadingPeers,
+                                        error: peersError,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            disposeResources();
+                            Navigator.of(context).pop();
+                          },
+                          child: Text(l10n.close),
                         ),
                       ],
-                    ),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        disposeResources();
-                        Navigator.of(context).pop();
-                      },
-                      child: Text(l10n.close),
-                    ),
-                  ],
                     );
                   },
                 ),
@@ -747,7 +830,7 @@ class TaskDetailsDialog {
       );
     }
 
-    final pieces = _parseHexBitfield(bitfield);
+    final pieces = parseHexBitfield(bitfield);
     final totalPieces = pieces.length;
     final completedPieces = pieces.where((piece) => piece == 15).length;
     final partialPieces = pieces
@@ -822,10 +905,12 @@ class TaskDetailsDialog {
   }
 
   static Widget _buildPeersView({
+    required BuildContext context,
     required List<Map<String, dynamic>> peers,
     required bool isLoading,
     required String? error,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     if (isLoading && peers.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -835,7 +920,7 @@ class TaskDetailsDialog {
     }
 
     if (peers.isEmpty) {
-      return const Text('No peer information');
+      return Text(l10n.noPeerInformation);
     }
 
     return Column(
@@ -856,9 +941,9 @@ class TaskDetailsDialog {
           child: ListTile(
             title: Text('$ip:$port'),
             subtitle: Text(
-              'Client: $peerId\n'
-              'Progress: ${progress.toStringAsFixed(0)}%\n'
-              'Up: $uploadSpeed/s  Down: $downloadSpeed/s',
+              '${l10n.clientLabel}: $peerId\n'
+              '${l10n.progress}: ${progress.toStringAsFixed(0)}%\n'
+              '${l10n.uploadShort}: $uploadSpeed/s  ${l10n.downloadShort}: $downloadSpeed/s',
             ),
           ),
         );
@@ -870,7 +955,7 @@ class TaskDetailsDialog {
     if (bitfield == null || bitfield.isEmpty) {
       return 0;
     }
-    final pieces = _parseHexBitfield(bitfield);
+    final pieces = parseHexBitfield(bitfield);
     if (pieces.isEmpty) {
       return 0;
     }
@@ -912,18 +997,6 @@ class TaskDetailsDialog {
         Text(text),
       ],
     );
-  }
-
-  static List<int> _parseHexBitfield(String bitfield) {
-    final pieces = <int>[];
-    for (var i = 0; i < bitfield.length; i++) {
-      try {
-        pieces.add(int.parse(bitfield[i], radix: 16));
-      } catch (_) {
-        pieces.add(0);
-      }
-    }
-    return pieces;
   }
 
   static Widget _buildPiecesGrid(List<int> pieces) {

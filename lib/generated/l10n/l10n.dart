@@ -2029,6 +2029,60 @@ abstract class AppLocalizations {
   /// **'Discard'**
   String get discard;
 
+  /// No description provided for @startedAtWithValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Started at: {value}'**
+  String startedAtWithValue(Object value);
+
+  /// No description provided for @sourceLinks.
+  ///
+  /// In en, this message translates to:
+  /// **'Source links'**
+  String get sourceLinks;
+
+  /// No description provided for @trackers.
+  ///
+  /// In en, this message translates to:
+  /// **'Trackers'**
+  String get trackers;
+
+  /// No description provided for @peers.
+  ///
+  /// In en, this message translates to:
+  /// **'Peers'**
+  String get peers;
+
+  /// No description provided for @noTrackerInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'No tracker information'**
+  String get noTrackerInformation;
+
+  /// No description provided for @noPeerInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'No peer information'**
+  String get noPeerInformation;
+
+  /// No description provided for @clientLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Client'**
+  String get clientLabel;
+
+  /// No description provided for @uploadShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Up'**
+  String get uploadShort;
+
+  /// No description provided for @downloadShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Down'**
+  String get downloadShort;
+
   /// No description provided for @english.
   ///
   /// In en, this message translates to:
