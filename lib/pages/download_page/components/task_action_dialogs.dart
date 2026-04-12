@@ -164,13 +164,14 @@ class TaskActionDialogs {
                           }
                           deleteDownloadedFiles = choice;
                         }
-                        await _performActionForInstance(
+                        final outcome = await _performActionForInstance(
                           context,
                           instance,
                           actionType,
                           instanceTasks,
                           deleteDownloadedFiles: deleteDownloadedFiles,
                         );
+                        _showActionOutcome(context, actionType, outcome);
                         onActionCompleted?.call();
                       },
                     ),
