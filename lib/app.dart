@@ -577,6 +577,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       }
 
       final isVisible = await windowManager.isVisible();
+      if (!_isWindowBlurred) {
+        return;
+      }
+
       if (isVisible) {
         await windowManager.hide();
       }
