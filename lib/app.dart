@@ -16,7 +16,6 @@ import 'services/instance_manager.dart';
 import 'services/settings_service.dart';
 import 'services/system_tray_service.dart';
 import 'services/aria2_rpc_client.dart';
-import 'utils/format_utils.dart';
 import 'utils/logging.dart';
 
 class MyApp extends StatelessWidget {
@@ -297,7 +296,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       connectedCount == 0
           ? l10n.notConnected
           : '${l10n.connected}: $connectedCount',
-      l10n.totalSpeed('${formatBytes(totalDownloadSpeed)}/s'),
+      l10n.totalSpeed(_formatSpeed(totalDownloadSpeed)),
       l10n.activeTasks(activeCount.toString()),
       l10n.waitingTasks(waitingCount.toString()),
     ];
