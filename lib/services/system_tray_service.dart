@@ -12,6 +12,8 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   bool _minimizeToTray = true;
   VoidCallback? _onShowWindow;
   VoidCallback? _onQuitApp;
+  Future<void> Function()? _onPauseAll;
+  Future<void> Function()? _onResumeAll;
 
   factory SystemTrayService() {
     _instance ??= SystemTrayService._internal();
@@ -30,6 +32,14 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
 
   void setOnQuitApp(VoidCallback callback) {
     _onQuitApp = callback;
+  }
+
+  void setOnPauseAll(Future<void> Function() callback) {
+    _onPauseAll = callback;
+  }
+
+  void setOnResumeAll(Future<void> Function() callback) {
+    _onResumeAll = callback;
   }
 
   Future<void> initialize() async {
@@ -66,7 +76,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
       items: [
         MenuItem(key: 'show_window', label: '显示主窗口'),
         MenuItem.separator(),
-        MenuItem(key: 'start_download', label: '开始下载'),
+        MenuItem(key: 'resume_all', label: '继续全部'),
         MenuItem(key: 'pause_all', label: '暂停全部'),
         MenuItem.separator(),
         MenuItem(key: 'quit', label: '退出'),
@@ -96,11 +106,11 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
       case 'show_window':
         _onShowWindow?.call();
         break;
-      case 'start_download':
-        d('Tray menu: Start downloads');
+      case 'resume_all':
+        _onResumeAll?.call();
         break;
       case 'pause_all':
-        d('Tray menu: Pause all');
+        _onPauseAll?.call();
         break;
       case 'quit':
         _onQuitApp?.call();

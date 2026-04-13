@@ -8,12 +8,14 @@ import 'models/aria2_instance.dart';
 import 'models/settings.dart';
 import 'pages/download_page/download_page.dart';
 import 'pages/download_page/enums.dart';
+import 'pages/download_page/models/download_task.dart';
 import 'pages/instance_page/instance_page.dart';
 import 'pages/settings_page/settings_page.dart';
 import 'services/download_data_service.dart';
 import 'services/instance_manager.dart';
 import 'services/settings_service.dart';
 import 'services/system_tray_service.dart';
+import 'services/aria2_rpc_client.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -198,6 +200,108 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
     systemTrayService.setOnQuitApp(() async {
       await windowManager.close();
     });
+    systemTrayService.setOnPauseAll(_pauseAllTasksFromTray);
+    systemTrayService.setOnResumeAll(_resumeAllTasksFromTray);
+  }
+
+  Future<void> _pauseAllTasksFromTray() async {
+    await _runTrayBulkAction(
+      actionLabel: AppLocalizations.of(context)!.pauseTasks,
+      shouldProcess: (task) =>
+          (task.status == DownloadStatus.active ||
+              task.status == DownloadStatus.waiting) &&
+          task.taskStatus != 'paused',
+      perform: (client, taskId) => client.pauseTask(taskId),
+    );
+  }
+
+  Future<void> _resumeAllTasksFromTray() async {
+    await _runTrayBulkAction(
+      actionLabel: AppLocalizations.of(context)!.resumeTasks,
+      shouldProcess: (task) =>
+          task.status == DownloadStatus.waiting && task.taskStatus == 'paused',
+      perform: (client, taskId) => client.unpauseTask(taskId),
+    );
+  }
+
+  Future<void> _runTrayBulkAction({
+    required String actionLabel,
+    required bool Function(DownloadTask task) shouldProcess,
+    required Future<String> Function(Aria2RpcClient client, String taskId)
+    perform,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final instanceManager = Provider.of<InstanceManager>(
+      context,
+      listen: false,
+    );
+    final downloadDataService = Provider.of<DownloadDataService>(
+      context,
+      listen: false,
+    );
+    final connectedInstances = instanceManager.getConnectedInstances();
+
+    if (connectedInstances.isEmpty) {
+      _showTrayActionSnackBar(l10n.noConnectedInstancesForAction);
+      return;
+    }
+
+    final actionableTasks = downloadDataService.tasks
+        .where(shouldProcess)
+        .toList();
+    if (actionableTasks.isEmpty) {
+      _showTrayActionSnackBar(l10n.taskActionNoMatchingTasks(actionLabel));
+      return;
+    }
+
+    final tasksByInstance = <String, List<DownloadTask>>{};
+    for (final task in actionableTasks) {
+      tasksByInstance.putIfAbsent(task.instanceId, () => []).add(task);
+    }
+
+    var successCount = 0;
+    for (final instance in connectedInstances) {
+      final instanceTasks = tasksByInstance[instance.id];
+      if (instanceTasks == null || instanceTasks.isEmpty) {
+        continue;
+      }
+
+      final client = Aria2RpcClient(instance);
+      try {
+        for (final task in instanceTasks) {
+          try {
+            await perform(client, task.id);
+            successCount++;
+          } catch (_) {
+            // Ignore individual task errors here; the refresh and snackbar below
+            // keep the tray action lightweight and non-blocking.
+          }
+        }
+      } finally {
+        client.close();
+      }
+    }
+
+    await downloadDataService.refreshTasks(connectedInstances);
+
+    if (!mounted) {
+      return;
+    }
+
+    final message = successCount > 0
+        ? l10n.taskActionSummarySuccess(actionLabel, successCount)
+        : l10n.taskActionNoMatchingTasks(actionLabel);
+    _showTrayActionSnackBar(message);
+  }
+
+  void _showTrayActionSnackBar(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
   }
 
   @override
