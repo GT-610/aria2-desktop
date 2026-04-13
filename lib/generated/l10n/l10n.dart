@@ -170,6 +170,18 @@ abstract class AppLocalizations {
   /// **'Connected'**
   String get connected;
 
+  /// No description provided for @showMainWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show main window'**
+  String get showMainWindow;
+
+  /// No description provided for @quitApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Quit'**
+  String get quitApp;
+
   /// No description provided for @connectFailed.
   ///
   /// In en, this message translates to:

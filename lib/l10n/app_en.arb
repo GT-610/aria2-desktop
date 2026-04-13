@@ -12,6 +12,8 @@
   "notConnected": "Not Connected",
   "connecting": "Connecting",
   "connected": "Connected",
+  "showMainWindow": "Show main window",
+  "quitApp": "Quit",
   "connectFailed": "Connect Failed",
   "connect": "Connect",
   "reconnect": "Reconnect",

@@ -53,6 +53,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get connected => 'Connected';
 
   @override
+  String get showMainWindow => 'Show main window';
+
+  @override
+  String get quitApp => 'Quit';
+
+  @override
   String get connectFailed => 'Connect Failed';
 
   @override

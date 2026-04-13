@@ -17,6 +17,13 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   Future<void> Function()? _onPauseAll;
   Future<void> Function()? _onResumeAll;
   final Set<LocalNotification> _activeNotifications = <LocalNotification>{};
+  String _statusLabel = 'Aria2 Desktop';
+  String _showWindowLabel = 'Show Window';
+  String _resumeAllLabel = 'Resume All';
+  String _pauseAllLabel = 'Pause All';
+  String _quitLabel = 'Quit';
+  bool _resumeAllDisabled = false;
+  bool _pauseAllDisabled = false;
 
   factory SystemTrayService() {
     _instance ??= SystemTrayService._internal();
@@ -43,6 +50,34 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
 
   void setOnResumeAll(Future<void> Function()? callback) {
     _onResumeAll = callback;
+  }
+
+  Future<void> updateMenuState({
+    required String statusLabel,
+    required String showWindowLabel,
+    required String resumeAllLabel,
+    required String pauseAllLabel,
+    required String quitLabel,
+    required bool resumeAllDisabled,
+    required bool pauseAllDisabled,
+  }) async {
+    _statusLabel = statusLabel;
+    _showWindowLabel = showWindowLabel;
+    _resumeAllLabel = resumeAllLabel;
+    _pauseAllLabel = pauseAllLabel;
+    _quitLabel = quitLabel;
+    _resumeAllDisabled = resumeAllDisabled;
+    _pauseAllDisabled = pauseAllDisabled;
+
+    if (!_isInitialized) {
+      return;
+    }
+
+    try {
+      await trayManager.setContextMenu(_buildMenu());
+    } catch (e, stackTrace) {
+      w('Failed to update tray menu state', error: e, stackTrace: stackTrace);
+    }
   }
 
   Future<void> initialize() async {
@@ -97,20 +132,32 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     await trayManager.setIcon(iconPath);
     await trayManager.setToolTip('Aria2 Desktop - Aria2 下载管理器');
 
-    final menu = Menu(
-      items: [
-        MenuItem(key: 'show_window', label: '显示主窗口'),
-        MenuItem.separator(),
-        MenuItem(key: 'resume_all', label: '继续全部'),
-        MenuItem(key: 'pause_all', label: '暂停全部'),
-        MenuItem.separator(),
-        MenuItem(key: 'quit', label: '退出'),
-      ],
-    );
-
-    await trayManager.setContextMenu(menu);
+    await trayManager.setContextMenu(_buildMenu());
 
     trayManager.addListener(this);
+  }
+
+  Menu _buildMenu() {
+    return Menu(
+      items: [
+        MenuItem(label: _statusLabel, disabled: true),
+        MenuItem.separator(),
+        MenuItem(key: 'show_window', label: _showWindowLabel),
+        MenuItem.separator(),
+        MenuItem(
+          key: 'resume_all',
+          label: _resumeAllLabel,
+          disabled: _resumeAllDisabled,
+        ),
+        MenuItem(
+          key: 'pause_all',
+          label: _pauseAllLabel,
+          disabled: _pauseAllDisabled,
+        ),
+        MenuItem.separator(),
+        MenuItem(key: 'quit', label: _quitLabel),
+      ],
+    );
   }
 
   @override

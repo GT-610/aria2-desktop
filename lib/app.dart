@@ -287,6 +287,21 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     final waitingCount = tasks
         .where((task) => task.status == DownloadStatus.waiting)
         .length;
+    final resumableCount = tasks
+        .where(
+          (task) =>
+              task.status == DownloadStatus.waiting &&
+              task.taskStatus == 'paused',
+        )
+        .length;
+    final pausableCount = tasks
+        .where(
+          (task) =>
+              (task.status == DownloadStatus.active ||
+                  task.status == DownloadStatus.waiting) &&
+              task.taskStatus != 'paused',
+        )
+        .length;
     final totalDownloadSpeed = tasks
         .where((task) => task.status == DownloadStatus.active)
         .fold<int>(0, (sum, task) => sum + task.downloadSpeedBytes);
@@ -300,7 +315,19 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       l10n.activeTasks(activeCount.toString()),
       l10n.waitingTasks(waitingCount.toString()),
     ];
-    SystemTrayService().updateTooltip(tooltipLines.join('\n'));
+    final trayService = SystemTrayService();
+    trayService.updateTooltip(tooltipLines.join('\n'));
+    trayService.updateMenuState(
+      statusLabel: connectedCount == 0
+          ? l10n.notConnected
+          : '${l10n.connected}: $connectedCount',
+      showWindowLabel: l10n.showMainWindow,
+      resumeAllLabel: '${l10n.resumeTasks} ($resumableCount)',
+      pauseAllLabel: '${l10n.pauseTasks} ($pausableCount)',
+      quitLabel: l10n.quitApp,
+      resumeAllDisabled: resumableCount == 0,
+      pauseAllDisabled: pausableCount == 0,
+    );
   }
 
   Future<void> _pauseAllTasksFromTray() async {
