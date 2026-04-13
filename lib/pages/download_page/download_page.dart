@@ -367,8 +367,10 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
           }
           break;
         case CategoryType.byInstance:
+          _selectedFilter = FilterOption.all;
           break;
         case CategoryType.all:
+          _selectedFilter = FilterOption.all;
           break;
       }
       if (newCategory != CategoryType.byInstance) {
