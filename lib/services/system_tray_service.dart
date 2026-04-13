@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
+import 'package:local_notifier/local_notifier.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import '../utils/logging.dart';
@@ -8,12 +9,14 @@ import '../utils/logging.dart';
 class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   static SystemTrayService? _instance;
   bool _isInitialized = false;
+  bool _notificationsInitialized = false;
   // ignore: unused_field - intended for future use in minimizeToTray()
   bool _minimizeToTray = true;
   VoidCallback? _onShowWindow;
   VoidCallback? _onQuitApp;
   Future<void> Function()? _onPauseAll;
   Future<void> Function()? _onResumeAll;
+  final Set<LocalNotification> _activeNotifications = <LocalNotification>{};
 
   factory SystemTrayService() {
     _instance ??= SystemTrayService._internal();
@@ -46,6 +49,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     if (_isInitialized) return;
 
     try {
+      await _initNotifications();
       await _initSystemTray();
       _isInitialized = true;
       i('System tray initialized successfully');
@@ -53,6 +57,27 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
       this.e(
         'Failed to initialize system tray',
         error: err,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> _initNotifications() async {
+    if (kIsWeb ||
+        !(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      return;
+    }
+
+    try {
+      await localNotifier.setup(
+        appName: 'Aria2 Desktop',
+        shortcutPolicy: ShortcutPolicy.requireCreate,
+      );
+      _notificationsInitialized = true;
+    } catch (e, stackTrace) {
+      w(
+        'Failed to initialize desktop notifications',
+        error: e,
         stackTrace: stackTrace,
       );
     }
@@ -130,13 +155,42 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   Future<void> showNotification(String title, String message) async {
     if (!_isInitialized) return;
     d('Tray notification: $title - $message');
+    if (!_notificationsInitialized) {
+      return;
+    }
+
+    final notification = LocalNotification(title: title, body: message);
+    _activeNotifications.add(notification);
+    notification.onClick = () {
+      _onShowWindow?.call();
+      notification.close();
+    };
+    notification.onClose = (_) {
+      _activeNotifications.remove(notification);
+    };
+
+    try {
+      await notification.show();
+    } catch (e, stackTrace) {
+      _activeNotifications.remove(notification);
+      w(
+        'Failed to show desktop notification',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   void destroy() {
     if (_isInitialized) {
+      for (final notification in _activeNotifications.toList()) {
+        notification.close();
+      }
+      _activeNotifications.clear();
       trayManager.removeListener(this);
       trayManager.destroy();
       _isInitialized = false;
+      _notificationsInitialized = false;
       i('System tray destroyed');
     }
   }
