@@ -142,7 +142,6 @@ class FilterSelector extends StatelessWidget {
                 l10n.byStatus,
                 onTap: () {
                   onCategoryChanged(CategoryType.byStatus);
-                  onFilterChanged(FilterOption.active);
                   Navigator.pop(context);
                 },
               ),
@@ -152,7 +151,6 @@ class FilterSelector extends StatelessWidget {
                 l10n.byType,
                 onTap: () {
                   onCategoryChanged(CategoryType.byType);
-                  onFilterChanged(FilterOption.local);
                   Navigator.pop(context);
                 },
               ),
@@ -162,7 +160,6 @@ class FilterSelector extends StatelessWidget {
                 l10n.byInstance,
                 onTap: () {
                   onCategoryChanged(CategoryType.byInstance);
-                  onInstanceSelected(null);
                   Navigator.pop(context);
                 },
               ),
