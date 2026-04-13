@@ -428,6 +428,17 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     });
   }
 
+  void _clearViewFilters() {
+    setState(() {
+      _searchController.clear();
+      _searchQuery = '';
+      _currentCategoryType = CategoryType.all;
+      _selectedFilter = FilterOption.all;
+      _selectedInstanceId = null;
+      _selectedTaskKeys.clear();
+    });
+  }
+
   void _selectAllVisibleTasks(List<DownloadTask> tasks) {
     setState(() {
       final visibleKeys = tasks.map(_taskKey).toSet();
@@ -457,6 +468,11 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     context.watch<DownloadDataService>();
     final filteredTasks = _filterTasks();
     final selectedTasks = _selectedTasksFrom(filteredTasks);
+    final hasActiveViewFilters =
+        _searchQuery.isNotEmpty ||
+        _currentCategoryType != CategoryType.all ||
+        _selectedFilter != FilterOption.all ||
+        _selectedInstanceId != null;
     final pauseableVisibleCount = _countActionableTasks(
       filteredTasks,
       TaskActionType.pause,
@@ -534,6 +550,10 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
             child: TaskListView(
               tasks: filteredTasks,
               instanceNames: _instanceNames,
+              hasActiveViewFilters: hasActiveViewFilters,
+              onClearViewFilters: hasActiveViewFilters
+                  ? _clearViewFilters
+                  : null,
               onTaskTap: (task) => _showTaskDetails(context, task),
               onTaskLongPress: _startTaskSelection,
               onTaskSelectionToggle: _toggleTaskSelection,
