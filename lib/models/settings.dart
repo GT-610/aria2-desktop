@@ -19,6 +19,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool _showDownloadsAfterAdd =
       true; // Focus downloading view after adding tasks
   bool _showProgressBar = true; // Show progress bars in task list
+  bool _isLoaded = false; // Whether settings have finished loading
 
   // Appearance settings
   ThemeMode _themeMode = ThemeMode.system; // Appearance settings
@@ -55,6 +56,7 @@ class Settings extends ChangeNotifier with Loggable {
   double _seedRatio = 1.0; // Seed ratio
   int _seedTime = 60; // Seed time in minutes
   String _btListenPort = '6881-6999'; // BT listen port or port range
+  String _btTracker = ''; // BT tracker servers
   String _btExcludeTracker = ''; // Exclude trackers
 
   // Advanced settings
@@ -66,6 +68,10 @@ class Settings extends ChangeNotifier with Loggable {
   bool _enableUpnp = true; // Enable UPnP/NAT-PMP port mapping
   String _sessionPath = ''; // Custom aria2 session file path
   String _logPath = ''; // Custom aria2 log file path
+  bool _autoSyncTracker = true; // Auto sync tracker list
+  int _lastSyncTrackerTime = 0; // Last successful tracker sync time
+  String _trackerSource =
+      'https://fastly.jsdelivr.net/gh/ngosang/trackerslist/trackers_best_ip.txt'; // Selected tracker source
   bool _autoFileRenaming = true; // Auto rename files
   bool _allowOverwrite = false; // Allow overwrite
   String _userAgent =
@@ -117,6 +123,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool get resumeAllOnLaunch => _resumeAllOnLaunch;
   bool get showDownloadsAfterAdd => _showDownloadsAfterAdd;
   bool get showProgressBar => _showProgressBar;
+  bool get isLoaded => _isLoaded;
   ThemeMode get themeMode => _themeMode;
   Color get primaryColor => _primaryColor;
   String? get customColorCode => _customColorCode;
@@ -148,6 +155,7 @@ class Settings extends ChangeNotifier with Loggable {
   double get seedRatio => _seedRatio;
   int get seedTime => _seedTime;
   String get btListenPort => _btListenPort;
+  String get btTracker => _btTracker;
   String get btExcludeTracker => _btExcludeTracker;
 
   // Advanced settings
@@ -159,6 +167,9 @@ class Settings extends ChangeNotifier with Loggable {
   bool get enableUpnp => _enableUpnp;
   String get sessionPath => _sessionPath;
   String get logPath => _logPath;
+  bool get autoSyncTracker => _autoSyncTracker;
+  int get lastSyncTrackerTime => _lastSyncTrackerTime;
+  String get trackerSource => _trackerSource;
   bool get autoFileRenaming => _autoFileRenaming;
   bool get allowOverwrite => _allowOverwrite;
   String get userAgent => _userAgent;
@@ -246,6 +257,7 @@ class Settings extends ChangeNotifier with Loggable {
         _seedRatio = settingsMap['seedRatio'] ?? 1.0;
         _seedTime = settingsMap['seedTime'] ?? 60;
         _btListenPort = settingsMap['btListenPort'] ?? '6881-6999';
+        _btTracker = settingsMap['btTracker'] ?? '';
         _btExcludeTracker = settingsMap['btExcludeTracker'] ?? '';
 
         // Advanced settings
@@ -259,6 +271,11 @@ class Settings extends ChangeNotifier with Loggable {
         _enableUpnp = settingsMap['enableUpnp'] ?? true;
         _sessionPath = settingsMap['sessionPath'] ?? '';
         _logPath = settingsMap['logPath'] ?? '';
+        _autoSyncTracker = settingsMap['autoSyncTracker'] ?? true;
+        _lastSyncTrackerTime = settingsMap['lastSyncTrackerTime'] ?? 0;
+        _trackerSource =
+            settingsMap['trackerSource'] ??
+            'https://fastly.jsdelivr.net/gh/ngosang/trackerslist/trackers_best_ip.txt';
         _autoFileRenaming = settingsMap['autoFileRenaming'] ?? true;
         _allowOverwrite = settingsMap['allowOverwrite'] ?? false;
         _userAgent =
@@ -271,6 +288,8 @@ class Settings extends ChangeNotifier with Loggable {
         _applyDefaultSettings();
       }
 
+      _isLoaded = true;
+
       // Schedule notifyListeners to run after the current frame is built
       SchedulerBinding.instance.addPostFrameCallback((_) {
         notifyListeners();
@@ -279,6 +298,7 @@ class Settings extends ChangeNotifier with Loggable {
       this.e('Failed to load settings', error: e);
       // Apply default settings
       _applyDefaultSettings();
+      _isLoaded = true;
     }
   }
 
@@ -324,6 +344,7 @@ class Settings extends ChangeNotifier with Loggable {
     _seedRatio = 1.0;
     _seedTime = 60;
     _btListenPort = '6881-6999';
+    _btTracker = '';
     _btExcludeTracker = '';
 
     // Advanced settings
@@ -335,6 +356,10 @@ class Settings extends ChangeNotifier with Loggable {
     _enableUpnp = true;
     _sessionPath = '';
     _logPath = '';
+    _autoSyncTracker = true;
+    _lastSyncTrackerTime = 0;
+    _trackerSource =
+        'https://fastly.jsdelivr.net/gh/ngosang/trackerslist/trackers_best_ip.txt';
     _autoFileRenaming = true;
     _allowOverwrite = false;
     _userAgent =
@@ -391,6 +416,7 @@ class Settings extends ChangeNotifier with Loggable {
         'seedRatio': _seedRatio,
         'seedTime': _seedTime,
         'btListenPort': _btListenPort,
+        'btTracker': _btTracker,
         'btExcludeTracker': _btExcludeTracker,
 
         // Advanced settings
@@ -402,6 +428,9 @@ class Settings extends ChangeNotifier with Loggable {
         'enableUpnp': _enableUpnp,
         'sessionPath': _sessionPath,
         'logPath': _logPath,
+        'autoSyncTracker': _autoSyncTracker,
+        'lastSyncTrackerTime': _lastSyncTrackerTime,
+        'trackerSource': _trackerSource,
         'autoFileRenaming': _autoFileRenaming,
         'allowOverwrite': _allowOverwrite,
         'userAgent': _userAgent,
@@ -614,6 +643,12 @@ class Settings extends ChangeNotifier with Loggable {
     await _saveAllSettings();
   }
 
+  Future<void> setBtTracker(String trackers) async {
+    _btTracker = trackers;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
   Future<void> setBtExcludeTracker(String trackers) async {
     _btExcludeTracker = trackers;
     notifyListeners();
@@ -669,6 +704,24 @@ class Settings extends ChangeNotifier with Loggable {
     await _saveAllSettings();
   }
 
+  Future<void> setAutoSyncTracker(bool value) async {
+    _autoSyncTracker = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setLastSyncTrackerTime(int value) async {
+    _lastSyncTrackerTime = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setTrackerSource(String value) async {
+    _trackerSource = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
   Future<void> setAutoFileRenaming(bool value) async {
     _autoFileRenaming = value;
     notifyListeners();
@@ -703,6 +756,7 @@ class Settings extends ChangeNotifier with Loggable {
     required double seedRatio,
     required int seedTime,
     required String btListenPort,
+    required String btTracker,
     required String btExcludeTracker,
     required bool proxyEnabled,
     required String allProxy,
@@ -712,6 +766,9 @@ class Settings extends ChangeNotifier with Loggable {
     required bool enableUpnp,
     required String sessionPath,
     required String logPath,
+    required bool autoSyncTracker,
+    required int lastSyncTrackerTime,
+    required String trackerSource,
     required bool autoFileRenaming,
     required bool allowOverwrite,
     required String userAgent,
@@ -731,6 +788,7 @@ class Settings extends ChangeNotifier with Loggable {
     _seedRatio = seedRatio;
     _seedTime = seedTime;
     _btListenPort = btListenPort;
+    _btTracker = btTracker;
     _btExcludeTracker = btExcludeTracker;
     _proxyEnabled = proxyEnabled;
     _allProxy = allProxy;
@@ -740,6 +798,9 @@ class Settings extends ChangeNotifier with Loggable {
     _enableUpnp = enableUpnp;
     _sessionPath = sessionPath;
     _logPath = logPath;
+    _autoSyncTracker = autoSyncTracker;
+    _lastSyncTrackerTime = lastSyncTrackerTime;
+    _trackerSource = trackerSource;
     _autoFileRenaming = autoFileRenaming;
     _allowOverwrite = allowOverwrite;
     _userAgent = userAgent;

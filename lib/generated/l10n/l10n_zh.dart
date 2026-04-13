@@ -1089,6 +1089,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get seedTimeMinutes => '做种时间 (分钟)';
 
   @override
+  String get trackerSource => 'Tracker 来源';
+
+  @override
+  String get syncTrackerList => '同步 Tracker 列表';
+
+  @override
+  String get autoSyncTracker => '自动同步 Tracker 列表';
+
+  @override
+  String get btTrackerServers => 'Tracker 服务器';
+
+  @override
+  String get btTrackerServersTip => 'Tracker 服务器，可按每行一个或逗号分隔填写';
+
+  @override
   String get exampleProxy => '示例: http://proxy:port';
 
   @override
@@ -1164,6 +1179,14 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String settingsSavedRestartFailedWithError(Object error) {
     return '设置已保存，但重启内建实例失败: $error';
+  }
+
+  @override
+  String get trackerSyncSuccess => 'Tracker 列表已同步到当前草稿设置';
+
+  @override
+  String trackerSyncFailed(Object error) {
+    return '同步 Tracker 列表失败: $error';
   }
 
   @override

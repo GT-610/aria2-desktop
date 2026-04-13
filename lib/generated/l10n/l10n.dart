@@ -2053,6 +2053,36 @@ abstract class AppLocalizations {
   /// **'Seed time (minutes)'**
   String get seedTimeMinutes;
 
+  /// No description provided for @trackerSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracker source'**
+  String get trackerSource;
+
+  /// No description provided for @syncTrackerList.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync tracker list'**
+  String get syncTrackerList;
+
+  /// No description provided for @autoSyncTracker.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto sync tracker list'**
+  String get autoSyncTracker;
+
+  /// No description provided for @btTrackerServers.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracker servers'**
+  String get btTrackerServers;
+
+  /// No description provided for @btTrackerServersTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracker servers, one per line or separated by commas'**
+  String get btTrackerServersTip;
+
   /// No description provided for @exampleProxy.
   ///
   /// In en, this message translates to:
@@ -2202,6 +2232,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings were saved, but restarting the built-in instance failed: {error}'**
   String settingsSavedRestartFailedWithError(Object error);
+
+  /// No description provided for @trackerSyncSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracker list synced into the draft settings'**
+  String get trackerSyncSuccess;
+
+  /// No description provided for @trackerSyncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to sync tracker list: {error}'**
+  String trackerSyncFailed(Object error);
 
   /// No description provided for @leavePage.
   ///

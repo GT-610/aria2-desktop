@@ -210,6 +210,7 @@ class BuiltinInstanceService with Loggable {
     final noProxy = settings['noProxy'] as String? ?? '';
     final proxyEnabled = settings['proxyEnabled'] == true;
     final userAgent = settings['userAgent'] as String? ?? '';
+    final btTracker = settings['btTracker'] as String? ?? '';
     final btExcludeTracker = settings['btExcludeTracker'] as String? ?? '';
 
     if (rpcSecret.isNotEmpty) {
@@ -223,6 +224,9 @@ class BuiltinInstanceService with Loggable {
     }
     if (userAgent.isNotEmpty) {
       args.add('--user-agent=$userAgent');
+    }
+    if (btTracker.isNotEmpty) {
+      args.add('--bt-tracker=$btTracker');
     }
     if (btExcludeTracker.isNotEmpty) {
       args.add('--bt-exclude-tracker=$btExcludeTracker');

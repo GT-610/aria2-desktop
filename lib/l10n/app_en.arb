@@ -360,6 +360,11 @@
   "keepSeedingAfterCompletion": "Keep seeding after completion",
   "seedRatio": "Seed ratio",
   "seedTimeMinutes": "Seed time (minutes)",
+  "trackerSource": "Tracker source",
+  "syncTrackerList": "Sync tracker list",
+  "autoSyncTracker": "Auto sync tracker list",
+  "btTrackerServers": "Tracker servers",
+  "btTrackerServersTip": "Tracker servers, one per line or separated by commas",
   "exampleProxy": "Example: http://proxy:port",
   "noProxyHosts": "No-proxy hosts",
   "multipleHostsComma": "Separate multiple hosts with commas",
@@ -385,6 +390,13 @@
   "settingsSavedApplyWhenConnected": "Settings saved. Supported changes will apply the next time the built-in instance connects",
   "settingsSavedRestartFailed": "Settings were saved, but restarting the built-in instance failed",
   "settingsSavedRestartFailedWithError": "Settings were saved, but restarting the built-in instance failed: {error}",
+  "trackerSyncSuccess": "Tracker list synced into the draft settings",
+  "trackerSyncFailed": "Failed to sync tracker list: {error}",
+  "@trackerSyncFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "leavePage": "Leave this page?",
   "unsavedChangesPrompt": "You have unsaved changes. What would you like to do?",
   "discard": "Discard",

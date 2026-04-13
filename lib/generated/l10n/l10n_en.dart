@@ -1125,6 +1125,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get seedTimeMinutes => 'Seed time (minutes)';
 
   @override
+  String get trackerSource => 'Tracker source';
+
+  @override
+  String get syncTrackerList => 'Sync tracker list';
+
+  @override
+  String get autoSyncTracker => 'Auto sync tracker list';
+
+  @override
+  String get btTrackerServers => 'Tracker servers';
+
+  @override
+  String get btTrackerServersTip =>
+      'Tracker servers, one per line or separated by commas';
+
+  @override
   String get exampleProxy => 'Example: http://proxy:port';
 
   @override
@@ -1211,6 +1227,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String settingsSavedRestartFailedWithError(Object error) {
     return 'Settings were saved, but restarting the built-in instance failed: $error';
+  }
+
+  @override
+  String get trackerSyncSuccess =>
+      'Tracker list synced into the draft settings';
+
+  @override
+  String trackerSyncFailed(Object error) {
+    return 'Failed to sync tracker list: $error';
   }
 
   @override

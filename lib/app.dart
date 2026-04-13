@@ -18,6 +18,7 @@ import 'services/instance_manager.dart';
 import 'services/settings_service.dart';
 import 'services/auto_hide_window_service.dart';
 import 'services/system_tray_service.dart';
+import 'services/tracker_sync_service.dart';
 import 'services/aria2_rpc_client.dart';
 import 'utils/logging.dart';
 
@@ -111,24 +112,28 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
   }
 
   Future<void> _initialize() async {
+    final settings = Provider.of<Settings>(context, listen: false);
+    if (!settings.isLoaded) {
+      await settings.loadSettings();
+    }
+
+    final settingsService = Provider.of<SettingsService>(
+      context,
+      listen: false,
+    );
+    settingsService.initialize(settings);
     // Initialize instance manager
     final instanceManager = Provider.of<InstanceManager>(
       context,
       listen: false,
     );
     await instanceManager.initialize();
-
-    // Initialize settings service with current instance
-    final settings = Provider.of<Settings>(context, listen: false);
-    final settingsService = Provider.of<SettingsService>(
-      context,
-      listen: false,
-    );
-    settingsService.initialize(settings);
     final downloadDataService = Provider.of<DownloadDataService>(
       context,
       listen: false,
     );
+
+    unawaited(_syncBuiltinTrackersIfNeeded(settings, instanceManager));
 
     if (settings.resumeAllOnLaunch) {
       await _resumePausedTasksOnLaunch(instanceManager, downloadDataService);
@@ -150,6 +155,21 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
     setState(() {
       _isInitialized = true;
     });
+  }
+
+  Future<void> _syncBuiltinTrackersIfNeeded(
+    Settings settings,
+    InstanceManager instanceManager,
+  ) async {
+    try {
+      final builtinInstance = instanceManager.getBuiltinInstance();
+      await TrackerSyncService().syncBuiltinTrackersIfNeeded(
+        settings,
+        builtinInstance: builtinInstance,
+      );
+    } catch (e, stackTrace) {
+      this.w('Automatic tracker sync failed', error: e, stackTrace: stackTrace);
+    }
   }
 
   Future<void> _resumePausedTasksOnLaunch(
