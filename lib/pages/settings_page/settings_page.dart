@@ -211,6 +211,32 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                     ),
                     const Divider(height: 1),
+                    SwitchListTile.adaptive(
+                      title: Text(
+                        l10n.resumeAllOnLaunch,
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(l10n.resumeAllOnLaunchTip),
+                      value: settings.resumeAllOnLaunch,
+                      onChanged: (value) async {
+                        try {
+                          await settings.setResumeAllOnLaunch(value);
+                          this.i(
+                            'Resume all on launch setting changed to: $value',
+                          );
+                        } catch (e) {
+                          this.e(
+                            'Failed to save resume all on launch setting',
+                            error: e,
+                          );
+                          _showErrorSnackBar(l10n.saveSettingsFailed);
+                        }
+                      },
+                      activeThumbColor: Colors.white,
+                      activeTrackColor: colorScheme.primary,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                    ),
+                    const Divider(height: 1),
                     ListTile(
                       title: Text(
                         l10n.appearance,

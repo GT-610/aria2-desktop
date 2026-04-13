@@ -38,6 +38,8 @@
   "taskNotificationTip": "Show notifications when downloads complete or fail",
   "skipDeleteConfirm": "Skip delete confirmation",
   "skipDeleteConfirmTip": "Delete tasks immediately without asking whether to remove downloaded files",
+  "resumeAllOnLaunch": "Resume all on launch",
+  "resumeAllOnLaunchTip": "Automatically resume paused tasks after the app starts",
   "appearance": "Appearance",
   "appearanceTip": "Customize app theme and colors",
   "light": "Light",

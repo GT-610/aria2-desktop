@@ -38,6 +38,8 @@
   "taskNotificationTip": "在下载完成或失败时显示通知",
   "skipDeleteConfirm": "跳过删除确认",
   "skipDeleteConfirmTip": "删除任务时不再询问是否同时删除已下载文件",
+  "resumeAllOnLaunch": "启动时继续全部",
+  "resumeAllOnLaunchTip": "应用启动后自动继续所有已暂停任务",
   "appearance": "外观",
   "appearanceTip": "自定义应用程序的主题和颜色",
   "light": "亮色",
