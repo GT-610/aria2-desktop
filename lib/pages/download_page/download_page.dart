@@ -8,6 +8,7 @@ import '../../models/settings.dart';
 import '../../services/aria2_rpc_client.dart';
 import '../../services/download_data_service.dart';
 import '../../services/instance_manager.dart';
+import '../../services/protocol_integration_service.dart';
 import '../../utils/logging.dart';
 import 'components/add_task_dialog.dart';
 import 'components/filter_selector.dart';
@@ -41,6 +42,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   Timer? _refreshTimer;
   String? _lastShownRefreshError;
   late final TextEditingController _searchController;
+  bool _isHandlingPendingProtocolLink = false;
 
   @override
   void initState() {
@@ -81,6 +83,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     if (dependenciesChanged) {
       _loadInstanceNames(instanceManager!);
       _updateRefreshTimer();
+      _schedulePendingProtocolLinkHandling();
     }
   }
 
@@ -101,6 +104,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     if (instanceManager != null) {
       _loadInstanceNames(instanceManager!);
     }
+    _schedulePendingProtocolLinkHandling();
     setState(() {});
   }
 
@@ -110,6 +114,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     }
 
     _pruneSelection();
+    _schedulePendingProtocolLinkHandling();
 
     final lastError = downloadDataService!.lastError;
     if (lastError == null) {
@@ -158,6 +163,43 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     );
     if (_refreshTimer != null) {
       downloadDataService!.refreshTasks(connectedInstances);
+    }
+  }
+
+  void _schedulePendingProtocolLinkHandling() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(_handlePendingProtocolLink());
+    });
+  }
+
+  Future<void> _handlePendingProtocolLink() async {
+    if (_isHandlingPendingProtocolLink) {
+      return;
+    }
+
+    final protocolService = ProtocolIntegrationService();
+    if (!protocolService.hasPendingLaunchUri || instanceManager == null) {
+      return;
+    }
+
+    final targetInstances = instanceManager!.getConnectedInstances();
+    if (targetInstances.isEmpty) {
+      return;
+    }
+
+    _isHandlingPendingProtocolLink = true;
+    try {
+      final pendingUri = protocolService.takePendingLaunchUri();
+      if (pendingUri == null || !mounted) {
+        return;
+      }
+
+      _showAddTaskDialog(context, initialUri: pendingUri);
+    } finally {
+      _isHandlingPendingProtocolLink = false;
     }
   }
 
@@ -628,7 +670,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     );
   }
 
-  void _showAddTaskDialog(BuildContext context) {
+  void _showAddTaskDialog(BuildContext context, {String? initialUri}) {
     final l10n = AppLocalizations.of(context)!;
     final settings = Provider.of<Settings>(context, listen: false);
     final instanceManager = Provider.of<InstanceManager>(
@@ -639,9 +681,15 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     final defaultTarget = instanceManager.getPreferredTargetInstance();
 
     if (targetInstances.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.connectBeforeAddingTasks)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            initialUri == null
+                ? l10n.connectBeforeAddingTasks
+                : l10n.connectBeforeHandlingExternalLink,
+          ),
+        ),
+      );
       return;
     }
 
@@ -651,6 +699,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
         return AddTaskDialog(
           targetInstances: targetInstances,
           defaultTargetInstanceId: defaultTarget?.id,
+          initialUri: initialUri,
           onAddTask:
               (
                 taskType,

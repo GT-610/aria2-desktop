@@ -15,6 +15,7 @@ import 'pages/instance_page/instance_page.dart';
 import 'pages/settings_page/settings_page.dart';
 import 'services/download_data_service.dart';
 import 'services/instance_manager.dart';
+import 'services/protocol_integration_service.dart';
 import 'services/settings_service.dart';
 import 'services/auto_hide_window_service.dart';
 import 'services/system_tray_service.dart';
@@ -117,6 +118,9 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
       await settings.loadSettings();
     }
 
+    final protocolPreferenceFailures = await ProtocolIntegrationService()
+        .reconcileProtocolPreferences(settings);
+
     final settingsService = Provider.of<SettingsService>(
       context,
       listen: false,
@@ -155,6 +159,25 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
     setState(() {
       _isInitialized = true;
     });
+
+    if (protocolPreferenceFailures.isNotEmpty && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n.protocolReconcileFailed(
+                protocolPreferenceFailures.join(', '),
+              ),
+            ),
+          ),
+        );
+      });
+    }
   }
 
   Future<void> _syncBuiltinTrackersIfNeeded(

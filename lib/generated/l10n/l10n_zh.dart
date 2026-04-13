@@ -131,6 +131,40 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskNotificationTip => '在下载完成或失败时显示通知';
 
   @override
+  String get systemIntegration => '系统集成';
+
+  @override
+  String get setAsDefaultClient => '默认客户端';
+
+  @override
+  String get setAsDefaultClientTip => '将此应用注册为 Windows 中受支持下载链接的处理程序。';
+
+  @override
+  String get handleMagnetLinks => '处理 magnet 链接';
+
+  @override
+  String get handleMagnetLinksTip => '使用此应用打开 magnet:// 链接。';
+
+  @override
+  String get handleThunderLinks => '处理 thunder 链接';
+
+  @override
+  String get handleThunderLinksTip => '使用此应用打开 thunder:// 链接。';
+
+  @override
+  String protocolPreferenceRetryWarning(Object protocol) {
+    return '$protocol 的偏好已保存，但 Windows 注册失败。应用会在下次启动时重试。';
+  }
+
+  @override
+  String protocolReconcileFailed(Object protocols) {
+    return '以下协议的已保存偏好未能成功应用：$protocols。';
+  }
+
+  @override
+  String get connectBeforeHandlingExternalLink => '请先连接实例，再打开外部下载链接。';
+
+  @override
   String get skipDeleteConfirm => '跳过删除确认';
 
   @override

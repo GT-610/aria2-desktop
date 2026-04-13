@@ -38,6 +38,26 @@
   "showTraySpeedTip": "在托盘提示中显示总下载速度",
   "taskNotification": "任务通知",
   "taskNotificationTip": "在下载完成或失败时显示通知",
+  "systemIntegration": "系统集成",
+  "setAsDefaultClient": "默认客户端",
+  "setAsDefaultClientTip": "将此应用注册为 Windows 中受支持下载链接的处理程序。",
+  "handleMagnetLinks": "处理 magnet 链接",
+  "handleMagnetLinksTip": "使用此应用打开 magnet:// 链接。",
+  "handleThunderLinks": "处理 thunder 链接",
+  "handleThunderLinksTip": "使用此应用打开 thunder:// 链接。",
+  "protocolPreferenceRetryWarning": "{protocol} 的偏好已保存，但 Windows 注册失败。应用会在下次启动时重试。",
+  "@protocolPreferenceRetryWarning": {
+    "placeholders": {
+      "protocol": {}
+    }
+  },
+  "protocolReconcileFailed": "以下协议的已保存偏好未能成功应用：{protocols}。",
+  "@protocolReconcileFailed": {
+    "placeholders": {
+      "protocols": {}
+    }
+  },
+  "connectBeforeHandlingExternalLink": "请先连接实例，再打开外部下载链接。",
   "skipDeleteConfirm": "跳过删除确认",
   "skipDeleteConfirmTip": "删除任务时不再询问是否同时删除已下载文件",
   "resumeAllOnLaunch": "启动时继续全部",

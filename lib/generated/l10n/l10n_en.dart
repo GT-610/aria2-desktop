@@ -137,6 +137,42 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show notifications when downloads complete or fail';
 
   @override
+  String get systemIntegration => 'System Integration';
+
+  @override
+  String get setAsDefaultClient => 'Default client';
+
+  @override
+  String get setAsDefaultClientTip =>
+      'Register this app to handle supported download links from Windows.';
+
+  @override
+  String get handleMagnetLinks => 'Handle magnet links';
+
+  @override
+  String get handleMagnetLinksTip => 'Open magnet:// links with this app.';
+
+  @override
+  String get handleThunderLinks => 'Handle thunder links';
+
+  @override
+  String get handleThunderLinksTip => 'Open thunder:// links with this app.';
+
+  @override
+  String protocolPreferenceRetryWarning(Object protocol) {
+    return 'The preference for $protocol was saved, but Windows registration failed. The app will retry on next launch.';
+  }
+
+  @override
+  String protocolReconcileFailed(Object protocols) {
+    return 'Could not apply saved protocol preferences for: $protocols.';
+  }
+
+  @override
+  String get connectBeforeHandlingExternalLink =>
+      'Connect an instance before opening external download links.';
+
+  @override
   String get skipDeleteConfirm => 'Skip delete confirmation';
 
   @override
