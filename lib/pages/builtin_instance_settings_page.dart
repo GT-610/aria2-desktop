@@ -822,6 +822,7 @@ class _BuiltinInstanceSettingsPageState
     });
 
     await _persistDraft(settings);
+    _syncNormalizedDraft(settings);
 
     setState(() {
       _hasChanges = false;
@@ -840,6 +841,7 @@ class _BuiltinInstanceSettingsPageState
     });
 
     await _persistDraft(settings);
+    _syncNormalizedDraft(settings);
 
     if (applyMode == _BuiltinSettingsApplyMode.none) {
       setState(() {
@@ -963,6 +965,11 @@ class _BuiltinInstanceSettingsPageState
         );
       }
     }
+  }
+
+  void _syncNormalizedDraft(Settings settings) {
+    _btTracker = settings.btTracker;
+    _trackerServersController.text = settings.btTracker;
   }
 
   void _showSettingsSnackBar(
