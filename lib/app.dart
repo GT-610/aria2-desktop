@@ -252,6 +252,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   InstanceManager? _instanceManager;
   Settings? _settings;
   Timer? _pendingAutoHideTimer;
+  bool _isWindowBlurred = false;
 
   @override
   void initState() {
@@ -560,8 +561,13 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
+    _isWindowBlurred = true;
     _pendingAutoHideTimer?.cancel();
     _pendingAutoHideTimer = Timer(_autoHideWindowDelay, () async {
+      if (!_isWindowBlurred) {
+        return;
+      }
+
       if (!mounted) {
         return;
       }
@@ -579,6 +585,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
 
   @override
   void onWindowFocus() {
+    _isWindowBlurred = false;
     _pendingAutoHideTimer?.cancel();
   }
 
