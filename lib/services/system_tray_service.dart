@@ -61,6 +61,15 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     required bool resumeAllDisabled,
     required bool pauseAllDisabled,
   }) async {
+    final hasChanged =
+        _statusLabel != statusLabel ||
+        _showWindowLabel != showWindowLabel ||
+        _resumeAllLabel != resumeAllLabel ||
+        _pauseAllLabel != pauseAllLabel ||
+        _quitLabel != quitLabel ||
+        _resumeAllDisabled != resumeAllDisabled ||
+        _pauseAllDisabled != pauseAllDisabled;
+
     _statusLabel = statusLabel;
     _showWindowLabel = showWindowLabel;
     _resumeAllLabel = resumeAllLabel;
@@ -69,7 +78,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     _resumeAllDisabled = resumeAllDisabled;
     _pauseAllDisabled = pauseAllDisabled;
 
-    if (!_isInitialized) {
+    if (!_isInitialized || !hasChanged) {
       return;
     }
 
