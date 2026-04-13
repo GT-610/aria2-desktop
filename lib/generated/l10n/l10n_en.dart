@@ -1132,6 +1132,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Save and Apply will update speed limit changes immediately when the built-in instance is connected.';
 
   @override
+  String get settingsApplyLiveHint =>
+      'Save and Apply updates supported settings immediately when the built-in instance is connected.';
+
+  @override
   String get settingsApplyRestartHint =>
       'Save and Apply will restart the built-in instance to apply these changes.';
 
@@ -1152,7 +1156,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSavedRpcApplyFailed =>
-      'Settings saved and instance restarted, but applying settings via RPC failed';
+      'Settings were saved, but applying them to the running built-in instance failed';
+
+  @override
+  String get settingsSavedApplyWhenConnected =>
+      'Settings saved. Supported changes will apply the next time the built-in instance connects';
 
   @override
   String get settingsSavedRestartFailed =>

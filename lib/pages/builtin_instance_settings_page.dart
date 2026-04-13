@@ -53,11 +53,11 @@ class _BuiltinInstanceSettingsPageState
   final TextEditingController _userAgentController = TextEditingController();
 
   _BuiltinSettingsApplyMode _currentApplyMode(Settings settings) {
-    if (_hasOnlySpeedSettingChanges(settings)) {
-      return _BuiltinSettingsApplyMode.liveApply;
-    }
-    if (_hasNonSpeedSettingChanges(settings)) {
+    if (_hasConnectionSettingChanges(settings)) {
       return _BuiltinSettingsApplyMode.restartRequired;
+    }
+    if (_hasLiveApplySettingChanges(settings)) {
+      return _BuiltinSettingsApplyMode.liveApply;
     }
     return _BuiltinSettingsApplyMode.none;
   }
@@ -393,14 +393,14 @@ class _BuiltinInstanceSettingsPageState
     });
   }
 
-  bool _hasSpeedSettingChanges(Settings settings) {
-    return _maxOverallDownloadLimit != settings.maxOverallDownloadLimit ||
-        _maxOverallUploadLimit != settings.maxOverallUploadLimit;
+  bool _hasConnectionSettingChanges(Settings settings) {
+    return _rpcListenPort != settings.rpcListenPort ||
+        _rpcSecret != settings.rpcSecret;
   }
 
-  bool _hasNonSpeedSettingChanges(Settings settings) {
-    return _rpcListenPort != settings.rpcListenPort ||
-        _rpcSecret != settings.rpcSecret ||
+  bool _hasLiveApplySettingChanges(Settings settings) {
+    return _maxOverallDownloadLimit != settings.maxOverallDownloadLimit ||
+        _maxOverallUploadLimit != settings.maxOverallUploadLimit ||
         _maxConcurrentDownloads != settings.maxConcurrentDownloads ||
         _maxConnectionPerServer != settings.maxConnectionPerServer ||
         _split != settings.split ||
@@ -419,11 +419,6 @@ class _BuiltinInstanceSettingsPageState
         _autoFileRenaming != settings.autoFileRenaming ||
         _allowOverwrite != settings.allowOverwrite ||
         _userAgent != settings.userAgent;
-  }
-
-  bool _hasOnlySpeedSettingChanges(Settings settings) {
-    return _hasSpeedSettingChanges(settings) &&
-        !_hasNonSpeedSettingChanges(settings);
   }
 
   Future<void> _persistDraft(Settings settings) {
@@ -678,7 +673,7 @@ class _BuiltinInstanceSettingsPageState
           context,
           listen: false,
         );
-        final applied = await settingsService.applySpeedSettingsToBuiltin();
+        final applied = await settingsService.applySettingsToBuiltin();
         if (!mounted) {
           return;
         }
@@ -696,6 +691,16 @@ class _BuiltinInstanceSettingsPageState
         );
         return;
       }
+
+      setState(() {
+        _hasChanges = false;
+        _isSaving = false;
+      });
+      _showSettingsSnackBar(
+        l10n.settingsSavedApplyWhenConnected,
+        backgroundColor: Colors.orange,
+      );
+      return;
     }
 
     if (mounted) {
@@ -736,26 +741,12 @@ class _BuiltinInstanceSettingsPageState
         Navigator.pop(context);
 
         if (success) {
-          final settingsService = Provider.of<SettingsService>(
-            context,
-            listen: false,
-          );
-          final applied = await settingsService.applySettingsToBuiltin();
-          if (!mounted) {
-            return;
-          }
-
           setState(() {
             _hasChanges = false;
             _isSaving = false;
           });
 
-          _showSettingsSnackBar(
-            applied
-                ? l10n.settingsSavedAppliedSuccess
-                : l10n.settingsSavedRpcApplyFailed,
-            backgroundColor: applied ? null : Colors.orange,
-          );
+          _showSettingsSnackBar(l10n.settingsSavedAppliedSuccess);
         } else {
           setState(() {
             _isSaving = false;
@@ -808,7 +799,7 @@ class _BuiltinInstanceSettingsPageState
     final colorScheme = theme.colorScheme;
     final applyMode = _currentApplyMode(settings);
     final applyMessage = switch (applyMode) {
-      _BuiltinSettingsApplyMode.liveApply => l10n.settingsApplySpeedHint,
+      _BuiltinSettingsApplyMode.liveApply => l10n.settingsApplyLiveHint,
       _BuiltinSettingsApplyMode.restartRequired =>
         l10n.settingsApplyRestartHint,
       _BuiltinSettingsApplyMode.none => l10n.settingsApplyNoPendingHint,
