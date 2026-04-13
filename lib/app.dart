@@ -177,6 +177,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   late final PageController _pageController;
   bool _switchingPage = false;
   DownloadDataService? _downloadDataService;
+  InstanceManager? _instanceManager;
 
   @override
   void initState() {
@@ -189,6 +190,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   @override
   void dispose() {
     _downloadDataService?.removeListener(_handleDownloadNotifications);
+    _instanceManager?.removeListener(_handleTrayStateChanged);
     _pageController.dispose();
     windowManager.removeListener(this);
     final systemTrayService = SystemTrayService();
@@ -209,6 +211,20 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       _downloadDataService = nextDownloadDataService;
       _downloadDataService?.addListener(_handleDownloadNotifications);
     }
+
+    final nextInstanceManager = Provider.of<InstanceManager>(
+      context,
+      listen: false,
+    );
+    if (_instanceManager != nextInstanceManager) {
+      _instanceManager?.removeListener(_handleTrayStateChanged);
+      _instanceManager = nextInstanceManager;
+      _instanceManager?.addListener(_handleTrayStateChanged);
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleTrayStateChanged();
+    });
   }
 
   Future<void> _initSystemTrayCallbacks() async {
@@ -229,6 +245,8 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
+    _handleTrayStateChanged();
+
     final notifications = _downloadDataService!.takePendingNotifications();
     if (notifications.isEmpty) {
       return;
@@ -248,6 +266,41 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       _showTrayActionSnackBar('$title: ${notification.taskName}');
       SystemTrayService().showNotification(title, message);
     }
+  }
+
+  void _handleTrayStateChanged() {
+    if (!mounted) {
+      return;
+    }
+
+    final instanceManager =
+        _instanceManager ??
+        Provider.of<InstanceManager>(context, listen: false);
+    final downloadDataService =
+        _downloadDataService ??
+        Provider.of<DownloadDataService>(context, listen: false);
+    final connectedCount = instanceManager.getConnectedInstances().length;
+    final tasks = downloadDataService.tasks;
+    final activeCount = tasks
+        .where((task) => task.status == DownloadStatus.active)
+        .length;
+    final waitingCount = tasks
+        .where((task) => task.status == DownloadStatus.waiting)
+        .length;
+    final totalDownloadSpeed = tasks
+        .where((task) => task.status == DownloadStatus.active)
+        .fold<int>(0, (sum, task) => sum + task.downloadSpeedBytes);
+    final l10n = AppLocalizations.of(context)!;
+    final tooltipLines = <String>[
+      'Aria2 Desktop',
+      connectedCount == 0
+          ? l10n.notConnected
+          : '${l10n.connected}: $connectedCount',
+      l10n.totalSpeed(_formatSpeed(totalDownloadSpeed)),
+      l10n.activeTasks(activeCount.toString()),
+      l10n.waitingTasks(waitingCount.toString()),
+    ];
+    SystemTrayService().updateTooltip(tooltipLines.join('\n'));
   }
 
   Future<void> _pauseAllTasksFromTray() async {
