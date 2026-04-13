@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../generated/l10n/l10n.dart';
+import '../models/aria2_instance.dart';
 import '../models/settings.dart';
 import '../services/instance_manager.dart';
 import '../services/settings_service.dart';
@@ -381,6 +382,66 @@ class _BuiltinInstanceSettingsPageState
     });
   }
 
+  bool _hasSpeedSettingChanges(Settings settings) {
+    return _maxOverallDownloadLimit != settings.maxOverallDownloadLimit ||
+        _maxOverallUploadLimit != settings.maxOverallUploadLimit;
+  }
+
+  bool _hasNonSpeedSettingChanges(Settings settings) {
+    return _rpcListenPort != settings.rpcListenPort ||
+        _rpcSecret != settings.rpcSecret ||
+        _maxConcurrentDownloads != settings.maxConcurrentDownloads ||
+        _maxConnectionPerServer != settings.maxConnectionPerServer ||
+        _split != settings.split ||
+        _continueDownloads != settings.continueDownloads ||
+        _btSaveMetadata != settings.btSaveMetadata ||
+        _btLoadSavedMetadata != settings.btLoadSavedMetadata ||
+        _btForceEncryption != settings.btForceEncryption ||
+        _keepSeeding != settings.keepSeeding ||
+        _seedRatio != settings.seedRatio ||
+        _seedTime != settings.seedTime ||
+        _btExcludeTracker != settings.btExcludeTracker ||
+        _allProxy != settings.allProxy ||
+        _noProxy != settings.noProxy ||
+        _dhtListenPort != settings.dhtListenPort ||
+        _enableDht6 != settings.enableDht6 ||
+        _autoFileRenaming != settings.autoFileRenaming ||
+        _allowOverwrite != settings.allowOverwrite ||
+        _userAgent != settings.userAgent;
+  }
+
+  bool _hasOnlySpeedSettingChanges(Settings settings) {
+    return _hasSpeedSettingChanges(settings) &&
+        !_hasNonSpeedSettingChanges(settings);
+  }
+
+  Future<void> _persistDraft(Settings settings) {
+    return settings.updateBuiltinInstanceSettings(
+      rpcListenPort: _rpcListenPort,
+      rpcSecret: _rpcSecret,
+      maxConcurrentDownloads: _maxConcurrentDownloads,
+      maxConnectionPerServer: _maxConnectionPerServer,
+      split: _split,
+      continueDownloads: _continueDownloads,
+      maxOverallDownloadLimit: _maxOverallDownloadLimit,
+      maxOverallUploadLimit: _maxOverallUploadLimit,
+      btSaveMetadata: _btSaveMetadata,
+      btForceEncryption: _btForceEncryption,
+      btLoadSavedMetadata: _btLoadSavedMetadata,
+      keepSeeding: _keepSeeding,
+      seedRatio: _seedRatio,
+      seedTime: _seedTime,
+      btExcludeTracker: _btExcludeTracker,
+      allProxy: _allProxy,
+      noProxy: _noProxy,
+      dhtListenPort: _dhtListenPort,
+      enableDht6: _enableDht6,
+      autoFileRenaming: _autoFileRenaming,
+      allowOverwrite: _allowOverwrite,
+      userAgent: _userAgent,
+    );
+  }
+
   Widget _buildSectionHeader(String title, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 16, 0, 8),
@@ -565,30 +626,7 @@ class _BuiltinInstanceSettingsPageState
       _isSaving = true;
     });
 
-    await settings.updateBuiltinInstanceSettings(
-      rpcListenPort: _rpcListenPort,
-      rpcSecret: _rpcSecret,
-      maxConcurrentDownloads: _maxConcurrentDownloads,
-      maxConnectionPerServer: _maxConnectionPerServer,
-      split: _split,
-      continueDownloads: _continueDownloads,
-      maxOverallDownloadLimit: _maxOverallDownloadLimit,
-      maxOverallUploadLimit: _maxOverallUploadLimit,
-      btSaveMetadata: _btSaveMetadata,
-      btForceEncryption: _btForceEncryption,
-      btLoadSavedMetadata: _btLoadSavedMetadata,
-      keepSeeding: _keepSeeding,
-      seedRatio: _seedRatio,
-      seedTime: _seedTime,
-      btExcludeTracker: _btExcludeTracker,
-      allProxy: _allProxy,
-      noProxy: _noProxy,
-      dhtListenPort: _dhtListenPort,
-      enableDht6: _enableDht6,
-      autoFileRenaming: _autoFileRenaming,
-      allowOverwrite: _allowOverwrite,
-      userAgent: _userAgent,
-    );
+    await _persistDraft(settings);
 
     setState(() {
       _hasChanges = false;
@@ -608,34 +646,52 @@ class _BuiltinInstanceSettingsPageState
 
   Future<void> _saveAndApplySettings(Settings settings) async {
     final l10n = AppLocalizations.of(context)!;
+    final speedOnlyChanges = _hasOnlySpeedSettingChanges(settings);
+
     setState(() {
       _isSaving = true;
     });
 
-    await settings.updateBuiltinInstanceSettings(
-      rpcListenPort: _rpcListenPort,
-      rpcSecret: _rpcSecret,
-      maxConcurrentDownloads: _maxConcurrentDownloads,
-      maxConnectionPerServer: _maxConnectionPerServer,
-      split: _split,
-      continueDownloads: _continueDownloads,
-      maxOverallDownloadLimit: _maxOverallDownloadLimit,
-      maxOverallUploadLimit: _maxOverallUploadLimit,
-      btSaveMetadata: _btSaveMetadata,
-      btForceEncryption: _btForceEncryption,
-      btLoadSavedMetadata: _btLoadSavedMetadata,
-      keepSeeding: _keepSeeding,
-      seedRatio: _seedRatio,
-      seedTime: _seedTime,
-      btExcludeTracker: _btExcludeTracker,
-      allProxy: _allProxy,
-      noProxy: _noProxy,
-      dhtListenPort: _dhtListenPort,
-      enableDht6: _enableDht6,
-      autoFileRenaming: _autoFileRenaming,
-      allowOverwrite: _allowOverwrite,
-      userAgent: _userAgent,
-    );
+    await _persistDraft(settings);
+
+    if (speedOnlyChanges) {
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
+      final builtinInstance = instanceManager.getBuiltinInstance();
+
+      if (builtinInstance != null &&
+          builtinInstance.status == ConnectionStatus.connected) {
+        final settingsService = Provider.of<SettingsService>(
+          context,
+          listen: false,
+        );
+        final applied = await settingsService.applySpeedSettingsToBuiltin();
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _hasChanges = false;
+          _isSaving = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              applied
+                  ? l10n.settingsSavedAppliedSuccess
+                  : l10n.settingsSavedRpcApplyFailed,
+            ),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: applied ? null : Colors.orange,
+          ),
+        );
+        return;
+      }
+    }
 
     if (mounted) {
       showDialog(
