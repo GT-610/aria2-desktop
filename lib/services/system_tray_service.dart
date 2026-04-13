@@ -34,11 +34,11 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     _onQuitApp = callback;
   }
 
-  void setOnPauseAll(Future<void> Function() callback) {
+  void setOnPauseAll(Future<void> Function()? callback) {
     _onPauseAll = callback;
   }
 
-  void setOnResumeAll(Future<void> Function() callback) {
+  void setOnResumeAll(Future<void> Function()? callback) {
     _onResumeAll = callback;
   }
 

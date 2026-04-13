@@ -189,6 +189,9 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   void dispose() {
     _pageController.dispose();
     windowManager.removeListener(this);
+    final systemTrayService = SystemTrayService();
+    systemTrayService.setOnPauseAll(null);
+    systemTrayService.setOnResumeAll(null);
     super.dispose();
   }
 
@@ -206,6 +209,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   }
 
   Future<void> _pauseAllTasksFromTray() async {
+    if (!mounted) {
+      return;
+    }
+
     await _runTrayBulkAction(
       actionLabel: AppLocalizations.of(context)!.pauseTasks,
       shouldProcess: (task) =>
@@ -217,6 +224,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   }
 
   Future<void> _resumeAllTasksFromTray() async {
+    if (!mounted) {
+      return;
+    }
+
     await _runTrayBulkAction(
       actionLabel: AppLocalizations.of(context)!.resumeTasks,
       shouldProcess: (task) =>
@@ -231,6 +242,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     required Future<String> Function(Aria2RpcClient client, String taskId)
     perform,
   }) async {
+    if (!mounted) {
+      return;
+    }
+
     final l10n = AppLocalizations.of(context)!;
     final instanceManager = Provider.of<InstanceManager>(
       context,
