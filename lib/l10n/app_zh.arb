@@ -360,6 +360,11 @@
   "keepSeedingAfterCompletion": "完成后继续做种",
   "seedRatio": "做种比例",
   "seedTimeMinutes": "做种时间 (分钟)",
+  "trackerSource": "Tracker 来源",
+  "syncTrackerList": "同步 Tracker 列表",
+  "autoSyncTracker": "自动同步 Tracker 列表",
+  "btTrackerServers": "Tracker 服务器",
+  "btTrackerServersTip": "Tracker 服务器，可按每行一个或逗号分隔填写",
   "exampleProxy": "示例: http://proxy:port",
   "noProxyHosts": "不使用代理的主机",
   "multipleHostsComma": "多个主机用逗号分隔",
@@ -385,6 +390,13 @@
   "settingsSavedApplyWhenConnected": "设置已保存。支持在线更新的改动会在内建实例下次连接时应用",
   "settingsSavedRestartFailed": "设置已保存，但重启内建实例失败",
   "settingsSavedRestartFailedWithError": "设置已保存，但重启内建实例失败: {error}",
+  "trackerSyncSuccess": "Tracker 列表已同步到当前草稿设置",
+  "trackerSyncFailed": "同步 Tracker 列表失败: {error}",
+  "@trackerSyncFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "leavePage": "离开此页面？",
   "unsavedChangesPrompt": "你有未保存的更改。你想怎么做？",
   "discard": "丢弃",

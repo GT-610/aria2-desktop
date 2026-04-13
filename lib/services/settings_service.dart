@@ -44,6 +44,7 @@ class SettingsService extends ChangeNotifier with Loggable {
               .toString(),
       'seed-ratio': (settings.keepSeeding ? 0.0 : settings.seedRatio)
           .toString(),
+      'bt-tracker': settings.btTracker,
       'bt-exclude-tracker': settings.btExcludeTracker,
       'auto-file-renaming': settings.autoFileRenaming.toString(),
       'allow-overwrite': settings.allowOverwrite.toString(),

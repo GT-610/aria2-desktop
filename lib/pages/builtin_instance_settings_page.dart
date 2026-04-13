@@ -7,6 +7,7 @@ import '../models/aria2_instance.dart';
 import '../models/settings.dart';
 import '../services/instance_manager.dart';
 import '../services/settings_service.dart';
+import '../services/tracker_sync_service.dart';
 
 class BuiltinInstanceSettingsPage extends StatefulWidget {
   const BuiltinInstanceSettingsPage({super.key});
@@ -37,6 +38,7 @@ class _BuiltinInstanceSettingsPageState
   late double _seedRatio;
   late int _seedTime;
   late String _btListenPort;
+  late String _btTracker;
   late String _btExcludeTracker;
   late bool _proxyEnabled;
   late String _allProxy;
@@ -46,12 +48,16 @@ class _BuiltinInstanceSettingsPageState
   late bool _enableUpnp;
   late String _sessionPath;
   late String _logPath;
+  late bool _autoSyncTracker;
+  late String _trackerSource;
   late bool _autoFileRenaming;
   late bool _allowOverwrite;
   late String _userAgent;
 
   final TextEditingController _rpcSecretController = TextEditingController();
   final TextEditingController _btListenPortController = TextEditingController();
+  final TextEditingController _trackerServersController =
+      TextEditingController();
   final TextEditingController _excludedTrackersController =
       TextEditingController();
   final TextEditingController _allProxyController = TextEditingController();
@@ -93,6 +99,7 @@ class _BuiltinInstanceSettingsPageState
     _seedRatio = settings.seedRatio;
     _seedTime = settings.seedTime;
     _btListenPort = settings.btListenPort;
+    _btTracker = settings.btTracker;
     _btExcludeTracker = settings.btExcludeTracker;
     _proxyEnabled = settings.proxyEnabled;
     _allProxy = settings.allProxy;
@@ -102,12 +109,20 @@ class _BuiltinInstanceSettingsPageState
     _enableUpnp = settings.enableUpnp;
     _sessionPath = settings.sessionPath;
     _logPath = settings.logPath;
+    _autoSyncTracker = settings.autoSyncTracker;
+    _trackerSource =
+        TrackerSyncService.sourceOptions.any(
+          (option) => option.url == settings.trackerSource,
+        )
+        ? settings.trackerSource
+        : TrackerSyncService.sourceOptions.first.url;
     _autoFileRenaming = settings.autoFileRenaming;
     _allowOverwrite = settings.allowOverwrite;
     _userAgent = settings.userAgent;
 
     _rpcSecretController.text = _rpcSecret;
     _btListenPortController.text = _btListenPort;
+    _trackerServersController.text = _btTracker;
     _excludedTrackersController.text = _btExcludeTracker;
     _allProxyController.text = _allProxy;
     _noProxyController.text = _noProxy;
@@ -121,6 +136,7 @@ class _BuiltinInstanceSettingsPageState
   void dispose() {
     _rpcSecretController.dispose();
     _btListenPortController.dispose();
+    _trackerServersController.dispose();
     _excludedTrackersController.dispose();
     _allProxyController.dispose();
     _noProxyController.dispose();
@@ -341,6 +357,22 @@ class _BuiltinInstanceSettingsPageState
                   helperText: l10n.btListenPortTip,
                   controller: _btListenPortController,
                 ),
+                _buildTrackerSourceSetting(theme),
+                _buildSwitchSetting(l10n.autoSyncTracker, _autoSyncTracker, (
+                  value,
+                ) {
+                  _updateDraft(() => _autoSyncTracker = value);
+                }),
+                _buildTextFieldSetting(
+                  l10n.btTrackerServers,
+                  _btTracker,
+                  (value) {
+                    _updateDraft(() => _btTracker = value.trim());
+                  },
+                  helperText: l10n.btTrackerServersTip,
+                  maxLines: 4,
+                  controller: _trackerServersController,
+                ),
                 _buildTextFieldSetting(
                   l10n.excludedTrackers,
                   _btExcludeTracker,
@@ -471,6 +503,7 @@ class _BuiltinInstanceSettingsPageState
         _keepSeeding != settings.keepSeeding ||
         _seedRatio != settings.seedRatio ||
         _seedTime != settings.seedTime ||
+        _btTracker != settings.btTracker ||
         _btExcludeTracker != settings.btExcludeTracker ||
         _proxyEnabled != settings.proxyEnabled ||
         _allProxy != settings.allProxy ||
@@ -497,6 +530,7 @@ class _BuiltinInstanceSettingsPageState
       seedRatio: _seedRatio,
       seedTime: _seedTime,
       btListenPort: _btListenPort,
+      btTracker: _btTracker,
       btExcludeTracker: _btExcludeTracker,
       proxyEnabled: _proxyEnabled,
       allProxy: _allProxy,
@@ -506,6 +540,9 @@ class _BuiltinInstanceSettingsPageState
       enableUpnp: _enableUpnp,
       sessionPath: _sessionPath,
       logPath: _logPath,
+      autoSyncTracker: _autoSyncTracker,
+      lastSyncTrackerTime: settings.lastSyncTrackerTime,
+      trackerSource: _trackerSource,
       autoFileRenaming: _autoFileRenaming,
       allowOverwrite: _allowOverwrite,
       userAgent: _userAgent,
@@ -556,6 +593,58 @@ class _BuiltinInstanceSettingsPageState
             )
             .toList(),
       ),
+    );
+  }
+
+  Widget _buildTrackerSourceSetting(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    return ListTile(
+      title: Text(
+        AppLocalizations.of(context)!.trackerSource,
+        style: theme.textTheme.bodyMedium,
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            initialValue: _trackerSource,
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: colorScheme.surfaceContainerHighest,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            items: TrackerSyncService.sourceOptions
+                .map(
+                  (option) => DropdownMenuItem<String>(
+                    value: option.url,
+                    child: Text(option.label),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              _updateDraft(() => _trackerSource = value);
+            },
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: _isSaving ? null : _syncTrackerList,
+              icon: const Icon(Icons.sync),
+              label: Text(AppLocalizations.of(context)!.syncTrackerList),
+            ),
+          ),
+        ],
+      ),
+      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }
 
@@ -701,12 +790,39 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 
+  Future<void> _syncTrackerList() async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final tracker = await TrackerSyncService().fetchTrackerList(
+        _trackerSource,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _btTracker = tracker;
+        _trackerServersController.text = tracker;
+        _hasChanges = true;
+      });
+
+      _showSettingsSnackBar(l10n.trackerSyncSuccess);
+    } catch (e) {
+      _showSettingsSnackBar(
+        l10n.trackerSyncFailed('$e'),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      );
+    }
+  }
+
   Future<void> _saveSettings(Settings settings) async {
     setState(() {
       _isSaving = true;
     });
 
     await _persistDraft(settings);
+    _syncNormalizedDraft(settings);
 
     setState(() {
       _hasChanges = false;
@@ -725,6 +841,7 @@ class _BuiltinInstanceSettingsPageState
     });
 
     await _persistDraft(settings);
+    _syncNormalizedDraft(settings);
 
     if (applyMode == _BuiltinSettingsApplyMode.none) {
       setState(() {
@@ -848,6 +965,11 @@ class _BuiltinInstanceSettingsPageState
         );
       }
     }
+  }
+
+  void _syncNormalizedDraft(Settings settings) {
+    _btTracker = settings.btTracker;
+    _trackerServersController.text = settings.btTracker;
   }
 
   void _showSettingsSnackBar(
