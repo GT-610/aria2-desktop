@@ -7,6 +7,24 @@ import '../models/aria2_instance.dart';
 import 'aria2_rpc_client.dart';
 import '../utils/logging.dart';
 
+enum DownloadTaskNotificationType { completed, failed }
+
+class DownloadTaskNotification {
+  const DownloadTaskNotification({
+    required this.taskId,
+    required this.taskName,
+    required this.instanceId,
+    required this.type,
+    this.errorMessage,
+  });
+
+  final String taskId;
+  final String taskName;
+  final String instanceId;
+  final DownloadTaskNotificationType type;
+  final String? errorMessage;
+}
+
 /// Unified download task data service
 /// Responsible for periodically fetching task data from Aria2, performing unified data encapsulation and caching
 class DownloadDataService extends ChangeNotifier with Loggable {
@@ -19,6 +37,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   List<DownloadTask> _tasks = [];
   bool _isRefreshing = false;
   String? _lastError;
+  final List<DownloadTaskNotification> _pendingNotifications = [];
 
   int _refreshInterval = 1000;
 
@@ -82,6 +101,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     try {
       _isRefreshing = true;
       _lastError = null;
+      final previousTasks = _tasks;
 
       final taskGroups = await Future.wait(
         connectedInstances.map(_fetchTasksForInstance),
@@ -89,6 +109,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       final newTasks = taskGroups.expand((tasks) => tasks).toList()
         ..sort(_compareTasks);
 
+      _collectTaskNotifications(previousTasks, newTasks);
       _tasks = newTasks;
       notifyListeners();
     } catch (e, stackTrace) {
@@ -98,6 +119,14 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     } finally {
       _isRefreshing = false;
     }
+  }
+
+  List<DownloadTaskNotification> takePendingNotifications() {
+    final notifications = List<DownloadTaskNotification>.from(
+      _pendingNotifications,
+    );
+    _pendingNotifications.clear();
+    return notifications;
   }
 
   Future<List<DownloadTask>> _fetchTasksForInstance(
@@ -216,6 +245,54 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       this.i(
         'Timer started successfully for ${connectedInstances.length} connected instance(s), interval ${_refreshInterval}ms',
       );
+    }
+  }
+
+  void _collectTaskNotifications(
+    List<DownloadTask> previousTasks,
+    List<DownloadTask> newTasks,
+  ) {
+    if (previousTasks.isEmpty || newTasks.isEmpty) {
+      return;
+    }
+
+    final previousByKey = {
+      for (final task in previousTasks) '${task.instanceId}::${task.id}': task,
+    };
+
+    for (final task in newTasks) {
+      final previousTask = previousByKey['${task.instanceId}::${task.id}'];
+      if (previousTask == null) {
+        continue;
+      }
+
+      final wasInProgress =
+          previousTask.status == DownloadStatus.active ||
+          previousTask.status == DownloadStatus.waiting;
+      if (!wasInProgress) {
+        continue;
+      }
+
+      if (task.taskStatus == 'complete') {
+        _pendingNotifications.add(
+          DownloadTaskNotification(
+            taskId: task.id,
+            taskName: task.name,
+            instanceId: task.instanceId,
+            type: DownloadTaskNotificationType.completed,
+          ),
+        );
+      } else if (task.taskStatus == 'error') {
+        _pendingNotifications.add(
+          DownloadTaskNotification(
+            taskId: task.id,
+            taskName: task.name,
+            instanceId: task.instanceId,
+            type: DownloadTaskNotificationType.failed,
+            errorMessage: task.errorMessage,
+          ),
+        );
+      }
     }
   }
 

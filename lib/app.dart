@@ -176,6 +176,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   int _selectedIndex = 0;
   late final PageController _pageController;
   bool _switchingPage = false;
+  DownloadDataService? _downloadDataService;
 
   @override
   void initState() {
@@ -187,12 +188,27 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
 
   @override
   void dispose() {
+    _downloadDataService?.removeListener(_handleDownloadNotifications);
     _pageController.dispose();
     windowManager.removeListener(this);
     final systemTrayService = SystemTrayService();
     systemTrayService.setOnPauseAll(null);
     systemTrayService.setOnResumeAll(null);
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextDownloadDataService = Provider.of<DownloadDataService>(
+      context,
+      listen: false,
+    );
+    if (_downloadDataService != nextDownloadDataService) {
+      _downloadDataService?.removeListener(_handleDownloadNotifications);
+      _downloadDataService = nextDownloadDataService;
+      _downloadDataService?.addListener(_handleDownloadNotifications);
+    }
   }
 
   Future<void> _initSystemTrayCallbacks() async {
@@ -206,6 +222,32 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     });
     systemTrayService.setOnPauseAll(_pauseAllTasksFromTray);
     systemTrayService.setOnResumeAll(_resumeAllTasksFromTray);
+  }
+
+  void _handleDownloadNotifications() {
+    if (!mounted || _downloadDataService == null) {
+      return;
+    }
+
+    final notifications = _downloadDataService!.takePendingNotifications();
+    if (notifications.isEmpty) {
+      return;
+    }
+
+    for (final notification in notifications) {
+      final title = notification.type == DownloadTaskNotificationType.completed
+          ? AppLocalizations.of(context)!.completed
+          : AppLocalizations.of(context)!.error;
+      final message =
+          notification.type == DownloadTaskNotificationType.completed
+          ? notification.taskName
+          : notification.errorMessage?.isNotEmpty == true
+          ? '${notification.taskName}\n${AppLocalizations.of(context)!.errorWithValue(notification.errorMessage!)}'
+          : notification.taskName;
+
+      _showTrayActionSnackBar('$title: ${notification.taskName}');
+      SystemTrayService().showNotification(title, message);
+    }
   }
 
   Future<void> _pauseAllTasksFromTray() async {
