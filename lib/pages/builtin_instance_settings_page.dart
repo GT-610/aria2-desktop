@@ -33,7 +33,7 @@ class _BuiltinInstanceSettingsPageState
   late bool _btLoadSavedMetadata;
   late bool _btForceEncryption;
   late bool _keepSeeding;
-  late int _seedRatio;
+  late double _seedRatio;
   late int _seedTime;
   late String _btExcludeTracker;
   late String _allProxy;
@@ -71,7 +71,7 @@ class _BuiltinInstanceSettingsPageState
     _btLoadSavedMetadata = settings.btLoadSavedMetadata;
     _btForceEncryption = settings.btForceEncryption;
     _keepSeeding = settings.keepSeeding;
-    _seedRatio = settings.seedRatio.toInt();
+    _seedRatio = settings.seedRatio;
     _seedTime = settings.seedTime;
     _btExcludeTracker = settings.btExcludeTracker;
     _allProxy = settings.allProxy;
@@ -282,9 +282,9 @@ class _BuiltinInstanceSettingsPageState
                 if (!_keepSeeding) ...[
                   _buildNumberSetting(
                     l10n.seedRatio,
-                    _seedRatio,
+                    _seedRatio.toInt(),
                     (value) {
-                      _updateDraft(() => _seedRatio = value);
+                      _updateDraft(() => _seedRatio = value.toDouble());
                     },
                     min: 0,
                     max: 100,
@@ -578,7 +578,7 @@ class _BuiltinInstanceSettingsPageState
       btForceEncryption: _btForceEncryption,
       btLoadSavedMetadata: _btLoadSavedMetadata,
       keepSeeding: _keepSeeding,
-      seedRatio: _seedRatio.toDouble(),
+      seedRatio: _seedRatio,
       seedTime: _seedTime,
       btExcludeTracker: _btExcludeTracker,
       allProxy: _allProxy,
@@ -625,7 +625,7 @@ class _BuiltinInstanceSettingsPageState
       btForceEncryption: _btForceEncryption,
       btLoadSavedMetadata: _btLoadSavedMetadata,
       keepSeeding: _keepSeeding,
-      seedRatio: _seedRatio.toDouble(),
+      seedRatio: _seedRatio,
       seedTime: _seedTime,
       btExcludeTracker: _btExcludeTracker,
       allProxy: _allProxy,
