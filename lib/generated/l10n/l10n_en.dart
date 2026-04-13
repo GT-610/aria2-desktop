@@ -144,6 +144,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Automatically resume paused tasks after the app starts';
 
   @override
+  String get showDownloadsAfterAdd => 'Show downloading tasks after add';
+
+  @override
+  String get showDownloadsAfterAddTip =>
+      'Switch to the downloading task view after adding a new task';
+
+  @override
+  String get showProgressBar => 'Show progress bars';
+
+  @override
+  String get showProgressBarTip =>
+      'Display task progress bars in the download list';
+
+  @override
   String get appearance => 'Appearance';
 
   @override

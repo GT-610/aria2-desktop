@@ -237,6 +237,58 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                     ),
                     const Divider(height: 1),
+                    SwitchListTile.adaptive(
+                      title: Text(
+                        l10n.showDownloadsAfterAdd,
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(l10n.showDownloadsAfterAddTip),
+                      value: settings.showDownloadsAfterAdd,
+                      onChanged: (value) async {
+                        try {
+                          await settings.setShowDownloadsAfterAdd(value);
+                          this.i(
+                            'Show downloads after add setting changed to: $value',
+                          );
+                        } catch (e) {
+                          this.e(
+                            'Failed to save show downloads after add setting',
+                            error: e,
+                          );
+                          _showErrorSnackBar(l10n.saveSettingsFailed);
+                        }
+                      },
+                      activeThumbColor: Colors.white,
+                      activeTrackColor: colorScheme.primary,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                    ),
+                    const Divider(height: 1),
+                    SwitchListTile.adaptive(
+                      title: Text(
+                        l10n.showProgressBar,
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(l10n.showProgressBarTip),
+                      value: settings.showProgressBar,
+                      onChanged: (value) async {
+                        try {
+                          await settings.setShowProgressBar(value);
+                          this.i(
+                            'Show progress bar setting changed to: $value',
+                          );
+                        } catch (e) {
+                          this.e(
+                            'Failed to save show progress bar setting',
+                            error: e,
+                          );
+                          _showErrorSnackBar(l10n.saveSettingsFailed);
+                        }
+                      },
+                      activeThumbColor: Colors.white,
+                      activeTrackColor: colorScheme.primary,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                    ),
+                    const Divider(height: 1),
                     ListTile(
                       title: Text(
                         l10n.appearance,

@@ -338,6 +338,30 @@ abstract class AppLocalizations {
   /// **'Automatically resume paused tasks after the app starts'**
   String get resumeAllOnLaunchTip;
 
+  /// No description provided for @showDownloadsAfterAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Show downloading tasks after add'**
+  String get showDownloadsAfterAdd;
+
+  /// No description provided for @showDownloadsAfterAddTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to the downloading task view after adding a new task'**
+  String get showDownloadsAfterAddTip;
+
+  /// No description provided for @showProgressBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Show progress bars'**
+  String get showProgressBar;
+
+  /// No description provided for @showProgressBarTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Display task progress bars in the download list'**
+  String get showProgressBarTip;
+
   /// No description provided for @appearance.
   ///
   /// In en, this message translates to:

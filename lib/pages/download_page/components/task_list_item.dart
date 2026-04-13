@@ -13,6 +13,7 @@ class TaskListItem extends StatelessWidget {
   final VoidCallback? onLongPress;
   final bool isSelected;
   final bool showSelectionControl;
+  final bool showProgressBar;
   final VoidCallback onTaskUpdated;
   final Function(DownloadTask) onOpenDirectory;
 
@@ -24,6 +25,7 @@ class TaskListItem extends StatelessWidget {
     this.onLongPress,
     this.isSelected = false,
     this.showSelectionControl = false,
+    this.showProgressBar = true,
     required this.onTaskUpdated,
     required this.onOpenDirectory,
   });
@@ -208,22 +210,25 @@ class TaskListItem extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              LinearProgressIndicator(
-                value: task.progress,
-                borderRadius: BorderRadius.circular(12),
-                minHeight: 8,
-                backgroundColor: colorScheme.surfaceContainerHighest,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  (task.status == DownloadStatus.waiting &&
-                          task.taskStatus == 'paused')
-                      ? colorScheme.tertiary
-                      : (task.status == DownloadStatus.active
-                            ? statusColor
-                            : statusColor.withValues(alpha: 0.6)),
+              if (showProgressBar) ...[
+                const SizedBox(height: 12),
+                LinearProgressIndicator(
+                  value: task.progress,
+                  borderRadius: BorderRadius.circular(12),
+                  minHeight: 8,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    (task.status == DownloadStatus.waiting &&
+                            task.taskStatus == 'paused')
+                        ? colorScheme.tertiary
+                        : (task.status == DownloadStatus.active
+                              ? statusColor
+                              : statusColor.withValues(alpha: 0.6)),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
+              ] else
+                const SizedBox(height: 12),
               Wrap(
                 alignment: WrapAlignment.spaceBetween,
                 runSpacing: 12,
