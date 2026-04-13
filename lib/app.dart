@@ -16,6 +16,7 @@ import 'services/instance_manager.dart';
 import 'services/settings_service.dart';
 import 'services/system_tray_service.dart';
 import 'services/aria2_rpc_client.dart';
+import 'utils/logging.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -171,7 +172,7 @@ class MainWindow extends StatefulWidget {
   State<MainWindow> createState() => _MainWindowState();
 }
 
-class _MainWindowState extends State<MainWindow> with WindowListener {
+class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   int _selectedIndex = 0;
   late final PageController _pageController;
   bool _switchingPage = false;
@@ -260,6 +261,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
     }
 
     var successCount = 0;
+    var failCount = 0;
     for (final instance in connectedInstances) {
       final instanceTasks = tasksByInstance[instance.id];
       if (instanceTasks == null || instanceTasks.isEmpty) {
@@ -272,9 +274,13 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
           try {
             await perform(client, task.id);
             successCount++;
-          } catch (_) {
-            // Ignore individual task errors here; the refresh and snackbar below
-            // keep the tray action lightweight and non-blocking.
+          } catch (e, stackTrace) {
+            failCount++;
+            this.e(
+              'Tray action failed for task ${task.id} on instance ${instance.name}',
+              error: e,
+              stackTrace: stackTrace,
+            );
           }
         }
       } finally {
@@ -288,9 +294,14 @@ class _MainWindowState extends State<MainWindow> with WindowListener {
       return;
     }
 
-    final message = successCount > 0
+    final message = failCount == 0
         ? l10n.taskActionSummarySuccess(actionLabel, successCount)
-        : l10n.taskActionNoMatchingTasks(actionLabel);
+        : l10n.taskActionSummaryDetailed(
+            actionLabel,
+            successCount,
+            failCount,
+            0,
+          );
     _showTrayActionSnackBar(message);
   }
 
