@@ -168,6 +168,7 @@ class BuiltinInstanceService with Loggable {
       '--listen-port=$btListenPort',
       '--dht-listen-port=${settings['dhtListenPort'] ?? 26701}',
       '--enable-dht6=${settings['enableDht6'] ?? true}',
+      '--enable-upnp=${settings['enableUpnp'] ?? true}',
       '--conf-path=$_aria2ConfPath',
       '--save-session=$_sessionPath',
       '--log-level=info',

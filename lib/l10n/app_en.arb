@@ -110,6 +110,8 @@
   "noProxyTip": "Separate multiple addresses with commas",
   "dhtListenPort": "DHT Listen Port",
   "enableDht6": "Enable DHT6",
+  "enableUpnp": "Enable UPnP / NAT-PMP",
+  "enableUpnpTip": "Use router port mapping for BT and DHT ports. Restart required.",
   "fileSettings": "File Settings",
   "downloadDir": "Download Directory",
   "selectDir": "Select",

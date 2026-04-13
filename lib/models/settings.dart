@@ -62,6 +62,7 @@ class Settings extends ChangeNotifier with Loggable {
   String _noProxy = ''; // No proxy setting
   int _dhtListenPort = 26701; // DHT listen port
   bool _enableDht6 = true; // Enable DHT6
+  bool _enableUpnp = true; // Enable UPnP/NAT-PMP port mapping
   bool _autoFileRenaming = true; // Auto rename files
   bool _allowOverwrite = false; // Allow overwrite
   String _userAgent =
@@ -151,6 +152,7 @@ class Settings extends ChangeNotifier with Loggable {
   String get noProxy => _noProxy;
   int get dhtListenPort => _dhtListenPort;
   bool get enableDht6 => _enableDht6;
+  bool get enableUpnp => _enableUpnp;
   bool get autoFileRenaming => _autoFileRenaming;
   bool get allowOverwrite => _allowOverwrite;
   String get userAgent => _userAgent;
@@ -247,6 +249,7 @@ class Settings extends ChangeNotifier with Loggable {
         _noProxy = settingsMap['noProxy'] ?? '';
         _dhtListenPort = settingsMap['dhtListenPort'] ?? 26701;
         _enableDht6 = settingsMap['enableDht6'] ?? true;
+        _enableUpnp = settingsMap['enableUpnp'] ?? true;
         _autoFileRenaming = settingsMap['autoFileRenaming'] ?? true;
         _allowOverwrite = settingsMap['allowOverwrite'] ?? false;
         _userAgent =
@@ -319,6 +322,7 @@ class Settings extends ChangeNotifier with Loggable {
     _noProxy = '';
     _dhtListenPort = 26701;
     _enableDht6 = true;
+    _enableUpnp = true;
     _autoFileRenaming = true;
     _allowOverwrite = false;
     _userAgent =
@@ -382,6 +386,7 @@ class Settings extends ChangeNotifier with Loggable {
         'noProxy': _noProxy,
         'dhtListenPort': _dhtListenPort,
         'enableDht6': _enableDht6,
+        'enableUpnp': _enableUpnp,
         'autoFileRenaming': _autoFileRenaming,
         'allowOverwrite': _allowOverwrite,
         'userAgent': _userAgent,
@@ -625,6 +630,12 @@ class Settings extends ChangeNotifier with Loggable {
     await _saveAllSettings();
   }
 
+  Future<void> setEnableUpnp(bool value) async {
+    _enableUpnp = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
   Future<void> setAutoFileRenaming(bool value) async {
     _autoFileRenaming = value;
     notifyListeners();
@@ -665,6 +676,7 @@ class Settings extends ChangeNotifier with Loggable {
     required String noProxy,
     required int dhtListenPort,
     required bool enableDht6,
+    required bool enableUpnp,
     required bool autoFileRenaming,
     required bool allowOverwrite,
     required String userAgent,
@@ -690,6 +702,7 @@ class Settings extends ChangeNotifier with Loggable {
     _noProxy = noProxy;
     _dhtListenPort = dhtListenPort;
     _enableDht6 = enableDht6;
+    _enableUpnp = enableUpnp;
     _autoFileRenaming = autoFileRenaming;
     _allowOverwrite = allowOverwrite;
     _userAgent = userAgent;

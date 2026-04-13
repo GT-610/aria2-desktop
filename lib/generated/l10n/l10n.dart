@@ -758,6 +758,18 @@ abstract class AppLocalizations {
   /// **'Enable DHT6'**
   String get enableDht6;
 
+  /// No description provided for @enableUpnp.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable UPnP / NAT-PMP'**
+  String get enableUpnp;
+
+  /// No description provided for @enableUpnpTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Use router port mapping for BT and DHT ports. Restart required.'**
+  String get enableUpnpTip;
+
   /// No description provided for @fileSettings.
   ///
   /// In en, this message translates to:
