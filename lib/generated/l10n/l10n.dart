@@ -290,6 +290,18 @@ abstract class AppLocalizations {
   /// **'Minimize to tray when closing window instead of exiting'**
   String get minimizeToTrayTip;
 
+  /// No description provided for @showTraySpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Show tray speed'**
+  String get showTraySpeed;
+
+  /// No description provided for @showTraySpeedTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Display total download speed in the tray tooltip'**
+  String get showTraySpeedTip;
+
   /// No description provided for @appearance.
   ///
   /// In en, this message translates to:

@@ -32,6 +32,8 @@
   "runAtStartupTip": "Start app when system starts",
   "minimizeToTray": "Minimize to tray",
   "minimizeToTrayTip": "Minimize to tray when closing window instead of exiting",
+  "showTraySpeed": "Show tray speed",
+  "showTraySpeedTip": "Display total download speed in the tray tooltip",
   "appearance": "Appearance",
   "appearanceTip": "Customize app theme and colors",
   "light": "Light",

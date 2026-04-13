@@ -113,6 +113,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get minimizeToTrayTip => '关闭窗口时最小化到系统托盘而不是退出';
 
   @override
+  String get showTraySpeed => '显示托盘速度';
+
+  @override
+  String get showTraySpeedTip => '在托盘提示中显示总下载速度';
+
+  @override
   String get appearance => '外观';
 
   @override
