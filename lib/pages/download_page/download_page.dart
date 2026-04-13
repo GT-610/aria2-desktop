@@ -355,11 +355,39 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   void _handleCategoryChanged(CategoryType newCategory) {
     setState(() {
       _currentCategoryType = newCategory;
+      switch (newCategory) {
+        case CategoryType.byStatus:
+          if (!_isStatusFilter(_selectedFilter)) {
+            _selectedFilter = FilterOption.active;
+          }
+          break;
+        case CategoryType.byType:
+          if (!_isTypeFilter(_selectedFilter)) {
+            _selectedFilter = FilterOption.local;
+          }
+          break;
+        case CategoryType.byInstance:
+          _selectedFilter = FilterOption.all;
+          break;
+        case CategoryType.all:
+          _selectedFilter = FilterOption.all;
+          break;
+      }
       if (newCategory != CategoryType.byInstance) {
         _selectedInstanceId = null;
       }
       _pruneSelectionToVisible();
     });
+  }
+
+  bool _isStatusFilter(FilterOption option) {
+    return option == FilterOption.active ||
+        option == FilterOption.waiting ||
+        option == FilterOption.stopped;
+  }
+
+  bool _isTypeFilter(FilterOption option) {
+    return option == FilterOption.local || option == FilterOption.remote;
   }
 
   void _handleFilterChanged(FilterOption newFilter) {
