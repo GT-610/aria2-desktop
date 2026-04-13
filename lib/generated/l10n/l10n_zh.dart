@@ -137,6 +137,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get resumeAllOnLaunchTip => '应用启动后自动继续所有已暂停任务';
 
   @override
+  String get showDownloadsAfterAdd => '添加后显示下载中任务';
+
+  @override
+  String get showDownloadsAfterAddTip => '添加新任务后自动切换到下载中任务视图';
+
+  @override
+  String get showProgressBar => '显示进度条';
+
+  @override
+  String get showProgressBarTip => '在下载列表中显示任务进度条';
+
+  @override
   String get appearance => '外观';
 
   @override

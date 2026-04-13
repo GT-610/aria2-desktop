@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../generated/l10n/l10n.dart';
+import '../../models/settings.dart';
 import '../../services/aria2_rpc_client.dart';
 import '../../services/download_data_service.dart';
 import '../../services/instance_manager.dart';
@@ -440,6 +441,17 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     });
   }
 
+  void _focusDownloadingView() {
+    setState(() {
+      _currentCategoryType = CategoryType.byStatus;
+      _selectedFilter = FilterOption.active;
+      _selectedInstanceId = null;
+      _searchQuery = '';
+      _searchController.clear();
+      _selectedTaskKeys.clear();
+    });
+  }
+
   void _clearViewFilters() {
     setState(() {
       _searchController.clear();
@@ -478,6 +490,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     final l10n = AppLocalizations.of(context)!;
     context.watch<InstanceManager>();
     context.watch<DownloadDataService>();
+    final showProgressBar = context.watch<Settings>().showProgressBar;
     final filteredTasks = _filterTasks();
     final selectedTasks = _selectedTasksFrom(filteredTasks);
     final hasActiveViewFilters =
@@ -563,6 +576,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
               tasks: filteredTasks,
               instanceNames: _instanceNames,
               hasActiveViewFilters: hasActiveViewFilters,
+              showProgressBar: showProgressBar,
               onClearViewFilters: hasActiveViewFilters
                   ? _clearViewFilters
                   : null,
@@ -616,6 +630,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
 
   void _showAddTaskDialog(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final settings = Provider.of<Settings>(context, listen: false);
     final instanceManager = Provider.of<InstanceManager>(
       context,
       listen: false,
@@ -697,6 +712,9 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
                   }
 
                   _refreshTasksAndRestartTimer();
+                  if (settings.showDownloadsAfterAdd && mounted) {
+                    _focusDownloadingView();
+                  }
 
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

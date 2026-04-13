@@ -17,6 +17,7 @@ class TaskListView extends StatelessWidget {
   final Set<String> selectedTaskKeys;
   final VoidCallback onTaskUpdated;
   final bool hasActiveViewFilters;
+  final bool showProgressBar;
   final VoidCallback? onClearViewFilters;
 
   const TaskListView({
@@ -29,6 +30,7 @@ class TaskListView extends StatelessWidget {
     required this.selectedTaskKeys,
     required this.onTaskUpdated,
     required this.hasActiveViewFilters,
+    required this.showProgressBar,
     this.onClearViewFilters,
   });
 
@@ -126,6 +128,7 @@ class TaskListView extends StatelessWidget {
           onLongPress: () => onTaskLongPress(task),
           isSelected: selectedTaskKeys.contains(_taskKey(task)),
           showSelectionControl: selectedTaskKeys.isNotEmpty,
+          showProgressBar: showProgressBar,
           onTaskUpdated: onTaskUpdated,
           onOpenDirectory: (task) async {
             await TaskUtils.openDownloadDirectory(context, task);
