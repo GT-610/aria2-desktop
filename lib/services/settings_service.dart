@@ -47,15 +47,12 @@ class SettingsService extends ChangeNotifier with Loggable {
       'bt-exclude-tracker': settings.btExcludeTracker,
       'auto-file-renaming': settings.autoFileRenaming.toString(),
       'allow-overwrite': settings.allowOverwrite.toString(),
+      // Send proxy fields even when empty so clearing them removes the
+      // running instance's previous proxy configuration.
+      'all-proxy': settings.allProxy,
+      'no-proxy': settings.noProxy,
       'user-agent': settings.userAgent,
     };
-
-    if (settings.allProxy.isNotEmpty) {
-      options['all-proxy'] = settings.allProxy;
-    }
-    if (settings.noProxy.isNotEmpty) {
-      options['no-proxy'] = settings.noProxy;
-    }
 
     return options;
   }
