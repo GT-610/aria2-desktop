@@ -1,0 +1,60 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 渐变定义 -->
+    <defs>
+        <linearGradient id="deepBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#1E3A8A;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" />
+        </linearGradient>
+        <linearGradient id="brightBlueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+        </linearGradient>
+
+        <radialGradient id="ambientGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 256) rotate(90) scale(170)">
+            <stop offset="0%" style="stop-color:#93C5FD;stop-opacity:0.28" />
+            <stop offset="55%" style="stop-color:#60A5FA;stop-opacity:0.10" />
+            <stop offset="100%" style="stop-color:#60A5FA;stop-opacity:0" />
+        </radialGradient>
+
+        <!-- 投影效果 -->
+        <filter id="shadow" x="-24%" y="-24%" width="148%" height="148%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="12" />
+            <feOffset dx="0" dy="10" result="offsetblur" />
+            <feComponentTransfer>
+                <feFuncA type="linear" slope="0.24" />
+            </feComponentTransfer>
+            <feMerge>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+
+        <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="18" />
+        </filter>
+    </defs>
+
+    <g transform="translate(256 256) scale(1.25) translate(-256 -256)">
+        <circle cx="256" cy="256" r="156" fill="url(#ambientGlow)" filter="url(#glow)"/>
+
+        <!-- 图标主体 -->
+        <g filter="url(#shadow)">
+            <!-- 底部较粗的弧线 (代表稳定与 Aria2 的后端) -->
+            <path d="M400 256C400 335.529 335.529 400 256 400C176.471 400 112 335.529 112 256C112 216.235 128.118 180.235 154.118 154.118" 
+                  stroke="url(#deepBlueGrad)" 
+                  stroke-width="48" 
+                  stroke-linecap="round" 
+                  fill="none"/>
+            
+            <!-- 上部较细且尖锐的弧线 (代表刹那、瞬间与下载速度) -->
+            <path d="M112 256C112 176.471 176.471 112 256 112C335.529 112 400 176.471 400 256C400 280 394 302 384 322" 
+                  stroke="url(#brightBlueGrad)" 
+                  stroke-width="32" 
+                  stroke-linecap="round" 
+                  fill="none"/>
+            
+            <!-- 核心视觉点：代表“那一瞬间”的点 -->
+            <circle cx="256" cy="256" r="30" fill="url(#brightBlueGrad)"/>
+        </g>
+    </g>
+</svg>

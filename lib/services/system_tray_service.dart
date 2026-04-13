@@ -87,7 +87,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     String iconPath;
 
     if (Platform.isWindows) {
-      iconPath = '.trae/references/Motrix/static/mo-tray-colorful-normal.ico';
+      iconPath = 'assets/logo/app.ico';
     } else if (Platform.isMacOS) {
       iconPath = '.trae/references/Motrix/static/mo-tray-colorful-normal.png';
     } else {
