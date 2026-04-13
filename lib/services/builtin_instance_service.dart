@@ -88,6 +88,26 @@ class BuiltinInstanceService with Loggable {
     return settings['rpcSecret'] as String? ?? '';
   }
 
+  String _defaultSessionPath() {
+    return _sessionPath!;
+  }
+
+  String _defaultLogPath() {
+    return _logPath!;
+  }
+
+  String _resolveConfiguredFilePath(dynamic rawValue, String fallbackPath) {
+    final configuredPath = (rawValue as String? ?? '').trim();
+    return configuredPath.isNotEmpty ? configuredPath : fallbackPath;
+  }
+
+  void _ensureParentDirectoryExists(String filePath) {
+    final directory = File(filePath).parent;
+    if (!directory.existsSync()) {
+      directory.createSync(recursive: true);
+    }
+  }
+
   String _formatSpeedLimitArg(dynamic rawValue) {
     final value = rawValue is num
         ? rawValue.toInt()
@@ -132,6 +152,17 @@ class BuiltinInstanceService with Loggable {
         (settings['btListenPort'] as String? ?? '').trim().isNotEmpty
         ? (settings['btListenPort'] as String).trim()
         : '6881-6999';
+    final sessionPath = _resolveConfiguredFilePath(
+      settings['sessionPath'],
+      _defaultSessionPath(),
+    );
+    final logPath = _resolveConfiguredFilePath(
+      settings['logPath'],
+      _defaultLogPath(),
+    );
+
+    _ensureParentDirectoryExists(sessionPath);
+    _ensureParentDirectoryExists(logPath);
 
     final args = <String>[
       '--enable-rpc',
@@ -170,9 +201,9 @@ class BuiltinInstanceService with Loggable {
       '--enable-dht6=${settings['enableDht6'] ?? true}',
       '--enable-upnp=${settings['enableUpnp'] ?? true}',
       '--conf-path=$_aria2ConfPath',
-      '--save-session=$_sessionPath',
+      '--save-session=$sessionPath',
       '--log-level=info',
-      '--log=$_logPath',
+      '--log=$logPath',
     ];
 
     final allProxy = settings['allProxy'] as String? ?? '';
@@ -196,8 +227,8 @@ class BuiltinInstanceService with Loggable {
     if (btExcludeTracker.isNotEmpty) {
       args.add('--bt-exclude-tracker=$btExcludeTracker');
     }
-    if (File(_sessionPath!).existsSync()) {
-      args.add('--input-file=$_sessionPath');
+    if (File(sessionPath).existsSync()) {
+      args.add('--input-file=$sessionPath');
     }
 
     return args;

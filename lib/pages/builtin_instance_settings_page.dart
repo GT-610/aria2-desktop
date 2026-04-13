@@ -44,6 +44,8 @@ class _BuiltinInstanceSettingsPageState
   late int _dhtListenPort;
   late bool _enableDht6;
   late bool _enableUpnp;
+  late String _sessionPath;
+  late String _logPath;
   late bool _autoFileRenaming;
   late bool _allowOverwrite;
   late String _userAgent;
@@ -54,6 +56,8 @@ class _BuiltinInstanceSettingsPageState
       TextEditingController();
   final TextEditingController _allProxyController = TextEditingController();
   final TextEditingController _noProxyController = TextEditingController();
+  final TextEditingController _sessionPathController = TextEditingController();
+  final TextEditingController _logPathController = TextEditingController();
   final TextEditingController _userAgentController = TextEditingController();
 
   _BuiltinSettingsApplyMode _currentApplyMode(Settings settings) {
@@ -96,6 +100,8 @@ class _BuiltinInstanceSettingsPageState
     _dhtListenPort = settings.dhtListenPort;
     _enableDht6 = settings.enableDht6;
     _enableUpnp = settings.enableUpnp;
+    _sessionPath = settings.sessionPath;
+    _logPath = settings.logPath;
     _autoFileRenaming = settings.autoFileRenaming;
     _allowOverwrite = settings.allowOverwrite;
     _userAgent = settings.userAgent;
@@ -105,6 +111,8 @@ class _BuiltinInstanceSettingsPageState
     _excludedTrackersController.text = _btExcludeTracker;
     _allProxyController.text = _allProxy;
     _noProxyController.text = _noProxy;
+    _sessionPathController.text = _sessionPath;
+    _logPathController.text = _logPath;
     _userAgentController.text = _userAgent;
     _didInitializeDraft = true;
   }
@@ -116,6 +124,8 @@ class _BuiltinInstanceSettingsPageState
     _excludedTrackersController.dispose();
     _allProxyController.dispose();
     _noProxyController.dispose();
+    _sessionPathController.dispose();
+    _logPathController.dispose();
     _userAgentController.dispose();
     super.dispose();
   }
@@ -401,6 +411,24 @@ class _BuiltinInstanceSettingsPageState
                 ) {
                   _updateDraft(() => _allowOverwrite = value);
                 }),
+                _buildTextFieldSetting(
+                  l10n.sessionFilePath,
+                  _sessionPath,
+                  (value) {
+                    _updateDraft(() => _sessionPath = value.trim());
+                  },
+                  helperText: l10n.sessionFilePathTip,
+                  controller: _sessionPathController,
+                ),
+                _buildTextFieldSetting(
+                  l10n.logFilePath,
+                  _logPath,
+                  (value) {
+                    _updateDraft(() => _logPath = value.trim());
+                  },
+                  helperText: l10n.logFilePathTip,
+                  controller: _logPathController,
+                ),
                 _buildTextFieldSetting(l10n.userAgent, _userAgent, (value) {
                   _updateDraft(() => _userAgent = value);
                 }, controller: _userAgentController),
@@ -426,7 +454,9 @@ class _BuiltinInstanceSettingsPageState
         _btListenPort != settings.btListenPort ||
         _dhtListenPort != settings.dhtListenPort ||
         _enableDht6 != settings.enableDht6 ||
-        _enableUpnp != settings.enableUpnp;
+        _enableUpnp != settings.enableUpnp ||
+        _sessionPath != settings.sessionPath ||
+        _logPath != settings.logPath;
   }
 
   bool _hasLiveApplySettingChanges(Settings settings) {
@@ -474,6 +504,8 @@ class _BuiltinInstanceSettingsPageState
       dhtListenPort: _dhtListenPort,
       enableDht6: _enableDht6,
       enableUpnp: _enableUpnp,
+      sessionPath: _sessionPath,
+      logPath: _logPath,
       autoFileRenaming: _autoFileRenaming,
       allowOverwrite: _allowOverwrite,
       userAgent: _userAgent,

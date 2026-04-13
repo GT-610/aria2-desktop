@@ -2071,6 +2071,30 @@ abstract class AppLocalizations {
   /// **'Allow overwrite'**
   String get allowOverwrite;
 
+  /// No description provided for @sessionFilePath.
+  ///
+  /// In en, this message translates to:
+  /// **'Session file path'**
+  String get sessionFilePath;
+
+  /// No description provided for @sessionFilePathTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to use the default data/core/aria2.session path. Restart required.'**
+  String get sessionFilePathTip;
+
+  /// No description provided for @logFilePath.
+  ///
+  /// In en, this message translates to:
+  /// **'Log file path'**
+  String get logFilePath;
+
+  /// No description provided for @logFilePathTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to use the default data/core/aria2.log path. Restart required.'**
+  String get logFilePathTip;
+
   /// No description provided for @userAgent.
   ///
   /// In en, this message translates to:

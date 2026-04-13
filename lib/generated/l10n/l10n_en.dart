@@ -1133,6 +1133,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get allowOverwrite => 'Allow overwrite';
 
   @override
+  String get sessionFilePath => 'Session file path';
+
+  @override
+  String get sessionFilePathTip =>
+      'Leave empty to use the default data/core/aria2.session path. Restart required.';
+
+  @override
+  String get logFilePath => 'Log file path';
+
+  @override
+  String get logFilePathTip =>
+      'Leave empty to use the default data/core/aria2.log path. Restart required.';
+
+  @override
   String get userAgent => 'User agent';
 
   @override
