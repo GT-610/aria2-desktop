@@ -314,6 +314,18 @@ abstract class AppLocalizations {
   /// **'Show notifications when downloads complete or fail'**
   String get taskNotificationTip;
 
+  /// No description provided for @skipDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip delete confirmation'**
+  String get skipDeleteConfirm;
+
+  /// No description provided for @skipDeleteConfirmTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete tasks immediately without asking whether to remove downloaded files'**
+  String get skipDeleteConfirmTip;
+
   /// No description provided for @appearance.
   ///
   /// In en, this message translates to:

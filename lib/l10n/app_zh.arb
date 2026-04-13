@@ -36,6 +36,8 @@
   "showTraySpeedTip": "在托盘提示中显示总下载速度",
   "taskNotification": "任务通知",
   "taskNotificationTip": "在下载完成或失败时显示通知",
+  "skipDeleteConfirm": "跳过删除确认",
+  "skipDeleteConfirmTip": "删除任务时不再询问是否同时删除已下载文件",
   "appearance": "外观",
   "appearanceTip": "自定义应用程序的主题和颜色",
   "light": "亮色",

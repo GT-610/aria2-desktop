@@ -13,6 +13,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool _minimizeToTray = true; // Minimize to system tray
   bool _showTraySpeed = true; // Show download speed in tray tooltip
   bool _taskNotification = true; // Show task completion/failure notifications
+  bool _skipDeleteConfirm = false; // Skip delete confirmation dialog
 
   // Appearance settings
   ThemeMode _themeMode = ThemeMode.system; // Appearance settings
@@ -101,6 +102,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool get minimizeToTray => _minimizeToTray;
   bool get showTraySpeed => _showTraySpeed;
   bool get taskNotification => _taskNotification;
+  bool get skipDeleteConfirm => _skipDeleteConfirm;
   ThemeMode get themeMode => _themeMode;
   Color get primaryColor => _primaryColor;
   String? get customColorCode => _customColorCode;
@@ -158,6 +160,7 @@ class Settings extends ChangeNotifier with Loggable {
         _minimizeToTray = settingsMap['minimizeToTray'] ?? true;
         _showTraySpeed = settingsMap['showTraySpeed'] ?? true;
         _taskNotification = settingsMap['taskNotification'] ?? true;
+        _skipDeleteConfirm = settingsMap['skipDeleteConfirm'] ?? false;
 
         // Appearance settings
         final themeModeValue = settingsMap['themeMode'];
@@ -256,6 +259,7 @@ class Settings extends ChangeNotifier with Loggable {
     _minimizeToTray = true;
     _showTraySpeed = true;
     _taskNotification = true;
+    _skipDeleteConfirm = false;
     _themeMode = ThemeMode.system;
     _primaryColor = Colors.blue;
     _customColorCode = null;
@@ -313,6 +317,7 @@ class Settings extends ChangeNotifier with Loggable {
         'minimizeToTray': _minimizeToTray,
         'showTraySpeed': _showTraySpeed,
         'taskNotification': _taskNotification,
+        'skipDeleteConfirm': _skipDeleteConfirm,
         'themeMode': _themeMode.name,
         'primaryColor': _primaryColor.toARGB32().toString(),
         'customColorCode': _customColorCode,
@@ -390,6 +395,12 @@ class Settings extends ChangeNotifier with Loggable {
 
   Future<void> setTaskNotification(bool value) async {
     _taskNotification = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setSkipDeleteConfirm(bool value) async {
+    _skipDeleteConfirm = value;
     notifyListeners();
     await _saveAllSettings();
   }

@@ -125,6 +125,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskNotificationTip => '在下载完成或失败时显示通知';
 
   @override
+  String get skipDeleteConfirm => '跳过删除确认';
+
+  @override
+  String get skipDeleteConfirmTip => '删除任务时不再询问是否同时删除已下载文件';
+
+  @override
   String get appearance => '外观';
 
   @override

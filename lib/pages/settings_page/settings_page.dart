@@ -185,6 +185,32 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                     ),
                     const Divider(height: 1),
+                    SwitchListTile.adaptive(
+                      title: Text(
+                        l10n.skipDeleteConfirm,
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(l10n.skipDeleteConfirmTip),
+                      value: settings.skipDeleteConfirm,
+                      onChanged: (value) async {
+                        try {
+                          await settings.setSkipDeleteConfirm(value);
+                          this.i(
+                            'Skip delete confirm setting changed to: $value',
+                          );
+                        } catch (e) {
+                          this.e(
+                            'Failed to save skip delete confirm setting',
+                            error: e,
+                          );
+                          _showErrorSnackBar(l10n.saveSettingsFailed);
+                        }
+                      },
+                      activeThumbColor: Colors.white,
+                      activeTrackColor: colorScheme.primary,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                    ),
+                    const Divider(height: 1),
                     ListTile(
                       title: Text(
                         l10n.appearance,

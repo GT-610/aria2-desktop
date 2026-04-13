@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
+import '../../../models/settings.dart';
 import '../../../services/aria2_rpc_client.dart';
 import '../../../services/instance_manager.dart';
 import '../../../utils/format_utils.dart';
@@ -67,6 +68,10 @@ class DownloadTaskService with Loggable {
         );
       },
     );
+  }
+
+  static bool shouldSkipDeleteConfirmation(BuildContext context) {
+    return Provider.of<Settings>(context, listen: false).skipDeleteConfirm;
   }
 
   static Future<DeleteTaskResult> deleteTaskWithClient(
@@ -288,9 +293,9 @@ class DownloadTaskService with Loggable {
         context,
         listen: false,
       );
-      final deleteDownloadedFiles = await promptDeleteDownloadedFiles(context, [
-        task,
-      ]);
+      final deleteDownloadedFiles = shouldSkipDeleteConfirmation(context)
+          ? false
+          : await promptDeleteDownloadedFiles(context, [task]);
       if (deleteDownloadedFiles == null) {
         return;
       }
@@ -377,9 +382,9 @@ class DownloadTaskService with Loggable {
         context,
         listen: false,
       );
-      final deleteDownloadedFiles = await promptDeleteDownloadedFiles(context, [
-        task,
-      ]);
+      final deleteDownloadedFiles = shouldSkipDeleteConfirmation(context)
+          ? false
+          : await promptDeleteDownloadedFiles(context, [task]);
       if (deleteDownloadedFiles == null) {
         return;
       }

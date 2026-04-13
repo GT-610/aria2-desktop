@@ -4,6 +4,7 @@ import 'package:provider/provider.dart' as p;
 
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
+import '../../../models/settings.dart';
 import '../../../services/aria2_rpc_client.dart';
 import '../../../services/download_data_service.dart';
 import '../../../services/instance_manager.dart';
@@ -77,6 +78,7 @@ class TaskActionDialogs {
       context,
       listen: false,
     );
+    final settings = p.Provider.of<Settings>(context, listen: false);
     final downloadDataService = p.Provider.of<DownloadDataService>(
       context,
       listen: false,
@@ -150,15 +152,17 @@ class TaskActionDialogs {
                   Navigator.pop(dialogContext);
                   bool deleteDownloadedFiles = false;
                   if (actionType == TaskActionType.delete) {
-                    final choice =
-                        await DownloadTaskService.promptDeleteDownloadedFiles(
-                          context,
-                          actionableAllTasks,
-                        );
-                    if (choice == null) {
-                      return;
+                    if (!settings.skipDeleteConfirm) {
+                      final choice =
+                          await DownloadTaskService.promptDeleteDownloadedFiles(
+                            context,
+                            actionableAllTasks,
+                          );
+                      if (choice == null) {
+                        return;
+                      }
+                      deleteDownloadedFiles = choice;
                     }
-                    deleteDownloadedFiles = choice;
                   }
                   await _performActionForAllInstances(
                     context,
@@ -190,15 +194,17 @@ class TaskActionDialogs {
                         Navigator.pop(dialogContext);
                         bool deleteDownloadedFiles = false;
                         if (actionType == TaskActionType.delete) {
-                          final choice =
-                              await DownloadTaskService.promptDeleteDownloadedFiles(
-                                context,
-                                instanceTasks,
-                              );
-                          if (choice == null) {
-                            return;
+                          if (!settings.skipDeleteConfirm) {
+                            final choice =
+                                await DownloadTaskService.promptDeleteDownloadedFiles(
+                                  context,
+                                  instanceTasks,
+                                );
+                            if (choice == null) {
+                              return;
+                            }
+                            deleteDownloadedFiles = choice;
                           }
-                          deleteDownloadedFiles = choice;
                         }
                         final outcome = await _performActionForInstance(
                           context,

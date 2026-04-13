@@ -130,6 +130,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show notifications when downloads complete or fail';
 
   @override
+  String get skipDeleteConfirm => 'Skip delete confirmation';
+
+  @override
+  String get skipDeleteConfirmTip =>
+      'Delete tasks immediately without asking whether to remove downloaded files';
+
+  @override
   String get appearance => 'Appearance';
 
   @override
