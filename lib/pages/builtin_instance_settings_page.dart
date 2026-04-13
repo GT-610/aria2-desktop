@@ -43,6 +43,7 @@ class _BuiltinInstanceSettingsPageState
   late String _noProxy;
   late int _dhtListenPort;
   late bool _enableDht6;
+  late bool _enableUpnp;
   late bool _autoFileRenaming;
   late bool _allowOverwrite;
   late String _userAgent;
@@ -94,6 +95,7 @@ class _BuiltinInstanceSettingsPageState
     _noProxy = settings.noProxy;
     _dhtListenPort = settings.dhtListenPort;
     _enableDht6 = settings.enableDht6;
+    _enableUpnp = settings.enableUpnp;
     _autoFileRenaming = settings.autoFileRenaming;
     _allowOverwrite = settings.allowOverwrite;
     _userAgent = settings.userAgent;
@@ -380,6 +382,9 @@ class _BuiltinInstanceSettingsPageState
                 _buildSwitchSetting(l10n.enableDht6, _enableDht6, (value) {
                   _updateDraft(() => _enableDht6 = value);
                 }),
+                _buildSwitchSetting(l10n.enableUpnp, _enableUpnp, (value) {
+                  _updateDraft(() => _enableUpnp = value);
+                }, helperText: l10n.enableUpnpTip),
               ],
             ),
             _buildSectionHeader(l10n.filesSection, theme),
@@ -420,7 +425,8 @@ class _BuiltinInstanceSettingsPageState
         _btLoadSavedMetadata != settings.btLoadSavedMetadata ||
         _btListenPort != settings.btListenPort ||
         _dhtListenPort != settings.dhtListenPort ||
-        _enableDht6 != settings.enableDht6;
+        _enableDht6 != settings.enableDht6 ||
+        _enableUpnp != settings.enableUpnp;
   }
 
   bool _hasLiveApplySettingChanges(Settings settings) {
@@ -467,6 +473,7 @@ class _BuiltinInstanceSettingsPageState
       noProxy: _noProxy,
       dhtListenPort: _dhtListenPort,
       enableDht6: _enableDht6,
+      enableUpnp: _enableUpnp,
       autoFileRenaming: _autoFileRenaming,
       allowOverwrite: _allowOverwrite,
       userAgent: _userAgent,
