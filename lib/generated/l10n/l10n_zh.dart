@@ -119,6 +119,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showTraySpeedTip => '在托盘提示中显示总下载速度';
 
   @override
+  String get taskNotification => '任务通知';
+
+  @override
+  String get taskNotificationTip => '在下载完成或失败时显示通知';
+
+  @override
   String get appearance => '外观';
 
   @override

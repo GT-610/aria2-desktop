@@ -261,6 +261,11 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
+    final settings = Provider.of<Settings>(context, listen: false);
+    if (!settings.taskNotification) {
+      return;
+    }
+
     for (final notification in notifications) {
       final title = notification.type == DownloadTaskNotificationType.completed
           ? AppLocalizations.of(context)!.completed

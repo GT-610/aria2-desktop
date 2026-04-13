@@ -123,6 +123,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Display total download speed in the tray tooltip';
 
   @override
+  String get taskNotification => 'Task notifications';
+
+  @override
+  String get taskNotificationTip =>
+      'Show notifications when downloads complete or fail';
+
+  @override
   String get appearance => 'Appearance';
 
   @override
