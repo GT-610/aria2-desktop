@@ -326,6 +326,18 @@ abstract class AppLocalizations {
   /// **'Delete tasks immediately without asking whether to remove downloaded files'**
   String get skipDeleteConfirmTip;
 
+  /// No description provided for @resumeAllOnLaunch.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume all on launch'**
+  String get resumeAllOnLaunch;
+
+  /// No description provided for @resumeAllOnLaunchTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically resume paused tasks after the app starts'**
+  String get resumeAllOnLaunchTip;
+
   /// No description provided for @appearance.
   ///
   /// In en, this message translates to:

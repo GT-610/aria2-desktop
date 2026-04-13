@@ -14,6 +14,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool _showTraySpeed = true; // Show download speed in tray tooltip
   bool _taskNotification = true; // Show task completion/failure notifications
   bool _skipDeleteConfirm = false; // Skip delete confirmation dialog
+  bool _resumeAllOnLaunch = false; // Resume paused tasks on app launch
 
   // Appearance settings
   ThemeMode _themeMode = ThemeMode.system; // Appearance settings
@@ -103,6 +104,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool get showTraySpeed => _showTraySpeed;
   bool get taskNotification => _taskNotification;
   bool get skipDeleteConfirm => _skipDeleteConfirm;
+  bool get resumeAllOnLaunch => _resumeAllOnLaunch;
   ThemeMode get themeMode => _themeMode;
   Color get primaryColor => _primaryColor;
   String? get customColorCode => _customColorCode;
@@ -161,6 +163,7 @@ class Settings extends ChangeNotifier with Loggable {
         _showTraySpeed = settingsMap['showTraySpeed'] ?? true;
         _taskNotification = settingsMap['taskNotification'] ?? true;
         _skipDeleteConfirm = settingsMap['skipDeleteConfirm'] ?? false;
+        _resumeAllOnLaunch = settingsMap['resumeAllOnLaunch'] ?? false;
 
         // Appearance settings
         final themeModeValue = settingsMap['themeMode'];
@@ -260,6 +263,7 @@ class Settings extends ChangeNotifier with Loggable {
     _showTraySpeed = true;
     _taskNotification = true;
     _skipDeleteConfirm = false;
+    _resumeAllOnLaunch = false;
     _themeMode = ThemeMode.system;
     _primaryColor = Colors.blue;
     _customColorCode = null;
@@ -318,6 +322,7 @@ class Settings extends ChangeNotifier with Loggable {
         'showTraySpeed': _showTraySpeed,
         'taskNotification': _taskNotification,
         'skipDeleteConfirm': _skipDeleteConfirm,
+        'resumeAllOnLaunch': _resumeAllOnLaunch,
         'themeMode': _themeMode.name,
         'primaryColor': _primaryColor.toARGB32().toString(),
         'customColorCode': _customColorCode,
@@ -401,6 +406,12 @@ class Settings extends ChangeNotifier with Loggable {
 
   Future<void> setSkipDeleteConfirm(bool value) async {
     _skipDeleteConfirm = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setResumeAllOnLaunch(bool value) async {
+    _resumeAllOnLaunch = value;
     notifyListeners();
     await _saveAllSettings();
   }

@@ -131,6 +131,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get skipDeleteConfirmTip => '删除任务时不再询问是否同时删除已下载文件';
 
   @override
+  String get resumeAllOnLaunch => '启动时继续全部';
+
+  @override
+  String get resumeAllOnLaunchTip => '应用启动后自动继续所有已暂停任务';
+
+  @override
   String get appearance => '外观';
 
   @override

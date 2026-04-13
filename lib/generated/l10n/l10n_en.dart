@@ -137,6 +137,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Delete tasks immediately without asking whether to remove downloaded files';
 
   @override
+  String get resumeAllOnLaunch => 'Resume all on launch';
+
+  @override
+  String get resumeAllOnLaunchTip =>
+      'Automatically resume paused tasks after the app starts';
+
+  @override
   String get appearance => 'Appearance';
 
   @override

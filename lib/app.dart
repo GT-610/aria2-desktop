@@ -98,7 +98,7 @@ class _HomeWrapper extends StatefulWidget {
   State<_HomeWrapper> createState() => _HomeWrapperState();
 }
 
-class _HomeWrapperState extends State<_HomeWrapper> {
+class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
   bool _isInitialized = false;
 
   @override
@@ -122,6 +122,14 @@ class _HomeWrapperState extends State<_HomeWrapper> {
       listen: false,
     );
     settingsService.initialize(settings);
+    final downloadDataService = Provider.of<DownloadDataService>(
+      context,
+      listen: false,
+    );
+
+    if (settings.resumeAllOnLaunch) {
+      await _resumePausedTasksOnLaunch(instanceManager, downloadDataService);
+    }
 
     // Check if built-in instance failed to connect
     final builtinInstance = instanceManager.getInstanceById('builtin');
@@ -139,6 +147,65 @@ class _HomeWrapperState extends State<_HomeWrapper> {
     setState(() {
       _isInitialized = true;
     });
+  }
+
+  Future<void> _resumePausedTasksOnLaunch(
+    InstanceManager instanceManager,
+    DownloadDataService downloadDataService,
+  ) async {
+    final connectedInstances = instanceManager.getConnectedInstances();
+    if (connectedInstances.isEmpty) {
+      return;
+    }
+
+    await downloadDataService.refreshTasks(connectedInstances);
+
+    final pausedTasks = downloadDataService.tasks
+        .where(
+          (task) =>
+              task.status == DownloadStatus.waiting &&
+              task.taskStatus == 'paused',
+        )
+        .toList();
+    if (pausedTasks.isEmpty) {
+      return;
+    }
+
+    final tasksByInstance = <String, List<DownloadTask>>{};
+    for (final task in pausedTasks) {
+      tasksByInstance.putIfAbsent(task.instanceId, () => []).add(task);
+    }
+
+    var successCount = 0;
+    var failCount = 0;
+    for (final instance in connectedInstances) {
+      final instanceTasks = tasksByInstance[instance.id];
+      if (instanceTasks == null || instanceTasks.isEmpty) {
+        continue;
+      }
+
+      final client = Aria2RpcClient(instance);
+      try {
+        for (final task in instanceTasks) {
+          try {
+            await client.unpauseTask(task.id);
+            successCount++;
+          } catch (e, stackTrace) {
+            failCount++;
+            this.e(
+              'Failed to resume task ${task.id} on launch for instance ${instance.name}',
+              error: e,
+              stackTrace: stackTrace,
+            );
+          }
+        }
+      } finally {
+        client.close();
+      }
+    }
+
+    await downloadDataService.refreshTasks(connectedInstances);
+    i('Resume-on-launch finished: $successCount resumed, $failCount failed');
   }
 
   void _showBuiltinConnectionFailedDialog(BuildContext ctx) {
