@@ -113,6 +113,14 @@ class Settings extends ChangeNotifier with Loggable {
     return '${configDir.path}/$_settingsFileName';
   }
 
+  String _normalizeBtTracker(String trackers) {
+    return trackers
+        .split(RegExp(r'[\n\r,]+'))
+        .map((tracker) => tracker.trim())
+        .where((tracker) => tracker.isNotEmpty)
+        .join(',');
+  }
+
   // Getters
   bool get autoStart => _autoStart;
   bool get minimizeToTray => _minimizeToTray;
@@ -257,7 +265,7 @@ class Settings extends ChangeNotifier with Loggable {
         _seedRatio = settingsMap['seedRatio'] ?? 1.0;
         _seedTime = settingsMap['seedTime'] ?? 60;
         _btListenPort = settingsMap['btListenPort'] ?? '6881-6999';
-        _btTracker = settingsMap['btTracker'] ?? '';
+        _btTracker = _normalizeBtTracker(settingsMap['btTracker'] ?? '');
         _btExcludeTracker = settingsMap['btExcludeTracker'] ?? '';
 
         // Advanced settings
@@ -644,7 +652,7 @@ class Settings extends ChangeNotifier with Loggable {
   }
 
   Future<void> setBtTracker(String trackers) async {
-    _btTracker = trackers;
+    _btTracker = _normalizeBtTracker(trackers);
     notifyListeners();
     await _saveAllSettings();
   }
@@ -788,7 +796,7 @@ class Settings extends ChangeNotifier with Loggable {
     _seedRatio = seedRatio;
     _seedTime = seedTime;
     _btListenPort = btListenPort;
-    _btTracker = btTracker;
+    _btTracker = _normalizeBtTracker(btTracker);
     _btExcludeTracker = btExcludeTracker;
     _proxyEnabled = proxyEnabled;
     _allProxy = allProxy;
