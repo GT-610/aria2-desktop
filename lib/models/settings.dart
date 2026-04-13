@@ -551,4 +551,54 @@ class Settings extends ChangeNotifier with Loggable {
     notifyListeners();
     await _saveAllSettings();
   }
+
+  Future<void> updateBuiltinInstanceSettings({
+    required int rpcListenPort,
+    required String rpcSecret,
+    required int maxConcurrentDownloads,
+    required int maxConnectionPerServer,
+    required int split,
+    required bool continueDownloads,
+    required int maxOverallDownloadLimit,
+    required int maxOverallUploadLimit,
+    required bool btSaveMetadata,
+    required bool btForceEncryption,
+    required bool btLoadSavedMetadata,
+    required bool keepSeeding,
+    required double seedRatio,
+    required int seedTime,
+    required String btExcludeTracker,
+    required String allProxy,
+    required String noProxy,
+    required int dhtListenPort,
+    required bool enableDht6,
+    required bool autoFileRenaming,
+    required bool allowOverwrite,
+    required String userAgent,
+  }) async {
+    _rpcListenPort = rpcListenPort;
+    _rpcSecret = rpcSecret;
+    _maxConcurrentDownloads = maxConcurrentDownloads;
+    _maxConnectionPerServer = maxConnectionPerServer;
+    _split = split;
+    _continueDownloads = continueDownloads;
+    _maxOverallDownloadLimit = maxOverallDownloadLimit;
+    _maxOverallUploadLimit = maxOverallUploadLimit;
+    _btSaveMetadata = btSaveMetadata;
+    _btForceEncryption = btForceEncryption;
+    _btLoadSavedMetadata = btLoadSavedMetadata;
+    _keepSeeding = keepSeeding;
+    _seedRatio = seedRatio;
+    _seedTime = seedTime;
+    _btExcludeTracker = btExcludeTracker;
+    _allProxy = allProxy;
+    _noProxy = noProxy;
+    _dhtListenPort = dhtListenPort;
+    _enableDht6 = enableDht6;
+    _autoFileRenaming = autoFileRenaming;
+    _allowOverwrite = allowOverwrite;
+    _userAgent = userAgent;
+    notifyListeners();
+    await _saveAllSettings();
+  }
 }
