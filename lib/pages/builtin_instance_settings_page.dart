@@ -53,7 +53,7 @@ class _BuiltinInstanceSettingsPageState
   final TextEditingController _userAgentController = TextEditingController();
 
   _BuiltinSettingsApplyMode _currentApplyMode(Settings settings) {
-    if (_hasConnectionSettingChanges(settings)) {
+    if (_hasRestartRequiredSettingChanges(settings)) {
       return _BuiltinSettingsApplyMode.restartRequired;
     }
     if (_hasLiveApplySettingChanges(settings)) {
@@ -393,9 +393,12 @@ class _BuiltinInstanceSettingsPageState
     });
   }
 
-  bool _hasConnectionSettingChanges(Settings settings) {
+  bool _hasRestartRequiredSettingChanges(Settings settings) {
     return _rpcListenPort != settings.rpcListenPort ||
-        _rpcSecret != settings.rpcSecret;
+        _rpcSecret != settings.rpcSecret ||
+        _btLoadSavedMetadata != settings.btLoadSavedMetadata ||
+        _dhtListenPort != settings.dhtListenPort ||
+        _enableDht6 != settings.enableDht6;
   }
 
   bool _hasLiveApplySettingChanges(Settings settings) {
@@ -406,7 +409,6 @@ class _BuiltinInstanceSettingsPageState
         _split != settings.split ||
         _continueDownloads != settings.continueDownloads ||
         _btSaveMetadata != settings.btSaveMetadata ||
-        _btLoadSavedMetadata != settings.btLoadSavedMetadata ||
         _btForceEncryption != settings.btForceEncryption ||
         _keepSeeding != settings.keepSeeding ||
         _seedRatio != settings.seedRatio ||
@@ -414,8 +416,6 @@ class _BuiltinInstanceSettingsPageState
         _btExcludeTracker != settings.btExcludeTracker ||
         _allProxy != settings.allProxy ||
         _noProxy != settings.noProxy ||
-        _dhtListenPort != settings.dhtListenPort ||
-        _enableDht6 != settings.enableDht6 ||
         _autoFileRenaming != settings.autoFileRenaming ||
         _allowOverwrite != settings.allowOverwrite ||
         _userAgent != settings.userAgent;

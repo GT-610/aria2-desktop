@@ -17,9 +17,9 @@ class SettingsService extends ChangeNotifier with Loggable {
     return value > 0 ? '${value}K' : '0';
   }
 
-  Map<String, dynamic> _convertSettingsToAria2Options() {
+  Map<String, dynamic> _convertSettingsToRuntimeAria2Options() {
     if (_settings == null) {
-      w('Settings is null, cannot convert to Aria2 options');
+      w('Settings is null, cannot convert runtime settings to Aria2 options');
       return {};
     }
 
@@ -37,7 +37,6 @@ class SettingsService extends ChangeNotifier with Loggable {
       ),
       'bt-save-metadata': settings.btSaveMetadata.toString(),
       'bt-require-crypto': settings.btForceEncryption.toString(),
-      'bt-load-saved-metadata': settings.btLoadSavedMetadata.toString(),
       'seed-time':
           (settings.keepSeeding
                   ? _indefiniteSeedTimeMinutes
@@ -46,8 +45,6 @@ class SettingsService extends ChangeNotifier with Loggable {
       'seed-ratio': (settings.keepSeeding ? 0.0 : settings.seedRatio)
           .toString(),
       'bt-exclude-tracker': settings.btExcludeTracker,
-      'dht-listen-port': settings.dhtListenPort.toString(),
-      'enable-dht6': settings.enableDht6.toString(),
       'auto-file-renaming': settings.autoFileRenaming.toString(),
       'allow-overwrite': settings.allowOverwrite.toString(),
       'user-agent': settings.userAgent,
@@ -74,7 +71,7 @@ class SettingsService extends ChangeNotifier with Loggable {
 
     try {
       final result = await client.setGlobalOption(
-        _convertSettingsToAria2Options(),
+        _convertSettingsToRuntimeAria2Options(),
       );
       if (result) {
         i('Settings applied successfully to built-in Aria2');
