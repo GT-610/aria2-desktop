@@ -1098,6 +1098,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get allowOverwrite => '允许覆盖';
 
   @override
+  String get sessionFilePath => 'Session 文件路径';
+
+  @override
+  String get sessionFilePathTip =>
+      '留空则使用默认的 data/core/aria2.session 路径。需要重启后生效。';
+
+  @override
+  String get logFilePath => '日志文件路径';
+
+  @override
+  String get logFilePathTip => '留空则使用默认的 data/core/aria2.log 路径。需要重启后生效。';
+
+  @override
   String get userAgent => 'User Agent';
 
   @override
