@@ -1050,6 +1050,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSaved => '设置已保存';
 
   @override
+  String get settingsSaveOnlyHint => '“仅保存”只会保存改动，不会影响当前正在运行的内建实例。';
+
+  @override
+  String get settingsApplySpeedHint => '“保存并应用”会在内建实例已连接时立即应用限速改动。';
+
+  @override
+  String get settingsApplyRestartHint => '“保存并应用”会重启内建实例来应用这些改动。';
+
+  @override
+  String get settingsApplyNoPendingHint => '“保存并应用”会在可能时把设置更新到当前运行中的内建实例。';
+
+  @override
   String get restartingBuiltinInstance => '正在重启内建实例，请稍候...';
 
   @override

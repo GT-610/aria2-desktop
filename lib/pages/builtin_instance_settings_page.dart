@@ -52,6 +52,16 @@ class _BuiltinInstanceSettingsPageState
   final TextEditingController _noProxyController = TextEditingController();
   final TextEditingController _userAgentController = TextEditingController();
 
+  _BuiltinSettingsApplyMode _currentApplyMode(Settings settings) {
+    if (_hasOnlySpeedSettingChanges(settings)) {
+      return _BuiltinSettingsApplyMode.liveApply;
+    }
+    if (_hasNonSpeedSettingChanges(settings)) {
+      return _BuiltinSettingsApplyMode.restartRequired;
+    }
+    return _BuiltinSettingsApplyMode.none;
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -157,6 +167,7 @@ class _BuiltinInstanceSettingsPageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildApplyHintCard(settings, theme),
             _buildSectionHeader(l10n.connectionSection, theme),
             _buildCard(
               theme: theme,
@@ -621,7 +632,6 @@ class _BuiltinInstanceSettingsPageState
   }
 
   Future<void> _saveSettings(Settings settings) async {
-    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSaving = true;
     });
@@ -633,20 +643,12 @@ class _BuiltinInstanceSettingsPageState
       _isSaving = false;
     });
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.settingsSaved),
-          duration: Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    _showSettingsSnackBar(AppLocalizations.of(context)!.settingsSaved);
   }
 
   Future<void> _saveAndApplySettings(Settings settings) async {
     final l10n = AppLocalizations.of(context)!;
-    final speedOnlyChanges = _hasOnlySpeedSettingChanges(settings);
+    final applyMode = _currentApplyMode(settings);
 
     setState(() {
       _isSaving = true;
@@ -654,7 +656,16 @@ class _BuiltinInstanceSettingsPageState
 
     await _persistDraft(settings);
 
-    if (speedOnlyChanges) {
+    if (applyMode == _BuiltinSettingsApplyMode.none) {
+      setState(() {
+        _hasChanges = false;
+        _isSaving = false;
+      });
+      _showSettingsSnackBar(l10n.settingsSaved);
+      return;
+    }
+
+    if (applyMode == _BuiltinSettingsApplyMode.liveApply) {
       final instanceManager = Provider.of<InstanceManager>(
         context,
         listen: false,
@@ -677,17 +688,11 @@ class _BuiltinInstanceSettingsPageState
           _isSaving = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              applied
-                  ? l10n.settingsSavedAppliedSuccess
-                  : l10n.settingsSavedRpcApplyFailed,
-            ),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: applied ? null : Colors.orange,
-          ),
+        _showSettingsSnackBar(
+          applied
+              ? l10n.settingsSavedAppliedSuccess
+              : l10n.settingsSavedRpcApplyFailed,
+          backgroundColor: applied ? null : Colors.orange,
         );
         return;
       }
@@ -745,30 +750,21 @@ class _BuiltinInstanceSettingsPageState
             _isSaving = false;
           });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                applied
-                    ? l10n.settingsSavedAppliedSuccess
-                    : l10n.settingsSavedRpcApplyFailed,
-              ),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: applied ? null : Colors.orange,
-            ),
+          _showSettingsSnackBar(
+            applied
+                ? l10n.settingsSavedAppliedSuccess
+                : l10n.settingsSavedRpcApplyFailed,
+            backgroundColor: applied ? null : Colors.orange,
           );
         } else {
           setState(() {
             _isSaving = false;
           });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.settingsSavedRestartFailed),
-              duration: Duration(seconds: 3),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.red,
-            ),
+          _showSettingsSnackBar(
+            l10n.settingsSavedRestartFailed,
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           );
         }
       }
@@ -779,16 +775,87 @@ class _BuiltinInstanceSettingsPageState
           _isSaving = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.settingsSavedRestartFailedWithError('$e')),
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.red,
-          ),
+        _showSettingsSnackBar(
+          l10n.settingsSavedRestartFailedWithError('$e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         );
       }
     }
+  }
+
+  void _showSettingsSnackBar(
+    String message, {
+    Color? backgroundColor,
+    Duration duration = const Duration(seconds: 2),
+  }) {
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: duration,
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: backgroundColor,
+      ),
+    );
+  }
+
+  Widget _buildApplyHintCard(Settings settings, ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = theme.colorScheme;
+    final applyMode = _currentApplyMode(settings);
+    final applyMessage = switch (applyMode) {
+      _BuiltinSettingsApplyMode.liveApply => l10n.settingsApplySpeedHint,
+      _BuiltinSettingsApplyMode.restartRequired =>
+        l10n.settingsApplyRestartHint,
+      _BuiltinSettingsApplyMode.none => l10n.settingsApplyNoPendingHint,
+    };
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            applyMode == _BuiltinSettingsApplyMode.restartRequired
+                ? Icons.restart_alt
+                : Icons.info_outline,
+            color: colorScheme.onSecondaryContainer,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.settingsSaveOnlyHint,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSecondaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  applyMessage,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSecondaryContainer,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showBackConfirmationDialog(BuildContext context, Settings settings) {
@@ -840,3 +907,5 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 }
+
+enum _BuiltinSettingsApplyMode { none, liveApply, restartRequired }

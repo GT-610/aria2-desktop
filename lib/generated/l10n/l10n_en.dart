@@ -1076,6 +1076,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSaved => 'Settings saved';
 
   @override
+  String get settingsSaveOnlyHint =>
+      'Save only stores your changes and leaves the running built-in instance unchanged.';
+
+  @override
+  String get settingsApplySpeedHint =>
+      'Save and Apply will update speed limit changes immediately when the built-in instance is connected.';
+
+  @override
+  String get settingsApplyRestartHint =>
+      'Save and Apply will restart the built-in instance to apply these changes.';
+
+  @override
+  String get settingsApplyNoPendingHint =>
+      'Save and Apply updates the running built-in instance when possible.';
+
+  @override
   String get restartingBuiltinInstance =>
       'Restarting the built-in instance, please wait...';
 
