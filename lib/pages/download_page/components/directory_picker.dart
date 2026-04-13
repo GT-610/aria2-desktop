@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../generated/l10n/l10n.dart';
+import '../../../services/auto_hide_window_service.dart';
 import '../../../utils/logging.dart';
 
 /// Reusable directory picker component.
@@ -46,14 +47,17 @@ class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
   Future<void> _selectDirectory() async {
     final l10n = AppLocalizations.of(context)!;
     try {
-      final selectedDirectory = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: widget.dialogTitle.isNotEmpty
-            ? widget.dialogTitle
-            : l10n.chooseSaveLocation,
-        initialDirectory: _directoryController.text.isNotEmpty
-            ? _directoryController.text
-            : null,
-      );
+      final selectedDirectory = await AutoHideWindowService()
+          .runWithSuppressedAutoHide(
+            () => FilePicker.platform.getDirectoryPath(
+              dialogTitle: widget.dialogTitle.isNotEmpty
+                  ? widget.dialogTitle
+                  : l10n.chooseSaveLocation,
+              initialDirectory: _directoryController.text.isNotEmpty
+                  ? _directoryController.text
+                  : null,
+            ),
+          );
 
       if (selectedDirectory != null) {
         _updateDirectory(selectedDirectory);
