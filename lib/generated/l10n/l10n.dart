@@ -2071,6 +2071,12 @@ abstract class AppLocalizations {
   /// **'Save and Apply will update speed limit changes immediately when the built-in instance is connected.'**
   String get settingsApplySpeedHint;
 
+  /// No description provided for @settingsApplyLiveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save and Apply updates supported settings immediately when the built-in instance is connected.'**
+  String get settingsApplyLiveHint;
+
   /// No description provided for @settingsApplyRestartHint.
   ///
   /// In en, this message translates to:
@@ -2104,8 +2110,14 @@ abstract class AppLocalizations {
   /// No description provided for @settingsSavedRpcApplyFailed.
   ///
   /// In en, this message translates to:
-  /// **'Settings saved and instance restarted, but applying settings via RPC failed'**
+  /// **'Settings were saved, but applying them to the running built-in instance failed'**
   String get settingsSavedRpcApplyFailed;
+
+  /// No description provided for @settingsSavedApplyWhenConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings saved. Supported changes will apply the next time the built-in instance connects'**
+  String get settingsSavedApplyWhenConnected;
 
   /// No description provided for @settingsSavedRestartFailed.
   ///

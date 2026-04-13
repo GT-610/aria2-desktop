@@ -1098,6 +1098,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsApplySpeedHint => '“保存并应用”会在内建实例已连接时立即应用限速改动。';
 
   @override
+  String get settingsApplyLiveHint => '“保存并应用”会在内建实例已连接时立即应用支持在线更新的设置。';
+
+  @override
   String get settingsApplyRestartHint => '“保存并应用”会重启内建实例来应用这些改动。';
 
   @override
@@ -1113,7 +1116,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSavedAppliedSuccess => '设置已保存并成功应用';
 
   @override
-  String get settingsSavedRpcApplyFailed => '设置已保存且实例已重启，但通过 RPC 应用设置失败';
+  String get settingsSavedRpcApplyFailed => '设置已保存，但将其应用到当前运行中的内建实例失败';
+
+  @override
+  String get settingsSavedApplyWhenConnected => '设置已保存。支持在线更新的改动会在内建实例下次连接时应用';
 
   @override
   String get settingsSavedRestartFailed => '设置已保存，但重启内建实例失败';
