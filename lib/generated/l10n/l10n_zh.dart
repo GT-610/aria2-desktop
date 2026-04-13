@@ -51,6 +51,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get connected => '已连接';
 
   @override
+  String get showMainWindow => '显示主窗口';
+
+  @override
+  String get quitApp => '退出';
+
+  @override
   String get connectFailed => '连接失败';
 
   @override
