@@ -101,6 +101,8 @@
   "trackersTip": "多个Tracker用逗号分隔",
   "networkSettings": "网络设置",
   "globalProxy": "全局代理",
+  "enableProxy": "启用代理",
+  "enableProxyTip": "可在不丢失已保存代理地址的情况下启用或禁用代理设置",
   "proxyFormat": "格式: http://proxy:port",
   "noProxyAddresses": "不使用代理的地址",
   "noProxyTip": "多个地址用逗号分隔",

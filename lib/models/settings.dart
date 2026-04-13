@@ -56,6 +56,7 @@ class Settings extends ChangeNotifier with Loggable {
   String _btExcludeTracker = ''; // Exclude trackers
 
   // Advanced settings
+  bool _proxyEnabled = false; // Whether proxy settings are enabled
   String _allProxy = ''; // All proxy setting
   String _noProxy = ''; // No proxy setting
   int _dhtListenPort = 26701; // DHT listen port
@@ -143,6 +144,7 @@ class Settings extends ChangeNotifier with Loggable {
   String get btExcludeTracker => _btExcludeTracker;
 
   // Advanced settings
+  bool get proxyEnabled => _proxyEnabled;
   String get allProxy => _allProxy;
   String get noProxy => _noProxy;
   int get dhtListenPort => _dhtListenPort;
@@ -236,6 +238,9 @@ class Settings extends ChangeNotifier with Loggable {
 
         // Advanced settings
         _allProxy = settingsMap['allProxy'] ?? '';
+        _proxyEnabled = settingsMap.containsKey('proxyEnabled')
+            ? (settingsMap['proxyEnabled'] ?? false)
+            : _allProxy.isNotEmpty;
         _noProxy = settingsMap['noProxy'] ?? '';
         _dhtListenPort = settingsMap['dhtListenPort'] ?? 26701;
         _enableDht6 = settingsMap['enableDht6'] ?? true;
@@ -305,6 +310,7 @@ class Settings extends ChangeNotifier with Loggable {
     _btExcludeTracker = '';
 
     // Advanced settings
+    _proxyEnabled = false;
     _allProxy = '';
     _noProxy = '';
     _dhtListenPort = 26701;
@@ -366,6 +372,7 @@ class Settings extends ChangeNotifier with Loggable {
         'btExcludeTracker': _btExcludeTracker,
 
         // Advanced settings
+        'proxyEnabled': _proxyEnabled,
         'allProxy': _allProxy,
         'noProxy': _noProxy,
         'dhtListenPort': _dhtListenPort,
@@ -577,6 +584,12 @@ class Settings extends ChangeNotifier with Loggable {
   }
 
   // Advanced settings
+  Future<void> setProxyEnabled(bool value) async {
+    _proxyEnabled = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
   Future<void> setAllProxy(String proxy) async {
     _allProxy = proxy;
     notifyListeners();
@@ -635,6 +648,7 @@ class Settings extends ChangeNotifier with Loggable {
     required double seedRatio,
     required int seedTime,
     required String btExcludeTracker,
+    required bool proxyEnabled,
     required String allProxy,
     required String noProxy,
     required int dhtListenPort,
@@ -658,6 +672,7 @@ class Settings extends ChangeNotifier with Loggable {
     _seedRatio = seedRatio;
     _seedTime = seedTime;
     _btExcludeTracker = btExcludeTracker;
+    _proxyEnabled = proxyEnabled;
     _allProxy = allProxy;
     _noProxy = noProxy;
     _dhtListenPort = dhtListenPort;

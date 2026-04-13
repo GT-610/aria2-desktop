@@ -326,6 +326,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get globalProxy => '全局代理';
 
   @override
+  String get enableProxy => '启用代理';
+
+  @override
+  String get enableProxyTip => '可在不丢失已保存代理地址的情况下启用或禁用代理设置';
+
+  @override
   String get proxyFormat => '格式: http://proxy:port';
 
   @override

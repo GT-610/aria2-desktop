@@ -172,16 +172,17 @@ class BuiltinInstanceService with Loggable {
 
     final allProxy = settings['allProxy'] as String? ?? '';
     final noProxy = settings['noProxy'] as String? ?? '';
+    final proxyEnabled = settings['proxyEnabled'] == true;
     final userAgent = settings['userAgent'] as String? ?? '';
     final btExcludeTracker = settings['btExcludeTracker'] as String? ?? '';
 
     if (rpcSecret.isNotEmpty) {
       args.add('--rpc-secret=$rpcSecret');
     }
-    if (allProxy.isNotEmpty) {
+    if (proxyEnabled && allProxy.isNotEmpty) {
       args.add('--all-proxy=$allProxy');
     }
-    if (noProxy.isNotEmpty) {
+    if (proxyEnabled && noProxy.isNotEmpty) {
       args.add('--no-proxy=$noProxy');
     }
     if (userAgent.isNotEmpty) {
