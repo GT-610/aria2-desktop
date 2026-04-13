@@ -135,6 +135,30 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                     ),
                     const Divider(height: 1),
+                    SwitchListTile.adaptive(
+                      title: Text(
+                        l10n.showTraySpeed,
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(l10n.showTraySpeedTip),
+                      value: settings.showTraySpeed,
+                      onChanged: (value) async {
+                        try {
+                          await settings.setShowTraySpeed(value);
+                          this.i('Show tray speed setting changed to: $value');
+                        } catch (e) {
+                          this.e(
+                            'Failed to save show tray speed setting',
+                            error: e,
+                          );
+                          _showErrorSnackBar(l10n.saveSettingsFailed);
+                        }
+                      },
+                      activeThumbColor: Colors.white,
+                      activeTrackColor: colorScheme.primary,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                    ),
+                    const Divider(height: 1),
                     ListTile(
                       title: Text(
                         l10n.appearance,

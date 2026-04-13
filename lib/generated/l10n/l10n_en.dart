@@ -116,6 +116,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Minimize to tray when closing window instead of exiting';
 
   @override
+  String get showTraySpeed => 'Show tray speed';
+
+  @override
+  String get showTraySpeedTip =>
+      'Display total download speed in the tray tooltip';
+
+  @override
   String get appearance => 'Appearance';
 
   @override

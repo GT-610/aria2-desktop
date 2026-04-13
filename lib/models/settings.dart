@@ -11,6 +11,7 @@ class Settings extends ChangeNotifier with Loggable {
   // Global settings
   bool _autoStart = false; // Auto-run on system startup
   bool _minimizeToTray = true; // Minimize to system tray
+  bool _showTraySpeed = true; // Show download speed in tray tooltip
 
   // Appearance settings
   ThemeMode _themeMode = ThemeMode.system; // Appearance settings
@@ -97,6 +98,7 @@ class Settings extends ChangeNotifier with Loggable {
   // Getters
   bool get autoStart => _autoStart;
   bool get minimizeToTray => _minimizeToTray;
+  bool get showTraySpeed => _showTraySpeed;
   ThemeMode get themeMode => _themeMode;
   Color get primaryColor => _primaryColor;
   String? get customColorCode => _customColorCode;
@@ -152,6 +154,7 @@ class Settings extends ChangeNotifier with Loggable {
         // Global settings
         _autoStart = settingsMap['autoStart'] ?? false;
         _minimizeToTray = settingsMap['minimizeToTray'] ?? true;
+        _showTraySpeed = settingsMap['showTraySpeed'] ?? true;
 
         // Appearance settings
         final themeModeValue = settingsMap['themeMode'];
@@ -248,6 +251,7 @@ class Settings extends ChangeNotifier with Loggable {
     this.i('Applying default settings');
     _autoStart = false;
     _minimizeToTray = true;
+    _showTraySpeed = true;
     _themeMode = ThemeMode.system;
     _primaryColor = Colors.blue;
     _customColorCode = null;
@@ -303,6 +307,7 @@ class Settings extends ChangeNotifier with Loggable {
       final settingsMap = {
         'autoStart': _autoStart,
         'minimizeToTray': _minimizeToTray,
+        'showTraySpeed': _showTraySpeed,
         'themeMode': _themeMode.name,
         'primaryColor': _primaryColor.toARGB32().toString(),
         'customColorCode': _customColorCode,
@@ -368,6 +373,12 @@ class Settings extends ChangeNotifier with Loggable {
   // Minimize to system tray setting
   Future<void> setMinimizeToTray(bool value) async {
     _minimizeToTray = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setShowTraySpeed(bool value) async {
+    _showTraySpeed = value;
     notifyListeners();
     await _saveAllSettings();
   }

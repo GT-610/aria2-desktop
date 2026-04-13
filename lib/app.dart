@@ -178,6 +178,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   bool _switchingPage = false;
   DownloadDataService? _downloadDataService;
   InstanceManager? _instanceManager;
+  Settings? _settings;
 
   @override
   void initState() {
@@ -191,6 +192,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   void dispose() {
     _downloadDataService?.removeListener(_handleDownloadNotifications);
     _instanceManager?.removeListener(_handleTrayStateChanged);
+    _settings?.removeListener(_handleTrayStateChanged);
     _pageController.dispose();
     windowManager.removeListener(this);
     final systemTrayService = SystemTrayService();
@@ -220,6 +222,13 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       _instanceManager?.removeListener(_handleTrayStateChanged);
       _instanceManager = nextInstanceManager;
       _instanceManager?.addListener(_handleTrayStateChanged);
+    }
+
+    final nextSettings = Provider.of<Settings>(context, listen: false);
+    if (_settings != nextSettings) {
+      _settings?.removeListener(_handleTrayStateChanged);
+      _settings = nextSettings;
+      _settings?.addListener(_handleTrayStateChanged);
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -305,13 +314,15 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     final totalDownloadSpeed = tasks
         .where((task) => task.status == DownloadStatus.active)
         .fold<int>(0, (sum, task) => sum + task.downloadSpeedBytes);
+    final settings = _settings ?? Provider.of<Settings>(context, listen: false);
     final l10n = AppLocalizations.of(context)!;
     final tooltipLines = <String>[
       'Aria2 Desktop',
       connectedCount == 0
           ? l10n.notConnected
           : '${l10n.connected}: $connectedCount',
-      l10n.totalSpeed(_formatSpeed(totalDownloadSpeed)),
+      if (settings.showTraySpeed)
+        l10n.totalSpeed(_formatSpeed(totalDownloadSpeed)),
       l10n.activeTasks(activeCount.toString()),
       l10n.waitingTasks(waitingCount.toString()),
     ];
