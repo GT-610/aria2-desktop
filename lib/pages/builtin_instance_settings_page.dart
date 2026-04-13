@@ -19,6 +19,86 @@ class _BuiltinInstanceSettingsPageState
     extends State<BuiltinInstanceSettingsPage> {
   bool _hasChanges = false;
   bool _isSaving = false;
+  bool _didInitializeDraft = false;
+
+  late int _rpcListenPort;
+  late String _rpcSecret;
+  late int _maxConcurrentDownloads;
+  late int _maxConnectionPerServer;
+  late int _split;
+  late bool _continueDownloads;
+  late int _maxOverallDownloadLimit;
+  late int _maxOverallUploadLimit;
+  late bool _btSaveMetadata;
+  late bool _btLoadSavedMetadata;
+  late bool _btForceEncryption;
+  late bool _keepSeeding;
+  late int _seedRatio;
+  late int _seedTime;
+  late String _btExcludeTracker;
+  late String _allProxy;
+  late String _noProxy;
+  late int _dhtListenPort;
+  late bool _enableDht6;
+  late bool _autoFileRenaming;
+  late bool _allowOverwrite;
+  late String _userAgent;
+
+  final TextEditingController _rpcSecretController = TextEditingController();
+  final TextEditingController _excludedTrackersController =
+      TextEditingController();
+  final TextEditingController _allProxyController = TextEditingController();
+  final TextEditingController _noProxyController = TextEditingController();
+  final TextEditingController _userAgentController = TextEditingController();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didInitializeDraft) {
+      return;
+    }
+
+    final settings = Provider.of<Settings>(context, listen: false);
+    _rpcListenPort = settings.rpcListenPort;
+    _rpcSecret = settings.rpcSecret;
+    _maxConcurrentDownloads = settings.maxConcurrentDownloads;
+    _maxConnectionPerServer = settings.maxConnectionPerServer;
+    _split = settings.split;
+    _continueDownloads = settings.continueDownloads;
+    _maxOverallDownloadLimit = settings.maxOverallDownloadLimit;
+    _maxOverallUploadLimit = settings.maxOverallUploadLimit;
+    _btSaveMetadata = settings.btSaveMetadata;
+    _btLoadSavedMetadata = settings.btLoadSavedMetadata;
+    _btForceEncryption = settings.btForceEncryption;
+    _keepSeeding = settings.keepSeeding;
+    _seedRatio = settings.seedRatio.toInt();
+    _seedTime = settings.seedTime;
+    _btExcludeTracker = settings.btExcludeTracker;
+    _allProxy = settings.allProxy;
+    _noProxy = settings.noProxy;
+    _dhtListenPort = settings.dhtListenPort;
+    _enableDht6 = settings.enableDht6;
+    _autoFileRenaming = settings.autoFileRenaming;
+    _allowOverwrite = settings.allowOverwrite;
+    _userAgent = settings.userAgent;
+
+    _rpcSecretController.text = _rpcSecret;
+    _excludedTrackersController.text = _btExcludeTracker;
+    _allProxyController.text = _allProxy;
+    _noProxyController.text = _noProxy;
+    _userAgentController.text = _userAgent;
+    _didInitializeDraft = true;
+  }
+
+  @override
+  void dispose() {
+    _rpcSecretController.dispose();
+    _excludedTrackersController.dispose();
+    _allProxyController.dispose();
+    _noProxyController.dispose();
+    _userAgentController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,23 +162,24 @@ class _BuiltinInstanceSettingsPageState
               children: [
                 _buildTextFieldSetting(
                   l10n.rpcListenPort,
-                  settings.rpcListenPort.toString(),
+                  _rpcListenPort.toString(),
                   (value) {
-                    settings.setRpcListenPort(int.tryParse(value) ?? 16800);
-                    _markChanged();
+                    _updateDraft(
+                      () => _rpcListenPort = int.tryParse(value) ?? 16800,
+                    );
                   },
                   keyboardType: TextInputType.number,
                   helperText: l10n.rpcPortDefault,
                 ),
                 _buildTextFieldSetting(
                   l10n.rpcSecret,
-                  settings.rpcSecret,
+                  _rpcSecret,
                   (value) {
-                    settings.setRpcSecret(value);
-                    _markChanged();
+                    _updateDraft(() => _rpcSecret = value);
                   },
                   obscureText: true,
                   helperText: l10n.leaveEmptyToDisableSecretAuth,
+                  controller: _rpcSecretController,
                 ),
               ],
             ),
@@ -108,40 +189,36 @@ class _BuiltinInstanceSettingsPageState
               children: [
                 _buildNumberSetting(
                   l10n.maxConcurrentDownloads,
-                  settings.maxConcurrentDownloads,
+                  _maxConcurrentDownloads,
                   (value) {
-                    settings.setMaxConcurrentDownloads(value);
-                    _markChanged();
+                    _updateDraft(() => _maxConcurrentDownloads = value);
                   },
                   min: 1,
                   max: 16,
                 ),
                 _buildNumberSetting(
                   l10n.maxConnectionPerServer,
-                  settings.maxConnectionPerServer,
+                  _maxConnectionPerServer,
                   (value) {
-                    settings.setMaxConnectionPerServer(value);
-                    _markChanged();
+                    _updateDraft(() => _maxConnectionPerServer = value);
                   },
                   min: 1,
                   max: 128,
                 ),
                 _buildNumberSetting(
                   l10n.splitCount,
-                  settings.split,
+                  _split,
                   (value) {
-                    settings.setSplit(value);
-                    _markChanged();
+                    _updateDraft(() => _split = value);
                   },
                   min: 1,
                   max: 128,
                 ),
                 _buildSwitchSetting(
                   l10n.continueUnfinishedDownloads,
-                  settings.continueDownloads,
+                  _continueDownloads,
                   (value) {
-                    settings.setContinueDownloads(value);
-                    _markChanged();
+                    _updateDraft(() => _continueDownloads = value);
                   },
                 ),
               ],
@@ -152,10 +229,9 @@ class _BuiltinInstanceSettingsPageState
               children: [
                 _buildNumberSetting(
                   l10n.maxOverallDownloadLimit,
-                  settings.maxOverallDownloadLimit,
+                  _maxOverallDownloadLimit,
                   (value) {
-                    settings.setMaxOverallDownloadLimit(value);
-                    _markChanged();
+                    _updateDraft(() => _maxOverallDownloadLimit = value);
                   },
                   min: 0,
                   max: 65535,
@@ -163,10 +239,9 @@ class _BuiltinInstanceSettingsPageState
                 ),
                 _buildNumberSetting(
                   l10n.maxOverallUploadLimit,
-                  settings.maxOverallUploadLimit,
+                  _maxOverallUploadLimit,
                   (value) {
-                    settings.setMaxOverallUploadLimit(value);
-                    _markChanged();
+                    _updateDraft(() => _maxOverallUploadLimit = value);
                   },
                   min: 0,
                   max: 65535,
@@ -178,45 +253,38 @@ class _BuiltinInstanceSettingsPageState
             _buildCard(
               theme: theme,
               children: [
-                _buildSwitchSetting(
-                  l10n.saveBtMetadata,
-                  settings.btSaveMetadata,
-                  (value) {
-                    settings.setBtSaveMetadata(value);
-                    _markChanged();
-                  },
-                ),
+                _buildSwitchSetting(l10n.saveBtMetadata, _btSaveMetadata, (
+                  value,
+                ) {
+                  _updateDraft(() => _btSaveMetadata = value);
+                }),
                 _buildSwitchSetting(
                   l10n.loadSavedBtMetadata,
-                  settings.btLoadSavedMetadata,
+                  _btLoadSavedMetadata,
                   (value) {
-                    settings.setBtLoadSavedMetadata(value);
-                    _markChanged();
+                    _updateDraft(() => _btLoadSavedMetadata = value);
                   },
                 ),
                 _buildSwitchSetting(
                   l10n.forceBtEncryption,
-                  settings.btForceEncryption,
+                  _btForceEncryption,
                   (value) {
-                    settings.setBtForceEncryption(value);
-                    _markChanged();
+                    _updateDraft(() => _btForceEncryption = value);
                   },
                 ),
                 _buildSwitchSetting(
                   l10n.keepSeedingAfterCompletion,
-                  settings.keepSeeding,
+                  _keepSeeding,
                   (value) {
-                    settings.setKeepSeeding(value);
-                    _markChanged();
+                    _updateDraft(() => _keepSeeding = value);
                   },
                 ),
-                if (!settings.keepSeeding) ...[
+                if (!_keepSeeding) ...[
                   _buildNumberSetting(
                     l10n.seedRatio,
-                    settings.seedRatio.toInt(),
+                    _seedRatio,
                     (value) {
-                      settings.setSeedRatio(value.toDouble());
-                      _markChanged();
+                      _updateDraft(() => _seedRatio = value);
                     },
                     min: 0,
                     max: 100,
@@ -224,10 +292,9 @@ class _BuiltinInstanceSettingsPageState
                   ),
                   _buildNumberSetting(
                     l10n.seedTimeMinutes,
-                    settings.seedTime,
+                    _seedTime,
                     (value) {
-                      settings.setSeedTime(value);
-                      _markChanged();
+                      _updateDraft(() => _seedTime = value);
                     },
                     min: 0,
                     max: 10080,
@@ -236,13 +303,13 @@ class _BuiltinInstanceSettingsPageState
                 ],
                 _buildTextFieldSetting(
                   l10n.excludedTrackers,
-                  settings.btExcludeTracker,
+                  _btExcludeTracker,
                   (value) {
-                    settings.setBtExcludeTracker(value);
-                    _markChanged();
+                    _updateDraft(() => _btExcludeTracker = value);
                   },
                   helperText: l10n.trackersTip,
                   maxLines: 2,
+                  controller: _excludedTrackersController,
                 ),
               ],
             ),
@@ -250,36 +317,35 @@ class _BuiltinInstanceSettingsPageState
             _buildCard(
               theme: theme,
               children: [
-                _buildTextFieldSetting(l10n.globalProxy, settings.allProxy, (
-                  value,
-                ) {
-                  settings.setAllProxy(value);
-                  _markChanged();
-                }, helperText: l10n.exampleProxy),
+                _buildTextFieldSetting(
+                  l10n.globalProxy,
+                  _allProxy,
+                  (value) {
+                    _updateDraft(() => _allProxy = value);
+                  },
+                  helperText: l10n.exampleProxy,
+                  controller: _allProxyController,
+                ),
                 _buildTextFieldSetting(
                   l10n.noProxyHosts,
-                  settings.noProxy,
+                  _noProxy,
                   (value) {
-                    settings.setNoProxy(value);
-                    _markChanged();
+                    _updateDraft(() => _noProxy = value);
                   },
                   helperText: l10n.multipleHostsComma,
+                  controller: _noProxyController,
                 ),
                 _buildNumberSetting(
                   l10n.dhtListenPort,
-                  settings.dhtListenPort,
+                  _dhtListenPort,
                   (value) {
-                    settings.setDhtListenPort(value);
-                    _markChanged();
+                    _updateDraft(() => _dhtListenPort = value);
                   },
                   min: 1024,
                   max: 65535,
                 ),
-                _buildSwitchSetting(l10n.enableDht6, settings.enableDht6, (
-                  value,
-                ) {
-                  settings.setEnableDht6(value);
-                  _markChanged();
+                _buildSwitchSetting(l10n.enableDht6, _enableDht6, (value) {
+                  _updateDraft(() => _enableDht6 = value);
                 }),
               ],
             ),
@@ -287,28 +353,19 @@ class _BuiltinInstanceSettingsPageState
             _buildCard(
               theme: theme,
               children: [
-                _buildSwitchSetting(
-                  l10n.autoRenameFiles,
-                  settings.autoFileRenaming,
-                  (value) {
-                    settings.setAutoFileRenaming(value);
-                    _markChanged();
-                  },
-                ),
-                _buildSwitchSetting(
-                  l10n.allowOverwrite,
-                  settings.allowOverwrite,
-                  (value) {
-                    settings.setAllowOverwrite(value);
-                    _markChanged();
-                  },
-                ),
-                _buildTextFieldSetting(l10n.userAgent, settings.userAgent, (
+                _buildSwitchSetting(l10n.autoRenameFiles, _autoFileRenaming, (
                   value,
                 ) {
-                  settings.setUserAgent(value);
-                  _markChanged();
+                  _updateDraft(() => _autoFileRenaming = value);
                 }),
+                _buildSwitchSetting(l10n.allowOverwrite, _allowOverwrite, (
+                  value,
+                ) {
+                  _updateDraft(() => _allowOverwrite = value);
+                }),
+                _buildTextFieldSetting(l10n.userAgent, _userAgent, (value) {
+                  _updateDraft(() => _userAgent = value);
+                }, controller: _userAgentController),
               ],
             ),
           ],
@@ -317,12 +374,11 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 
-  void _markChanged() {
-    if (!_hasChanges) {
-      setState(() {
-        _hasChanges = true;
-      });
-    }
+  void _updateDraft(VoidCallback update) {
+    setState(() {
+      update();
+      _hasChanges = true;
+    });
   }
 
   Widget _buildSectionHeader(String title, ThemeData theme) {
@@ -465,6 +521,7 @@ class _BuiltinInstanceSettingsPageState
     String title,
     String initialValue,
     ValueChanged<String> onChanged, {
+    TextEditingController? controller,
     TextInputType keyboardType = TextInputType.text,
     bool obscureText = false,
     String helperText = '',
@@ -479,7 +536,8 @@ class _BuiltinInstanceSettingsPageState
       subtitle: Padding(
         padding: const EdgeInsets.only(right: 0),
         child: TextFormField(
-          initialValue: initialValue,
+          controller: controller,
+          initialValue: controller == null ? initialValue : null,
           onChanged: onChanged,
           keyboardType: keyboardType,
           obscureText: obscureText,
@@ -507,7 +565,30 @@ class _BuiltinInstanceSettingsPageState
       _isSaving = true;
     });
 
-    await settings.saveAllSettings();
+    await settings.updateBuiltinInstanceSettings(
+      rpcListenPort: _rpcListenPort,
+      rpcSecret: _rpcSecret,
+      maxConcurrentDownloads: _maxConcurrentDownloads,
+      maxConnectionPerServer: _maxConnectionPerServer,
+      split: _split,
+      continueDownloads: _continueDownloads,
+      maxOverallDownloadLimit: _maxOverallDownloadLimit,
+      maxOverallUploadLimit: _maxOverallUploadLimit,
+      btSaveMetadata: _btSaveMetadata,
+      btForceEncryption: _btForceEncryption,
+      btLoadSavedMetadata: _btLoadSavedMetadata,
+      keepSeeding: _keepSeeding,
+      seedRatio: _seedRatio.toDouble(),
+      seedTime: _seedTime,
+      btExcludeTracker: _btExcludeTracker,
+      allProxy: _allProxy,
+      noProxy: _noProxy,
+      dhtListenPort: _dhtListenPort,
+      enableDht6: _enableDht6,
+      autoFileRenaming: _autoFileRenaming,
+      allowOverwrite: _allowOverwrite,
+      userAgent: _userAgent,
+    );
 
     setState(() {
       _hasChanges = false;
@@ -531,7 +612,30 @@ class _BuiltinInstanceSettingsPageState
       _isSaving = true;
     });
 
-    await settings.saveAllSettings();
+    await settings.updateBuiltinInstanceSettings(
+      rpcListenPort: _rpcListenPort,
+      rpcSecret: _rpcSecret,
+      maxConcurrentDownloads: _maxConcurrentDownloads,
+      maxConnectionPerServer: _maxConnectionPerServer,
+      split: _split,
+      continueDownloads: _continueDownloads,
+      maxOverallDownloadLimit: _maxOverallDownloadLimit,
+      maxOverallUploadLimit: _maxOverallUploadLimit,
+      btSaveMetadata: _btSaveMetadata,
+      btForceEncryption: _btForceEncryption,
+      btLoadSavedMetadata: _btLoadSavedMetadata,
+      keepSeeding: _keepSeeding,
+      seedRatio: _seedRatio.toDouble(),
+      seedTime: _seedTime,
+      btExcludeTracker: _btExcludeTracker,
+      allProxy: _allProxy,
+      noProxy: _noProxy,
+      dhtListenPort: _dhtListenPort,
+      enableDht6: _enableDht6,
+      autoFileRenaming: _autoFileRenaming,
+      allowOverwrite: _allowOverwrite,
+      userAgent: _userAgent,
+    );
 
     if (mounted) {
       showDialog(
