@@ -32,6 +32,8 @@
   "runAtStartupTip": "Start app when system starts",
   "minimizeToTray": "Minimize to tray",
   "minimizeToTrayTip": "Minimize to tray when closing window instead of exiting",
+  "autoHideWindow": "Auto hide window",
+  "autoHideWindowTip": "Hide the main window automatically when it loses focus",
   "showTraySpeed": "Show tray speed",
   "showTraySpeedTip": "Display total download speed in the tray tooltip",
   "taskNotification": "Task notifications",

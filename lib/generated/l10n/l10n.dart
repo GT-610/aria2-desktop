@@ -290,6 +290,18 @@ abstract class AppLocalizations {
   /// **'Minimize to tray when closing window instead of exiting'**
   String get minimizeToTrayTip;
 
+  /// No description provided for @autoHideWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto hide window'**
+  String get autoHideWindow;
+
+  /// No description provided for @autoHideWindowTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide the main window automatically when it loses focus'**
+  String get autoHideWindowTip;
+
   /// No description provided for @showTraySpeed.
   ///
   /// In en, this message translates to:

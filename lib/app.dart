@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:fl_lib/fl_lib.dart' show ChineseThemeData;
 import 'package:flutter/material.dart';
@@ -14,6 +16,7 @@ import 'pages/settings_page/settings_page.dart';
 import 'services/download_data_service.dart';
 import 'services/instance_manager.dart';
 import 'services/settings_service.dart';
+import 'services/auto_hide_window_service.dart';
 import 'services/system_tray_service.dart';
 import 'services/aria2_rpc_client.dart';
 import 'utils/logging.dart';
@@ -240,12 +243,16 @@ class MainWindow extends StatefulWidget {
 }
 
 class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
+  static const Duration _autoHideWindowDelay = Duration(milliseconds: 300);
+
   int _selectedIndex = 0;
   late final PageController _pageController;
   bool _switchingPage = false;
   DownloadDataService? _downloadDataService;
   InstanceManager? _instanceManager;
   Settings? _settings;
+  Timer? _pendingAutoHideTimer;
+  bool _isWindowBlurred = false;
 
   @override
   void initState() {
@@ -260,6 +267,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     _downloadDataService?.removeListener(_handleDownloadNotifications);
     _instanceManager?.removeListener(_handleTrayStateChanged);
     _settings?.removeListener(_handleTrayStateChanged);
+    _pendingAutoHideTimer?.cancel();
     _pageController.dispose();
     windowManager.removeListener(this);
     final systemTrayService = SystemTrayService();
@@ -544,6 +552,45 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       await windowManager.destroy();
       SystemTrayService().destroy();
     }
+  }
+
+  @override
+  void onWindowBlur() async {
+    final settings = Provider.of<Settings>(context, listen: false);
+    if (!settings.autoHideWindow) {
+      return;
+    }
+
+    _isWindowBlurred = true;
+    _pendingAutoHideTimer?.cancel();
+    _pendingAutoHideTimer = Timer(_autoHideWindowDelay, () async {
+      if (!_isWindowBlurred) {
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      if (AutoHideWindowService().isSuppressed) {
+        return;
+      }
+
+      final isVisible = await windowManager.isVisible();
+      if (!_isWindowBlurred) {
+        return;
+      }
+
+      if (isVisible) {
+        await windowManager.hide();
+      }
+    });
+  }
+
+  @override
+  void onWindowFocus() {
+    _isWindowBlurred = false;
+    _pendingAutoHideTimer?.cancel();
   }
 
   void _onDestinationSelected(int index) {

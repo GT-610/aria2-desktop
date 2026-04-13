@@ -137,6 +137,30 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                     const Divider(height: 1),
                     SwitchListTile.adaptive(
                       title: Text(
+                        l10n.autoHideWindow,
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(l10n.autoHideWindowTip),
+                      value: settings.autoHideWindow,
+                      onChanged: (value) async {
+                        try {
+                          await settings.setAutoHideWindow(value);
+                          this.i('Auto hide window setting changed to: $value');
+                        } catch (e) {
+                          this.e(
+                            'Failed to save auto hide window setting',
+                            error: e,
+                          );
+                          _showErrorSnackBar(l10n.saveSettingsFailed);
+                        }
+                      },
+                      activeThumbColor: Colors.white,
+                      activeTrackColor: colorScheme.primary,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                    ),
+                    const Divider(height: 1),
+                    SwitchListTile.adaptive(
+                      title: Text(
                         l10n.showTraySpeed,
                         style: theme.textTheme.bodyLarge,
                       ),

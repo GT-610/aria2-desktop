@@ -11,6 +11,7 @@ class Settings extends ChangeNotifier with Loggable {
   // Global settings
   bool _autoStart = false; // Auto-run on system startup
   bool _minimizeToTray = true; // Minimize to system tray
+  bool _autoHideWindow = false; // Hide window when it loses focus
   bool _showTraySpeed = true; // Show download speed in tray tooltip
   bool _taskNotification = true; // Show task completion/failure notifications
   bool _skipDeleteConfirm = false; // Skip delete confirmation dialog
@@ -109,6 +110,7 @@ class Settings extends ChangeNotifier with Loggable {
   // Getters
   bool get autoStart => _autoStart;
   bool get minimizeToTray => _minimizeToTray;
+  bool get autoHideWindow => _autoHideWindow;
   bool get showTraySpeed => _showTraySpeed;
   bool get taskNotification => _taskNotification;
   bool get skipDeleteConfirm => _skipDeleteConfirm;
@@ -175,6 +177,7 @@ class Settings extends ChangeNotifier with Loggable {
         // Global settings
         _autoStart = settingsMap['autoStart'] ?? false;
         _minimizeToTray = settingsMap['minimizeToTray'] ?? true;
+        _autoHideWindow = settingsMap['autoHideWindow'] ?? false;
         _showTraySpeed = settingsMap['showTraySpeed'] ?? true;
         _taskNotification = settingsMap['taskNotification'] ?? true;
         _skipDeleteConfirm = settingsMap['skipDeleteConfirm'] ?? false;
@@ -284,6 +287,7 @@ class Settings extends ChangeNotifier with Loggable {
     this.i('Applying default settings');
     _autoStart = false;
     _minimizeToTray = true;
+    _autoHideWindow = false;
     _showTraySpeed = true;
     _taskNotification = true;
     _skipDeleteConfirm = false;
@@ -350,6 +354,7 @@ class Settings extends ChangeNotifier with Loggable {
       final settingsMap = {
         'autoStart': _autoStart,
         'minimizeToTray': _minimizeToTray,
+        'autoHideWindow': _autoHideWindow,
         'showTraySpeed': _showTraySpeed,
         'taskNotification': _taskNotification,
         'skipDeleteConfirm': _skipDeleteConfirm,
@@ -426,6 +431,12 @@ class Settings extends ChangeNotifier with Loggable {
   // Minimize to system tray setting
   Future<void> setMinimizeToTray(bool value) async {
     _minimizeToTray = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setAutoHideWindow(bool value) async {
+    _autoHideWindow = value;
     notifyListeners();
     await _saveAllSettings();
   }

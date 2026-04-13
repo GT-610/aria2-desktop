@@ -116,6 +116,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Minimize to tray when closing window instead of exiting';
 
   @override
+  String get autoHideWindow => 'Auto hide window';
+
+  @override
+  String get autoHideWindowTip =>
+      'Hide the main window automatically when it loses focus';
+
+  @override
   String get showTraySpeed => 'Show tray speed';
 
   @override

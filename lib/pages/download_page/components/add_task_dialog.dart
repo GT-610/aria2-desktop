@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
+import '../../../services/auto_hide_window_service.dart';
 import '../../../utils/logging.dart';
 import '../utils/add_task_options.dart';
 import 'directory_picker.dart';
@@ -105,10 +106,12 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
 
   Future<void> _selectTorrentFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['torrent'],
-        dialogTitle: 'Select torrent file',
+      final result = await AutoHideWindowService().runWithSuppressedAutoHide(
+        () => FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['torrent'],
+          dialogTitle: 'Select torrent file',
+        ),
       );
 
       if (result != null) {
@@ -123,10 +126,12 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
 
   Future<void> _selectMetalinkFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['metalink'],
-        dialogTitle: 'Select metalink file',
+      final result = await AutoHideWindowService().runWithSuppressedAutoHide(
+        () => FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['metalink'],
+          dialogTitle: 'Select metalink file',
+        ),
       );
 
       if (result != null) {
