@@ -314,6 +314,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get seedingTimeTip => '0表示无限做种';
 
   @override
+  String get btListenPort => 'BT监听端口';
+
+  @override
+  String get btListenPortTip => '支持单个端口或端口范围，例如 6881-6999';
+
+  @override
   String get excludedTrackers => '排除的Tracker';
 
   @override

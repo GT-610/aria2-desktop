@@ -36,6 +36,7 @@ class _BuiltinInstanceSettingsPageState
   late bool _keepSeeding;
   late double _seedRatio;
   late int _seedTime;
+  late String _btListenPort;
   late String _btExcludeTracker;
   late bool _proxyEnabled;
   late String _allProxy;
@@ -47,6 +48,7 @@ class _BuiltinInstanceSettingsPageState
   late String _userAgent;
 
   final TextEditingController _rpcSecretController = TextEditingController();
+  final TextEditingController _btListenPortController = TextEditingController();
   final TextEditingController _excludedTrackersController =
       TextEditingController();
   final TextEditingController _allProxyController = TextEditingController();
@@ -85,6 +87,7 @@ class _BuiltinInstanceSettingsPageState
     _keepSeeding = settings.keepSeeding;
     _seedRatio = settings.seedRatio;
     _seedTime = settings.seedTime;
+    _btListenPort = settings.btListenPort;
     _btExcludeTracker = settings.btExcludeTracker;
     _proxyEnabled = settings.proxyEnabled;
     _allProxy = settings.allProxy;
@@ -96,6 +99,7 @@ class _BuiltinInstanceSettingsPageState
     _userAgent = settings.userAgent;
 
     _rpcSecretController.text = _rpcSecret;
+    _btListenPortController.text = _btListenPort;
     _excludedTrackersController.text = _btExcludeTracker;
     _allProxyController.text = _allProxy;
     _noProxyController.text = _noProxy;
@@ -106,6 +110,7 @@ class _BuiltinInstanceSettingsPageState
   @override
   void dispose() {
     _rpcSecretController.dispose();
+    _btListenPortController.dispose();
     _excludedTrackersController.dispose();
     _allProxyController.dispose();
     _noProxyController.dispose();
@@ -316,6 +321,15 @@ class _BuiltinInstanceSettingsPageState
                   ),
                 ],
                 _buildTextFieldSetting(
+                  l10n.btListenPort,
+                  _btListenPort,
+                  (value) {
+                    _updateDraft(() => _btListenPort = value.trim());
+                  },
+                  helperText: l10n.btListenPortTip,
+                  controller: _btListenPortController,
+                ),
+                _buildTextFieldSetting(
                   l10n.excludedTrackers,
                   _btExcludeTracker,
                   (value) {
@@ -404,6 +418,7 @@ class _BuiltinInstanceSettingsPageState
     return _rpcListenPort != settings.rpcListenPort ||
         _rpcSecret != settings.rpcSecret ||
         _btLoadSavedMetadata != settings.btLoadSavedMetadata ||
+        _btListenPort != settings.btListenPort ||
         _dhtListenPort != settings.dhtListenPort ||
         _enableDht6 != settings.enableDht6;
   }
@@ -445,6 +460,7 @@ class _BuiltinInstanceSettingsPageState
       keepSeeding: _keepSeeding,
       seedRatio: _seedRatio,
       seedTime: _seedTime,
+      btListenPort: _btListenPort,
       btExcludeTracker: _btExcludeTracker,
       proxyEnabled: _proxyEnabled,
       allProxy: _allProxy,

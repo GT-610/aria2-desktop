@@ -97,6 +97,8 @@
   "seedingRatioTip": "0 means infinite",
   "seedingTime": "Seeding Time (minutes)",
   "seedingTimeTip": "0 means infinite",
+  "btListenPort": "BT Listen Port",
+  "btListenPortTip": "Supports a single port or range, for example 6881-6999",
   "excludedTrackers": "Excluded Trackers",
   "trackersTip": "Separate multiple trackers with commas",
   "networkSettings": "Network Settings",

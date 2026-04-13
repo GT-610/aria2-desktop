@@ -128,6 +128,10 @@ class BuiltinInstanceService with Loggable {
     final keepSeeding = settings['keepSeeding'] == true;
     final seedTime = _effectiveSeedTime(keepSeeding, settings['seedTime']);
     final seedRatio = _effectiveSeedRatio(keepSeeding, settings['seedRatio']);
+    final btListenPort =
+        (settings['btListenPort'] as String? ?? '').trim().isNotEmpty
+        ? (settings['btListenPort'] as String).trim()
+        : '6881-6999';
 
     final args = <String>[
       '--enable-rpc',
@@ -161,7 +165,7 @@ class BuiltinInstanceService with Loggable {
       '--bt-save-metadata=${settings['btSaveMetadata'] ?? true}',
       '--bt-load-saved-metadata=${settings['btLoadSavedMetadata'] ?? true}',
       '--bt-seed-unverified=${settings['keepSeeding'] ?? false}',
-      '--listen-port=6881-6999',
+      '--listen-port=$btListenPort',
       '--dht-listen-port=${settings['dhtListenPort'] ?? 26701}',
       '--enable-dht6=${settings['enableDht6'] ?? true}',
       '--conf-path=$_aria2ConfPath',
