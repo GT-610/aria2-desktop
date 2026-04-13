@@ -302,6 +302,18 @@ abstract class AppLocalizations {
   /// **'Display total download speed in the tray tooltip'**
   String get showTraySpeedTip;
 
+  /// No description provided for @taskNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Task notifications'**
+  String get taskNotification;
+
+  /// No description provided for @taskNotificationTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Show notifications when downloads complete or fail'**
+  String get taskNotificationTip;
+
   /// No description provided for @appearance.
   ///
   /// In en, this message translates to:

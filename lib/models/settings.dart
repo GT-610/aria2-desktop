@@ -12,6 +12,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool _autoStart = false; // Auto-run on system startup
   bool _minimizeToTray = true; // Minimize to system tray
   bool _showTraySpeed = true; // Show download speed in tray tooltip
+  bool _taskNotification = true; // Show task completion/failure notifications
 
   // Appearance settings
   ThemeMode _themeMode = ThemeMode.system; // Appearance settings
@@ -99,6 +100,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool get autoStart => _autoStart;
   bool get minimizeToTray => _minimizeToTray;
   bool get showTraySpeed => _showTraySpeed;
+  bool get taskNotification => _taskNotification;
   ThemeMode get themeMode => _themeMode;
   Color get primaryColor => _primaryColor;
   String? get customColorCode => _customColorCode;
@@ -155,6 +157,7 @@ class Settings extends ChangeNotifier with Loggable {
         _autoStart = settingsMap['autoStart'] ?? false;
         _minimizeToTray = settingsMap['minimizeToTray'] ?? true;
         _showTraySpeed = settingsMap['showTraySpeed'] ?? true;
+        _taskNotification = settingsMap['taskNotification'] ?? true;
 
         // Appearance settings
         final themeModeValue = settingsMap['themeMode'];
@@ -252,6 +255,7 @@ class Settings extends ChangeNotifier with Loggable {
     _autoStart = false;
     _minimizeToTray = true;
     _showTraySpeed = true;
+    _taskNotification = true;
     _themeMode = ThemeMode.system;
     _primaryColor = Colors.blue;
     _customColorCode = null;
@@ -308,6 +312,7 @@ class Settings extends ChangeNotifier with Loggable {
         'autoStart': _autoStart,
         'minimizeToTray': _minimizeToTray,
         'showTraySpeed': _showTraySpeed,
+        'taskNotification': _taskNotification,
         'themeMode': _themeMode.name,
         'primaryColor': _primaryColor.toARGB32().toString(),
         'customColorCode': _customColorCode,
@@ -379,6 +384,12 @@ class Settings extends ChangeNotifier with Loggable {
 
   Future<void> setShowTraySpeed(bool value) async {
     _showTraySpeed = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setTaskNotification(bool value) async {
+    _taskNotification = value;
     notifyListeners();
     await _saveAllSettings();
   }

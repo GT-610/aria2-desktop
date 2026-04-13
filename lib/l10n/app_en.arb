@@ -34,6 +34,8 @@
   "minimizeToTrayTip": "Minimize to tray when closing window instead of exiting",
   "showTraySpeed": "Show tray speed",
   "showTraySpeedTip": "Display total download speed in the tray tooltip",
+  "taskNotification": "Task notifications",
+  "taskNotificationTip": "Show notifications when downloads complete or fail",
   "appearance": "Appearance",
   "appearanceTip": "Customize app theme and colors",
   "light": "Light",
