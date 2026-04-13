@@ -1975,6 +1975,30 @@ abstract class AppLocalizations {
   /// **'Settings saved'**
   String get settingsSaved;
 
+  /// No description provided for @settingsSaveOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save only stores your changes and leaves the running built-in instance unchanged.'**
+  String get settingsSaveOnlyHint;
+
+  /// No description provided for @settingsApplySpeedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save and Apply will update speed limit changes immediately when the built-in instance is connected.'**
+  String get settingsApplySpeedHint;
+
+  /// No description provided for @settingsApplyRestartHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save and Apply will restart the built-in instance to apply these changes.'**
+  String get settingsApplyRestartHint;
+
+  /// No description provided for @settingsApplyNoPendingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Save and Apply updates the running built-in instance when possible.'**
+  String get settingsApplyNoPendingHint;
+
   /// No description provided for @restartingBuiltinInstance.
   ///
   /// In en, this message translates to:
