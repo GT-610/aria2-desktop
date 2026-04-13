@@ -32,6 +32,8 @@
   "runAtStartupTip": "设置应用随系统启动而运行",
   "minimizeToTray": "最小化到系统托盘",
   "minimizeToTrayTip": "关闭窗口时最小化到系统托盘而不是退出",
+  "autoHideWindow": "自动隐藏窗口",
+  "autoHideWindowTip": "主窗口失去焦点时自动隐藏到托盘",
   "showTraySpeed": "显示托盘速度",
   "showTraySpeedTip": "在托盘提示中显示总下载速度",
   "taskNotification": "任务通知",

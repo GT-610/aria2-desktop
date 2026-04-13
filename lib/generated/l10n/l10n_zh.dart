@@ -113,6 +113,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get minimizeToTrayTip => '关闭窗口时最小化到系统托盘而不是退出';
 
   @override
+  String get autoHideWindow => '自动隐藏窗口';
+
+  @override
+  String get autoHideWindowTip => '主窗口失去焦点时自动隐藏到托盘';
+
+  @override
   String get showTraySpeed => '显示托盘速度';
 
   @override

@@ -546,6 +546,19 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     }
   }
 
+  @override
+  void onWindowBlur() async {
+    final settings = Provider.of<Settings>(context, listen: false);
+    if (!settings.autoHideWindow) {
+      return;
+    }
+
+    final isVisible = await windowManager.isVisible();
+    if (isVisible) {
+      await windowManager.hide();
+    }
+  }
+
   void _onDestinationSelected(int index) {
     if (_selectedIndex == index) return;
     if (index < 0 || index >= 3) return;
