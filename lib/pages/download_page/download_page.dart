@@ -200,13 +200,25 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     }
   }
 
-  List<String> _getAllInstanceIds() {
-    if (downloadDataService == null) return [];
+  List<String> _getAvailableInstanceIds() {
+    if (instanceManager == null) return [];
 
-    return downloadDataService!.tasks
-        .map((task) => task.instanceId)
-        .toSet()
-        .toList();
+    final instanceIds = instanceManager!
+        .getConnectedInstances()
+        .map((instance) => instance.id)
+        .toSet();
+
+    if (_selectedInstanceId != null) {
+      instanceIds.add(_selectedInstanceId!);
+    }
+
+    final sortedIds = instanceIds.toList();
+    sortedIds.sort((left, right) {
+      final leftName = _instanceNames[left] ?? left;
+      final rightName = _instanceNames[right] ?? right;
+      return leftName.toLowerCase().compareTo(rightName.toLowerCase());
+    });
+    return sortedIds;
   }
 
   void _refreshTasksAndRestartTimer() {
@@ -541,7 +553,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
             selectedFilter: _selectedFilter,
             selectedInstanceId: _selectedInstanceId,
             instanceNames: _instanceNames,
-            instanceIds: _getAllInstanceIds(),
+            instanceIds: _getAvailableInstanceIds(),
             onCategoryChanged: _handleCategoryChanged,
             onFilterChanged: _handleFilterChanged,
             onInstanceSelected: _handleInstanceSelected,
