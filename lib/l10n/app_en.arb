@@ -101,6 +101,8 @@
   "trackersTip": "Separate multiple trackers with commas",
   "networkSettings": "Network Settings",
   "globalProxy": "Global Proxy",
+  "enableProxy": "Enable proxy",
+  "enableProxyTip": "Enable or disable proxy settings without losing the saved proxy address",
   "proxyFormat": "Format: http://proxy:port",
   "noProxyAddresses": "No Proxy Addresses",
   "noProxyTip": "Separate multiple addresses with commas",

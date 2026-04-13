@@ -336,6 +336,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get globalProxy => 'Global Proxy';
 
   @override
+  String get enableProxy => 'Enable proxy';
+
+  @override
+  String get enableProxyTip =>
+      'Enable or disable proxy settings without losing the saved proxy address';
+
+  @override
   String get proxyFormat => 'Format: http://proxy:port';
 
   @override

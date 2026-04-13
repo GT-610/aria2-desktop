@@ -704,6 +704,18 @@ abstract class AppLocalizations {
   /// **'Global Proxy'**
   String get globalProxy;
 
+  /// No description provided for @enableProxy.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable proxy'**
+  String get enableProxy;
+
+  /// No description provided for @enableProxyTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable or disable proxy settings without losing the saved proxy address'**
+  String get enableProxyTip;
+
   /// No description provided for @proxyFormat.
   ///
   /// In en, this message translates to:

@@ -37,6 +37,7 @@ class _BuiltinInstanceSettingsPageState
   late double _seedRatio;
   late int _seedTime;
   late String _btExcludeTracker;
+  late bool _proxyEnabled;
   late String _allProxy;
   late String _noProxy;
   late int _dhtListenPort;
@@ -85,6 +86,7 @@ class _BuiltinInstanceSettingsPageState
     _seedRatio = settings.seedRatio;
     _seedTime = settings.seedTime;
     _btExcludeTracker = settings.btExcludeTracker;
+    _proxyEnabled = settings.proxyEnabled;
     _allProxy = settings.allProxy;
     _noProxy = settings.noProxy;
     _dhtListenPort = settings.dhtListenPort;
@@ -329,6 +331,9 @@ class _BuiltinInstanceSettingsPageState
             _buildCard(
               theme: theme,
               children: [
+                _buildSwitchSetting(l10n.enableProxy, _proxyEnabled, (value) {
+                  _updateDraft(() => _proxyEnabled = value);
+                }, helperText: l10n.enableProxyTip),
                 _buildTextFieldSetting(
                   l10n.globalProxy,
                   _allProxy,
@@ -337,6 +342,7 @@ class _BuiltinInstanceSettingsPageState
                   },
                   helperText: l10n.exampleProxy,
                   controller: _allProxyController,
+                  enabled: _proxyEnabled,
                 ),
                 _buildTextFieldSetting(
                   l10n.noProxyHosts,
@@ -346,6 +352,7 @@ class _BuiltinInstanceSettingsPageState
                   },
                   helperText: l10n.multipleHostsComma,
                   controller: _noProxyController,
+                  enabled: _proxyEnabled,
                 ),
                 _buildNumberSetting(
                   l10n.dhtListenPort,
@@ -414,6 +421,7 @@ class _BuiltinInstanceSettingsPageState
         _seedRatio != settings.seedRatio ||
         _seedTime != settings.seedTime ||
         _btExcludeTracker != settings.btExcludeTracker ||
+        _proxyEnabled != settings.proxyEnabled ||
         _allProxy != settings.allProxy ||
         _noProxy != settings.noProxy ||
         _autoFileRenaming != settings.autoFileRenaming ||
@@ -438,6 +446,7 @@ class _BuiltinInstanceSettingsPageState
       seedRatio: _seedRatio,
       seedTime: _seedTime,
       btExcludeTracker: _btExcludeTracker,
+      proxyEnabled: _proxyEnabled,
       allProxy: _allProxy,
       noProxy: _noProxy,
       dhtListenPort: _dhtListenPort,
@@ -498,13 +507,22 @@ class _BuiltinInstanceSettingsPageState
   Widget _buildSwitchSetting(
     String title,
     bool value,
-    ValueChanged<bool> onChanged,
-  ) {
+    ValueChanged<bool> onChanged, {
+    String helperText = '',
+  }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return SwitchListTile(
       title: Text(title, style: theme.textTheme.bodyMedium),
+      subtitle: helperText.isNotEmpty
+          ? Text(
+              helperText,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            )
+          : null,
       value: value,
       onChanged: onChanged,
       activeThumbColor: colorScheme.primary,
@@ -593,6 +611,7 @@ class _BuiltinInstanceSettingsPageState
     bool obscureText = false,
     String helperText = '',
     int maxLines = 1,
+    bool enabled = true,
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -606,6 +625,7 @@ class _BuiltinInstanceSettingsPageState
           controller: controller,
           initialValue: controller == null ? initialValue : null,
           onChanged: onChanged,
+          enabled: enabled,
           keyboardType: keyboardType,
           obscureText: obscureText,
           maxLines: maxLines,

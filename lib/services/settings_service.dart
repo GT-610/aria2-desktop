@@ -49,8 +49,8 @@ class SettingsService extends ChangeNotifier with Loggable {
       'allow-overwrite': settings.allowOverwrite.toString(),
       // Send proxy fields even when empty so clearing them removes the
       // running instance's previous proxy configuration.
-      'all-proxy': settings.allProxy,
-      'no-proxy': settings.noProxy,
+      'all-proxy': settings.proxyEnabled ? settings.allProxy : '',
+      'no-proxy': settings.proxyEnabled ? settings.noProxy : '',
       'user-agent': settings.userAgent,
     };
 
