@@ -324,6 +324,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get seedingTimeTip => '0 means infinite';
 
   @override
+  String get btListenPort => 'BT Listen Port';
+
+  @override
+  String get btListenPortTip =>
+      'Supports a single port or range, for example 6881-6999';
+
+  @override
   String get excludedTrackers => 'Excluded Trackers';
 
   @override

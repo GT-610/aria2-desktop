@@ -53,6 +53,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool _keepSeeding = false; // Keep seeding after download completion
   double _seedRatio = 1.0; // Seed ratio
   int _seedTime = 60; // Seed time in minutes
+  String _btListenPort = '6881-6999'; // BT listen port or port range
   String _btExcludeTracker = ''; // Exclude trackers
 
   // Advanced settings
@@ -141,6 +142,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool get keepSeeding => _keepSeeding;
   double get seedRatio => _seedRatio;
   int get seedTime => _seedTime;
+  String get btListenPort => _btListenPort;
   String get btExcludeTracker => _btExcludeTracker;
 
   // Advanced settings
@@ -234,6 +236,7 @@ class Settings extends ChangeNotifier with Loggable {
         _keepSeeding = settingsMap['keepSeeding'] ?? false;
         _seedRatio = settingsMap['seedRatio'] ?? 1.0;
         _seedTime = settingsMap['seedTime'] ?? 60;
+        _btListenPort = settingsMap['btListenPort'] ?? '6881-6999';
         _btExcludeTracker = settingsMap['btExcludeTracker'] ?? '';
 
         // Advanced settings
@@ -307,6 +310,7 @@ class Settings extends ChangeNotifier with Loggable {
     _keepSeeding = false;
     _seedRatio = 1.0;
     _seedTime = 60;
+    _btListenPort = '6881-6999';
     _btExcludeTracker = '';
 
     // Advanced settings
@@ -369,6 +373,7 @@ class Settings extends ChangeNotifier with Loggable {
         'keepSeeding': _keepSeeding,
         'seedRatio': _seedRatio,
         'seedTime': _seedTime,
+        'btListenPort': _btListenPort,
         'btExcludeTracker': _btExcludeTracker,
 
         // Advanced settings
@@ -577,6 +582,12 @@ class Settings extends ChangeNotifier with Loggable {
     await _saveAllSettings();
   }
 
+  Future<void> setBtListenPort(String port) async {
+    _btListenPort = port;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
   Future<void> setBtExcludeTracker(String trackers) async {
     _btExcludeTracker = trackers;
     notifyListeners();
@@ -647,6 +658,7 @@ class Settings extends ChangeNotifier with Loggable {
     required bool keepSeeding,
     required double seedRatio,
     required int seedTime,
+    required String btListenPort,
     required String btExcludeTracker,
     required bool proxyEnabled,
     required String allProxy,
@@ -671,6 +683,7 @@ class Settings extends ChangeNotifier with Loggable {
     _keepSeeding = keepSeeding;
     _seedRatio = seedRatio;
     _seedTime = seedTime;
+    _btListenPort = btListenPort;
     _btExcludeTracker = btExcludeTracker;
     _proxyEnabled = proxyEnabled;
     _allProxy = allProxy;

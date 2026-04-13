@@ -680,6 +680,18 @@ abstract class AppLocalizations {
   /// **'0 means infinite'**
   String get seedingTimeTip;
 
+  /// No description provided for @btListenPort.
+  ///
+  /// In en, this message translates to:
+  /// **'BT Listen Port'**
+  String get btListenPort;
+
+  /// No description provided for @btListenPortTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Supports a single port or range, for example 6881-6999'**
+  String get btListenPortTip;
+
   /// No description provided for @excludedTrackers.
   ///
   /// In en, this message translates to:
