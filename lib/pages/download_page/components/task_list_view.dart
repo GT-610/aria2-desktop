@@ -16,6 +16,8 @@ class TaskListView extends StatelessWidget {
   final Function(DownloadTask) onTaskSelectionToggle;
   final Set<String> selectedTaskKeys;
   final VoidCallback onTaskUpdated;
+  final bool hasActiveViewFilters;
+  final VoidCallback? onClearViewFilters;
 
   const TaskListView({
     super.key,
@@ -26,6 +28,8 @@ class TaskListView extends StatelessWidget {
     required this.onTaskSelectionToggle,
     required this.selectedTaskKeys,
     required this.onTaskUpdated,
+    required this.hasActiveViewFilters,
+    this.onClearViewFilters,
   });
 
   String _taskKey(DownloadTask task) => '${task.instanceId}::${task.id}';
@@ -75,7 +79,9 @@ class TaskListView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.inbox_outlined,
+              hasActiveViewFilters
+                  ? Icons.search_off_outlined
+                  : Icons.inbox_outlined,
               size: 64,
               color: colorScheme.onSurfaceVariant,
             ),
@@ -89,6 +95,13 @@ class TaskListView extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
+            if (hasActiveViewFilters && onClearViewFilters != null) ...[
+              const SizedBox(height: 16),
+              FilledButton.tonal(
+                onPressed: onClearViewFilters,
+                child: Text(l10n.clear),
+              ),
+            ],
           ],
         ),
       );
