@@ -381,6 +381,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
 
     final settings = _settings ?? Provider.of<Settings>(context, listen: false);
     final trayService = SystemTrayService();
+    await trayService.initializeNotifications();
 
     if (settings.runMode == AppRunMode.hideTray) {
       trayService.destroy();

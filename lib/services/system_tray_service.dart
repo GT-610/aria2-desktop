@@ -33,6 +33,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   SystemTrayService._internal();
 
   bool get isInitialized => _isInitialized;
+  bool get notificationsInitialized => _notificationsInitialized;
 
   void setMinimizeToTray(bool value) {
     _minimizeToTray = value;
@@ -95,7 +96,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     if (_isInitialized) return;
 
     try {
-      await _initNotifications();
+      await initializeNotifications();
       await _initSystemTray();
       _isInitialized = true;
       i('System tray initialized successfully');
@@ -106,6 +107,14 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
         stackTrace: stackTrace,
       );
     }
+  }
+
+  Future<void> initializeNotifications() async {
+    if (_notificationsInitialized) {
+      return;
+    }
+
+    await _initNotifications();
   }
 
   Future<void> _initNotifications() async {
@@ -212,11 +221,10 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   }
 
   Future<void> showNotification(String title, String message) async {
-    if (!_isInitialized) return;
-    d('Tray notification: $title - $message');
     if (!_notificationsInitialized) {
       return;
     }
+    d('Tray notification: $title - $message');
 
     final notification = LocalNotification(title: title, body: message);
     _activeNotifications.add(notification);
@@ -242,14 +250,9 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
 
   void destroy() {
     if (_isInitialized) {
-      for (final notification in _activeNotifications.toList()) {
-        notification.close();
-      }
-      _activeNotifications.clear();
       trayManager.removeListener(this);
       trayManager.destroy();
       _isInitialized = false;
-      _notificationsInitialized = false;
       i('System tray destroyed');
     }
   }
