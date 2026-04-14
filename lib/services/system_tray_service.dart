@@ -115,7 +115,8 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     try {
       await localNotifier.setup(
         appName: 'Aria2 Desktop',
-        shortcutPolicy: ShortcutPolicy.requireCreate,
+        // Shortcut creation belongs to an external installer, not the app.
+        shortcutPolicy: ShortcutPolicy.ignore,
       );
       _notificationsInitialized = true;
     } catch (e, stackTrace) {
