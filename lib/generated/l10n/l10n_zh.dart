@@ -107,6 +107,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get runAtStartupTip => '设置应用随系统启动而运行';
 
   @override
+  String get runMode => '运行模式';
+
+  @override
+  String get runModeStandard => '标准';
+
+  @override
+  String get runModeStandardTip => '使用普通窗口行为。关闭主窗口时直接退出应用。';
+
+  @override
+  String get runModeTray => '托盘';
+
+  @override
+  String get runModeTrayTip => '保持应用在系统托盘中可用。关闭主窗口时隐藏到托盘。';
+
+  @override
+  String get runModeHideTray => '隐藏托盘';
+
+  @override
+  String get runModeHideTrayTip => '完全禁用系统托盘集成。关闭主窗口时直接退出应用。';
+
+  @override
   String get minimizeToTray => '最小化到系统托盘';
 
   @override

@@ -278,6 +278,48 @@ abstract class AppLocalizations {
   /// **'Start app when system starts'**
   String get runAtStartupTip;
 
+  /// No description provided for @runMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Run mode'**
+  String get runMode;
+
+  /// No description provided for @runModeStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get runModeStandard;
+
+  /// No description provided for @runModeStandardTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Use normal window behavior. Closing the main window exits the app.'**
+  String get runModeStandardTip;
+
+  /// No description provided for @runModeTray.
+  ///
+  /// In en, this message translates to:
+  /// **'Tray'**
+  String get runModeTray;
+
+  /// No description provided for @runModeTrayTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the app available in the system tray. Closing the main window hides it to the tray.'**
+  String get runModeTrayTip;
+
+  /// No description provided for @runModeHideTray.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide tray'**
+  String get runModeHideTray;
+
+  /// No description provided for @runModeHideTrayTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable system tray integration entirely. Closing the main window exits the app.'**
+  String get runModeHideTrayTip;
+
   /// No description provided for @minimizeToTray.
   ///
   /// In en, this message translates to:

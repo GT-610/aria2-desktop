@@ -109,6 +109,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get runAtStartupTip => 'Start app when system starts';
 
   @override
+  String get runMode => 'Run mode';
+
+  @override
+  String get runModeStandard => 'Standard';
+
+  @override
+  String get runModeStandardTip =>
+      'Use normal window behavior. Closing the main window exits the app.';
+
+  @override
+  String get runModeTray => 'Tray';
+
+  @override
+  String get runModeTrayTip =>
+      'Keep the app available in the system tray. Closing the main window hides it to the tray.';
+
+  @override
+  String get runModeHideTray => 'Hide tray';
+
+  @override
+  String get runModeHideTrayTip =>
+      'Disable system tray integration entirely. Closing the main window exits the app.';
+
+  @override
   String get minimizeToTray => 'Minimize to tray';
 
   @override

@@ -115,28 +115,56 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
                     ),
                     const Divider(height: 1),
-                    SwitchListTile.adaptive(
+                    ListTile(
                       title: Text(
-                        l10n.minimizeToTray,
+                        l10n.runMode,
                         style: theme.textTheme.bodyLarge,
                       ),
-                      subtitle: Text(l10n.minimizeToTrayTip),
-                      value: settings.minimizeToTray,
-                      onChanged: (value) async {
-                        try {
-                          await settings.setMinimizeToTray(value);
-                          this.i('Minimize to tray setting changed to: $value');
-                        } catch (e) {
-                          this.e(
-                            'Failed to save minimize to tray setting',
-                            error: e,
-                          );
-                          _showErrorSnackBar(l10n.saveSettingsFailed);
-                        }
-                      },
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: colorScheme.primary,
+                      subtitle: Text(
+                        _runModeDescription(settings.runMode, l10n),
+                      ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: SegmentedButton<AppRunMode>(
+                          segments: [
+                            ButtonSegment(
+                              value: AppRunMode.standard,
+                              label: Text(l10n.runModeStandard),
+                            ),
+                            ButtonSegment(
+                              value: AppRunMode.tray,
+                              label: Text(l10n.runModeTray),
+                            ),
+                            ButtonSegment(
+                              value: AppRunMode.hideTray,
+                              label: Text(l10n.runModeHideTray),
+                            ),
+                          ],
+                          selected: {settings.runMode},
+                          onSelectionChanged: (selection) async {
+                            if (selection.isEmpty) {
+                              return;
+                            }
+
+                            try {
+                              await settings.setRunMode(selection.first);
+                              i(
+                                'Run mode setting changed to: ${selection.first.name}',
+                              );
+                            } catch (e) {
+                              this.e(
+                                'Failed to save run mode setting',
+                                error: e,
+                              );
+                              _showErrorSnackBar(l10n.saveSettingsFailed);
+                            }
+                          },
+                        ),
+                      ),
                     ),
                     const Divider(height: 1),
                     SwitchListTile.adaptive(
@@ -170,18 +198,22 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                       ),
                       subtitle: Text(l10n.showTraySpeedTip),
                       value: settings.showTraySpeed,
-                      onChanged: (value) async {
-                        try {
-                          await settings.setShowTraySpeed(value);
-                          this.i('Show tray speed setting changed to: $value');
-                        } catch (e) {
-                          this.e(
-                            'Failed to save show tray speed setting',
-                            error: e,
-                          );
-                          _showErrorSnackBar(l10n.saveSettingsFailed);
-                        }
-                      },
+                      onChanged: settings.runMode == AppRunMode.hideTray
+                          ? null
+                          : (value) async {
+                              try {
+                                await settings.setShowTraySpeed(value);
+                                this.i(
+                                  'Show tray speed setting changed to: $value',
+                                );
+                              } catch (e) {
+                                this.e(
+                                  'Failed to save show tray speed setting',
+                                  error: e,
+                                );
+                                _showErrorSnackBar(l10n.saveSettingsFailed);
+                              }
+                            },
                       activeThumbColor: Colors.white,
                       activeTrackColor: colorScheme.primary,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 0),
@@ -651,6 +683,17 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
         return '中文';
       default:
         return locale.languageCode;
+    }
+  }
+
+  String _runModeDescription(AppRunMode runMode, AppLocalizations l10n) {
+    switch (runMode) {
+      case AppRunMode.standard:
+        return l10n.runModeStandardTip;
+      case AppRunMode.tray:
+        return l10n.runModeTrayTip;
+      case AppRunMode.hideTray:
+        return l10n.runModeHideTrayTip;
     }
   }
 

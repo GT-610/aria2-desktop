@@ -12,9 +12,6 @@ void main(List<String> args) async {
   // Initialize window manager
   await WindowManagerService().initialize();
 
-  // Initialize system tray
-  await SystemTrayService().initialize();
-
   // Run the application
   runApp(const MyApp());
 }

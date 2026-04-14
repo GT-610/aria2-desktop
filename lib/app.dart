@@ -309,11 +309,13 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   void dispose() {
     _downloadDataService?.removeListener(_handleDownloadNotifications);
     _instanceManager?.removeListener(_handleTrayStateChanged);
-    _settings?.removeListener(_handleTrayStateChanged);
+    _settings?.removeListener(_handleSettingsChanged);
     _pendingAutoHideTimer?.cancel();
     _pageController.dispose();
     windowManager.removeListener(this);
     final systemTrayService = SystemTrayService();
+    systemTrayService.setOnShowWindow(null);
+    systemTrayService.setOnQuitApp(null);
     systemTrayService.setOnPauseAll(null);
     systemTrayService.setOnResumeAll(null);
     super.dispose();
@@ -344,14 +346,19 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
 
     final nextSettings = Provider.of<Settings>(context, listen: false);
     if (_settings != nextSettings) {
-      _settings?.removeListener(_handleTrayStateChanged);
+      _settings?.removeListener(_handleSettingsChanged);
       _settings = nextSettings;
-      _settings?.addListener(_handleTrayStateChanged);
+      _settings?.addListener(_handleSettingsChanged);
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _handleTrayStateChanged();
+      unawaited(_applyShellSettings());
     });
+  }
+
+  void _handleSettingsChanged() {
+    _handleTrayStateChanged();
+    unawaited(_applyShellSettings());
   }
 
   Future<void> _initSystemTrayCallbacks() async {
@@ -365,6 +372,23 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     });
     systemTrayService.setOnPauseAll(_pauseAllTasksFromTray);
     systemTrayService.setOnResumeAll(_resumeAllTasksFromTray);
+  }
+
+  Future<void> _applyShellSettings() async {
+    if (!mounted) {
+      return;
+    }
+
+    final settings = _settings ?? Provider.of<Settings>(context, listen: false);
+    final trayService = SystemTrayService();
+
+    if (settings.runMode == AppRunMode.hideTray) {
+      trayService.destroy();
+      return;
+    }
+
+    await trayService.initialize();
+    _handleTrayStateChanged();
   }
 
   void _handleDownloadNotifications() {
@@ -438,6 +462,9 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         .where((task) => task.status == DownloadStatus.active)
         .fold<int>(0, (sum, task) => sum + task.downloadSpeedBytes);
     final settings = _settings ?? Provider.of<Settings>(context, listen: false);
+    if (settings.runMode == AppRunMode.hideTray) {
+      return;
+    }
     final l10n = AppLocalizations.of(context)!;
     final tooltipLines = <String>[
       'Aria2 Desktop',
@@ -589,7 +616,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   @override
   void onWindowClose() async {
     final settings = Provider.of<Settings>(context, listen: false);
-    if (settings.minimizeToTray) {
+    if (settings.runMode == AppRunMode.tray) {
       await windowManager.hide();
     } else {
       await windowManager.destroy();

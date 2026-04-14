@@ -7,10 +7,13 @@ import 'dart:convert' show jsonDecode, jsonEncode;
 
 enum AppLogLevel { debug, info, warning, error }
 
+enum AppRunMode { standard, tray, hideTray }
+
 class Settings extends ChangeNotifier with Loggable {
   // Global settings
   bool _autoStart = false; // Auto-run on system startup
-  bool _minimizeToTray = true; // Minimize to system tray
+  bool _minimizeToTray = true; // Legacy migration field
+  AppRunMode _runMode = AppRunMode.tray; // Desktop shell mode
   bool _autoHideWindow = false; // Hide window when it loses focus
   bool _showTraySpeed = true; // Show download speed in tray tooltip
   bool _taskNotification = true; // Show task completion/failure notifications
@@ -126,6 +129,7 @@ class Settings extends ChangeNotifier with Loggable {
   // Getters
   bool get autoStart => _autoStart;
   bool get minimizeToTray => _minimizeToTray;
+  AppRunMode get runMode => _runMode;
   bool get autoHideWindow => _autoHideWindow;
   bool get showTraySpeed => _showTraySpeed;
   bool get taskNotification => _taskNotification;
@@ -200,6 +204,15 @@ class Settings extends ChangeNotifier with Loggable {
         // Global settings
         _autoStart = settingsMap['autoStart'] ?? false;
         _minimizeToTray = settingsMap['minimizeToTray'] ?? true;
+        final runModeValue = settingsMap['runMode'];
+        if (runModeValue != null) {
+          _runMode = AppRunMode.values.firstWhere(
+            (mode) => mode.name == runModeValue,
+            orElse: () => AppRunMode.tray,
+          );
+        } else {
+          _runMode = _minimizeToTray ? AppRunMode.tray : AppRunMode.standard;
+        }
         _autoHideWindow = settingsMap['autoHideWindow'] ?? false;
         _showTraySpeed = settingsMap['showTraySpeed'] ?? true;
         _taskNotification = settingsMap['taskNotification'] ?? true;
@@ -322,6 +335,7 @@ class Settings extends ChangeNotifier with Loggable {
     this.i('Applying default settings');
     _autoStart = false;
     _minimizeToTray = true;
+    _runMode = AppRunMode.tray;
     _autoHideWindow = false;
     _showTraySpeed = true;
     _taskNotification = true;
@@ -396,6 +410,7 @@ class Settings extends ChangeNotifier with Loggable {
       final settingsMap = {
         'autoStart': _autoStart,
         'minimizeToTray': _minimizeToTray,
+        'runMode': _runMode.name,
         'autoHideWindow': _autoHideWindow,
         'showTraySpeed': _showTraySpeed,
         'taskNotification': _taskNotification,
@@ -479,6 +494,13 @@ class Settings extends ChangeNotifier with Loggable {
   // Minimize to system tray setting
   Future<void> setMinimizeToTray(bool value) async {
     _minimizeToTray = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setRunMode(AppRunMode value) async {
+    _runMode = value;
+    _minimizeToTray = value == AppRunMode.tray;
     notifyListeners();
     await _saveAllSettings();
   }

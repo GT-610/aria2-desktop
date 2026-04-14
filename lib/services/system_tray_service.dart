@@ -32,15 +32,17 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
 
   SystemTrayService._internal();
 
+  bool get isInitialized => _isInitialized;
+
   void setMinimizeToTray(bool value) {
     _minimizeToTray = value;
   }
 
-  void setOnShowWindow(VoidCallback callback) {
+  void setOnShowWindow(VoidCallback? callback) {
     _onShowWindow = callback;
   }
 
-  void setOnQuitApp(VoidCallback callback) {
+  void setOnQuitApp(VoidCallback? callback) {
     _onQuitApp = callback;
   }
 
