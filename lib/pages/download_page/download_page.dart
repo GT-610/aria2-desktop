@@ -114,7 +114,6 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
     }
 
     _pruneSelection();
-    _schedulePendingProtocolLinkHandling();
 
     final lastError = downloadDataService!.lastError;
     if (lastError == null) {
