@@ -273,10 +273,29 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewLogFiles => '查看日志文件';
 
   @override
-  String get thisFeatureWillBeImplemented => '此功能将在后续版本中实现';
+  String get viewLogFilesTip => '打开内建 aria2 日志所在的目录';
 
   @override
   String get cannotOpenLogDirectory => '无法打开日志目录';
+
+  @override
+  String get maintenance => '维护与恢复';
+
+  @override
+  String get resetAppSettings => '重置应用设置';
+
+  @override
+  String get resetAppSettingsTip => '恢复应用偏好和内建默认设置，不删除任务或已下载文件';
+
+  @override
+  String get resetAppSettingsConfirmMessage =>
+      '要将全部应用偏好和内建 aria2 设置恢复为默认值吗？现有任务和已下载文件会保留。';
+
+  @override
+  String get resetAppSettingsAction => '重置设置';
+
+  @override
+  String get resetAppSettingsSuccess => '应用设置已恢复为默认值。';
 
   @override
   String get about => '关于';

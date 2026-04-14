@@ -590,17 +590,53 @@ abstract class AppLocalizations {
   /// **'View log files'**
   String get viewLogFiles;
 
-  /// No description provided for @thisFeatureWillBeImplemented.
+  /// No description provided for @viewLogFilesTip.
   ///
   /// In en, this message translates to:
-  /// **'This feature will be implemented in future versions'**
-  String get thisFeatureWillBeImplemented;
+  /// **'Open the directory that stores the built-in aria2 logs'**
+  String get viewLogFilesTip;
 
   /// No description provided for @cannotOpenLogDirectory.
   ///
   /// In en, this message translates to:
   /// **'Cannot open log directory'**
   String get cannotOpenLogDirectory;
+
+  /// No description provided for @maintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance'**
+  String get maintenance;
+
+  /// No description provided for @resetAppSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset app settings'**
+  String get resetAppSettings;
+
+  /// No description provided for @resetAppSettingsTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore app preferences and built-in defaults without deleting tasks or downloaded files'**
+  String get resetAppSettingsTip;
+
+  /// No description provided for @resetAppSettingsConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset all app preferences and built-in aria2 settings to their defaults? Existing tasks and downloaded files will be kept.'**
+  String get resetAppSettingsConfirmMessage;
+
+  /// No description provided for @resetAppSettingsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset settings'**
+  String get resetAppSettingsAction;
+
+  /// No description provided for @resetAppSettingsSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'App settings were reset to defaults.'**
+  String get resetAppSettingsSuccess;
 
   /// No description provided for @about.
   ///

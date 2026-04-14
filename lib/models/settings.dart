@@ -107,6 +107,77 @@ class Settings extends ChangeNotifier with Loggable {
     return dataDir;
   }
 
+  String _defaultBuiltinLogFilePath() {
+    final executablePath = Platform.resolvedExecutable;
+    final executableDir = Directory(executablePath).parent;
+    return '${executableDir.path}/data/core/aria2.log';
+  }
+
+  void _assignDefaultSettings() {
+    _autoStart = false;
+    _minimizeToTray = true;
+    _runMode = AppRunMode.tray;
+    _autoHideWindow = false;
+    _showTraySpeed = true;
+    _taskNotification = true;
+    _protocolMagnetEnabled = false;
+    _protocolThunderEnabled = false;
+    _skipDeleteConfirm = false;
+    _resumeAllOnLaunch = false;
+    _showDownloadsAfterAdd = true;
+    _showProgressBar = true;
+    _themeMode = ThemeMode.system;
+    _primaryColor = Colors.blue;
+    _customColorCode = null;
+    _logLevel = AppLogLevel.info;
+    _saveLogsToFile = true;
+    _locale = null;
+
+    // Built-in Aria2 instance settings defaults
+    // Connection settings
+    _rpcListenPort = 16800;
+    _rpcSecret = '';
+
+    // Transfer settings
+    _maxConcurrentDownloads = 5;
+    _maxConnectionPerServer = 16;
+    _split = 16;
+    _continueDownloads = true;
+
+    // Speed settings
+    _maxOverallDownloadLimit = 0;
+    _maxOverallUploadLimit = 0;
+
+    // BT settings
+    _btSaveMetadata = true;
+    _btForceEncryption = false;
+    _btLoadSavedMetadata = true;
+    _keepSeeding = false;
+    _seedRatio = 1.0;
+    _seedTime = 60;
+    _btListenPort = '6881-6999';
+    _btTracker = '';
+    _btExcludeTracker = '';
+
+    // Advanced settings
+    _proxyEnabled = false;
+    _allProxy = '';
+    _noProxy = '';
+    _dhtListenPort = 26701;
+    _enableDht6 = true;
+    _enableUpnp = true;
+    _sessionPath = '';
+    _logPath = '';
+    _autoSyncTracker = true;
+    _lastSyncTrackerTime = 0;
+    _trackerSource =
+        'https://fastly.jsdelivr.net/gh/ngosang/trackerslist/trackers_best_ip.txt';
+    _autoFileRenaming = true;
+    _allowOverwrite = false;
+    _userAgent =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  }
+
   /// Get settings file path
   String _getSettingsFilePath() {
     final dataDir = _getDataDirectory();
@@ -189,6 +260,16 @@ class Settings extends ChangeNotifier with Loggable {
   bool get autoFileRenaming => _autoFileRenaming;
   bool get allowOverwrite => _allowOverwrite;
   String get userAgent => _userAgent;
+  String get dataDirectoryPath => _getDataDirectory().path;
+  String get effectiveBuiltinLogFilePath {
+    final configuredPath = _logPath.trim();
+    return configuredPath.isNotEmpty
+        ? configuredPath
+        : _defaultBuiltinLogFilePath();
+  }
+
+  String get effectiveBuiltinLogDirectoryPath =>
+      File(effectiveBuiltinLogFilePath).parent.path;
 
   // Load all settings from JSON file
   Future<void> loadSettings() async {
@@ -333,68 +414,7 @@ class Settings extends ChangeNotifier with Loggable {
   // Apply default settings
   void _applyDefaultSettings() {
     this.i('Applying default settings');
-    _autoStart = false;
-    _minimizeToTray = true;
-    _runMode = AppRunMode.tray;
-    _autoHideWindow = false;
-    _showTraySpeed = true;
-    _taskNotification = true;
-    _protocolMagnetEnabled = false;
-    _protocolThunderEnabled = false;
-    _skipDeleteConfirm = false;
-    _resumeAllOnLaunch = false;
-    _showDownloadsAfterAdd = true;
-    _showProgressBar = true;
-    _themeMode = ThemeMode.system;
-    _primaryColor = Colors.blue;
-    _customColorCode = null;
-    _logLevel = AppLogLevel.info;
-    _saveLogsToFile = true;
-    _locale = null;
-
-    // Built-in Aria2 instance settings defaults
-    // Connection settings
-    _rpcListenPort = 16800;
-    _rpcSecret = '';
-
-    // Transfer settings
-    _maxConcurrentDownloads = 5;
-    _maxConnectionPerServer = 16;
-    _split = 16;
-    _continueDownloads = true;
-
-    // Speed settings
-    _maxOverallDownloadLimit = 0;
-    _maxOverallUploadLimit = 0;
-
-    // BT settings
-    _btSaveMetadata = true;
-    _btForceEncryption = false;
-    _btLoadSavedMetadata = true;
-    _keepSeeding = false;
-    _seedRatio = 1.0;
-    _seedTime = 60;
-    _btListenPort = '6881-6999';
-    _btTracker = '';
-    _btExcludeTracker = '';
-
-    // Advanced settings
-    _proxyEnabled = false;
-    _allProxy = '';
-    _noProxy = '';
-    _dhtListenPort = 26701;
-    _enableDht6 = true;
-    _enableUpnp = true;
-    _sessionPath = '';
-    _logPath = '';
-    _autoSyncTracker = true;
-    _lastSyncTrackerTime = 0;
-    _trackerSource =
-        'https://fastly.jsdelivr.net/gh/ngosang/trackerslist/trackers_best_ip.txt';
-    _autoFileRenaming = true;
-    _allowOverwrite = false;
-    _userAgent =
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    _assignDefaultSettings();
     // Schedule notifyListeners to run after the current frame is built
     SchedulerBinding.instance.addPostFrameCallback((_) {
       notifyListeners();
@@ -481,6 +501,13 @@ class Settings extends ChangeNotifier with Loggable {
 
   /// Public method to save all settings
   Future<void> saveAllSettings() async {
+    await _saveAllSettings();
+  }
+
+  Future<void> resetToDefaults() async {
+    _assignDefaultSettings();
+    _isLoaded = true;
+    notifyListeners();
     await _saveAllSettings();
   }
 

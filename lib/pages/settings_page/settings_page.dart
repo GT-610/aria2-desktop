@@ -481,6 +481,55 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
               ),
             ],
 
+            Text(
+              l10n.maintenance,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Card(
+              margin: const EdgeInsets.only(top: 12, bottom: 24),
+              elevation: 1,
+              shadowColor: colorScheme.shadow,
+              surfaceTintColor: colorScheme.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    ListTile(
+                      title: Text(
+                        l10n.viewLogFiles,
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                      subtitle: Text(l10n.viewLogFilesTip),
+                      trailing: const Icon(Icons.folder_open),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                      onTap: _openLogDirectory,
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      title: Text(
+                        l10n.resetAppSettings,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: colorScheme.error,
+                        ),
+                      ),
+                      subtitle: Text(l10n.resetAppSettingsTip),
+                      trailing: Icon(
+                        Icons.restart_alt,
+                        color: colorScheme.error,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                      onTap: _confirmResetSettings,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             // Log settings section
             Text(
               l10n.logSettings,
@@ -576,17 +625,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: FilledButton.icon(
-                        onPressed: () async {
-                          try {
-                            this.i('Attempting to open log directory');
-                            _showInfoSnackBar(
-                              l10n.thisFeatureWillBeImplemented,
-                            );
-                          } catch (e) {
-                            this.e('Failed to open log directory', error: e);
-                            _showErrorSnackBar(l10n.cannotOpenLogDirectory);
-                          }
-                        },
+                        onPressed: _openLogDirectory,
                         icon: const Icon(Icons.file_open),
                         label: Text(l10n.viewLogFiles),
                         style: FilledButton.styleFrom(
@@ -777,6 +816,84 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
         stackTrace: stackTrace,
       );
       _showWarningSnackBar(l10n.protocolPreferenceRetryWarning(protocolLabel));
+    }
+  }
+
+  Future<void> _openLogDirectory() async {
+    final l10n = AppLocalizations.of(context)!;
+    final settings = Provider.of<Settings>(context, listen: false);
+    final logDirectory = Directory(settings.effectiveBuiltinLogDirectoryPath);
+    if (!logDirectory.existsSync()) {
+      _showErrorSnackBar(l10n.cannotOpenLogDirectory);
+      return;
+    }
+
+    try {
+      this.i('Opening log directory: ${logDirectory.path}');
+      await Process.start(
+        Platform.isWindows
+            ? 'explorer.exe'
+            : Platform.isLinux
+            ? 'xdg-open'
+            : 'open',
+        [logDirectory.path],
+      );
+    } catch (e, stackTrace) {
+      this.e('Failed to open log directory', error: e, stackTrace: stackTrace);
+      _showErrorSnackBar(l10n.cannotOpenLogDirectory);
+    }
+  }
+
+  Future<void> _confirmResetSettings() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(l10n.resetAppSettings),
+          content: Text(l10n.resetAppSettingsConfirmMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.resetAppSettingsAction),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final settings = Provider.of<Settings>(context, listen: false);
+    try {
+      await settings.resetToDefaults();
+      final failedProtocols = await ProtocolIntegrationService()
+          .reconcileProtocolPreferences(settings);
+      if (!mounted) {
+        return;
+      }
+
+      if (failedProtocols.isNotEmpty) {
+        _showWarningSnackBar(
+          l10n.protocolReconcileFailed(failedProtocols.join(', ')),
+        );
+      } else {
+        _showInfoSnackBar(l10n.resetAppSettingsSuccess);
+      }
+      i('Application settings reset to defaults');
+    } catch (e, stackTrace) {
+      this.e(
+        'Failed to reset application settings',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      _showErrorSnackBar(l10n.saveSettingsFailed);
     }
   }
 
