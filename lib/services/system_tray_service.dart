@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,8 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   static SystemTrayService? _instance;
   bool _isInitialized = false;
   bool _notificationsInitialized = false;
+  Future<void>? _initializingTray;
+  int _trayLifecycleGeneration = 0;
   // ignore: unused_field - intended for future use in minimizeToTray()
   bool _minimizeToTray = true;
   VoidCallback? _onShowWindow;
@@ -93,11 +96,38 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   }
 
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    if (_isInitialized) {
+      return;
+    }
 
+    if (_initializingTray != null) {
+      await _initializingTray;
+      return;
+    }
+
+    final generation = ++_trayLifecycleGeneration;
+    final initialization = _initializeTray(generation);
+    _initializingTray = initialization;
+    try {
+      await initialization;
+    } finally {
+      if (identical(_initializingTray, initialization)) {
+        _initializingTray = null;
+      }
+    }
+  }
+
+  Future<void> _initializeTray(int generation) async {
     try {
       await initializeNotifications();
       await _initSystemTray();
+
+      if (generation != _trayLifecycleGeneration) {
+        await _cleanupTrayArtifacts();
+        return;
+      }
+
+      trayManager.addListener(this);
       _isInitialized = true;
       i('System tray initialized successfully');
     } catch (err, stackTrace) {
@@ -154,8 +184,18 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     await trayManager.setToolTip('Aria2 Desktop - Aria2 下载管理器');
 
     await trayManager.setContextMenu(_buildMenu());
+  }
 
-    trayManager.addListener(this);
+  Future<void> _cleanupTrayArtifacts() async {
+    try {
+      await trayManager.destroy();
+    } catch (e, stackTrace) {
+      w(
+        'Failed to clean up stale tray initialization',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Menu _buildMenu() {
@@ -249,11 +289,18 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   }
 
   void destroy() {
+    _trayLifecycleGeneration++;
+
     if (_isInitialized) {
       trayManager.removeListener(this);
       trayManager.destroy();
       _isInitialized = false;
       i('System tray destroyed');
+      return;
+    }
+
+    if (_initializingTray != null) {
+      unawaited(_cleanupTrayArtifacts());
     }
   }
 
