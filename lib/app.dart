@@ -309,13 +309,14 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   @override
   void dispose() {
     _downloadDataService?.removeListener(_handleDownloadNotifications);
-    _instanceManager?.removeListener(_handleTrayStateChanged);
+    _instanceManager?.removeListener(_handleInstanceManagerChanged);
     _settings?.removeListener(_handleSettingsChanged);
     _pendingAutoHideTimer?.cancel();
     _pageController.dispose();
     windowManager.removeListener(this);
     final systemTrayService = SystemTrayService();
     systemTrayService.setOnShowWindow(null);
+    systemTrayService.setOnToggleWindow(null);
     systemTrayService.setOnQuitApp(null);
     systemTrayService.setOnPauseAll(null);
     systemTrayService.setOnResumeAll(null);
@@ -340,9 +341,9 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       listen: false,
     );
     if (_instanceManager != nextInstanceManager) {
-      _instanceManager?.removeListener(_handleTrayStateChanged);
+      _instanceManager?.removeListener(_handleInstanceManagerChanged);
       _instanceManager = nextInstanceManager;
-      _instanceManager?.addListener(_handleTrayStateChanged);
+      _instanceManager?.addListener(_handleInstanceManagerChanged);
     }
 
     final nextSettings = Provider.of<Settings>(context, listen: false);
@@ -358,8 +359,12 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   }
 
   void _handleSettingsChanged() {
-    _handleTrayStateChanged();
+    unawaited(_handleTrayStateChanged());
     unawaited(_applyShellSettings());
+  }
+
+  void _handleInstanceManagerChanged() {
+    unawaited(_handleTrayStateChanged());
   }
 
   Future<void> _initSystemTrayCallbacks() async {
@@ -368,6 +373,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       await windowManager.show();
       await windowManager.focus();
     });
+    systemTrayService.setOnToggleWindow(_toggleWindowFromTray);
     systemTrayService.setOnQuitApp(() async {
       await windowManager.close();
     });
@@ -405,7 +411,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       }
       return;
     }
-    _handleTrayStateChanged();
+    unawaited(_handleTrayStateChanged());
   }
 
   void _handleDownloadNotifications() {
@@ -413,7 +419,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
-    _handleTrayStateChanged();
+    unawaited(_handleTrayStateChanged());
 
     final notifications = _downloadDataService!.takePendingNotifications();
     if (notifications.isEmpty) {
@@ -441,7 +447,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     }
   }
 
-  void _handleTrayStateChanged() {
+  Future<void> _handleTrayStateChanged() async {
     if (!mounted) {
       return;
     }
@@ -482,6 +488,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     if (settings.runMode == AppRunMode.hideTray) {
       return;
     }
+    final isWindowVisible = await windowManager.isVisible();
+    if (!mounted) {
+      return;
+    }
     final l10n = AppLocalizations.of(context)!;
     final tooltipLines = <String>[
       'Aria2 Desktop',
@@ -494,18 +504,42 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       l10n.waitingTasks(waitingCount.toString()),
     ];
     final trayService = SystemTrayService();
-    trayService.updateTooltip(tooltipLines.join('\n'));
-    trayService.updateMenuState(
-      statusLabel: connectedCount == 0
-          ? l10n.notConnected
-          : '${l10n.connected}: $connectedCount',
-      showWindowLabel: l10n.showMainWindow,
-      resumeAllLabel: '${l10n.resumeTasks} ($resumableCount)',
-      pauseAllLabel: '${l10n.pauseTasks} ($pausableCount)',
-      quitLabel: l10n.quitApp,
-      resumeAllDisabled: resumableCount == 0,
-      pauseAllDisabled: pausableCount == 0,
+    unawaited(trayService.updateTooltip(tooltipLines.join('\n')));
+    unawaited(
+      trayService.updateMenuState(
+        statusLabel: connectedCount == 0
+            ? l10n.notConnected
+            : '${l10n.connected}: $connectedCount',
+        toggleWindowLabel: isWindowVisible
+            ? l10n.hideMainWindow
+            : l10n.showMainWindow,
+        resumeAllLabel: '${l10n.resumeTasks} ($resumableCount)',
+        pauseAllLabel: '${l10n.pauseTasks} ($pausableCount)',
+        quitLabel: l10n.quitApp,
+        resumeAllDisabled: resumableCount == 0,
+        pauseAllDisabled: pausableCount == 0,
+      ),
     );
+  }
+
+  Future<void> _toggleWindowFromTray() async {
+    if (!mounted) {
+      return;
+    }
+
+    final isVisible = await windowManager.isVisible();
+    if (!mounted) {
+      return;
+    }
+
+    if (isVisible) {
+      await windowManager.hide();
+    } else {
+      await windowManager.show();
+      await windowManager.focus();
+    }
+
+    await _handleTrayStateChanged();
   }
 
   Future<void> _pauseAllTasksFromTray() async {
@@ -678,6 +712,14 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   void onWindowFocus() {
     _isWindowBlurred = false;
     _pendingAutoHideTimer?.cancel();
+    unawaited(_handleTrayStateChanged());
+  }
+
+  @override
+  void onWindowEvent(String eventName) {
+    if (eventName == 'hide' || eventName == 'show') {
+      unawaited(_handleTrayStateChanged());
+    }
   }
 
   void _onDestinationSelected(int index) {
