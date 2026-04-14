@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:local_notifier/local_notifier.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
+import '../constants/app_branding.dart';
 import '../utils/logging.dart';
 
 class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
@@ -22,7 +23,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   Future<void> Function()? _onPauseAll;
   Future<void> Function()? _onResumeAll;
   final Set<LocalNotification> _activeNotifications = <LocalNotification>{};
-  String _statusLabel = 'Aria2 Desktop';
+  String _statusLabel = kAppName;
   String _addTaskLabel = 'Add Task';
   String _toggleWindowLabel = 'Show Window';
   String _resumeAllLabel = 'Resume All';
@@ -181,7 +182,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
 
     try {
       await localNotifier.setup(
-        appName: 'Aria2 Desktop',
+        appName: kAppName,
         // Shortcut creation belongs to an external installer, not the app.
         shortcutPolicy: ShortcutPolicy.ignore,
       );
@@ -199,7 +200,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     String iconPath;
 
     if (Platform.isWindows) {
-      iconPath = 'assets/logo/app.ico';
+      iconPath = kTrayIconAssetPath;
     } else if (Platform.isMacOS) {
       iconPath = '.trae/references/Motrix/static/mo-tray-colorful-normal.png';
     } else {
@@ -207,7 +208,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     }
 
     await trayManager.setIcon(iconPath);
-    await trayManager.setToolTip('Aria2 Desktop - Aria2 下载管理器');
+    await trayManager.setToolTip('$kAppName - $kTrayTooltipSubtitle');
 
     await trayManager.setContextMenu(_buildMenu());
   }
@@ -362,7 +363,7 @@ class WindowManagerService with Loggable {
       backgroundColor: Color(0x00000000),
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.normal,
-      title: 'Aria2 Desktop',
+      title: kAppName,
     );
 
     await windowManager.waitUntilReadyToShow(windowOptions, () async {

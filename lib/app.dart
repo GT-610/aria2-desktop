@@ -5,6 +5,7 @@ import 'package:fl_lib/fl_lib.dart' show ChineseThemeData;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
+import 'constants/app_branding.dart';
 import 'generated/l10n/l10n.dart';
 import 'models/aria2_instance.dart';
 import 'models/settings.dart';
@@ -53,7 +54,7 @@ class _ThemeProviderState extends State<_ThemeProvider> {
     final settings = Provider.of<Settings>(context);
 
     return MaterialApp(
-      title: 'Aria2 Desktop',
+      title: kAppName,
       locale: settings.locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -498,7 +499,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     }
     final l10n = AppLocalizations.of(context)!;
     final tooltipLines = <String>[
-      'Aria2 Desktop',
+      kAppName,
       connectedCount == 0
           ? l10n.notConnected
           : '${l10n.connected}: $connectedCount',
@@ -817,19 +818,13 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
                   leading: Container(
                     padding: const EdgeInsets.only(top: 16, bottom: 8),
                     alignment: Alignment.center,
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: colorScheme.primaryContainer,
-                      ),
-                      alignment: Alignment.center,
-                      // Icon placeholder - will be replaced with actual app icon
-                      child: Icon(
-                        Icons.download_done,
-                        size: 28,
-                        color: colorScheme.primary,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset(
+                        kAppLogoAssetPath,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),

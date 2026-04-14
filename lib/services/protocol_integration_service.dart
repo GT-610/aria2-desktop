@@ -4,15 +4,14 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../constants/app_branding.dart';
 import '../models/settings.dart';
 import '../utils/logging.dart';
 
 class ProtocolIntegrationService with Loggable {
   static final ProtocolIntegrationService _instance =
       ProtocolIntegrationService._internal();
-  static const MethodChannel _channel = MethodChannel(
-    'aria2_desktop/protocol_integration',
-  );
+  static const MethodChannel _channel = MethodChannel(kProtocolChannelName);
 
   String? _pendingLaunchUri;
 

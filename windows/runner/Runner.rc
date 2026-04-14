@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "aria2_desktop" "\0"
+            VALUE "CompanyName", "Setsuna" "\0"
+            VALUE "FileDescription", "Setsuna" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "aria2_desktop" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "aria2_desktop.exe" "\0"
-            VALUE "ProductName", "aria2_desktop" "\0"
+            VALUE "InternalName", "Setsuna" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Setsuna. All rights reserved." "\0"
+            VALUE "OriginalFilename", "Setsuna.exe" "\0"
+            VALUE "ProductName", "Setsuna" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
