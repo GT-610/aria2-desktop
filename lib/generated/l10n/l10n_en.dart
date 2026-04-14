@@ -288,11 +288,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewLogFiles => 'View log files';
 
   @override
-  String get thisFeatureWillBeImplemented =>
-      'This feature will be implemented in future versions';
+  String get viewLogFilesTip =>
+      'Open the directory that stores the built-in aria2 logs';
 
   @override
   String get cannotOpenLogDirectory => 'Cannot open log directory';
+
+  @override
+  String get maintenance => 'Maintenance';
+
+  @override
+  String get resetAppSettings => 'Reset app settings';
+
+  @override
+  String get resetAppSettingsTip =>
+      'Restore app preferences and built-in defaults without deleting tasks or downloaded files';
+
+  @override
+  String get resetAppSettingsConfirmMessage =>
+      'Reset all app preferences and built-in aria2 settings to their defaults? Existing tasks and downloaded files will be kept.';
+
+  @override
+  String get resetAppSettingsAction => 'Reset settings';
+
+  @override
+  String get resetAppSettingsSuccess => 'App settings were reset to defaults.';
 
   @override
   String get about => 'About';
