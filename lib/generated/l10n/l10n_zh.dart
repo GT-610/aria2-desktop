@@ -865,6 +865,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get connectBeforeAddingTasks => '添加任务前请先连接内建或远程实例。';
 
   @override
+  String get dragDropFilesHere => '拖放文件以添加任务';
+
+  @override
+  String get dragDropSupportedHint => '支持 .torrent 和 .metalink 文件';
+
+  @override
+  String get dragDropUnsupportedFiles => '拖入窗口时目前只支持 .torrent 和 .metalink 文件。';
+
+  @override
+  String get dragDropOnlyFirstFileUsed => '检测到多个受支持文件，当前仅会使用第一个文件。';
+
+  @override
   String taskAddedToInstanceSuccess(Object name) {
     return '已成功向 $name 添加任务';
   }

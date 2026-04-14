@@ -895,6 +895,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Connect the built-in instance or a remote instance before adding tasks.';
 
   @override
+  String get dragDropFilesHere => 'Drop files to add tasks';
+
+  @override
+  String get dragDropSupportedHint => 'Supports .torrent and .metalink files';
+
+  @override
+  String get dragDropUnsupportedFiles =>
+      'Only .torrent and .metalink files are supported when dragging into the window.';
+
+  @override
+  String get dragDropOnlyFirstFileUsed =>
+      'Multiple supported files were dropped. Only the first file will be used for now.';
+
+  @override
   String taskAddedToInstanceSuccess(Object name) {
     return 'Task added to $name successfully';
   }

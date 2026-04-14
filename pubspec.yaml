@@ -37,6 +37,7 @@ dependencies:
   
   # File handling
   file_picker: ^10.3.8
+  desktop_drop: ^0.6.0
   
   # Process management
   process_run: ^1.2.4
