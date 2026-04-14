@@ -96,33 +96,35 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   }
 
   Future<void> initialize() async {
-    while (true) {
+    if (_isInitialized) {
+      return;
+    }
+
+    final inFlightInitialization = _initializingTray;
+    if (inFlightInitialization != null) {
+      await inFlightInitialization;
       if (_isInitialized) {
         return;
       }
+    }
 
-      final inFlightInitialization = _initializingTray;
-      if (inFlightInitialization != null) {
-        await inFlightInitialization;
-        if (_isInitialized) {
-          return;
-        }
-        continue;
-      }
+    if (_isInitialized) {
+      return;
+    }
 
-      final generation = ++_trayLifecycleGeneration;
-      final initialization = _initializeTray(generation);
-      _initializingTray = initialization;
-      try {
-        await initialization;
-      } finally {
-        if (identical(_initializingTray, initialization)) {
-          _initializingTray = null;
-        }
-      }
+    if (_initializingTray != null) {
+      await _initializingTray;
+      return;
+    }
 
-      if (_isInitialized) {
-        return;
+    final generation = ++_trayLifecycleGeneration;
+    final initialization = _initializeTray(generation);
+    _initializingTray = initialization;
+    try {
+      await initialization;
+    } finally {
+      if (identical(_initializingTray, initialization)) {
+        _initializingTray = null;
       }
     }
   }
