@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,8 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   static SystemTrayService? _instance;
   bool _isInitialized = false;
   bool _notificationsInitialized = false;
+  Future<void>? _initializingTray;
+  int _trayLifecycleGeneration = 0;
   // ignore: unused_field - intended for future use in minimizeToTray()
   bool _minimizeToTray = true;
   VoidCallback? _onShowWindow;
@@ -32,15 +35,18 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
 
   SystemTrayService._internal();
 
+  bool get isInitialized => _isInitialized;
+  bool get notificationsInitialized => _notificationsInitialized;
+
   void setMinimizeToTray(bool value) {
     _minimizeToTray = value;
   }
 
-  void setOnShowWindow(VoidCallback callback) {
+  void setOnShowWindow(VoidCallback? callback) {
     _onShowWindow = callback;
   }
 
-  void setOnQuitApp(VoidCallback callback) {
+  void setOnQuitApp(VoidCallback? callback) {
     _onQuitApp = callback;
   }
 
@@ -90,11 +96,50 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   }
 
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    if (_isInitialized) {
+      return;
+    }
 
+    final inFlightInitialization = _initializingTray;
+    if (inFlightInitialization != null) {
+      await inFlightInitialization;
+      if (_isInitialized) {
+        return;
+      }
+    }
+
+    if (_isInitialized) {
+      return;
+    }
+
+    if (_initializingTray != null) {
+      await _initializingTray;
+      return;
+    }
+
+    final generation = ++_trayLifecycleGeneration;
+    final initialization = _initializeTray(generation);
+    _initializingTray = initialization;
     try {
-      await _initNotifications();
+      await initialization;
+    } finally {
+      if (identical(_initializingTray, initialization)) {
+        _initializingTray = null;
+      }
+    }
+  }
+
+  Future<void> _initializeTray(int generation) async {
+    try {
+      await initializeNotifications();
       await _initSystemTray();
+
+      if (generation != _trayLifecycleGeneration) {
+        await _cleanupTrayArtifacts();
+        return;
+      }
+
+      trayManager.addListener(this);
       _isInitialized = true;
       i('System tray initialized successfully');
     } catch (err, stackTrace) {
@@ -104,6 +149,14 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
         stackTrace: stackTrace,
       );
     }
+  }
+
+  Future<void> initializeNotifications() async {
+    if (_notificationsInitialized) {
+      return;
+    }
+
+    await _initNotifications();
   }
 
   Future<void> _initNotifications() async {
@@ -143,8 +196,18 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     await trayManager.setToolTip('Aria2 Desktop - Aria2 下载管理器');
 
     await trayManager.setContextMenu(_buildMenu());
+  }
 
-    trayManager.addListener(this);
+  Future<void> _cleanupTrayArtifacts() async {
+    try {
+      await trayManager.destroy();
+    } catch (e, stackTrace) {
+      w(
+        'Failed to clean up stale tray initialization',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Menu _buildMenu() {
@@ -210,11 +273,10 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   }
 
   Future<void> showNotification(String title, String message) async {
-    if (!_isInitialized) return;
-    d('Tray notification: $title - $message');
     if (!_notificationsInitialized) {
       return;
     }
+    d('Tray notification: $title - $message');
 
     final notification = LocalNotification(title: title, body: message);
     _activeNotifications.add(notification);
@@ -239,16 +301,18 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   }
 
   void destroy() {
+    _trayLifecycleGeneration++;
+
     if (_isInitialized) {
-      for (final notification in _activeNotifications.toList()) {
-        notification.close();
-      }
-      _activeNotifications.clear();
       trayManager.removeListener(this);
       trayManager.destroy();
       _isInitialized = false;
-      _notificationsInitialized = false;
       i('System tray destroyed');
+      return;
+    }
+
+    if (_initializingTray != null) {
+      unawaited(_cleanupTrayArtifacts());
     }
   }
 
