@@ -309,7 +309,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   @override
   void dispose() {
     _downloadDataService?.removeListener(_handleDownloadNotifications);
-    _instanceManager?.removeListener(_handleTrayStateChanged);
+    _instanceManager?.removeListener(_handleInstanceManagerChanged);
     _settings?.removeListener(_handleSettingsChanged);
     _pendingAutoHideTimer?.cancel();
     _pageController.dispose();
@@ -341,9 +341,9 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       listen: false,
     );
     if (_instanceManager != nextInstanceManager) {
-      _instanceManager?.removeListener(_handleTrayStateChanged);
+      _instanceManager?.removeListener(_handleInstanceManagerChanged);
       _instanceManager = nextInstanceManager;
-      _instanceManager?.addListener(_handleTrayStateChanged);
+      _instanceManager?.addListener(_handleInstanceManagerChanged);
     }
 
     final nextSettings = Provider.of<Settings>(context, listen: false);
@@ -361,6 +361,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   void _handleSettingsChanged() {
     unawaited(_handleTrayStateChanged());
     unawaited(_applyShellSettings());
+  }
+
+  void _handleInstanceManagerChanged() {
+    unawaited(_handleTrayStateChanged());
   }
 
   Future<void> _initSystemTrayCallbacks() async {
