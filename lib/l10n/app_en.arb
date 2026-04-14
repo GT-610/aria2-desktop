@@ -13,6 +13,7 @@
   "connecting": "Connecting",
   "connected": "Connected",
   "showMainWindow": "Show main window",
+  "hideMainWindow": "Hide main window",
   "quitApp": "Quit",
   "connectFailed": "Connect Failed",
   "connect": "Connect",

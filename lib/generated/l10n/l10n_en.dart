@@ -56,6 +56,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get showMainWindow => 'Show main window';
 
   @override
+  String get hideMainWindow => 'Hide main window';
+
+  @override
   String get quitApp => 'Quit';
 
   @override

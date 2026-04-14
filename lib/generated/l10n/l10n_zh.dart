@@ -54,6 +54,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showMainWindow => '显示主窗口';
 
   @override
+  String get hideMainWindow => '隐藏主窗口';
+
+  @override
   String get quitApp => '退出';
 
   @override

@@ -16,12 +16,13 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   // ignore: unused_field - intended for future use in minimizeToTray()
   bool _minimizeToTray = true;
   VoidCallback? _onShowWindow;
+  Future<void> Function()? _onToggleWindow;
   VoidCallback? _onQuitApp;
   Future<void> Function()? _onPauseAll;
   Future<void> Function()? _onResumeAll;
   final Set<LocalNotification> _activeNotifications = <LocalNotification>{};
   String _statusLabel = 'Aria2 Desktop';
-  String _showWindowLabel = 'Show Window';
+  String _toggleWindowLabel = 'Show Window';
   String _resumeAllLabel = 'Resume All';
   String _pauseAllLabel = 'Pause All';
   String _quitLabel = 'Quit';
@@ -46,6 +47,10 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     _onShowWindow = callback;
   }
 
+  void setOnToggleWindow(Future<void> Function()? callback) {
+    _onToggleWindow = callback;
+  }
+
   void setOnQuitApp(VoidCallback? callback) {
     _onQuitApp = callback;
   }
@@ -60,7 +65,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
 
   Future<void> updateMenuState({
     required String statusLabel,
-    required String showWindowLabel,
+    required String toggleWindowLabel,
     required String resumeAllLabel,
     required String pauseAllLabel,
     required String quitLabel,
@@ -69,7 +74,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   }) async {
     final hasChanged =
         _statusLabel != statusLabel ||
-        _showWindowLabel != showWindowLabel ||
+        _toggleWindowLabel != toggleWindowLabel ||
         _resumeAllLabel != resumeAllLabel ||
         _pauseAllLabel != pauseAllLabel ||
         _quitLabel != quitLabel ||
@@ -77,7 +82,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
         _pauseAllDisabled != pauseAllDisabled;
 
     _statusLabel = statusLabel;
-    _showWindowLabel = showWindowLabel;
+    _toggleWindowLabel = toggleWindowLabel;
     _resumeAllLabel = resumeAllLabel;
     _pauseAllLabel = pauseAllLabel;
     _quitLabel = quitLabel;
@@ -215,7 +220,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
       items: [
         MenuItem(label: _statusLabel, disabled: true),
         MenuItem.separator(),
-        MenuItem(key: 'show_window', label: _showWindowLabel),
+        MenuItem(key: 'toggle_window', label: _toggleWindowLabel),
         MenuItem.separator(),
         MenuItem(
           key: 'resume_all',
@@ -236,7 +241,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   @override
   void onTrayIconMouseDown() {
     if (Platform.isWindows) {
-      _onShowWindow?.call();
+      _onToggleWindow?.call();
     }
   }
 
@@ -248,8 +253,8 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   @override
   void onTrayMenuItemClick(MenuItem menuItem) {
     switch (menuItem.key) {
-      case 'show_window':
-        _onShowWindow?.call();
+      case 'toggle_window':
+        _onToggleWindow?.call();
         break;
       case 'resume_all':
         _onResumeAll?.call();

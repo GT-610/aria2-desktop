@@ -176,6 +176,12 @@ abstract class AppLocalizations {
   /// **'Show main window'**
   String get showMainWindow;
 
+  /// No description provided for @hideMainWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide main window'**
+  String get hideMainWindow;
+
   /// No description provided for @quitApp.
   ///
   /// In en, this message translates to:
