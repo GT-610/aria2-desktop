@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -43,6 +45,7 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   String? _lastShownRefreshError;
   late final TextEditingController _searchController;
   bool _isHandlingPendingProtocolLink = false;
+  bool _isDropTargetHighlighted = false;
 
   @override
   void initState() {
@@ -564,70 +567,141 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
       TaskActionType.delete,
     );
 
-    return Scaffold(
-      body: Column(
+    return DropTarget(
+      onDragEntered: (_) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isDropTargetHighlighted = true;
+        });
+      },
+      onDragExited: (_) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isDropTargetHighlighted = false;
+        });
+      },
+      onDragDone: (detail) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _isDropTargetHighlighted = false;
+        });
+        unawaited(
+          _handleDroppedFiles(detail.files.map((file) => file.path).toList()),
+        );
+      },
+      child: Stack(
         children: [
-          TaskToolbar(
-            onAddTask: () => _showAddTaskDialog(context),
-            onPauseAll: pauseableVisibleCount > 0
-                ? () => _showPauseDialog(context, tasks: filteredTasks)
-                : null,
-            onResumeAll: resumableVisibleCount > 0
-                ? () => _showResumeDialog(context, tasks: filteredTasks)
-                : null,
-            onDeleteAll: deletableVisibleCount > 0
-                ? () => _showDeleteDialog(context, tasks: filteredTasks)
-                : null,
-            searchController: _searchController,
-            onSearchChanged: _handleSearchChanged,
-            sortOption: _sortOption,
-            sortDescending: _sortDescending,
-            onSortChanged: _handleSortChanged,
-            onSortDirectionChanged: _handleSortDirectionChanged,
-          ),
-          if (_isSelectionMode)
-            _SelectionToolbar(
-              selectedCount: selectedTasks.length,
-              visibleCount: filteredTasks.length,
-              pauseableSelectedCount: pauseableSelectedCount,
-              resumableSelectedCount: resumableSelectedCount,
-              deletableSelectedCount: deletableSelectedCount,
-              l10n: l10n,
-              onClearSelection: _clearSelection,
-              onSelectAll: () => _selectAllVisibleTasks(filteredTasks),
-              onPauseSelected: () =>
-                  _showPauseDialog(context, tasks: selectedTasks),
-              onResumeSelected: () =>
-                  _showResumeDialog(context, tasks: selectedTasks),
-              onDeleteSelected: () =>
-                  _showDeleteDialog(context, tasks: selectedTasks),
+          Scaffold(
+            body: Column(
+              children: [
+                TaskToolbar(
+                  onAddTask: () => _showAddTaskDialog(context),
+                  onPauseAll: pauseableVisibleCount > 0
+                      ? () => _showPauseDialog(context, tasks: filteredTasks)
+                      : null,
+                  onResumeAll: resumableVisibleCount > 0
+                      ? () => _showResumeDialog(context, tasks: filteredTasks)
+                      : null,
+                  onDeleteAll: deletableVisibleCount > 0
+                      ? () => _showDeleteDialog(context, tasks: filteredTasks)
+                      : null,
+                  searchController: _searchController,
+                  onSearchChanged: _handleSearchChanged,
+                  sortOption: _sortOption,
+                  sortDescending: _sortDescending,
+                  onSortChanged: _handleSortChanged,
+                  onSortDirectionChanged: _handleSortDirectionChanged,
+                ),
+                if (_isSelectionMode)
+                  _SelectionToolbar(
+                    selectedCount: selectedTasks.length,
+                    visibleCount: filteredTasks.length,
+                    pauseableSelectedCount: pauseableSelectedCount,
+                    resumableSelectedCount: resumableSelectedCount,
+                    deletableSelectedCount: deletableSelectedCount,
+                    l10n: l10n,
+                    onClearSelection: _clearSelection,
+                    onSelectAll: () => _selectAllVisibleTasks(filteredTasks),
+                    onPauseSelected: () =>
+                        _showPauseDialog(context, tasks: selectedTasks),
+                    onResumeSelected: () =>
+                        _showResumeDialog(context, tasks: selectedTasks),
+                    onDeleteSelected: () =>
+                        _showDeleteDialog(context, tasks: selectedTasks),
+                  ),
+                FilterSelector(
+                  currentCategoryType: _currentCategoryType,
+                  selectedFilter: _selectedFilter,
+                  selectedInstanceId: _selectedInstanceId,
+                  instanceNames: _instanceNames,
+                  instanceIds: _getAvailableInstanceIds(),
+                  onCategoryChanged: _handleCategoryChanged,
+                  onFilterChanged: _handleFilterChanged,
+                  onInstanceSelected: _handleInstanceSelected,
+                ),
+                Expanded(
+                  child: TaskListView(
+                    tasks: filteredTasks,
+                    instanceNames: _instanceNames,
+                    hasActiveViewFilters: hasActiveViewFilters,
+                    showProgressBar: showProgressBar,
+                    onClearViewFilters: hasActiveViewFilters
+                        ? _clearViewFilters
+                        : null,
+                    onTaskTap: (task) => _showTaskDetails(context, task),
+                    onTaskLongPress: _startTaskSelection,
+                    onTaskSelectionToggle: _toggleTaskSelection,
+                    selectedTaskKeys: _selectedTaskKeys,
+                    onTaskUpdated: _refreshTasksAndRestartTimer,
+                  ),
+                ),
+              ],
             ),
-          FilterSelector(
-            currentCategoryType: _currentCategoryType,
-            selectedFilter: _selectedFilter,
-            selectedInstanceId: _selectedInstanceId,
-            instanceNames: _instanceNames,
-            instanceIds: _getAvailableInstanceIds(),
-            onCategoryChanged: _handleCategoryChanged,
-            onFilterChanged: _handleFilterChanged,
-            onInstanceSelected: _handleInstanceSelected,
           ),
-          Expanded(
-            child: TaskListView(
-              tasks: filteredTasks,
-              instanceNames: _instanceNames,
-              hasActiveViewFilters: hasActiveViewFilters,
-              showProgressBar: showProgressBar,
-              onClearViewFilters: hasActiveViewFilters
-                  ? _clearViewFilters
-                  : null,
-              onTaskTap: (task) => _showTaskDetails(context, task),
-              onTaskLongPress: _startTaskSelection,
-              onTaskSelectionToggle: _toggleTaskSelection,
-              selectedTaskKeys: _selectedTaskKeys,
-              onTaskUpdated: _refreshTasksAndRestartTimer,
+          if (_isDropTargetHighlighted)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer.withValues(alpha: 0.82),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 3,
+                    ),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.file_upload_outlined,
+                          size: 56,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          l10n.dragDropFilesHere,
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.dragDropSupportedHint,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -670,6 +744,63 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
   }
 
   void _showAddTaskDialog(BuildContext context, {String? initialUri}) {
+    _showAddTaskDialogWithSeed(context, initialUri: initialUri);
+  }
+
+  Future<void> _handleDroppedFiles(List<String> paths) async {
+    if (!mounted) {
+      return;
+    }
+
+    final supportedPaths = paths
+        .map((path) => path.trim())
+        .where((path) => path.isNotEmpty)
+        .where((path) => File(path).existsSync())
+        .where((path) {
+          final lowercasePath = path.toLowerCase();
+          return lowercasePath.endsWith('.torrent') ||
+              lowercasePath.endsWith('.metalink') ||
+              lowercasePath.endsWith('.meta4');
+        })
+        .toList();
+
+    final l10n = AppLocalizations.of(context)!;
+    if (supportedPaths.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.dragDropUnsupportedFiles)));
+      return;
+    }
+
+    if (supportedPaths.length > 1) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.dragDropOnlyFirstFileUsed)));
+    }
+
+    final selectedPath = supportedPaths.first;
+    final lowercasePath = selectedPath.toLowerCase();
+    _showAddTaskDialogWithSeed(
+      context,
+      initialTorrentFilePath: lowercasePath.endsWith('.torrent')
+          ? selectedPath
+          : null,
+      initialMetalinkFilePath:
+          lowercasePath.endsWith('.metalink') ||
+              lowercasePath.endsWith('.meta4')
+          ? selectedPath
+          : null,
+      initialTabIndex: lowercasePath.endsWith('.torrent') ? 1 : 2,
+    );
+  }
+
+  void _showAddTaskDialogWithSeed(
+    BuildContext context, {
+    String? initialUri,
+    String? initialTorrentFilePath,
+    String? initialMetalinkFilePath,
+    int initialTabIndex = 0,
+  }) {
     final l10n = AppLocalizations.of(context)!;
     final settings = Provider.of<Settings>(context, listen: false);
     final instanceManager = Provider.of<InstanceManager>(
@@ -699,6 +830,9 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
           targetInstances: targetInstances,
           defaultTargetInstanceId: defaultTarget?.id,
           initialUri: initialUri,
+          initialTorrentFilePath: initialTorrentFilePath,
+          initialMetalinkFilePath: initialMetalinkFilePath,
+          initialTabIndex: initialTabIndex,
           onAddTask:
               (
                 taskType,

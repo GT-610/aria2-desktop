@@ -1700,6 +1700,30 @@ abstract class AppLocalizations {
   /// **'Connect the built-in instance or a remote instance before adding tasks.'**
   String get connectBeforeAddingTasks;
 
+  /// No description provided for @dragDropFilesHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop files to add tasks'**
+  String get dragDropFilesHere;
+
+  /// No description provided for @dragDropSupportedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Supports .torrent and .metalink files'**
+  String get dragDropSupportedHint;
+
+  /// No description provided for @dragDropUnsupportedFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Only .torrent and .metalink files are supported when dragging into the window.'**
+  String get dragDropUnsupportedFiles;
+
+  /// No description provided for @dragDropOnlyFirstFileUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple supported files were dropped. Only the first file will be used for now.'**
+  String get dragDropOnlyFirstFileUsed;
+
   /// No description provided for @taskAddedToInstanceSuccess.
   ///
   /// In en, this message translates to:

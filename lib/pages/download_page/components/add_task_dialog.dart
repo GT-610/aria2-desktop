@@ -17,6 +17,9 @@ class AddTaskDialog extends StatefulWidget {
   final List<Aria2Instance> targetInstances;
   final String? defaultTargetInstanceId;
   final String? initialUri;
+  final String? initialTorrentFilePath;
+  final String? initialMetalinkFilePath;
+  final int initialTabIndex;
   final Future<bool> Function(
     String taskType,
     String uri,
@@ -32,6 +35,9 @@ class AddTaskDialog extends StatefulWidget {
     required this.targetInstances,
     required this.defaultTargetInstanceId,
     this.initialUri,
+    this.initialTorrentFilePath,
+    this.initialMetalinkFilePath,
+    this.initialTabIndex = 0,
     required this.onAddTask,
   });
 
@@ -64,6 +70,14 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
             : null);
     if (widget.initialUri != null && widget.initialUri!.trim().isNotEmpty) {
       uriController.text = widget.initialUri!.trim();
+    }
+    if (widget.initialTorrentFilePath != null &&
+        widget.initialTorrentFilePath!.trim().isNotEmpty) {
+      selectedTorrentFilePath = widget.initialTorrentFilePath!.trim();
+    }
+    if (widget.initialMetalinkFilePath != null &&
+        widget.initialMetalinkFilePath!.trim().isNotEmpty) {
+      selectedMetalinkFilePath = widget.initialMetalinkFilePath!.trim();
     }
     i('AddTaskDialog initialized');
   }
@@ -260,6 +274,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return DefaultTabController(
+      initialIndex: widget.initialTabIndex,
       length: 3,
       child: AlertDialog(
         title: Text(l10n.addTaskDialogTitle),
