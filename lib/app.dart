@@ -289,6 +289,8 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   static const Duration _autoHideWindowDelay = Duration(milliseconds: 300);
 
   int _selectedIndex = 0;
+  final GlobalKey<DownloadPageState> _downloadPageKey =
+      GlobalKey<DownloadPageState>();
   late final PageController _pageController;
   bool _switchingPage = false;
   DownloadDataService? _downloadDataService;
@@ -316,6 +318,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     windowManager.removeListener(this);
     final systemTrayService = SystemTrayService();
     systemTrayService.setOnShowWindow(null);
+    systemTrayService.setOnAddTask(null);
     systemTrayService.setOnToggleWindow(null);
     systemTrayService.setOnQuitApp(null);
     systemTrayService.setOnPauseAll(null);
@@ -373,6 +376,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       await windowManager.show();
       await windowManager.focus();
     });
+    systemTrayService.setOnAddTask(_openAddTaskFromTray);
     systemTrayService.setOnToggleWindow(_toggleWindowFromTray);
     systemTrayService.setOnQuitApp(() async {
       await windowManager.close();
@@ -510,6 +514,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         statusLabel: connectedCount == 0
             ? l10n.notConnected
             : '${l10n.connected}: $connectedCount',
+        addTaskLabel: l10n.addTask,
         toggleWindowLabel: isWindowVisible
             ? l10n.hideMainWindow
             : l10n.showMainWindow,
@@ -539,6 +544,40 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       await windowManager.focus();
     }
 
+    await _handleTrayStateChanged();
+  }
+
+  Future<void> _openAddTaskFromTray() async {
+    if (!mounted) {
+      return;
+    }
+
+    await windowManager.show();
+    await windowManager.focus();
+    if (!mounted) {
+      return;
+    }
+
+    if (_selectedIndex != 0) {
+      setState(() => _selectedIndex = 0);
+      _switchingPage = true;
+      await _pageController.animateToPage(
+        0,
+        duration: const Duration(milliseconds: 677),
+        curve: Curves.fastLinearToSlowEaseIn,
+      );
+      if (mounted) {
+        _switchingPage = false;
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _downloadPageKey.currentState?.showAddTaskDialogFromExternalTrigger();
+    });
     await _handleTrayStateChanged();
   }
 
@@ -743,7 +782,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      const DownloadPage(),
+      DownloadPage(key: _downloadPageKey),
       const InstancePage(),
       const SettingsPage(),
     ];
