@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../../generated/l10n/l10n.dart';
 import '../../models/settings.dart';
+import '../../services/protocol_integration_service.dart';
 import './components/appearance_dialog.dart';
 import '../../utils/logging.dart';
 
@@ -64,6 +67,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final showProtocolSettings = Platform.isWindows;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -366,6 +370,81 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
               ),
             ),
 
+            if (showProtocolSettings) ...[
+              Text(
+                l10n.systemIntegration,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Card(
+                margin: const EdgeInsets.only(top: 12, bottom: 24),
+                elevation: 1,
+                shadowColor: colorScheme.shadow,
+                surfaceTintColor: colorScheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        title: Text(
+                          l10n.setAsDefaultClient,
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                        subtitle: Text(l10n.setAsDefaultClientTip),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 0,
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      SwitchListTile.adaptive(
+                        title: Text(
+                          l10n.handleMagnetLinks,
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                        subtitle: Text(l10n.handleMagnetLinksTip),
+                        value: settings.protocolMagnetEnabled,
+                        onChanged: (value) => _setProtocolPreference(
+                          scheme: 'magnet',
+                          protocolLabel: 'magnet://',
+                          value: value,
+                          persist: settings.setProtocolMagnetEnabled,
+                        ),
+                        activeThumbColor: Colors.white,
+                        activeTrackColor: colorScheme.primary,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 0,
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      SwitchListTile.adaptive(
+                        title: Text(
+                          l10n.handleThunderLinks,
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                        subtitle: Text(l10n.handleThunderLinksTip),
+                        value: settings.protocolThunderEnabled,
+                        onChanged: (value) => _setProtocolPreference(
+                          scheme: 'thunder',
+                          protocolLabel: 'thunder://',
+                          value: value,
+                          persist: settings.setProtocolThunderEnabled,
+                        ),
+                        activeThumbColor: Colors.white,
+                        activeTrackColor: colorScheme.primary,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+
             // Log settings section
             Text(
               l10n.logSettings,
@@ -626,6 +705,34 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
     );
   }
 
+  Future<void> _setProtocolPreference({
+    required String scheme,
+    required String protocolLabel,
+    required bool value,
+    required Future<void> Function(bool value) persist,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      await persist(value);
+    } catch (e) {
+      this.e('Failed to save protocol preference for $scheme', error: e);
+      _showErrorSnackBar(l10n.saveSettingsFailed);
+      return;
+    }
+
+    try {
+      await ProtocolIntegrationService().setProtocolEnabled(scheme, value);
+      i('Protocol preference updated: $scheme enabled=$value');
+    } catch (e, stackTrace) {
+      this.w(
+        'Failed to apply protocol preference for $scheme immediately',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      _showWarningSnackBar(l10n.protocolPreferenceRetryWarning(protocolLabel));
+    }
+  }
+
   // Show error message
   void _showErrorSnackBar(String message) {
     if (mounted) {
@@ -647,6 +754,18 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
           content: Text(message),
           backgroundColor: Colors.blue,
           duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  void _showWarningSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
         ),
       );
     }

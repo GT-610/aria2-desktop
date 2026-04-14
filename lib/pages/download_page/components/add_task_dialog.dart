@@ -16,6 +16,7 @@ import 'directory_picker.dart';
 class AddTaskDialog extends StatefulWidget {
   final List<Aria2Instance> targetInstances;
   final String? defaultTargetInstanceId;
+  final String? initialUri;
   final Future<bool> Function(
     String taskType,
     String uri,
@@ -30,6 +31,7 @@ class AddTaskDialog extends StatefulWidget {
     super.key,
     required this.targetInstances,
     required this.defaultTargetInstanceId,
+    this.initialUri,
     required this.onAddTask,
   });
 
@@ -60,6 +62,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
         (widget.targetInstances.isNotEmpty
             ? widget.targetInstances.first.id
             : null);
+    if (widget.initialUri != null && widget.initialUri!.trim().isNotEmpty) {
+      uriController.text = widget.initialUri!.trim();
+    }
     i('AddTaskDialog initialized');
   }
 

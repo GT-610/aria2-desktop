@@ -326,6 +326,66 @@ abstract class AppLocalizations {
   /// **'Show notifications when downloads complete or fail'**
   String get taskNotificationTip;
 
+  /// No description provided for @systemIntegration.
+  ///
+  /// In en, this message translates to:
+  /// **'System Integration'**
+  String get systemIntegration;
+
+  /// No description provided for @setAsDefaultClient.
+  ///
+  /// In en, this message translates to:
+  /// **'Default client'**
+  String get setAsDefaultClient;
+
+  /// No description provided for @setAsDefaultClientTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Register this app to handle supported download links from Windows.'**
+  String get setAsDefaultClientTip;
+
+  /// No description provided for @handleMagnetLinks.
+  ///
+  /// In en, this message translates to:
+  /// **'Handle magnet links'**
+  String get handleMagnetLinks;
+
+  /// No description provided for @handleMagnetLinksTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Open magnet:// links with this app.'**
+  String get handleMagnetLinksTip;
+
+  /// No description provided for @handleThunderLinks.
+  ///
+  /// In en, this message translates to:
+  /// **'Handle thunder links'**
+  String get handleThunderLinks;
+
+  /// No description provided for @handleThunderLinksTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Open thunder:// links with this app.'**
+  String get handleThunderLinksTip;
+
+  /// No description provided for @protocolPreferenceRetryWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'The preference for {protocol} was saved, but Windows registration failed. The app will retry on next launch.'**
+  String protocolPreferenceRetryWarning(Object protocol);
+
+  /// No description provided for @protocolReconcileFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not apply saved protocol preferences for: {protocols}.'**
+  String protocolReconcileFailed(Object protocols);
+
+  /// No description provided for @connectBeforeHandlingExternalLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect an instance before opening external download links.'**
+  String get connectBeforeHandlingExternalLink;
+
   /// No description provided for @skipDeleteConfirm.
   ///
   /// In en, this message translates to:

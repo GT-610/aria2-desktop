@@ -14,6 +14,8 @@ class Settings extends ChangeNotifier with Loggable {
   bool _autoHideWindow = false; // Hide window when it loses focus
   bool _showTraySpeed = true; // Show download speed in tray tooltip
   bool _taskNotification = true; // Show task completion/failure notifications
+  bool _protocolMagnetEnabled = false; // Handle magnet:// links
+  bool _protocolThunderEnabled = false; // Handle thunder:// links
   bool _skipDeleteConfirm = false; // Skip delete confirmation dialog
   bool _resumeAllOnLaunch = false; // Resume paused tasks on app launch
   bool _showDownloadsAfterAdd =
@@ -127,6 +129,8 @@ class Settings extends ChangeNotifier with Loggable {
   bool get autoHideWindow => _autoHideWindow;
   bool get showTraySpeed => _showTraySpeed;
   bool get taskNotification => _taskNotification;
+  bool get protocolMagnetEnabled => _protocolMagnetEnabled;
+  bool get protocolThunderEnabled => _protocolThunderEnabled;
   bool get skipDeleteConfirm => _skipDeleteConfirm;
   bool get resumeAllOnLaunch => _resumeAllOnLaunch;
   bool get showDownloadsAfterAdd => _showDownloadsAfterAdd;
@@ -199,6 +203,9 @@ class Settings extends ChangeNotifier with Loggable {
         _autoHideWindow = settingsMap['autoHideWindow'] ?? false;
         _showTraySpeed = settingsMap['showTraySpeed'] ?? true;
         _taskNotification = settingsMap['taskNotification'] ?? true;
+        _protocolMagnetEnabled = settingsMap['protocolMagnetEnabled'] ?? false;
+        _protocolThunderEnabled =
+            settingsMap['protocolThunderEnabled'] ?? false;
         _skipDeleteConfirm = settingsMap['skipDeleteConfirm'] ?? false;
         _resumeAllOnLaunch = settingsMap['resumeAllOnLaunch'] ?? false;
         _showDownloadsAfterAdd = settingsMap['showDownloadsAfterAdd'] ?? true;
@@ -318,6 +325,8 @@ class Settings extends ChangeNotifier with Loggable {
     _autoHideWindow = false;
     _showTraySpeed = true;
     _taskNotification = true;
+    _protocolMagnetEnabled = false;
+    _protocolThunderEnabled = false;
     _skipDeleteConfirm = false;
     _resumeAllOnLaunch = false;
     _showDownloadsAfterAdd = true;
@@ -390,6 +399,8 @@ class Settings extends ChangeNotifier with Loggable {
         'autoHideWindow': _autoHideWindow,
         'showTraySpeed': _showTraySpeed,
         'taskNotification': _taskNotification,
+        'protocolMagnetEnabled': _protocolMagnetEnabled,
+        'protocolThunderEnabled': _protocolThunderEnabled,
         'skipDeleteConfirm': _skipDeleteConfirm,
         'resumeAllOnLaunch': _resumeAllOnLaunch,
         'showDownloadsAfterAdd': _showDownloadsAfterAdd,
@@ -486,6 +497,18 @@ class Settings extends ChangeNotifier with Loggable {
 
   Future<void> setTaskNotification(bool value) async {
     _taskNotification = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setProtocolMagnetEnabled(bool value) async {
+    _protocolMagnetEnabled = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setProtocolThunderEnabled(bool value) async {
+    _protocolThunderEnabled = value;
     notifyListeners();
     await _saveAllSettings();
   }

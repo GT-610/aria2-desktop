@@ -38,6 +38,26 @@
   "showTraySpeedTip": "Display total download speed in the tray tooltip",
   "taskNotification": "Task notifications",
   "taskNotificationTip": "Show notifications when downloads complete or fail",
+  "systemIntegration": "System Integration",
+  "setAsDefaultClient": "Default client",
+  "setAsDefaultClientTip": "Register this app to handle supported download links from Windows.",
+  "handleMagnetLinks": "Handle magnet links",
+  "handleMagnetLinksTip": "Open magnet:// links with this app.",
+  "handleThunderLinks": "Handle thunder links",
+  "handleThunderLinksTip": "Open thunder:// links with this app.",
+  "protocolPreferenceRetryWarning": "The preference for {protocol} was saved, but Windows registration failed. The app will retry on next launch.",
+  "@protocolPreferenceRetryWarning": {
+    "placeholders": {
+      "protocol": {}
+    }
+  },
+  "protocolReconcileFailed": "Could not apply saved protocol preferences for: {protocols}.",
+  "@protocolReconcileFailed": {
+    "placeholders": {
+      "protocols": {}
+    }
+  },
+  "connectBeforeHandlingExternalLink": "Connect an instance before opening external download links.",
   "skipDeleteConfirm": "Skip delete confirmation",
   "skipDeleteConfirmTip": "Delete tasks immediately without asking whether to remove downloaded files",
   "resumeAllOnLaunch": "Resume all on launch",
