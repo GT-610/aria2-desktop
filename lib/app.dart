@@ -296,6 +296,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   Settings? _settings;
   Timer? _pendingAutoHideTimer;
   bool _isWindowBlurred = false;
+  int _shellSettingsGeneration = 0;
 
   @override
   void initState() {
@@ -379,9 +380,13 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
+    final generation = ++_shellSettingsGeneration;
     final settings = _settings ?? Provider.of<Settings>(context, listen: false);
     final trayService = SystemTrayService();
     await trayService.initializeNotifications();
+    if (!mounted || generation != _shellSettingsGeneration) {
+      return;
+    }
 
     if (settings.runMode == AppRunMode.hideTray) {
       trayService.destroy();
@@ -389,6 +394,17 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     }
 
     await trayService.initialize();
+    if (!mounted) {
+      return;
+    }
+    if (generation != _shellSettingsGeneration) {
+      final latestSettings =
+          _settings ?? Provider.of<Settings>(context, listen: false);
+      if (latestSettings.runMode == AppRunMode.hideTray) {
+        trayService.destroy();
+      }
+      return;
+    }
     _handleTrayStateChanged();
   }
 
@@ -628,7 +644,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   @override
   void onWindowBlur() async {
     final settings = Provider.of<Settings>(context, listen: false);
-    if (!settings.autoHideWindow) {
+    if (!settings.autoHideWindow || settings.runMode == AppRunMode.hideTray) {
       return;
     }
 
