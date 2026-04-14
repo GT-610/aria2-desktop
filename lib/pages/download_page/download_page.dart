@@ -26,10 +26,10 @@ class DownloadPage extends StatefulWidget {
   const DownloadPage({super.key});
 
   @override
-  State<DownloadPage> createState() => _DownloadPageState();
+  State<DownloadPage> createState() => DownloadPageState();
 }
 
-class _DownloadPageState extends State<DownloadPage> with Loggable {
+class DownloadPageState extends State<DownloadPage> with Loggable {
   FilterOption _selectedFilter = FilterOption.all;
   CategoryType _currentCategoryType = CategoryType.all;
   TaskSortOption _sortOption = TaskSortOption.name;
@@ -745,6 +745,13 @@ class _DownloadPageState extends State<DownloadPage> with Loggable {
 
   void _showAddTaskDialog(BuildContext context, {String? initialUri}) {
     _showAddTaskDialogWithSeed(context, initialUri: initialUri);
+  }
+
+  void showAddTaskDialogFromExternalTrigger({String? initialUri}) {
+    if (!mounted) {
+      return;
+    }
+    _showAddTaskDialog(context, initialUri: initialUri);
   }
 
   Future<void> _handleDroppedFiles(List<String> paths) async {
