@@ -572,18 +572,6 @@ abstract class AppLocalizations {
   /// **'Failed to set custom theme color: {error}'**
   String failedToSetCustomThemeColor(Object error);
 
-  /// No description provided for @logSettings.
-  ///
-  /// In en, this message translates to:
-  /// **'Log Settings'**
-  String get logSettings;
-
-  /// No description provided for @logLevel.
-  ///
-  /// In en, this message translates to:
-  /// **'Log Level'**
-  String get logLevel;
-
   /// No description provided for @viewLogs.
   ///
   /// In en, this message translates to:

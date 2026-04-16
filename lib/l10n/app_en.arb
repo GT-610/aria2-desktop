@@ -89,8 +89,6 @@
   "failedToSetThemeMode": "Failed to set theme mode: {error}",
   "failedToSetThemeColor": "Failed to set theme color: {error}",
   "failedToSetCustomThemeColor": "Failed to set custom theme color: {error}",
-  "logSettings": "Log Settings",
-  "logLevel": "Log Level",
   "viewLogs": "View logs",
   "viewLogsTip": "View in-app logs and debug output",
   "maintenance": "Maintenance",

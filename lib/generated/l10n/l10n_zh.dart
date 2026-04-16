@@ -264,12 +264,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get logSettings => '日志设置';
-
-  @override
-  String get logLevel => '日志级别';
-
-  @override
   String get viewLogs => '查看日志';
 
   @override

@@ -89,8 +89,6 @@
   "failedToSetThemeMode": "设置主题模式失败: {error}",
   "failedToSetThemeColor": "设置主题色失败: {error}",
   "failedToSetCustomThemeColor": "设置自定义主题色失败: {error}",
-  "logSettings": "日志设置",
-  "logLevel": "日志级别",
   "viewLogs": "查看日志",
   "viewLogsTip": "查看应用内日志与调试输出",
   "maintenance": "维护与恢复",

@@ -115,10 +115,7 @@ class _SettingsPageState extends State<SettingsPage>
               _buildDesktopShellSection(settings, l10n),
               if (Platform.isWindows) _buildProtocolSection(settings, l10n),
             ]),
-            _buildTabView([
-              _buildLogSection(settings, l10n),
-              _buildMaintenanceSection(l10n),
-            ]),
+            _buildTabView([_buildMaintenanceSection(l10n)]),
             _buildTabView([_buildAboutSection(l10n)]),
           ],
         ),
@@ -402,70 +399,6 @@ class _SettingsPageState extends State<SettingsPage>
           ]),
         ],
       ),
-    );
-  }
-
-  _SettingsSection _buildLogSection(Settings settings, AppLocalizations l10n) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return _SettingsSection(
-      title: l10n.logSettings,
-      child: _buildSettingsGroup([
-        fl.CardX(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: ListTile(
-              title: Text(l10n.logLevel, style: theme.textTheme.bodyLarge),
-              trailing: SegmentedButton<String>(
-                segments: [
-                  ButtonSegment(value: 'debug', label: Text(l10n.debug)),
-                  ButtonSegment(value: 'info', label: Text(l10n.info)),
-                  ButtonSegment(value: 'warning', label: Text(l10n.warning)),
-                  ButtonSegment(value: 'error', label: Text(l10n.error)),
-                ],
-                selected: {settings.logLevelString},
-                onSelectionChanged: (newSelection) async {
-                  if (newSelection.isEmpty) {
-                    return;
-                  }
-                  final value = newSelection.first;
-                  await _runSettingAction(
-                    () async {
-                      final logLevel = AppLogLevel.values.firstWhere(
-                        (e) => e.name == value,
-                      );
-                      await settings.setAppLogLevel(logLevel);
-                    },
-                    l10n.saveSettingsFailed,
-                    successLog: 'Log level changed to: $value',
-                  );
-                },
-                style: SegmentedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
-        ),
-        fl.CardX(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.icon(
-                onPressed: _openLogPage,
-                icon: const Icon(Icons.article_outlined),
-                label: Text(l10n.viewLogs),
-              ),
-            ),
-          ),
-        ),
-      ]),
     );
   }
 

@@ -5,8 +5,6 @@ import 'package:flutter/scheduler.dart';
 import '../utils/logging.dart';
 import 'dart:convert' show jsonDecode, jsonEncode;
 
-enum AppLogLevel { debug, info, warning, error }
-
 enum AppRunMode { standard, tray, hideTray }
 
 class Settings extends ChangeNotifier with Loggable {
@@ -31,8 +29,6 @@ class Settings extends ChangeNotifier with Loggable {
   // Default theme color
   Color _primaryColor = Colors.blue; // Default theme color
   String? _customColorCode; // Custom color code
-  // Log settings
-  AppLogLevel _logLevel = AppLogLevel.info; // Log level
 
   // Locale settings
   Locale? _locale; // App locale
@@ -128,7 +124,6 @@ class Settings extends ChangeNotifier with Loggable {
     _themeMode = ThemeMode.system;
     _primaryColor = Colors.blue;
     _customColorCode = null;
-    _logLevel = AppLogLevel.info;
     _locale = null;
 
     // Built-in Aria2 instance settings defaults
@@ -212,8 +207,6 @@ class Settings extends ChangeNotifier with Loggable {
   ThemeMode get themeMode => _themeMode;
   Color get primaryColor => _primaryColor;
   String? get customColorCode => _customColorCode;
-  AppLogLevel get logLevel => _logLevel;
-  String get logLevelString => _logLevel.name;
   Locale? get locale => _locale;
 
   // Built-in Aria2 instance getters
@@ -320,14 +313,6 @@ class Settings extends ChangeNotifier with Loggable {
 
         _customColorCode = settingsMap['customColorCode'];
 
-        // Log settings
-        final logLevelValue = settingsMap['logLevel'];
-        if (logLevelValue != null) {
-          _logLevel = AppLogLevel.values.firstWhere(
-            (e) => e.name == logLevelValue,
-            orElse: () => AppLogLevel.info,
-          );
-        }
         // Locale settings
         final localeCode = settingsMap['locale'];
         if (localeCode != null && localeCode.isNotEmpty) {
@@ -434,7 +419,6 @@ class Settings extends ChangeNotifier with Loggable {
         'themeMode': _themeMode.name,
         'primaryColor': _primaryColor.toARGB32().toString(),
         'customColorCode': _customColorCode,
-        'logLevel': _logLevel.name,
         'locale': _locale?.languageCode,
 
         // Built-in Aria2 instance settings
@@ -595,13 +579,6 @@ class Settings extends ChangeNotifier with Loggable {
     } else {
       this.d('Standard primary color saved: $color');
     }
-  }
-
-  // Log level setting
-  Future<void> setAppLogLevel(AppLogLevel level) async {
-    _logLevel = level;
-    notifyListeners();
-    await _saveAllSettings();
   }
 
   // Locale setting

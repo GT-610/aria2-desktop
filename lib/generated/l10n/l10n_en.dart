@@ -279,12 +279,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get logSettings => 'Log Settings';
-
-  @override
-  String get logLevel => 'Log Level';
-
-  @override
   String get viewLogs => 'View logs';
 
   @override
