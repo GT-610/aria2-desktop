@@ -213,6 +213,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showProgressBarTip => '在下载列表中显示任务进度条';
 
   @override
+  String get hideTitleBar => '隐藏标题栏';
+
+  @override
+  String get hideTitleBarTip => '使用自定义桌面窗口框架来替代系统原生标题栏。';
+
+  @override
   String get appearance => '外观';
 
   @override
@@ -290,6 +296,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get about => '关于';
+
+  @override
+  String get aboutProject => '项目';
+
+  @override
+  String get aboutProjectDescription =>
+      'Setsuna 是一个现代化的 aria2 桌面客户端，目标是在兼容 Motrix 核心能力的同时，提供内建实例与远程实例管理能力。';
+
+  @override
+  String get sourceCode => '源代码';
+
+  @override
+  String get reportIssue => '反馈问题';
+
+  @override
+  String get participants => '参与者';
 
   @override
   String get version => '版本号';

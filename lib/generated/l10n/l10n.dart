@@ -482,6 +482,18 @@ abstract class AppLocalizations {
   /// **'Display task progress bars in the download list'**
   String get showProgressBarTip;
 
+  /// No description provided for @hideTitleBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide title bar'**
+  String get hideTitleBar;
+
+  /// No description provided for @hideTitleBarTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a custom desktop window frame instead of the native title bar.'**
+  String get hideTitleBarTip;
+
   /// No description provided for @appearance.
   ///
   /// In en, this message translates to:
@@ -625,6 +637,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'About'**
   String get about;
+
+  /// No description provided for @aboutProject.
+  ///
+  /// In en, this message translates to:
+  /// **'Project'**
+  String get aboutProject;
+
+  /// No description provided for @aboutProjectDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Setsuna is a modern aria2 desktop client focused on Motrix-level compatibility while adding built-in and remote instance management.'**
+  String get aboutProjectDescription;
+
+  /// No description provided for @sourceCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Source Code'**
+  String get sourceCode;
+
+  /// No description provided for @reportIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Issue'**
+  String get reportIssue;
+
+  /// No description provided for @participants.
+  ///
+  /// In en, this message translates to:
+  /// **'Participants'**
+  String get participants;
 
   /// No description provided for @version.
   ///

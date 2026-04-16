@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app.dart';
+import 'models/settings.dart';
 import 'services/protocol_integration_service.dart';
 import 'services/system_tray_service.dart';
 
@@ -9,8 +10,11 @@ void main(List<String> args) async {
 
   ProtocolIntegrationService().captureInitialArguments(args);
 
+  final settings = Settings();
+  await settings.loadSettings();
+
   // Initialize window manager
-  await WindowManagerService().initialize();
+  await WindowManagerService().initialize(hideTitleBar: settings.hideTitleBar);
 
   // Run the application
   runApp(const MyApp());

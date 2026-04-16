@@ -22,6 +22,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool _showDownloadsAfterAdd =
       true; // Focus downloading view after adding tasks
   bool _showProgressBar = true; // Show progress bars in task list
+  bool _hideTitleBar = false; // Hide the native desktop title bar
   bool _isLoaded = false; // Whether settings have finished loading
 
   // Appearance settings
@@ -121,6 +122,7 @@ class Settings extends ChangeNotifier with Loggable {
     _resumeAllOnLaunch = false;
     _showDownloadsAfterAdd = true;
     _showProgressBar = true;
+    _hideTitleBar = false;
     _themeMode = ThemeMode.system;
     _primaryColor = Colors.blue;
     _customColorCode = null;
@@ -203,6 +205,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool get resumeAllOnLaunch => _resumeAllOnLaunch;
   bool get showDownloadsAfterAdd => _showDownloadsAfterAdd;
   bool get showProgressBar => _showProgressBar;
+  bool get hideTitleBar => _hideTitleBar;
   bool get isLoaded => _isLoaded;
   ThemeMode get themeMode => _themeMode;
   Color get primaryColor => _primaryColor;
@@ -291,6 +294,7 @@ class Settings extends ChangeNotifier with Loggable {
         _resumeAllOnLaunch = settingsMap['resumeAllOnLaunch'] ?? false;
         _showDownloadsAfterAdd = settingsMap['showDownloadsAfterAdd'] ?? true;
         _showProgressBar = settingsMap['showProgressBar'] ?? true;
+        _hideTitleBar = settingsMap['hideTitleBar'] ?? false;
 
         // Appearance settings
         final themeModeValue = settingsMap['themeMode'];
@@ -416,6 +420,7 @@ class Settings extends ChangeNotifier with Loggable {
         'resumeAllOnLaunch': _resumeAllOnLaunch,
         'showDownloadsAfterAdd': _showDownloadsAfterAdd,
         'showProgressBar': _showProgressBar,
+        'hideTitleBar': _hideTitleBar,
         'themeMode': _themeMode.name,
         'primaryColor': _primaryColor.toARGB32().toString(),
         'customColorCode': _customColorCode,
@@ -556,6 +561,12 @@ class Settings extends ChangeNotifier with Loggable {
 
   Future<void> setShowProgressBar(bool value) async {
     _showProgressBar = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setHideTitleBar(bool value) async {
+    _hideTitleBar = value;
     notifyListeners();
     await _saveAllSettings();
   }
