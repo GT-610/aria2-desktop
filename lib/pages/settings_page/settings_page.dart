@@ -4,11 +4,21 @@ import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+
 import '../../generated/l10n/l10n.dart';
 import '../../models/settings.dart';
 import '../../services/protocol_integration_service.dart';
-import './components/appearance_dialog.dart';
 import '../../utils/logging.dart';
+import './components/appearance_dialog.dart';
+
+enum _SettingsTab { global, system, maintenance, about }
+
+class _SettingsSection {
+  const _SettingsSection({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+}
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -17,9 +27,14 @@ class SettingsPage extends StatefulWidget {
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> with Loggable {
+class _SettingsPageState extends State<SettingsPage>
+    with Loggable, SingleTickerProviderStateMixin {
   String _version = '';
   bool _isLoading = true;
+  late final TabController _tabController = TabController(
+    length: _SettingsTab.values.length,
+    vsync: this,
+  );
 
   @override
   void initState() {
@@ -30,6 +45,12 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
     });
   }
 
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadSettings() async {
     try {
       i('Loading settings in settings page');
@@ -38,8 +59,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
     } catch (err) {
       this.e('Failed to load settings', error: err);
       if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
-        _showErrorSnackBar(l10n.loadSettingsFailed);
+        _showErrorSnackBar(AppLocalizations.of(context)!.loadSettingsFailed);
       }
     } finally {
       if (mounted) {
@@ -52,6 +72,9 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
 
   Future<void> _loadVersionInfo() async {
     final packageInfo = await PackageInfo.fromPlatform();
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _version = packageInfo.version;
     });
@@ -65,646 +88,518 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
 
     final settings = Provider.of<Settings>(context);
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final showProtocolSettings = Platform.isWindows;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      appBar: AppBar(
+        title: Text(l10n.settings),
+        bottom: TabBar(
+          controller: _tabController,
+          dividerHeight: 0,
+          tabAlignment: TabAlignment.center,
+          isScrollable: true,
+          tabs: _SettingsTab.values
+              .map((tab) => Tab(text: _tabTitle(tab, l10n)))
+              .toList(growable: false),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        child: TabBarView(
+          controller: _tabController,
           children: [
-            // Global settings section
-            Text(
-              l10n.globalSettings,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Card(
-              margin: const EdgeInsets.only(top: 12, bottom: 24),
-              elevation: 1,
-              shadowColor: colorScheme.shadow,
-              surfaceTintColor: colorScheme.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    SwitchListTile.adaptive(
-                      title: Text(
-                        l10n.runAtStartup,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(l10n.runAtStartupTip),
-                      value: settings.autoStart,
-                      onChanged: (value) async {
-                        try {
-                          await settings.setAutoStart(value);
-                          this.i('Auto-start setting changed to: $value');
-                        } catch (e) {
-                          this.e('Failed to save auto-start setting', error: e);
-                          _showErrorSnackBar(l10n.saveSettingsFailed);
-                        }
-                      },
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: colorScheme.primary,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      title: Text(
-                        l10n.runMode,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(
-                        _runModeDescription(settings.runMode, l10n),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: SegmentedButton<AppRunMode>(
-                          segments: [
-                            ButtonSegment(
-                              value: AppRunMode.standard,
-                              label: Text(l10n.runModeStandard),
-                            ),
-                            ButtonSegment(
-                              value: AppRunMode.tray,
-                              label: Text(l10n.runModeTray),
-                            ),
-                            ButtonSegment(
-                              value: AppRunMode.hideTray,
-                              label: Text(l10n.runModeHideTray),
-                            ),
-                          ],
-                          selected: {settings.runMode},
-                          onSelectionChanged: (selection) async {
-                            if (selection.isEmpty) {
-                              return;
-                            }
-
-                            try {
-                              await settings.setRunMode(selection.first);
-                              i(
-                                'Run mode setting changed to: ${selection.first.name}',
-                              );
-                            } catch (e) {
-                              this.e(
-                                'Failed to save run mode setting',
-                                error: e,
-                              );
-                              _showErrorSnackBar(l10n.saveSettingsFailed);
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    SwitchListTile.adaptive(
-                      title: Text(
-                        l10n.autoHideWindow,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(l10n.autoHideWindowTip),
-                      value: settings.autoHideWindow,
-                      onChanged: settings.runMode == AppRunMode.hideTray
-                          ? null
-                          : (value) async {
-                              try {
-                                await settings.setAutoHideWindow(value);
-                                this.i(
-                                  'Auto hide window setting changed to: $value',
-                                );
-                              } catch (e) {
-                                this.e(
-                                  'Failed to save auto hide window setting',
-                                  error: e,
-                                );
-                                _showErrorSnackBar(l10n.saveSettingsFailed);
-                              }
-                            },
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: colorScheme.primary,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const Divider(height: 1),
-                    SwitchListTile.adaptive(
-                      title: Text(
-                        l10n.showTraySpeed,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(l10n.showTraySpeedTip),
-                      value: settings.showTraySpeed,
-                      onChanged: settings.runMode == AppRunMode.hideTray
-                          ? null
-                          : (value) async {
-                              try {
-                                await settings.setShowTraySpeed(value);
-                                this.i(
-                                  'Show tray speed setting changed to: $value',
-                                );
-                              } catch (e) {
-                                this.e(
-                                  'Failed to save show tray speed setting',
-                                  error: e,
-                                );
-                                _showErrorSnackBar(l10n.saveSettingsFailed);
-                              }
-                            },
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: colorScheme.primary,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const Divider(height: 1),
-                    SwitchListTile.adaptive(
-                      title: Text(
-                        l10n.taskNotification,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(l10n.taskNotificationTip),
-                      value: settings.taskNotification,
-                      onChanged: (value) async {
-                        try {
-                          await settings.setTaskNotification(value);
-                          this.i(
-                            'Task notification setting changed to: $value',
-                          );
-                        } catch (e) {
-                          this.e(
-                            'Failed to save task notification setting',
-                            error: e,
-                          );
-                          _showErrorSnackBar(l10n.saveSettingsFailed);
-                        }
-                      },
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: colorScheme.primary,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const Divider(height: 1),
-                    SwitchListTile.adaptive(
-                      title: Text(
-                        l10n.skipDeleteConfirm,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(l10n.skipDeleteConfirmTip),
-                      value: settings.skipDeleteConfirm,
-                      onChanged: (value) async {
-                        try {
-                          await settings.setSkipDeleteConfirm(value);
-                          this.i(
-                            'Skip delete confirm setting changed to: $value',
-                          );
-                        } catch (e) {
-                          this.e(
-                            'Failed to save skip delete confirm setting',
-                            error: e,
-                          );
-                          _showErrorSnackBar(l10n.saveSettingsFailed);
-                        }
-                      },
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: colorScheme.primary,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const Divider(height: 1),
-                    SwitchListTile.adaptive(
-                      title: Text(
-                        l10n.resumeAllOnLaunch,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(l10n.resumeAllOnLaunchTip),
-                      value: settings.resumeAllOnLaunch,
-                      onChanged: (value) async {
-                        try {
-                          await settings.setResumeAllOnLaunch(value);
-                          this.i(
-                            'Resume all on launch setting changed to: $value',
-                          );
-                        } catch (e) {
-                          this.e(
-                            'Failed to save resume all on launch setting',
-                            error: e,
-                          );
-                          _showErrorSnackBar(l10n.saveSettingsFailed);
-                        }
-                      },
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: colorScheme.primary,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const Divider(height: 1),
-                    SwitchListTile.adaptive(
-                      title: Text(
-                        l10n.showDownloadsAfterAdd,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(l10n.showDownloadsAfterAddTip),
-                      value: settings.showDownloadsAfterAdd,
-                      onChanged: (value) async {
-                        try {
-                          await settings.setShowDownloadsAfterAdd(value);
-                          this.i(
-                            'Show downloads after add setting changed to: $value',
-                          );
-                        } catch (e) {
-                          this.e(
-                            'Failed to save show downloads after add setting',
-                            error: e,
-                          );
-                          _showErrorSnackBar(l10n.saveSettingsFailed);
-                        }
-                      },
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: colorScheme.primary,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const Divider(height: 1),
-                    SwitchListTile.adaptive(
-                      title: Text(
-                        l10n.showProgressBar,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(l10n.showProgressBarTip),
-                      value: settings.showProgressBar,
-                      onChanged: (value) async {
-                        try {
-                          await settings.setShowProgressBar(value);
-                          this.i(
-                            'Show progress bar setting changed to: $value',
-                          );
-                        } catch (e) {
-                          this.e(
-                            'Failed to save show progress bar setting',
-                            error: e,
-                          );
-                          _showErrorSnackBar(l10n.saveSettingsFailed);
-                        }
-                      },
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: colorScheme.primary,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      title: Text(
-                        l10n.appearance,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(l10n.appearanceTip),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.only(right: 16),
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: settings.primaryColor,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(color: colorScheme.outline),
-                            ),
-                          ),
-                          Text(
-                            settings.themeMode.name == 'light'
-                                ? l10n.light
-                                : settings.themeMode.name == 'dark'
-                                ? l10n.dark
-                                : l10n.system,
-                          ),
-                          const Icon(Icons.chevron_right),
-                        ],
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                      onTap: () => _showAppearanceDialog(context, settings),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      title: Text(
-                        l10n.language,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(_getLanguageName(settings.locale, l10n)),
-                          const Icon(Icons.chevron_right),
-                        ],
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                      onTap: () => _showLanguageDialog(context, settings, l10n),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            if (showProtocolSettings) ...[
-              Text(
-                l10n.systemIntegration,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Card(
-                margin: const EdgeInsets.only(top: 12, bottom: 24),
-                elevation: 1,
-                shadowColor: colorScheme.shadow,
-                surfaceTintColor: colorScheme.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      ListTile(
-                        title: Text(
-                          l10n.setAsDefaultClient,
-                          style: theme.textTheme.bodyLarge,
-                        ),
-                        subtitle: Text(l10n.setAsDefaultClientTip),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 0,
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      SwitchListTile.adaptive(
-                        title: Text(
-                          l10n.handleMagnetLinks,
-                          style: theme.textTheme.bodyLarge,
-                        ),
-                        subtitle: Text(l10n.handleMagnetLinksTip),
-                        value: settings.protocolMagnetEnabled,
-                        onChanged: (value) => _setProtocolPreference(
-                          scheme: 'magnet',
-                          protocolLabel: 'magnet://',
-                          value: value,
-                          persist: settings.setProtocolMagnetEnabled,
-                        ),
-                        activeThumbColor: Colors.white,
-                        activeTrackColor: colorScheme.primary,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 0,
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      SwitchListTile.adaptive(
-                        title: Text(
-                          l10n.handleThunderLinks,
-                          style: theme.textTheme.bodyLarge,
-                        ),
-                        subtitle: Text(l10n.handleThunderLinksTip),
-                        value: settings.protocolThunderEnabled,
-                        onChanged: (value) => _setProtocolPreference(
-                          scheme: 'thunder',
-                          protocolLabel: 'thunder://',
-                          value: value,
-                          persist: settings.setProtocolThunderEnabled,
-                        ),
-                        activeThumbColor: Colors.white,
-                        activeTrackColor: colorScheme.primary,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 0,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-
-            Text(
-              l10n.maintenance,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Card(
-              margin: const EdgeInsets.only(top: 12, bottom: 24),
-              elevation: 1,
-              shadowColor: colorScheme.shadow,
-              surfaceTintColor: colorScheme.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    ListTile(
-                      title: Text(
-                        l10n.viewLogFiles,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(l10n.viewLogFilesTip),
-                      trailing: const Icon(Icons.folder_open),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                      onTap: _openLogDirectory,
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      title: Text(
-                        l10n.resetAppSettings,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.error,
-                        ),
-                      ),
-                      subtitle: Text(l10n.resetAppSettingsTip),
-                      trailing: Icon(
-                        Icons.restart_alt,
-                        color: colorScheme.error,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                      onTap: _confirmResetSettings,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Log settings section
-            Text(
-              l10n.logSettings,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Card(
-              margin: const EdgeInsets.only(top: 12, bottom: 24),
-              elevation: 1,
-              shadowColor: colorScheme.shadow,
-              surfaceTintColor: colorScheme.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    ListTile(
-                      title: Text(
-                        l10n.logLevel,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      trailing: SegmentedButton<String>(
-                        segments: [
-                          ButtonSegment(
-                            value: 'debug',
-                            label: Text(l10n.debug),
-                          ),
-                          ButtonSegment(value: 'info', label: Text(l10n.info)),
-                          ButtonSegment(
-                            value: 'warning',
-                            label: Text(l10n.warning),
-                          ),
-                          ButtonSegment(
-                            value: 'error',
-                            label: Text(l10n.error),
-                          ),
-                        ],
-                        selected: {settings.logLevelString},
-                        onSelectionChanged: (newSelection) async {
-                          if (newSelection.isNotEmpty) {
-                            final value = newSelection.first;
-                            try {
-                              final logLevel = AppLogLevel.values.firstWhere(
-                                (e) => e.name == value,
-                              );
-                              await settings.setAppLogLevel(logLevel);
-                              this.i('Log level changed to: $value');
-                            } catch (e) {
-                              this.e(
-                                'Failed to save log level setting',
-                                error: e,
-                              );
-                              _showErrorSnackBar(l10n.saveSettingsFailed);
-                            }
-                          }
-                        },
-                        style: SegmentedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          backgroundColor: colorScheme.surfaceContainerHighest,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const Divider(height: 1),
-                    SwitchListTile.adaptive(
-                      title: Text(
-                        l10n.saveLogToFile,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      value: settings.saveLogsToFile,
-                      onChanged: (value) async {
-                        try {
-                          await settings.setSaveLogsToFile(value);
-                          this.i(
-                            'Save logs to file setting changed to: $value',
-                          );
-                        } catch (e) {
-                          this.e('Failed to save save logs setting', error: e);
-                          _showErrorSnackBar(l10n.saveSettingsFailed);
-                        }
-                      },
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: colorScheme.primary,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                    ),
-                    const Divider(height: 1),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: FilledButton.icon(
-                        onPressed: _openLogDirectory,
-                        icon: const Icon(Icons.file_open),
-                        label: Text(l10n.viewLogFiles),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // About section
-            Text(
-              l10n.about,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Card(
-              margin: const EdgeInsets.only(top: 12, bottom: 24),
-              elevation: 1,
-              shadowColor: colorScheme.shadow,
-              surfaceTintColor: colorScheme.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    ListTile(
-                      title: Text(
-                        l10n.version,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      subtitle: Text(
-                        _version.isEmpty ? l10n.versionLoading : _version,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                      onTap: () {},
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      title: Text(
-                        l10n.contributors,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                      onTap: () {},
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      title: Text(
-                        l10n.license,
-                        style: theme.textTheme.bodyLarge,
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
-                      onTap: () {},
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            _buildTabView([
+              _buildBehaviorSection(settings, l10n),
+              _buildAppearanceSection(settings, l10n),
+            ]),
+            _buildTabView([
+              _buildDesktopShellSection(settings, l10n),
+              if (Platform.isWindows) _buildProtocolSection(settings, l10n),
+            ]),
+            _buildTabView([
+              _buildLogSection(settings, l10n),
+              _buildMaintenanceSection(l10n),
+            ]),
+            _buildTabView([_buildAboutSection(l10n)]),
           ],
         ),
       ),
     );
   }
 
-  // Show appearance settings dialog
+  String _tabTitle(_SettingsTab tab, AppLocalizations l10n) {
+    switch (tab) {
+      case _SettingsTab.global:
+        return l10n.globalSettings;
+      case _SettingsTab.system:
+        return l10n.systemIntegration;
+      case _SettingsTab.maintenance:
+        return l10n.maintenance;
+      case _SettingsTab.about:
+        return l10n.about;
+    }
+  }
+
+  Widget _buildTabView(List<_SettingsSection> sections) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final columns = width >= 1440
+            ? 3
+            : width >= 900
+            ? 2
+            : 1;
+        const gap = 16.0;
+        final itemWidth = columns == 1
+            ? width
+            : (width - (gap * (columns - 1))) / columns;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: sections
+                .map(
+                  (section) => SizedBox(
+                    width: itemWidth,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        fl.CenterGreyTitle(section.title),
+                        section.child,
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSettingsGroup(List<Widget> children) {
+    return Column(children: children.map((child) => child).toList());
+  }
+
+  _SettingsSection _buildBehaviorSection(
+    Settings settings,
+    AppLocalizations l10n,
+  ) {
+    return _SettingsSection(
+      title: l10n.globalSettings,
+      child: _buildSettingsGroup([
+        _buildSwitchTile(
+          title: l10n.taskNotification,
+          subtitle: l10n.taskNotificationTip,
+          value: settings.taskNotification,
+          onChanged: (value) => settings.setTaskNotification(value),
+        ),
+        _buildSwitchTile(
+          title: l10n.skipDeleteConfirm,
+          subtitle: l10n.skipDeleteConfirmTip,
+          value: settings.skipDeleteConfirm,
+          onChanged: (value) => settings.setSkipDeleteConfirm(value),
+        ),
+        _buildSwitchTile(
+          title: l10n.resumeAllOnLaunch,
+          subtitle: l10n.resumeAllOnLaunchTip,
+          value: settings.resumeAllOnLaunch,
+          onChanged: (value) => settings.setResumeAllOnLaunch(value),
+        ),
+        _buildSwitchTile(
+          title: l10n.showDownloadsAfterAdd,
+          subtitle: l10n.showDownloadsAfterAddTip,
+          value: settings.showDownloadsAfterAdd,
+          onChanged: (value) => settings.setShowDownloadsAfterAdd(value),
+        ),
+        _buildSwitchTile(
+          title: l10n.showProgressBar,
+          subtitle: l10n.showProgressBarTip,
+          value: settings.showProgressBar,
+          onChanged: (value) => settings.setShowProgressBar(value),
+        ),
+      ]),
+    );
+  }
+
+  _SettingsSection _buildAppearanceSection(
+    Settings settings,
+    AppLocalizations l10n,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return _SettingsSection(
+      title: l10n.appearance,
+      child: _buildSettingsGroup([
+        _buildTextCardTile(
+          title: l10n.appearance,
+          subtitle: Text(l10n.appearanceTip),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(right: 16),
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: settings.primaryColor,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: colorScheme.outline),
+                ),
+              ),
+              Text(
+                settings.themeMode.name == 'light'
+                    ? l10n.light
+                    : settings.themeMode.name == 'dark'
+                    ? l10n.dark
+                    : l10n.system,
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+          onTap: () => _showAppearanceDialog(context, settings),
+        ),
+        _buildTextCardTile(
+          title: l10n.language,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_getLanguageName(settings.locale, l10n)),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+          onTap: () => _showLanguageDialog(context, settings, l10n),
+        ),
+      ]),
+    );
+  }
+
+  _SettingsSection _buildDesktopShellSection(
+    Settings settings,
+    AppLocalizations l10n,
+  ) {
+    final theme = Theme.of(context);
+    return _SettingsSection(
+      title: l10n.systemIntegration,
+      child: _buildSettingsGroup([
+        _buildSwitchTile(
+          title: l10n.runAtStartup,
+          subtitle: l10n.runAtStartupTip,
+          value: settings.autoStart,
+          onChanged: (value) => settings.setAutoStart(value),
+        ),
+        fl.CardX(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListTile(
+                  title: Text(l10n.runMode, style: theme.textTheme.bodyLarge),
+                  subtitle: Text(
+                    _runModeDescription(settings.runMode, l10n),
+                    style: fl.UIs.textGrey,
+                  ),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SegmentedButton<AppRunMode>(
+                      segments: [
+                        ButtonSegment(
+                          value: AppRunMode.standard,
+                          label: Text(l10n.runModeStandard),
+                        ),
+                        ButtonSegment(
+                          value: AppRunMode.tray,
+                          label: Text(l10n.runModeTray),
+                        ),
+                        ButtonSegment(
+                          value: AppRunMode.hideTray,
+                          label: Text(l10n.runModeHideTray),
+                        ),
+                      ],
+                      selected: {settings.runMode},
+                      onSelectionChanged: (selection) async {
+                        if (selection.isEmpty) {
+                          return;
+                        }
+                        await _runSettingAction(
+                          () => settings.setRunMode(selection.first),
+                          l10n.saveSettingsFailed,
+                          successLog:
+                              'Run mode setting changed to: ${selection.first.name}',
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        _buildSwitchTile(
+          title: l10n.autoHideWindow,
+          subtitle: l10n.autoHideWindowTip,
+          value: settings.autoHideWindow,
+          enabled: settings.runMode != AppRunMode.hideTray,
+          onChanged: (value) => settings.setAutoHideWindow(value),
+        ),
+        _buildSwitchTile(
+          title: l10n.showTraySpeed,
+          subtitle: l10n.showTraySpeedTip,
+          value: settings.showTraySpeed,
+          enabled: settings.runMode != AppRunMode.hideTray,
+          onChanged: (value) => settings.setShowTraySpeed(value),
+        ),
+      ]),
+    );
+  }
+
+  _SettingsSection _buildProtocolSection(
+    Settings settings,
+    AppLocalizations l10n,
+  ) {
+    return _SettingsSection(
+      title: l10n.setAsDefaultClient,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+            child: Text(l10n.setAsDefaultClientTip, style: fl.UIs.textGrey),
+          ),
+          _buildSettingsGroup([
+            _buildSwitchTile(
+              title: l10n.handleMagnetLinks,
+              subtitle: l10n.handleMagnetLinksTip,
+              value: settings.protocolMagnetEnabled,
+              logSuccess: false,
+              onChanged: (value) => _setProtocolPreference(
+                scheme: 'magnet',
+                protocolLabel: 'magnet://',
+                value: value,
+                persist: settings.setProtocolMagnetEnabled,
+              ),
+            ),
+            _buildSwitchTile(
+              title: l10n.handleThunderLinks,
+              subtitle: l10n.handleThunderLinksTip,
+              value: settings.protocolThunderEnabled,
+              logSuccess: false,
+              onChanged: (value) => _setProtocolPreference(
+                scheme: 'thunder',
+                protocolLabel: 'thunder://',
+                value: value,
+                persist: settings.setProtocolThunderEnabled,
+              ),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  _SettingsSection _buildLogSection(Settings settings, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return _SettingsSection(
+      title: l10n.logSettings,
+      child: _buildSettingsGroup([
+        fl.CardX(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: ListTile(
+              title: Text(l10n.logLevel, style: theme.textTheme.bodyLarge),
+              trailing: SegmentedButton<String>(
+                segments: [
+                  ButtonSegment(value: 'debug', label: Text(l10n.debug)),
+                  ButtonSegment(value: 'info', label: Text(l10n.info)),
+                  ButtonSegment(value: 'warning', label: Text(l10n.warning)),
+                  ButtonSegment(value: 'error', label: Text(l10n.error)),
+                ],
+                selected: {settings.logLevelString},
+                onSelectionChanged: (newSelection) async {
+                  if (newSelection.isEmpty) {
+                    return;
+                  }
+                  final value = newSelection.first;
+                  await _runSettingAction(
+                    () async {
+                      final logLevel = AppLogLevel.values.firstWhere(
+                        (e) => e.name == value,
+                      );
+                      await settings.setAppLogLevel(logLevel);
+                    },
+                    l10n.saveSettingsFailed,
+                    successLog: 'Log level changed to: $value',
+                  );
+                },
+                style: SegmentedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  backgroundColor: colorScheme.surfaceContainerHighest,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ),
+        _buildSwitchTile(
+          title: l10n.saveLogToFile,
+          value: settings.saveLogsToFile,
+          onChanged: (value) => settings.setSaveLogsToFile(value),
+        ),
+        fl.CardX(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.icon(
+                onPressed: _openLogDirectory,
+                icon: const Icon(Icons.folder_open),
+                label: Text(l10n.viewLogFiles),
+              ),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  _SettingsSection _buildMaintenanceSection(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return _SettingsSection(
+      title: l10n.maintenance,
+      child: _buildSettingsGroup([
+        _buildTextCardTile(
+          title: l10n.viewLogFiles,
+          subtitle: Text(l10n.viewLogFilesTip),
+          trailing: const Icon(Icons.folder_open),
+          onTap: _openLogDirectory,
+        ),
+        _buildWidgetCardTile(
+          title: Text(
+            l10n.resetAppSettings,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: colorScheme.error,
+            ),
+          ),
+          subtitle: Text(l10n.resetAppSettingsTip),
+          trailing: Icon(Icons.restart_alt, color: colorScheme.error),
+          onTap: _confirmResetSettings,
+        ),
+      ]),
+    );
+  }
+
+  _SettingsSection _buildAboutSection(AppLocalizations l10n) {
+    return _SettingsSection(
+      title: l10n.about,
+      child: _buildSettingsGroup([
+        _buildTextCardTile(
+          title: l10n.version,
+          subtitle: Text(_version.isEmpty ? l10n.versionLoading : _version),
+        ),
+        _buildTextCardTile(
+          title: l10n.contributors,
+          trailing: const Icon(Icons.chevron_right),
+        ),
+        _buildTextCardTile(
+          title: l10n.license,
+          trailing: const Icon(Icons.chevron_right),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildWidgetCardTile({
+    required Widget title,
+    Widget? subtitle,
+    Widget? trailing,
+    VoidCallback? onTap,
+  }) {
+    return fl.CardX(
+      child: ListTile(
+        title: DefaultTextStyle.merge(
+          style: Theme.of(context).textTheme.bodyLarge,
+          child: title,
+        ),
+        subtitle: subtitle == null
+            ? null
+            : DefaultTextStyle.merge(style: fl.UIs.textGrey, child: subtitle),
+        trailing: trailing,
+        onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildTextCardTile({
+    required String title,
+    Widget? subtitle,
+    Widget? trailing,
+    VoidCallback? onTap,
+  }) {
+    return _buildWidgetCardTile(
+      title: Text(title),
+      subtitle: subtitle,
+      trailing: trailing,
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildSwitchTile({
+    required String title,
+    String? subtitle,
+    required bool value,
+    required Future<void> Function(bool value) onChanged,
+    bool enabled = true,
+    bool logSuccess = true,
+  }) {
+    return fl.CardX(
+      child: ListTile(
+        title: Text(title),
+        subtitle: subtitle == null
+            ? null
+            : Text(subtitle, style: fl.UIs.textGrey),
+        trailing: Switch.adaptive(
+          value: value,
+          onChanged: !enabled
+              ? null
+              : (next) => _runSettingAction(
+                  () => onChanged(next),
+                  AppLocalizations.of(context)!.saveSettingsFailed,
+                  successLog: logSuccess ? '$title changed to: $next' : null,
+                ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _runSettingAction(
+    Future<void> Function() action,
+    String errorMessage, {
+    String? successLog,
+  }) async {
+    try {
+      await action();
+      if (successLog != null) {
+        i(successLog);
+      }
+    } catch (e, stackTrace) {
+      this.e('Failed to update setting', error: e, stackTrace: stackTrace);
+      _showErrorSnackBar(errorMessage);
+    }
+  }
+
   void _showAppearanceDialog(BuildContext context, Settings settings) {
     showDialog(
       context: context,
@@ -714,7 +609,6 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
     );
   }
 
-  // Get language display name
   String _getLanguageName(Locale? locale, AppLocalizations l10n) {
     if (locale == null) {
       return l10n.system;
@@ -740,7 +634,6 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
     }
   }
 
-  // Show language selection dialog
   void _showLanguageDialog(
     BuildContext context,
     Settings settings,
@@ -829,7 +722,7 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
     }
 
     try {
-      this.i('Opening log directory: ${logDirectory.path}');
+      i('Opening log directory: ${logDirectory.path}');
       await Process.start(
         Platform.isWindows
             ? 'explorer.exe'
@@ -897,7 +790,6 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
     }
   }
 
-  // Show error message
   void _showErrorSnackBar(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -910,7 +802,6 @@ class _SettingsPageState extends State<SettingsPage> with Loggable {
     }
   }
 
-  // Show information message
   void _showInfoSnackBar(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
