@@ -191,7 +191,10 @@ class _AddTaskDialogState extends State<AddTaskDialog>
         clipboardText,
         showThunderWarning: false,
       );
-      if (normalized == null || normalized.isEmpty || !mounted) {
+      if (normalized == null ||
+          normalized.isEmpty ||
+          !mounted ||
+          uriController.text.trim().isNotEmpty) {
         return;
       }
 
