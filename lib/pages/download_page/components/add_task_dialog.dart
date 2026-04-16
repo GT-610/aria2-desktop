@@ -74,6 +74,7 @@ class _AddTaskDialogState extends State<AddTaskDialog>
   String? selectedTorrentFilePath;
   String? selectedMetalinkFilePath;
   late String? _selectedTargetInstanceId;
+  String? _lastAppliedInstanceDirectory;
 
   @override
   void initState() {
@@ -90,6 +91,7 @@ class _AddTaskDialogState extends State<AddTaskDialog>
             ? widget.targetInstances.first.id
             : null);
     showDownloadsAfterAdd = widget.initialShowDownloadsAfterAdd;
+    splitController.text = '64';
 
     if (widget.initialUri != null && widget.initialUri!.trim().isNotEmpty) {
       uriController.text = widget.initialUri!.trim();
@@ -108,6 +110,9 @@ class _AddTaskDialogState extends State<AddTaskDialog>
         unawaited(_maybeAutofillUriFromClipboard());
       });
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_syncSaveLocationFromSelectedTarget(force: true));
+    });
     i('AddTaskDialog initialized');
   }
 
@@ -322,6 +327,56 @@ class _AddTaskDialogState extends State<AddTaskDialog>
     await _submitTask(_currentTaskType);
   }
 
+  Future<void> _syncSaveLocationFromSelectedTarget({
+    required bool force,
+  }) async {
+    final targetInstanceId = _selectedTargetInstanceId;
+    if (targetInstanceId == null) {
+      return;
+    }
+
+    Aria2Instance? targetInstance;
+    for (final instance in widget.targetInstances) {
+      if (instance.id == targetInstanceId) {
+        targetInstance = instance;
+        break;
+      }
+    }
+
+    if (targetInstance == null) {
+      return;
+    }
+
+    _applyDefaultDirectory(targetInstance.downloadDir.trim(), force: force);
+  }
+
+  void _applyDefaultDirectory(String directory, {required bool force}) {
+    if (!mounted) {
+      return;
+    }
+
+    final shouldApply =
+        force ||
+        saveLocation.trim().isEmpty ||
+        saveLocation == _lastAppliedInstanceDirectory;
+    if (!shouldApply) {
+      return;
+    }
+
+    setState(() {
+      saveLocation = directory;
+      _lastAppliedInstanceDirectory = directory;
+    });
+  }
+
+  void _stepSplitCount(int delta) {
+    final current = int.tryParse(splitController.text.trim()) ?? 64;
+    final nextValue = (current + delta).clamp(1, 999);
+    setState(() {
+      splitController.text = nextValue.toString();
+    });
+  }
+
   Future<void> _submitTask(String taskType) async {
     final l10n = AppLocalizations.of(context)!;
     if (_isSubmitting) {
@@ -410,26 +465,6 @@ class _AddTaskDialogState extends State<AddTaskDialog>
 
   bool get _hasAvailableTargets => widget.targetInstances.isNotEmpty;
 
-  String? _selectedTargetLabel() {
-    final l10n = AppLocalizations.of(context)!;
-    final selectedId = _selectedTargetInstanceId;
-    if (selectedId == null) return null;
-
-    Aria2Instance? selectedInstance;
-    for (final instance in widget.targetInstances) {
-      if (instance.id == selectedId) {
-        selectedInstance = instance;
-        break;
-      }
-    }
-
-    if (selectedInstance == null) return null;
-
-    return selectedInstance.type == InstanceType.builtin
-        ? l10n.builtInDefaultInstance(selectedInstance.name)
-        : selectedInstance.name;
-  }
-
   Widget _buildCurrentTabContent(AppLocalizations l10n) {
     return SizedBox(
       height: 160,
@@ -503,14 +538,13 @@ class _AddTaskDialogState extends State<AddTaskDialog>
             onTap: _isSubmitting ? null : onSelect,
           ),
           const SizedBox(height: 16),
-          Text(
-            selectedFilePath == null
-                ? l10n.addTaskNoFileSelected
-                : l10n.selectedFile(
-                    selectedFilePath.split(Platform.pathSeparator).last,
-                  ),
-            textAlign: TextAlign.center,
-          ),
+          if (selectedFilePath != null)
+            Text(
+              l10n.selectedFile(
+                selectedFilePath.split(Platform.pathSeparator).last,
+              ),
+              textAlign: TextAlign.center,
+            ),
         ],
       ),
     );
@@ -520,6 +554,7 @@ class _AddTaskDialogState extends State<AddTaskDialog>
     return LayoutBuilder(
       builder: (context, constraints) {
         final useTwoColumns = constraints.maxWidth >= 480;
+        final splitField = _buildSplitStepper(l10n);
         final outputField = Expanded(
           flex: 3,
           child: TextField(
@@ -527,17 +562,8 @@ class _AddTaskDialogState extends State<AddTaskDialog>
             enabled: !_isSubmitting,
             decoration: InputDecoration(
               labelText: l10n.renameOutput,
-              helperText: l10n.renameOutputTip,
+              hintText: l10n.renameOutputPlaceholder,
             ),
-          ),
-        );
-        final splitField = Expanded(
-          flex: 2,
-          child: TextField(
-            controller: splitController,
-            enabled: !_isSubmitting,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: l10n.splitCount),
           ),
         );
 
@@ -549,16 +575,11 @@ class _AddTaskDialogState extends State<AddTaskDialog>
                 enabled: !_isSubmitting,
                 decoration: InputDecoration(
                   labelText: l10n.renameOutput,
-                  helperText: l10n.renameOutputTip,
+                  hintText: l10n.renameOutputPlaceholder,
                 ),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: splitController,
-                enabled: !_isSubmitting,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: l10n.splitCount),
-              ),
+              _buildSplitStepper(l10n),
             ],
           );
         }
@@ -568,6 +589,47 @@ class _AddTaskDialogState extends State<AddTaskDialog>
           children: [outputField, const SizedBox(width: 12), splitField],
         );
       },
+    );
+  }
+
+  Widget _buildSplitStepper(AppLocalizations l10n) {
+    return SizedBox(
+      width: 160,
+      child: TextField(
+        controller: splitController,
+        enabled: !_isSubmitting,
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        decoration: InputDecoration(
+          labelText: l10n.splitCount,
+          suffixIcon: SizedBox(
+            width: 36,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 20,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    splashRadius: 14,
+                    onPressed: _isSubmitting ? null : () => _stepSplitCount(1),
+                    icon: const Icon(Icons.keyboard_arrow_up, size: 18),
+                  ),
+                ),
+                SizedBox(
+                  height: 20,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    splashRadius: 14,
+                    onPressed: _isSubmitting ? null : () => _stepSplitCount(-1),
+                    icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -633,8 +695,6 @@ class _AddTaskDialogState extends State<AddTaskDialog>
       padding: const EdgeInsets.only(top: 12),
       child: Column(
         children: [
-          _buildOutputAndSplitFields(l10n),
-          const SizedBox(height: 12),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             value: continueDownloads,
@@ -778,12 +838,6 @@ class _AddTaskDialogState extends State<AddTaskDialog>
                                 child: Text(l10n.noConnectedInstancesAvailable),
                               ),
                               const SizedBox(height: 12),
-                            ] else if (_selectedTargetLabel() != null) ...[
-                              Text(
-                                l10n.tasksWillBeSentTo(_selectedTargetLabel()!),
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                              const SizedBox(height: 12),
                             ],
                             DropdownButtonFormField<String>(
                               initialValue: _selectedTargetInstanceId,
@@ -807,22 +861,26 @@ class _AddTaskDialogState extends State<AddTaskDialog>
                                 setState(() {
                                   _selectedTargetInstanceId = value;
                                 });
+                                unawaited(
+                                  _syncSaveLocationFromSelectedTarget(
+                                    force: true,
+                                  ),
+                                );
                               },
                             ),
                             const SizedBox(height: 12),
-                            Text(
-                              l10n.saveLocation,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            const SizedBox(height: 8),
+                            _buildOutputAndSplitFields(l10n),
+                            const SizedBox(height: 12),
                             DirectoryPicker(
                               initialDirectory: saveLocation,
+                              labelText: '',
                               onDirectoryChanged: (newLocation) {
                                 if (_isSubmitting) {
                                   return;
                                 }
                                 setState(() {
                                   saveLocation = newLocation;
+                                  _lastAppliedInstanceDirectory = null;
                                 });
                               },
                               onError: (error) {

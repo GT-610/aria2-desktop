@@ -458,6 +458,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloadDir => '下载目录';
 
   @override
+  String get defaultDownloadDir => '默认下载路径';
+
+  @override
+  String get remoteDownloadDirHint => '请输入远程服务器上的路径字符串';
+
+  @override
   String get selectDir => '选择';
 
   @override
@@ -905,6 +911,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get renameOutputTip => '留空则保持原始文件名';
+
+  @override
+  String get renameOutputPlaceholder => '选填';
 
   @override
   String get authorization => 'Authorization';

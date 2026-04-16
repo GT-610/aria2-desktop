@@ -1,15 +1,12 @@
 /// Instance type enum
-enum InstanceType {
-  remote,
-  builtin
-}
+enum InstanceType { remote, builtin }
 
 /// Connection status enum
 enum ConnectionStatus {
   disconnected, // Disconnected
-  connecting,   // Connecting
-  connected,    // Connected
-  failed        // Connection failed
+  connecting, // Connecting
+  connected, // Connected
+  failed, // Connection failed
 }
 
 /// Aria2 instance data model
@@ -21,6 +18,7 @@ class Aria2Instance {
   String host;
   int port;
   String secret;
+  String downloadDir;
   String? version;
   String? errorMessage;
   ConnectionStatus status;
@@ -33,6 +31,7 @@ class Aria2Instance {
     required this.host,
     required this.port,
     this.secret = '',
+    this.downloadDir = '',
     this.version,
     this.errorMessage,
     this.status = ConnectionStatus.disconnected,
@@ -48,9 +47,12 @@ class Aria2Instance {
       host: json['host'],
       port: json['port'],
       secret: json['secret'] ?? '',
+      downloadDir: json['downloadDir'] ?? '',
       version: json['version'],
       errorMessage: json['errorMessage'],
-      status: json.containsKey('status') ? ConnectionStatus.values.byName(json['status']) : ConnectionStatus.disconnected,
+      status: json.containsKey('status')
+          ? ConnectionStatus.values.byName(json['status'])
+          : ConnectionStatus.disconnected,
     );
   }
 
@@ -64,6 +66,7 @@ class Aria2Instance {
       'host': host,
       'port': port,
       'secret': secret,
+      'downloadDir': downloadDir,
       'version': version,
       'errorMessage': errorMessage,
       'status': status.name,
@@ -84,6 +87,7 @@ class Aria2Instance {
     String? host,
     int? port,
     String? secret,
+    String? downloadDir,
     String? version,
     String? errorMessage,
     ConnectionStatus? status,
@@ -96,6 +100,7 @@ class Aria2Instance {
       host: host ?? this.host,
       port: port ?? this.port,
       secret: secret ?? this.secret,
+      downloadDir: downloadDir ?? this.downloadDir,
       version: version ?? this.version,
       errorMessage: errorMessage ?? this.errorMessage,
       status: status ?? this.status,

@@ -956,6 +956,18 @@ abstract class AppLocalizations {
   /// **'Download Directory'**
   String get downloadDir;
 
+  /// No description provided for @defaultDownloadDir.
+  ///
+  /// In en, this message translates to:
+  /// **'Default Download Directory'**
+  String get defaultDownloadDir;
+
+  /// No description provided for @remoteDownloadDirHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the remote server path manually'**
+  String get remoteDownloadDirHint;
+
   /// No description provided for @selectDir.
   ///
   /// In en, this message translates to:
@@ -1777,6 +1789,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Leave empty to keep the original filename'**
   String get renameOutputTip;
+
+  /// No description provided for @renameOutputPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional'**
+  String get renameOutputPlaceholder;
 
   /// No description provided for @authorization.
   ///

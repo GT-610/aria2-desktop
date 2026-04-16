@@ -1,8 +1,12 @@
 import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../generated/l10n/l10n.dart';
 import '../../../../models/aria2_instance.dart';
+import '../../../../models/settings.dart';
+import '../../../../services/instance_manager.dart';
+import '../../../../services/settings_service.dart';
 import '../../builtin_instance_settings_page.dart';
 
 class InstanceCard extends StatefulWidget {
@@ -312,10 +316,35 @@ class _InstanceCardState extends State<InstanceCard> {
                   if (widget.instance.type == InstanceType.builtin)
                     TextButton(
                       onPressed: () {
+                        final settings = Provider.of<Settings>(
+                          context,
+                          listen: false,
+                        );
+                        final instanceManager = Provider.of<InstanceManager>(
+                          context,
+                          listen: false,
+                        );
+                        final settingsService = Provider.of<SettingsService>(
+                          context,
+                          listen: false,
+                        );
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const BuiltinInstanceSettingsPage(),
+                            builder: (_) => MultiProvider(
+                              providers: [
+                                ChangeNotifierProvider<Settings>.value(
+                                  value: settings,
+                                ),
+                                ChangeNotifierProvider<InstanceManager>.value(
+                                  value: instanceManager,
+                                ),
+                                ChangeNotifierProvider<SettingsService>.value(
+                                  value: settingsService,
+                                ),
+                              ],
+                              child: const BuiltinInstanceSettingsPage(),
+                            ),
                           ),
                         );
                       },

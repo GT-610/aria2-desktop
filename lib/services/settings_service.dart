@@ -29,6 +29,7 @@ class SettingsService extends ChangeNotifier with Loggable {
       'max-connection-per-server': settings.maxConnectionPerServer.toString(),
       'split': settings.split.toString(),
       'continue': settings.continueDownloads.toString(),
+      'dir': settings.downloadDir,
       'max-overall-download-limit': _formatSpeedLimitOption(
         settings.maxOverallDownloadLimit,
       ),

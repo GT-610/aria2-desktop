@@ -44,6 +44,15 @@ class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(covariant DirectoryPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialDirectory != widget.initialDirectory &&
+        _directoryController.text != widget.initialDirectory) {
+      _directoryController.text = widget.initialDirectory;
+    }
+  }
+
   Future<void> _selectDirectory() async {
     final l10n = AppLocalizations.of(context)!;
     try {
@@ -88,9 +97,7 @@ class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
           child: TextField(
             controller: _directoryController,
             decoration: InputDecoration(
-              labelText: widget.labelText.isNotEmpty
-                  ? widget.labelText
-                  : l10n.saveLocation,
+              labelText: widget.labelText.isEmpty ? null : widget.labelText,
               hintText: widget.hintText.isNotEmpty
                   ? widget.hintText
                   : l10n.useInstanceDefaultDirectory,

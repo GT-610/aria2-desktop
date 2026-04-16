@@ -478,6 +478,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadDir => 'Download Directory';
 
   @override
+  String get defaultDownloadDir => 'Default Download Directory';
+
+  @override
+  String get remoteDownloadDirHint => 'Enter the remote server path manually';
+
+  @override
   String get selectDir => 'Select';
 
   @override
@@ -937,6 +943,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get renameOutputTip => 'Leave empty to keep the original filename';
+
+  @override
+  String get renameOutputPlaceholder => 'Optional';
 
   @override
   String get authorization => 'Authorization';
