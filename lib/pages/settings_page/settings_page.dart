@@ -234,6 +234,7 @@ class _SettingsPageState extends State<SettingsPage>
       child: _buildSettingsGroup([
         _buildTextCardTile(
           title: l10n.appearance,
+          subtitle: Text(l10n.appearanceTip),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -366,31 +367,39 @@ class _SettingsPageState extends State<SettingsPage>
   ) {
     return _SettingsSection(
       title: l10n.setAsDefaultClient,
-      child: _buildSettingsGroup([
-        _buildTextCardTile(title: l10n.setAsDefaultClient),
-        _buildSwitchTile(
-          title: l10n.handleMagnetLinks,
-          subtitle: l10n.handleMagnetLinksTip,
-          value: settings.protocolMagnetEnabled,
-          onChanged: (value) => _setProtocolPreference(
-            scheme: 'magnet',
-            protocolLabel: 'magnet://',
-            value: value,
-            persist: settings.setProtocolMagnetEnabled,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+            child: Text(l10n.setAsDefaultClientTip, style: fl.UIs.textGrey),
           ),
-        ),
-        _buildSwitchTile(
-          title: l10n.handleThunderLinks,
-          subtitle: l10n.handleThunderLinksTip,
-          value: settings.protocolThunderEnabled,
-          onChanged: (value) => _setProtocolPreference(
-            scheme: 'thunder',
-            protocolLabel: 'thunder://',
-            value: value,
-            persist: settings.setProtocolThunderEnabled,
-          ),
-        ),
-      ]),
+          _buildSettingsGroup([
+            _buildSwitchTile(
+              title: l10n.handleMagnetLinks,
+              subtitle: l10n.handleMagnetLinksTip,
+              value: settings.protocolMagnetEnabled,
+              onChanged: (value) => _setProtocolPreference(
+                scheme: 'magnet',
+                protocolLabel: 'magnet://',
+                value: value,
+                persist: settings.setProtocolMagnetEnabled,
+              ),
+            ),
+            _buildSwitchTile(
+              title: l10n.handleThunderLinks,
+              subtitle: l10n.handleThunderLinksTip,
+              value: settings.protocolThunderEnabled,
+              onChanged: (value) => _setProtocolPreference(
+                scheme: 'thunder',
+                protocolLabel: 'thunder://',
+                value: value,
+                persist: settings.setProtocolThunderEnabled,
+              ),
+            ),
+          ]),
+        ],
+      ),
     );
   }
 
@@ -471,6 +480,7 @@ class _SettingsPageState extends State<SettingsPage>
       child: _buildSettingsGroup([
         _buildTextCardTile(
           title: l10n.viewLogFiles,
+          subtitle: Text(l10n.viewLogFilesTip),
           trailing: const Icon(Icons.folder_open),
           onTap: _openLogDirectory,
         ),
