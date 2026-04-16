@@ -29,7 +29,6 @@ class SettingsService extends ChangeNotifier with Loggable {
       'max-connection-per-server': settings.maxConnectionPerServer.toString(),
       'split': settings.split.toString(),
       'continue': settings.continueDownloads.toString(),
-      'dir': settings.downloadDir,
       'max-overall-download-limit': _formatSpeedLimitOption(
         settings.maxOverallDownloadLimit,
       ),
@@ -55,6 +54,10 @@ class SettingsService extends ChangeNotifier with Loggable {
       'no-proxy': settings.proxyEnabled ? settings.noProxy : '',
       'user-agent': settings.userAgent,
     };
+
+    if (settings.downloadDir.trim().isNotEmpty) {
+      options['dir'] = settings.downloadDir.trim();
+    }
 
     return options;
   }

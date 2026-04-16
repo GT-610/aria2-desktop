@@ -634,55 +634,55 @@ class _AddTaskDialogState extends State<AddTaskDialog>
   }
 
   Widget _buildProxyField(AppLocalizations l10n) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final stackedLayout = constraints.maxWidth < 480;
-        final proxyField = Expanded(
-          child: TextField(
-            controller: proxyController,
-            enabled: !_isSubmitting,
-            decoration: InputDecoration(
-              labelText: l10n.perTaskProxy,
-              hintText: l10n.exampleProxy,
-            ),
-          ),
-        );
-        final helpText = Padding(
-          padding: EdgeInsets.only(
-            left: stackedLayout ? 0 : 12,
-            top: stackedLayout ? 8 : 12,
-          ),
-          child: Text(
-            l10n.perTaskProxyTip,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        );
+    return TextField(
+      controller: proxyController,
+      enabled: !_isSubmitting,
+      decoration: InputDecoration(
+        labelText: l10n.perTaskProxy,
+        hintText: '${l10n.exampleProxy}  ${l10n.perTaskProxyTip}',
+      ),
+    );
+  }
 
-        if (stackedLayout) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: proxyController,
-                enabled: !_isSubmitting,
-                decoration: InputDecoration(
-                  labelText: l10n.perTaskProxy,
-                  hintText: l10n.exampleProxy,
-                ),
-              ),
-              helpText,
-            ],
-          );
-        }
+  Widget _buildShowDownloadsAfterAddSwitch(AppLocalizations l10n) {
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      value: showDownloadsAfterAdd,
+      onChanged: _isSubmitting
+          ? null
+          : (value) {
+              setState(() {
+                showDownloadsAfterAdd = value;
+              });
+            },
+      title: Text(l10n.showDownloadsAfterAdd),
+      subtitle: Text(l10n.addTaskShowDownloadsAfterAddTip),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+    );
+  }
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            proxyField,
-            Expanded(child: helpText),
-          ],
-        );
-      },
+  Widget _buildAdvancedToggle(AppLocalizations l10n) {
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      value: showAdvancedOptions,
+      onChanged: _isSubmitting
+          ? null
+          : (value) {
+              setState(() {
+                showAdvancedOptions = value;
+              });
+            },
+      title: Text(l10n.showAdvancedOptions),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+    );
+  }
+
+  Widget _buildBasicActions(AppLocalizations l10n) {
+    return Column(
+      children: [
+        _buildShowDownloadsAfterAddSwitch(l10n),
+        _buildAdvancedToggle(l10n),
+      ],
     );
   }
 
@@ -756,21 +756,6 @@ class _AddTaskDialogState extends State<AddTaskDialog>
           ),
           const SizedBox(height: 12),
           _buildProxyField(l10n),
-          const SizedBox(height: 4),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: showDownloadsAfterAdd,
-            onChanged: _isSubmitting
-                ? null
-                : (value) {
-                    setState(() {
-                      showDownloadsAfterAdd = value ?? false;
-                    });
-                  },
-            title: Text(l10n.showDownloadsAfterAdd),
-            subtitle: Text(l10n.addTaskShowDownloadsAfterAddTip),
-            controlAffinity: ListTileControlAffinity.leading,
-          ),
         ],
       ),
     );
@@ -892,22 +877,7 @@ class _AddTaskDialogState extends State<AddTaskDialog>
                               },
                             ),
                             const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(l10n.showAdvancedOptions),
-                                Switch(
-                                  value: showAdvancedOptions,
-                                  onChanged: _isSubmitting
-                                      ? null
-                                      : (value) {
-                                          setState(() {
-                                            showAdvancedOptions = value;
-                                          });
-                                        },
-                                ),
-                              ],
-                            ),
+                            _buildBasicActions(l10n),
                             _buildAdvancedSection(l10n),
                           ],
                         ),
