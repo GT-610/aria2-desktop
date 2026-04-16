@@ -91,7 +91,6 @@ class _AddTaskDialogState extends State<AddTaskDialog>
             ? widget.targetInstances.first.id
             : null);
     showDownloadsAfterAdd = widget.initialShowDownloadsAfterAdd;
-    splitController.text = '64';
 
     if (widget.initialUri != null && widget.initialUri!.trim().isNotEmpty) {
       uriController.text = widget.initialUri!.trim();
