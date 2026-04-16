@@ -8,6 +8,7 @@ import '../models/settings.dart';
 import '../services/instance_manager.dart';
 import '../services/settings_service.dart';
 import '../services/tracker_sync_service.dart';
+import 'download_page/components/directory_picker.dart';
 
 class BuiltinInstanceSettingsPage extends StatefulWidget {
   const BuiltinInstanceSettingsPage({super.key});
@@ -29,6 +30,7 @@ class _BuiltinInstanceSettingsPageState
   late int _maxConnectionPerServer;
   late int _split;
   late bool _continueDownloads;
+  late String _downloadDir;
   late int _maxOverallDownloadLimit;
   late int _maxOverallUploadLimit;
   late bool _btSaveMetadata;
@@ -55,6 +57,7 @@ class _BuiltinInstanceSettingsPageState
   late String _userAgent;
 
   final TextEditingController _rpcSecretController = TextEditingController();
+  final TextEditingController _downloadDirController = TextEditingController();
   final TextEditingController _btListenPortController = TextEditingController();
   final TextEditingController _trackerServersController =
       TextEditingController();
@@ -90,6 +93,7 @@ class _BuiltinInstanceSettingsPageState
     _maxConnectionPerServer = settings.maxConnectionPerServer;
     _split = settings.split;
     _continueDownloads = settings.continueDownloads;
+    _downloadDir = settings.downloadDir;
     _maxOverallDownloadLimit = settings.maxOverallDownloadLimit;
     _maxOverallUploadLimit = settings.maxOverallUploadLimit;
     _btSaveMetadata = settings.btSaveMetadata;
@@ -121,6 +125,7 @@ class _BuiltinInstanceSettingsPageState
     _userAgent = settings.userAgent;
 
     _rpcSecretController.text = _rpcSecret;
+    _downloadDirController.text = _downloadDir;
     _btListenPortController.text = _btListenPort;
     _trackerServersController.text = _btTracker;
     _excludedTrackersController.text = _btExcludeTracker;
@@ -135,6 +140,7 @@ class _BuiltinInstanceSettingsPageState
   @override
   void dispose() {
     _rpcSecretController.dispose();
+    _downloadDirController.dispose();
     _btListenPortController.dispose();
     _trackerServersController.dispose();
     _excludedTrackersController.dispose();
@@ -268,6 +274,7 @@ class _BuiltinInstanceSettingsPageState
                     _updateDraft(() => _continueDownloads = value);
                   },
                 ),
+                _buildDirectorySetting(l10n.defaultDownloadDir, _downloadDir),
               ],
             ),
             _buildSectionHeader(l10n.speedLimits, theme),
@@ -501,6 +508,7 @@ class _BuiltinInstanceSettingsPageState
         _maxConnectionPerServer != settings.maxConnectionPerServer ||
         _split != settings.split ||
         _continueDownloads != settings.continueDownloads ||
+        _downloadDir != settings.downloadDir ||
         _btSaveMetadata != settings.btSaveMetadata ||
         _btForceEncryption != settings.btForceEncryption ||
         _keepSeeding != settings.keepSeeding ||
@@ -524,6 +532,7 @@ class _BuiltinInstanceSettingsPageState
       maxConnectionPerServer: _maxConnectionPerServer,
       split: _split,
       continueDownloads: _continueDownloads,
+      downloadDir: _downloadDir,
       maxOverallDownloadLimit: _maxOverallDownloadLimit,
       maxOverallUploadLimit: _maxOverallUploadLimit,
       btSaveMetadata: _btSaveMetadata,
@@ -802,6 +811,27 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 
+  Widget _buildDirectorySetting(String title, String currentValue) {
+    final theme = Theme.of(context);
+
+    return ListTile(
+      title: Text(title, style: theme.textTheme.bodyMedium),
+      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: DirectoryPicker(
+          initialDirectory: currentValue,
+          labelText: '',
+          onDirectoryChanged: (value) {
+            _updateDraft(() => _downloadDir = value.trim());
+            _downloadDirController.text = value.trim();
+          },
+        ),
+      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+    );
+  }
+
   Future<void> _syncTrackerList() async {
     final l10n = AppLocalizations.of(context)!;
     try {
@@ -835,6 +865,7 @@ class _BuiltinInstanceSettingsPageState
 
     await _persistDraft(settings);
     _syncNormalizedDraft(settings);
+    await _refreshBuiltinInstanceSnapshot();
 
     setState(() {
       _hasChanges = false;
@@ -854,6 +885,7 @@ class _BuiltinInstanceSettingsPageState
 
     await _persistDraft(settings);
     _syncNormalizedDraft(settings);
+    await _refreshBuiltinInstanceSnapshot();
 
     if (applyMode == _BuiltinSettingsApplyMode.none) {
       setState(() {
@@ -977,6 +1009,18 @@ class _BuiltinInstanceSettingsPageState
         );
       }
     }
+  }
+
+  Future<void> _refreshBuiltinInstanceSnapshot() async {
+    final instanceManager = Provider.of<InstanceManager>(
+      context,
+      listen: false,
+    );
+    final builtinInstance = instanceManager.getBuiltinInstance();
+    await instanceManager.refreshBuiltinInstanceConfig(
+      preserveStatus: builtinInstance?.status,
+      preserveVersion: builtinInstance?.version,
+    );
   }
 
   void _syncNormalizedDraft(Settings settings) {

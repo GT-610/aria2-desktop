@@ -808,6 +808,7 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
     String? initialMetalinkFilePath,
     int initialTabIndex = 0,
   }) {
+    final pageContext = context;
     final l10n = AppLocalizations.of(context)!;
     final settings = Provider.of<Settings>(context, listen: false);
     final instanceManager = Provider.of<InstanceManager>(
@@ -840,6 +841,7 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
           initialTorrentFilePath: initialTorrentFilePath,
           initialMetalinkFilePath: initialMetalinkFilePath,
           initialTabIndex: initialTabIndex,
+          initialShowDownloadsAfterAdd: settings.showDownloadsAfterAdd,
           onAddTask:
               (
                 taskType,
@@ -848,20 +850,17 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
                 fileContent,
                 targetInstanceId,
                 taskOptions,
+                showDownloadsAfterAdd,
               ) async {
-                final dialogInstanceManager = Provider.of<InstanceManager>(
-                  context,
-                  listen: false,
-                );
                 Aria2RpcClient? client;
                 try {
-                  final targetInstance = dialogInstanceManager.getInstanceById(
+                  final targetInstance = instanceManager.getInstanceById(
                     targetInstanceId,
                   );
 
                   if (targetInstance == null) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                    if (pageContext.mounted) {
+                      ScaffoldMessenger.of(pageContext).showSnackBar(
                         SnackBar(content: Text(l10n.noConnectedInstance)),
                       );
                     }
@@ -901,12 +900,12 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
                   }
 
                   _refreshTasksAndRestartTimer();
-                  if (settings.showDownloadsAfterAdd && mounted) {
+                  if (showDownloadsAfterAdd && mounted) {
                     _focusDownloadingView();
                   }
 
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  if (pageContext.mounted) {
+                    ScaffoldMessenger.of(pageContext).showSnackBar(
                       SnackBar(
                         content: Text(
                           l10n.taskAddedToInstanceSuccess(targetInstance.name),
@@ -921,8 +920,8 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
                     error: e,
                     stackTrace: stackTrace,
                   );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  if (pageContext.mounted) {
+                    ScaffoldMessenger.of(pageContext).showSnackBar(
                       SnackBar(content: Text(l10n.addTaskFailed('$e'))),
                     );
                   }

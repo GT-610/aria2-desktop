@@ -55,6 +55,10 @@ class SettingsService extends ChangeNotifier with Loggable {
       'user-agent': settings.userAgent,
     };
 
+    if (settings.downloadDir.trim().isNotEmpty) {
+      options['dir'] = settings.downloadDir.trim();
+    }
+
     return options;
   }
 

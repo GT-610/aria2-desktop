@@ -43,6 +43,7 @@ class Settings extends ChangeNotifier with Loggable {
   int _maxConnectionPerServer = 16; // Max connections per server
   int _split = 16; // Split downloads into N parts
   bool _continueDownloads = true; // Continue downloads
+  String _downloadDir = ''; // Default download directory
 
   // Speed settings
   int _maxOverallDownloadLimit =
@@ -138,6 +139,7 @@ class Settings extends ChangeNotifier with Loggable {
     _maxConnectionPerServer = 16;
     _split = 16;
     _continueDownloads = true;
+    _downloadDir = '';
 
     // Speed settings
     _maxOverallDownloadLimit = 0;
@@ -222,6 +224,7 @@ class Settings extends ChangeNotifier with Loggable {
   int get maxConnectionPerServer => _maxConnectionPerServer;
   int get split => _split;
   bool get continueDownloads => _continueDownloads;
+  String get downloadDir => _downloadDir;
 
   // Speed settings
   int get maxOverallDownloadLimit => _maxOverallDownloadLimit;
@@ -333,6 +336,7 @@ class Settings extends ChangeNotifier with Loggable {
         _maxConnectionPerServer = settingsMap['maxConnectionPerServer'] ?? 16;
         _split = settingsMap['split'] ?? 16;
         _continueDownloads = settingsMap['continueDownloads'] ?? true;
+        _downloadDir = settingsMap['downloadDir'] ?? '';
 
         // Speed settings
         _maxOverallDownloadLimit = settingsMap['maxOverallDownloadLimit'] ?? 0;
@@ -436,6 +440,7 @@ class Settings extends ChangeNotifier with Loggable {
         'maxConnectionPerServer': _maxConnectionPerServer,
         'split': _split,
         'continueDownloads': _continueDownloads,
+        'downloadDir': _downloadDir,
 
         // Speed settings
         'maxOverallDownloadLimit': _maxOverallDownloadLimit,
@@ -638,6 +643,12 @@ class Settings extends ChangeNotifier with Loggable {
     await _saveAllSettings();
   }
 
+  Future<void> setDownloadDir(String value) async {
+    _downloadDir = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
   // Speed settings
   Future<void> setMaxOverallDownloadLimit(int limit) async {
     _maxOverallDownloadLimit = limit;
@@ -798,6 +809,7 @@ class Settings extends ChangeNotifier with Loggable {
     required int maxConnectionPerServer,
     required int split,
     required bool continueDownloads,
+    required String downloadDir,
     required int maxOverallDownloadLimit,
     required int maxOverallUploadLimit,
     required bool btSaveMetadata,
@@ -830,6 +842,7 @@ class Settings extends ChangeNotifier with Loggable {
     _maxConnectionPerServer = maxConnectionPerServer;
     _split = split;
     _continueDownloads = continueDownloads;
+    _downloadDir = downloadDir;
     _maxOverallDownloadLimit = maxOverallDownloadLimit;
     _maxOverallUploadLimit = maxOverallUploadLimit;
     _btSaveMetadata = btSaveMetadata;

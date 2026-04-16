@@ -478,6 +478,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadDir => 'Download Directory';
 
   @override
+  String get defaultDownloadDir => 'Default Download Directory';
+
+  @override
+  String get remoteDownloadDirHint => 'Enter the remote server path manually';
+
+  @override
   String get selectDir => 'Select';
 
   @override
@@ -925,6 +931,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String taskAddedToInstanceSuccess(Object name) {
     return 'Task added to $name successfully';
   }
+
+  @override
+  String get addTaskNoFileSelected => 'No file selected yet';
+
+  @override
+  String get addTaskSplitInvalid => 'Split count must be a positive integer.';
+
+  @override
+  String get renameOutput => 'Rename';
+
+  @override
+  String get renameOutputTip => 'Leave empty to keep the original filename';
+
+  @override
+  String get renameOutputPlaceholder => 'Optional';
+
+  @override
+  String get authorization => 'Authorization';
+
+  @override
+  String get referer => 'Referer';
+
+  @override
+  String get cookie => 'Cookie';
+
+  @override
+  String get perTaskProxy => 'Proxy';
+
+  @override
+  String get perTaskProxyTip =>
+      'Used only for this task. Leave empty to follow the instance default.';
+
+  @override
+  String get addTaskShowDownloadsAfterAddTip =>
+      'Only affects this submission and does not change the global preference.';
+
+  @override
+  String get thunderLinkNormalizationFailed =>
+      'The thunder link could not be decoded into a downloadable URL.';
 
   @override
   String get resumeTasks => 'Resume tasks';

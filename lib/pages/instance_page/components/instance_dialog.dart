@@ -1,5 +1,6 @@
 import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
+
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
 
@@ -20,11 +21,13 @@ class _InstanceDialogState extends State<InstanceDialog> {
   late String _host;
   late int _port;
   late String _secret;
+  late String _downloadDir;
 
   late final TextEditingController _nameController;
   late final TextEditingController _hostController;
   late final TextEditingController _portController;
   late final TextEditingController _secretController;
+  late final TextEditingController _downloadDirController;
 
   String? _nameError;
   String? _hostError;
@@ -41,6 +44,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
       _host = widget.instance!.host;
       _port = widget.instance!.port;
       _secret = widget.instance!.secret;
+      _downloadDir = widget.instance!.downloadDir;
     } else {
       _name = '';
       _type = InstanceType.remote;
@@ -48,12 +52,14 @@ class _InstanceDialogState extends State<InstanceDialog> {
       _host = 'localhost';
       _port = 6800;
       _secret = '';
+      _downloadDir = '';
     }
 
     _nameController = TextEditingController(text: _name);
     _hostController = TextEditingController(text: _host);
     _portController = TextEditingController(text: _port.toString());
     _secretController = TextEditingController(text: _secret);
+    _downloadDirController = TextEditingController(text: _downloadDir);
   }
 
   @override
@@ -62,6 +68,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
     _hostController.dispose();
     _portController.dispose();
     _secretController.dispose();
+    _downloadDirController.dispose();
     super.dispose();
   }
 
@@ -118,6 +125,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
       host: _host.trim(),
       port: _port,
       secret: _secret,
+      downloadDir: _downloadDir.trim(),
     );
 
     if (widget.onSave != null) {
@@ -234,6 +242,13 @@ class _InstanceDialogState extends State<InstanceDialog> {
                       hint: l10n.rpcSecretTip,
                       obscureText: true,
                       onChanged: (value) => _secret = value,
+                    ),
+                    const SizedBox(height: 16),
+                    Input(
+                      controller: _downloadDirController,
+                      label: l10n.defaultDownloadDir,
+                      hint: l10n.remoteDownloadDirHint,
+                      onChanged: (value) => _downloadDir = value,
                     ),
                     const SizedBox(height: 16),
                   ],

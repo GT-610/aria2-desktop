@@ -96,6 +96,12 @@ class BuiltinInstanceService with Loggable {
     return _logPath!;
   }
 
+  String _defaultDownloadDir() {
+    final executablePath = Platform.resolvedExecutable;
+    final executableDir = Directory(executablePath).parent;
+    return '${executableDir.path}/data/downloads';
+  }
+
   String _resolveConfiguredFilePath(dynamic rawValue, String fallbackPath) {
     final configuredPath = (rawValue as String? ?? '').trim();
     return configuredPath.isNotEmpty ? configuredPath : fallbackPath;
@@ -183,9 +189,14 @@ class BuiltinInstanceService with Loggable {
       settings['logPath'],
       _defaultLogPath(),
     );
+    final downloadDir = _resolveConfiguredFilePath(
+      settings['downloadDir'],
+      _defaultDownloadDir(),
+    );
 
     _ensureParentDirectoryExists(sessionPath);
     _ensureParentDirectoryExists(logPath);
+    Directory(downloadDir).createSync(recursive: true);
 
     final args = <String>[
       '--enable-rpc',
@@ -205,6 +216,7 @@ class BuiltinInstanceService with Loggable {
       '--max-upload-limit=0',
       '--file-allocation=prealloc',
       '--disk-cache=64M',
+      '--dir=$downloadDir',
       '--allow-overwrite=${settings['allowOverwrite'] ?? false}',
       '--allow-piece-length-change=true',
       '--auto-file-renaming=${settings['autoFileRenaming'] ?? true}',
@@ -370,6 +382,7 @@ class BuiltinInstanceService with Loggable {
   }
 
   Aria2Instance getBuiltinInstanceConfig() {
+    final settings = _readSettingsSnapshot();
     return Aria2Instance(
       id: 'builtin',
       name: 'Built-in Instance',
@@ -378,6 +391,10 @@ class BuiltinInstanceService with Loggable {
       host: '127.0.0.1',
       port: _getConfiguredRpcPort(),
       secret: _getConfiguredRpcSecret(),
+      downloadDir: _resolveConfiguredFilePath(
+        settings['downloadDir'],
+        _defaultDownloadDir(),
+      ),
       status: ConnectionStatus.disconnected,
     );
   }

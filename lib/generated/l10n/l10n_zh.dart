@@ -458,6 +458,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloadDir => '下载目录';
 
   @override
+  String get defaultDownloadDir => '默认下载路径';
+
+  @override
+  String get remoteDownloadDirHint => '请输入远程服务器上的路径字符串';
+
+  @override
   String get selectDir => '选择';
 
   @override
@@ -893,6 +899,42 @@ class AppLocalizationsZh extends AppLocalizations {
   String taskAddedToInstanceSuccess(Object name) {
     return '已成功向 $name 添加任务';
   }
+
+  @override
+  String get addTaskNoFileSelected => '尚未选择文件';
+
+  @override
+  String get addTaskSplitInvalid => '分片数必须是大于 0 的整数。';
+
+  @override
+  String get renameOutput => '重命名';
+
+  @override
+  String get renameOutputTip => '留空则保持原始文件名';
+
+  @override
+  String get renameOutputPlaceholder => '选填';
+
+  @override
+  String get authorization => 'Authorization';
+
+  @override
+  String get referer => 'Referer';
+
+  @override
+  String get cookie => 'Cookie';
+
+  @override
+  String get perTaskProxy => '代理';
+
+  @override
+  String get perTaskProxyTip => '仅对当前任务生效。留空则沿用实例默认设置。';
+
+  @override
+  String get addTaskShowDownloadsAfterAddTip => '只影响本次提交，不会改动全局偏好。';
+
+  @override
+  String get thunderLinkNormalizationFailed => '无法将 thunder 链接解码为可下载的 URL。';
 
   @override
   String get resumeTasks => '继续任务';
