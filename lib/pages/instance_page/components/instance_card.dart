@@ -307,7 +307,8 @@ class _InstanceCardState extends State<InstanceCard> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildCheckStatusButton(context),
+                  if (widget.instance.type != InstanceType.builtin)
+                    _buildCheckStatusButton(context),
                   if (widget.instance.type == InstanceType.builtin)
                     TextButton(
                       onPressed: () {

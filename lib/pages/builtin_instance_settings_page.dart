@@ -424,9 +424,13 @@ class _BuiltinInstanceSettingsPageState
                 _buildSwitchSetting(l10n.enableDht6, _enableDht6, (value) {
                   _updateDraft(() => _enableDht6 = value);
                 }),
-                _buildSwitchSetting(l10n.enableUpnp, _enableUpnp, (value) {
-                  _updateDraft(() => _enableUpnp = value);
-                }, helperText: l10n.enableUpnpTip),
+                _buildSwitchSetting(
+                  l10n.enableUpnp,
+                  _enableUpnp,
+                  (_) {},
+                  enabled: false,
+                  helperText: _buildPendingUpnpHelperText(l10n),
+                ),
               ],
             ),
             _buildSectionHeader(l10n.filesSection, theme),
@@ -486,7 +490,6 @@ class _BuiltinInstanceSettingsPageState
         _btListenPort != settings.btListenPort ||
         _dhtListenPort != settings.dhtListenPort ||
         _enableDht6 != settings.enableDht6 ||
-        _enableUpnp != settings.enableUpnp ||
         _sessionPath != settings.sessionPath ||
         _logPath != settings.logPath;
   }
@@ -653,6 +656,7 @@ class _BuiltinInstanceSettingsPageState
     bool value,
     ValueChanged<bool> onChanged, {
     String helperText = '',
+    bool enabled = true,
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -668,7 +672,7 @@ class _BuiltinInstanceSettingsPageState
             )
           : null,
       value: value,
-      onChanged: onChanged,
+      onChanged: enabled ? onChanged : null,
       activeThumbColor: colorScheme.primary,
       activeTrackColor: colorScheme.primary.withValues(alpha: 0.3),
       inactiveThumbColor: colorScheme.onSurfaceVariant,
@@ -676,6 +680,14 @@ class _BuiltinInstanceSettingsPageState
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
+  }
+
+  String _buildPendingUpnpHelperText(AppLocalizations l10n) {
+    final localeName = Localizations.localeOf(context).languageCode;
+    final pendingMessage = localeName == 'zh'
+        ? '该功能尚未实现，将在后续版本提供。'
+        : 'This feature is not implemented yet and will arrive in a future version.';
+    return '${l10n.enableUpnpTip} $pendingMessage';
   }
 
   Widget _buildNumberSetting(
