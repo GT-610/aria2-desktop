@@ -437,34 +437,36 @@ class _AddTaskDialogState extends State<AddTaskDialog>
         controller: _tabController,
         physics: _isSubmitting ? const NeverScrollableScrollPhysics() : null,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: uriController,
-                enabled: !_isSubmitting,
-                minLines: 3,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  labelText: l10n.urlOrMagnetLink,
-                  hintText: l10n.enterOneOrMoreLinks,
+          SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: uriController,
+                  enabled: !_isSubmitting,
+                  minLines: 3,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: l10n.urlOrMagnetLink,
+                    hintText: l10n.enterOneOrMoreLinks,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Btn.tile(
-                  text: l10n.pasteFromClipboard,
-                  icon: const Icon(Icons.paste),
-                  onTap: _isSubmitting ? null : _pasteFromClipboard,
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Btn.tile(
+                    text: l10n.pasteFromClipboard,
+                    icon: const Icon(Icons.paste),
+                    onTap: _isSubmitting ? null : _pasteFromClipboard,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                l10n.uriSupportHint,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+                const SizedBox(height: 12),
+                Text(
+                  l10n.uriSupportHint,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
           ),
           _buildFileTabContent(
             l10n: l10n,
