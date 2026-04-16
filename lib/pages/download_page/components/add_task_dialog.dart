@@ -717,8 +717,8 @@ class _AddTaskDialogState extends State<AddTaskDialog>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final dialogHeight = (MediaQuery.sizeOf(context).height * 0.78)
-        .clamp(420.0, 760.0)
+    final dialogMaxHeight = (MediaQuery.sizeOf(context).height * 0.78)
+        .clamp(360.0, 760.0)
         .toDouble();
 
     return CallbackShortcuts(
@@ -736,123 +736,126 @@ class _AddTaskDialogState extends State<AddTaskDialog>
           title: Text(l10n.addTaskDialogTitle),
           content: SizedBox(
             width: 560,
-            height: dialogHeight,
-            child: Column(
-              children: [
-                TabBar(
-                  controller: _tabController,
-                  physics: _isSubmitting
-                      ? const NeverScrollableScrollPhysics()
-                      : null,
-                  tabs: [
-                    Tab(text: l10n.uriTab),
-                    Tab(text: l10n.torrentTab),
-                    Tab(text: l10n.metalinkTab),
-                  ],
-                  indicatorSize: TabBarIndicatorSize.tab,
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: Scrollbar(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildCurrentTabContent(l10n),
-                          const Divider(height: 28),
-                          if (!_hasAvailableTargets) ...[
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.errorContainer,
-                                borderRadius: BorderRadius.circular(12),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: dialogMaxHeight),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TabBar(
+                    controller: _tabController,
+                    physics: _isSubmitting
+                        ? const NeverScrollableScrollPhysics()
+                        : null,
+                    tabs: [
+                      Tab(text: l10n.uriTab),
+                      Tab(text: l10n.torrentTab),
+                      Tab(text: l10n.metalinkTab),
+                    ],
+                    indicatorSize: TabBarIndicatorSize.tab,
+                  ),
+                  const SizedBox(height: 12),
+                  Flexible(
+                    child: Scrollbar(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildCurrentTabContent(l10n),
+                            const Divider(height: 28),
+                            if (!_hasAvailableTargets) ...[
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.errorContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(l10n.noConnectedInstancesAvailable),
                               ),
-                              child: Text(l10n.noConnectedInstancesAvailable),
+                              const SizedBox(height: 12),
+                            ] else if (_selectedTargetLabel() != null) ...[
+                              Text(
+                                l10n.tasksWillBeSentTo(_selectedTargetLabel()!),
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            DropdownButtonFormField<String>(
+                              initialValue: _selectedTargetInstanceId,
+                              decoration: InputDecoration(
+                                labelText: l10n.targetInstance,
+                              ),
+                              items: widget.targetInstances.map((instance) {
+                                final label =
+                                    instance.type == InstanceType.builtin
+                                    ? l10n.builtInInstance(instance.name)
+                                    : instance.name;
+                                return DropdownMenuItem(
+                                  value: instance.id,
+                                  child: Text(label),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                if (_isSubmitting) {
+                                  return;
+                                }
+                                setState(() {
+                                  _selectedTargetInstanceId = value;
+                                });
+                              },
                             ),
                             const SizedBox(height: 12),
-                          ] else if (_selectedTargetLabel() != null) ...[
                             Text(
-                              l10n.tasksWillBeSentTo(_selectedTargetLabel()!),
+                              l10n.saveLocation,
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
-                            const SizedBox(height: 12),
-                          ],
-                          DropdownButtonFormField<String>(
-                            initialValue: _selectedTargetInstanceId,
-                            decoration: InputDecoration(
-                              labelText: l10n.targetInstance,
+                            const SizedBox(height: 8),
+                            DirectoryPicker(
+                              initialDirectory: saveLocation,
+                              onDirectoryChanged: (newLocation) {
+                                if (_isSubmitting) {
+                                  return;
+                                }
+                                setState(() {
+                                  saveLocation = newLocation;
+                                });
+                              },
+                              onError: (error) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(error)),
+                                  );
+                                }
+                              },
                             ),
-                            items: widget.targetInstances.map((instance) {
-                              final label =
-                                  instance.type == InstanceType.builtin
-                                  ? l10n.builtInInstance(instance.name)
-                                  : instance.name;
-                              return DropdownMenuItem(
-                                value: instance.id,
-                                child: Text(label),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              if (_isSubmitting) {
-                                return;
-                              }
-                              setState(() {
-                                _selectedTargetInstanceId = value;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            l10n.saveLocation,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          const SizedBox(height: 8),
-                          DirectoryPicker(
-                            initialDirectory: saveLocation,
-                            onDirectoryChanged: (newLocation) {
-                              if (_isSubmitting) {
-                                return;
-                              }
-                              setState(() {
-                                saveLocation = newLocation;
-                              });
-                            },
-                            onError: (error) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(
-                                  context,
-                                ).showSnackBar(SnackBar(content: Text(error)));
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(l10n.showAdvancedOptions),
-                              Switch(
-                                value: showAdvancedOptions,
-                                onChanged: _isSubmitting
-                                    ? null
-                                    : (value) {
-                                        setState(() {
-                                          showAdvancedOptions = value;
-                                        });
-                                      },
-                              ),
-                            ],
-                          ),
-                          _buildAdvancedSection(l10n),
-                        ],
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(l10n.showAdvancedOptions),
+                                Switch(
+                                  value: showAdvancedOptions,
+                                  onChanged: _isSubmitting
+                                      ? null
+                                      : (value) {
+                                          setState(() {
+                                            showAdvancedOptions = value;
+                                          });
+                                        },
+                                ),
+                              ],
+                            ),
+                            _buildAdvancedSection(l10n),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           actions: [
