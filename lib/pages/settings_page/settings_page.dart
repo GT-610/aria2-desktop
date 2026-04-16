@@ -379,6 +379,7 @@ class _SettingsPageState extends State<SettingsPage>
               title: l10n.handleMagnetLinks,
               subtitle: l10n.handleMagnetLinksTip,
               value: settings.protocolMagnetEnabled,
+              logSuccess: false,
               onChanged: (value) => _setProtocolPreference(
                 scheme: 'magnet',
                 protocolLabel: 'magnet://',
@@ -390,6 +391,7 @@ class _SettingsPageState extends State<SettingsPage>
               title: l10n.handleThunderLinks,
               subtitle: l10n.handleThunderLinksTip,
               value: settings.protocolThunderEnabled,
+              logSuccess: false,
               onChanged: (value) => _setProtocolPreference(
                 scheme: 'thunder',
                 protocolLabel: 'thunder://',
@@ -560,6 +562,7 @@ class _SettingsPageState extends State<SettingsPage>
     required bool value,
     required Future<void> Function(bool value) onChanged,
     bool enabled = true,
+    bool logSuccess = true,
   }) {
     return fl.CardX(
       child: ListTile(
@@ -574,7 +577,7 @@ class _SettingsPageState extends State<SettingsPage>
               : (next) => _runSettingAction(
                   () => onChanged(next),
                   AppLocalizations.of(context)!.saveSettingsFailed,
-                  successLog: '$title changed to: $next',
+                  successLog: logSuccess ? '$title changed to: $next' : null,
                 ),
         ),
       ),
