@@ -33,7 +33,6 @@ class Settings extends ChangeNotifier with Loggable {
   String? _customColorCode; // Custom color code
   // Log settings
   AppLogLevel _logLevel = AppLogLevel.info; // Log level
-  bool _saveLogsToFile = true; // Save logs to file
 
   // Locale settings
   Locale? _locale; // App locale
@@ -130,7 +129,6 @@ class Settings extends ChangeNotifier with Loggable {
     _primaryColor = Colors.blue;
     _customColorCode = null;
     _logLevel = AppLogLevel.info;
-    _saveLogsToFile = true;
     _locale = null;
 
     // Built-in Aria2 instance settings defaults
@@ -215,7 +213,6 @@ class Settings extends ChangeNotifier with Loggable {
   Color get primaryColor => _primaryColor;
   String? get customColorCode => _customColorCode;
   AppLogLevel get logLevel => _logLevel;
-  bool get saveLogsToFile => _saveLogsToFile;
   String get logLevelString => _logLevel.name;
   Locale? get locale => _locale;
 
@@ -267,9 +264,6 @@ class Settings extends ChangeNotifier with Loggable {
         ? configuredPath
         : _defaultBuiltinLogFilePath();
   }
-
-  String get effectiveBuiltinLogDirectoryPath =>
-      File(effectiveBuiltinLogFilePath).parent.path;
 
   // Load all settings from JSON file
   Future<void> loadSettings() async {
@@ -334,9 +328,6 @@ class Settings extends ChangeNotifier with Loggable {
             orElse: () => AppLogLevel.info,
           );
         }
-
-        _saveLogsToFile = settingsMap['saveLogsToFile'] ?? true;
-
         // Locale settings
         final localeCode = settingsMap['locale'];
         if (localeCode != null && localeCode.isNotEmpty) {
@@ -444,7 +435,6 @@ class Settings extends ChangeNotifier with Loggable {
         'primaryColor': _primaryColor.toARGB32().toString(),
         'customColorCode': _customColorCode,
         'logLevel': _logLevel.name,
-        'saveLogsToFile': _saveLogsToFile,
         'locale': _locale?.languageCode,
 
         // Built-in Aria2 instance settings
@@ -610,13 +600,6 @@ class Settings extends ChangeNotifier with Loggable {
   // Log level setting
   Future<void> setAppLogLevel(AppLogLevel level) async {
     _logLevel = level;
-    notifyListeners();
-    await _saveAllSettings();
-  }
-
-  // Save logs to file setting
-  Future<void> setSaveLogsToFile(bool value) async {
-    _saveLogsToFile = value;
     notifyListeners();
     await _saveAllSettings();
   }

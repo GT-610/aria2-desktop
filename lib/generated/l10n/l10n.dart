@@ -584,29 +584,17 @@ abstract class AppLocalizations {
   /// **'Log Level'**
   String get logLevel;
 
-  /// No description provided for @saveLogToFile.
+  /// No description provided for @viewLogs.
   ///
   /// In en, this message translates to:
-  /// **'Save log to file'**
-  String get saveLogToFile;
+  /// **'View logs'**
+  String get viewLogs;
 
-  /// No description provided for @viewLogFiles.
+  /// No description provided for @viewLogsTip.
   ///
   /// In en, this message translates to:
-  /// **'View log files'**
-  String get viewLogFiles;
-
-  /// No description provided for @viewLogFilesTip.
-  ///
-  /// In en, this message translates to:
-  /// **'Open the directory that stores the built-in aria2 logs'**
-  String get viewLogFilesTip;
-
-  /// No description provided for @cannotOpenLogDirectory.
-  ///
-  /// In en, this message translates to:
-  /// **'Cannot open log directory'**
-  String get cannotOpenLogDirectory;
+  /// **'View in-app logs and debug output'**
+  String get viewLogsTip;
 
   /// No description provided for @maintenance.
   ///

@@ -452,20 +452,15 @@ class _SettingsPageState extends State<SettingsPage>
             ),
           ),
         ),
-        _buildSwitchTile(
-          title: l10n.saveLogToFile,
-          value: settings.saveLogsToFile,
-          onChanged: (value) => settings.setSaveLogsToFile(value),
-        ),
         fl.CardX(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Align(
               alignment: Alignment.centerLeft,
               child: FilledButton.icon(
-                onPressed: _openLogDirectory,
-                icon: const Icon(Icons.folder_open),
-                label: Text(l10n.viewLogFiles),
+                onPressed: _openLogPage,
+                icon: const Icon(Icons.article_outlined),
+                label: Text(l10n.viewLogs),
               ),
             ),
           ),
@@ -481,10 +476,10 @@ class _SettingsPageState extends State<SettingsPage>
       title: l10n.maintenance,
       child: _buildSettingsGroup([
         _buildTextCardTile(
-          title: l10n.viewLogFiles,
-          subtitle: Text(l10n.viewLogFilesTip),
-          trailing: const Icon(Icons.folder_open),
-          onTap: _openLogDirectory,
+          title: l10n.viewLogs,
+          subtitle: Text(l10n.viewLogsTip),
+          trailing: const Icon(Icons.article_outlined),
+          onTap: _openLogPage,
         ),
         _buildWidgetCardTile(
           title: Text(
@@ -712,29 +707,15 @@ class _SettingsPageState extends State<SettingsPage>
     }
   }
 
-  Future<void> _openLogDirectory() async {
+  void _openLogPage() {
     final l10n = AppLocalizations.of(context)!;
-    final settings = Provider.of<Settings>(context, listen: false);
-    final logDirectory = Directory(settings.effectiveBuiltinLogDirectoryPath);
-    if (!logDirectory.existsSync()) {
-      _showErrorSnackBar(l10n.cannotOpenLogDirectory);
-      return;
-    }
-
-    try {
-      i('Opening log directory: ${logDirectory.path}');
-      await Process.start(
-        Platform.isWindows
-            ? 'explorer.exe'
-            : Platform.isLinux
-            ? 'xdg-open'
-            : 'open',
-        [logDirectory.path],
-      );
-    } catch (e, stackTrace) {
-      this.e('Failed to open log directory', error: e, stackTrace: stackTrace);
-      _showErrorSnackBar(l10n.cannotOpenLogDirectory);
-    }
+    i('Opening in-app log page');
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            fl.DebugPage(args: fl.DebugPageArgs(title: l10n.viewLogs)),
+      ),
+    );
   }
 
   Future<void> _confirmResetSettings() async {

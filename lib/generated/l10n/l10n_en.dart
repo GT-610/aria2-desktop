@@ -285,17 +285,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get logLevel => 'Log Level';
 
   @override
-  String get saveLogToFile => 'Save log to file';
+  String get viewLogs => 'View logs';
 
   @override
-  String get viewLogFiles => 'View log files';
-
-  @override
-  String get viewLogFilesTip =>
-      'Open the directory that stores the built-in aria2 logs';
-
-  @override
-  String get cannotOpenLogDirectory => 'Cannot open log directory';
+  String get viewLogsTip => 'View in-app logs and debug output';
 
   @override
   String get maintenance => 'Maintenance';
