@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -9,6 +10,7 @@ import 'package:flutter/services.dart';
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
 import '../../../services/auto_hide_window_service.dart';
+import '../../../services/protocol_integration_service.dart';
 import '../../../utils/logging.dart';
 import '../utils/add_task_options.dart';
 import 'directory_picker.dart';
@@ -20,6 +22,7 @@ class AddTaskDialog extends StatefulWidget {
   final String? initialTorrentFilePath;
   final String? initialMetalinkFilePath;
   final int initialTabIndex;
+  final bool initialShowDownloadsAfterAdd;
   final Future<bool> Function(
     String taskType,
     String uri,
@@ -27,6 +30,7 @@ class AddTaskDialog extends StatefulWidget {
     String? fileContent,
     String targetInstanceId,
     Map<String, dynamic> taskOptions,
+    bool showDownloadsAfterAdd,
   )
   onAddTask;
 
@@ -38,6 +42,7 @@ class AddTaskDialog extends StatefulWidget {
     this.initialTorrentFilePath,
     this.initialMetalinkFilePath,
     this.initialTabIndex = 0,
+    required this.initialShowDownloadsAfterAdd,
     required this.onAddTask,
   });
 
@@ -45,17 +50,27 @@ class AddTaskDialog extends StatefulWidget {
   State<AddTaskDialog> createState() => _AddTaskDialogState();
 }
 
-class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
+class _AddTaskDialogState extends State<AddTaskDialog>
+    with Loggable, SingleTickerProviderStateMixin {
   String saveLocation = '';
   final TextEditingController uriController = TextEditingController();
-  final TextEditingController taskNameController = TextEditingController();
+  final TextEditingController outputFileNameController =
+      TextEditingController();
   final TextEditingController splitController = TextEditingController();
   final TextEditingController userAgentController = TextEditingController();
+  final TextEditingController authorizationController = TextEditingController();
+  final TextEditingController refererController = TextEditingController();
+  final TextEditingController cookieController = TextEditingController();
+  final TextEditingController proxyController = TextEditingController();
+
+  late final TabController _tabController;
   bool showAdvancedOptions = false;
   bool _isSubmitting = false;
+  bool _hasAttemptedClipboardAutofill = false;
   bool continueDownloads = true;
   bool autoFileRenaming = true;
   bool allowOverwrite = false;
+  bool showDownloadsAfterAdd = false;
   String? selectedTorrentFilePath;
   String? selectedMetalinkFilePath;
   late String? _selectedTargetInstanceId;
@@ -63,11 +78,19 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(
+      length: 3,
+      initialIndex: widget.initialTabIndex,
+      vsync: this,
+    )..addListener(_handleTabChanged);
+
     _selectedTargetInstanceId =
         widget.defaultTargetInstanceId ??
         (widget.targetInstances.isNotEmpty
             ? widget.targetInstances.first.id
             : null);
+    showDownloadsAfterAdd = widget.initialShowDownloadsAfterAdd;
+
     if (widget.initialUri != null && widget.initialUri!.trim().isNotEmpty) {
       uriController.text = widget.initialUri!.trim();
     }
@@ -79,25 +102,59 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
         widget.initialMetalinkFilePath!.trim().isNotEmpty) {
       selectedMetalinkFilePath = widget.initialMetalinkFilePath!.trim();
     }
+
+    if (_tabController.index == 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_maybeAutofillUriFromClipboard());
+      });
+    }
     i('AddTaskDialog initialized');
   }
 
   @override
   void dispose() {
+    _tabController
+      ..removeListener(_handleTabChanged)
+      ..dispose();
     uriController.dispose();
-    taskNameController.dispose();
+    outputFileNameController.dispose();
     splitController.dispose();
     userAgentController.dispose();
+    authorizationController.dispose();
+    refererController.dispose();
+    cookieController.dispose();
+    proxyController.dispose();
     super.dispose();
   }
+
+  void _handleTabChanged() {
+    if (!mounted || _tabController.indexIsChanging) {
+      return;
+    }
+
+    setState(() {});
+    if (_tabController.index == 0) {
+      unawaited(_maybeAutofillUriFromClipboard());
+    }
+  }
+
+  String get _currentTaskType => switch (_tabController.index) {
+    1 => 'torrent',
+    2 => 'metalink',
+    _ => 'uri',
+  };
 
   Map<String, dynamic>? _buildTaskOptions(AppLocalizations l10n) {
     try {
       return buildAria2TaskOptions(
         AddTaskOptionsData(
-          taskName: taskNameController.text,
+          outputFileName: outputFileNameController.text,
           split: splitController.text,
           userAgent: userAgentController.text,
+          referer: refererController.text,
+          cookie: cookieController.text,
+          authorization: authorizationController.text,
+          allProxy: proxyController.text,
           continueDownloads: continueDownloads,
           autoFileRenaming: autoFileRenaming,
           allowOverwrite: allowOverwrite,
@@ -106,20 +163,114 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
     } on FormatException {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(l10n.splitCount)));
+      ).showSnackBar(SnackBar(content: Text(l10n.addTaskSplitInvalid)));
       return null;
     }
+  }
+
+  Future<void> _maybeAutofillUriFromClipboard() async {
+    if (_hasAttemptedClipboardAutofill ||
+        (widget.initialUri != null && widget.initialUri!.trim().isNotEmpty) ||
+        uriController.text.trim().isNotEmpty) {
+      return;
+    }
+
+    _hasAttemptedClipboardAutofill = true;
+    try {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      final clipboardText = data?.text?.trim();
+      if (clipboardText == null || clipboardText.isEmpty) {
+        return;
+      }
+
+      final normalized = _normalizeUriInput(
+        clipboardText,
+        showThunderWarning: true,
+      );
+      if (normalized == null || normalized.isEmpty || !mounted) {
+        return;
+      }
+
+      setState(() {
+        uriController.text = normalized;
+      });
+    } catch (e, stackTrace) {
+      this.e(
+        'Failed to autofill add task URI from clipboard',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  String? _normalizeUriInput(
+    String rawValue, {
+    required bool showThunderWarning,
+  }) {
+    final lines = rawValue
+        .split(RegExp(r'[\r\n]+'))
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    if (lines.isEmpty) {
+      return null;
+    }
+
+    final protocolService = ProtocolIntegrationService();
+    final normalizedLines = <String>[];
+    var hasRecognizedUri = false;
+    var hasInvalidThunder = false;
+
+    for (final line in lines) {
+      final normalized = protocolService.normalizeIncomingUri(line);
+      if (normalized != null) {
+        normalizedLines.add(normalized);
+        hasRecognizedUri = true;
+        continue;
+      }
+
+      final parsed = Uri.tryParse(line);
+      if (parsed != null && parsed.hasScheme) {
+        if (parsed.scheme.toLowerCase() == 'thunder') {
+          hasInvalidThunder = true;
+          continue;
+        }
+        normalizedLines.add(line);
+        hasRecognizedUri = true;
+      }
+    }
+
+    if (hasInvalidThunder && showThunderWarning && mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.thunderLinkNormalizationFailed)),
+      );
+    }
+
+    if (!hasRecognizedUri || normalizedLines.isEmpty) {
+      return null;
+    }
+
+    return normalizedLines.join('\n');
   }
 
   Future<void> _pasteFromClipboard() async {
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
-      if (data?.text != null) {
-        uriController.text = data!.text!;
-        setState(() {});
+      final clipboardText = data?.text;
+      if (clipboardText == null || clipboardText.isEmpty) {
+        return;
       }
-    } catch (e) {
-      this.e('Failed to paste', error: e);
+
+      final normalized = _normalizeUriInput(
+        clipboardText,
+        showThunderWarning: true,
+      );
+      setState(() {
+        uriController.text = normalized ?? clipboardText;
+      });
+    } catch (e, stackTrace) {
+      this.e('Failed to paste', error: e, stackTrace: stackTrace);
     }
   }
 
@@ -138,8 +289,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
           selectedTorrentFilePath = result.files.single.path;
         });
       }
-    } catch (e) {
-      this.e('Failed to select torrent file', error: e);
+    } catch (e, stackTrace) {
+      this.e('Failed to select torrent file', error: e, stackTrace: stackTrace);
     }
   }
 
@@ -148,7 +299,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
       final result = await AutoHideWindowService().runWithSuppressedAutoHide(
         () => FilePicker.platform.pickFiles(
           type: FileType.custom,
-          allowedExtensions: ['metalink'],
+          allowedExtensions: ['metalink', 'meta4'],
           dialogTitle: 'Select metalink file',
         ),
       );
@@ -158,9 +309,17 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
           selectedMetalinkFilePath = result.files.single.path;
         });
       }
-    } catch (e) {
-      this.e('Failed to select Metalink file', error: e);
+    } catch (e, stackTrace) {
+      this.e(
+        'Failed to select Metalink file',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
+  }
+
+  Future<void> _submitCurrentTab() async {
+    await _submitTask(_currentTaskType);
   }
 
   Future<void> _submitTask(String taskType) async {
@@ -234,6 +393,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
         fileContent,
         targetInstanceId,
         taskOptions,
+        showDownloadsAfterAdd,
       );
 
       if (added && mounted) {
@@ -270,125 +430,337 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
         : selectedInstance.name;
   }
 
+  Widget _buildCurrentTabContent(AppLocalizations l10n) {
+    return SizedBox(
+      height: 160,
+      child: TabBarView(
+        controller: _tabController,
+        physics: _isSubmitting ? const NeverScrollableScrollPhysics() : null,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: uriController,
+                enabled: !_isSubmitting,
+                minLines: 3,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  labelText: l10n.urlOrMagnetLink,
+                  hintText: l10n.enterOneOrMoreLinks,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Btn.tile(
+                  text: l10n.pasteFromClipboard,
+                  icon: const Icon(Icons.paste),
+                  onTap: _isSubmitting ? null : _pasteFromClipboard,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.uriSupportHint,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+          _buildFileTabContent(
+            l10n: l10n,
+            selectButtonText: l10n.selectTorrentFile,
+            selectedFilePath: selectedTorrentFilePath,
+            onSelect: _selectTorrentFile,
+          ),
+          _buildFileTabContent(
+            l10n: l10n,
+            selectButtonText: l10n.selectMetalinkFile,
+            selectedFilePath: selectedMetalinkFilePath,
+            onSelect: _selectMetalinkFile,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFileTabContent({
+    required AppLocalizations l10n,
+    required String selectButtonText,
+    required String? selectedFilePath,
+    required Future<void> Function() onSelect,
+  }) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.file_open, size: 56),
+          const SizedBox(height: 16),
+          Btn.tile(
+            text: selectButtonText,
+            icon: const Icon(Icons.upload_file),
+            onTap: _isSubmitting ? null : onSelect,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            selectedFilePath == null
+                ? l10n.addTaskNoFileSelected
+                : l10n.selectedFile(
+                    selectedFilePath.split(Platform.pathSeparator).last,
+                  ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOutputAndSplitFields(AppLocalizations l10n) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useTwoColumns = constraints.maxWidth >= 480;
+        final outputField = Expanded(
+          flex: 3,
+          child: TextField(
+            controller: outputFileNameController,
+            enabled: !_isSubmitting,
+            decoration: InputDecoration(
+              labelText: l10n.renameOutput,
+              helperText: l10n.renameOutputTip,
+            ),
+          ),
+        );
+        final splitField = Expanded(
+          flex: 2,
+          child: TextField(
+            controller: splitController,
+            enabled: !_isSubmitting,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(labelText: l10n.splitCount),
+          ),
+        );
+
+        if (!useTwoColumns) {
+          return Column(
+            children: [
+              TextField(
+                controller: outputFileNameController,
+                enabled: !_isSubmitting,
+                decoration: InputDecoration(
+                  labelText: l10n.renameOutput,
+                  helperText: l10n.renameOutputTip,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: splitController,
+                enabled: !_isSubmitting,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: l10n.splitCount),
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [outputField, const SizedBox(width: 12), splitField],
+        );
+      },
+    );
+  }
+
+  Widget _buildProxyField(AppLocalizations l10n) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stackedLayout = constraints.maxWidth < 480;
+        final proxyField = Expanded(
+          child: TextField(
+            controller: proxyController,
+            enabled: !_isSubmitting,
+            decoration: InputDecoration(
+              labelText: l10n.perTaskProxy,
+              hintText: l10n.exampleProxy,
+            ),
+          ),
+        );
+        final helpText = Padding(
+          padding: EdgeInsets.only(
+            left: stackedLayout ? 0 : 12,
+            top: stackedLayout ? 8 : 12,
+          ),
+          child: Text(
+            l10n.perTaskProxyTip,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        );
+
+        if (stackedLayout) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: proxyController,
+                enabled: !_isSubmitting,
+                decoration: InputDecoration(
+                  labelText: l10n.perTaskProxy,
+                  hintText: l10n.exampleProxy,
+                ),
+              ),
+              helpText,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            proxyField,
+            Expanded(child: helpText),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildAdvancedSection(AppLocalizations l10n) {
+    if (!showAdvancedOptions) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        children: [
+          _buildOutputAndSplitFields(l10n),
+          const SizedBox(height: 12),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: continueDownloads,
+            onChanged: _isSubmitting
+                ? null
+                : (value) {
+                    setState(() {
+                      continueDownloads = value;
+                    });
+                  },
+            title: Text(l10n.continueUnfinishedDownloads),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: autoFileRenaming,
+            onChanged: _isSubmitting
+                ? null
+                : (value) {
+                    setState(() {
+                      autoFileRenaming = value;
+                    });
+                  },
+            title: Text(l10n.autoRenameFiles),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: allowOverwrite,
+            onChanged: _isSubmitting
+                ? null
+                : (value) {
+                    setState(() {
+                      allowOverwrite = value;
+                    });
+                  },
+            title: Text(l10n.allowOverwrite),
+          ),
+          TextField(
+            controller: userAgentController,
+            enabled: !_isSubmitting,
+            decoration: InputDecoration(labelText: l10n.userAgent),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: authorizationController,
+            enabled: !_isSubmitting,
+            decoration: InputDecoration(labelText: l10n.authorization),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: refererController,
+            enabled: !_isSubmitting,
+            decoration: InputDecoration(labelText: l10n.referer),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: cookieController,
+            enabled: !_isSubmitting,
+            decoration: InputDecoration(labelText: l10n.cookie),
+          ),
+          const SizedBox(height: 12),
+          _buildProxyField(l10n),
+          const SizedBox(height: 4),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: showDownloadsAfterAdd,
+            onChanged: _isSubmitting
+                ? null
+                : (value) {
+                    setState(() {
+                      showDownloadsAfterAdd = value ?? false;
+                    });
+                  },
+            title: Text(l10n.showDownloadsAfterAdd),
+            subtitle: Text(l10n.addTaskShowDownloadsAfterAddTip),
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return DefaultTabController(
-      initialIndex: widget.initialTabIndex,
-      length: 3,
-      child: AlertDialog(
-        title: Text(l10n.addTaskDialogTitle),
-        content: SizedBox(
-          width: 520,
-          height: 500,
-          child: Column(
-            children: [
-              TabBar(
-                physics: _isSubmitting
-                    ? const NeverScrollableScrollPhysics()
-                    : null,
-                tabs: [
-                  Tab(text: l10n.uriTab),
-                  Tab(text: l10n.torrentTab),
-                  Tab(text: l10n.metalinkTab),
-                ],
-                indicatorSize: TabBarIndicatorSize.tab,
-              ),
-              Expanded(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: TabBarView(
-                        physics: _isSubmitting
-                            ? const NeverScrollableScrollPhysics()
-                            : null,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Column(
-                              children: [
-                                Input(
-                                  controller: uriController,
-                                  label: l10n.urlOrMagnetLink,
-                                  hint: l10n.enterOneOrMoreLinks,
-                                  maxLines: 3,
-                                ),
-                                const SizedBox(height: 8),
-                                Btn.tile(
-                                  text: l10n.pasteFromClipboard,
-                                  icon: const Icon(Icons.paste),
-                                  onTap: _isSubmitting
-                                      ? null
-                                      : _pasteFromClipboard,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(l10n.uriSupportHint),
-                              ],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.file_open, size: 64),
-                                const SizedBox(height: 16),
-                                Btn.tile(
-                                  text: l10n.selectTorrentFile,
-                                  icon: const Icon(Icons.upload_file),
-                                  onTap: _isSubmitting
-                                      ? null
-                                      : _selectTorrentFile,
-                                ),
-                                const SizedBox(height: 16),
-                                if (selectedTorrentFilePath != null)
-                                  Text(
-                                    l10n.selectedFile(
-                                      selectedTorrentFilePath!
-                                          .split(Platform.pathSeparator)
-                                          .last,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                              ],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.file_open, size: 64),
-                                const SizedBox(height: 16),
-                                Btn.tile(
-                                  text: l10n.selectMetalinkFile,
-                                  icon: const Icon(Icons.upload_file),
-                                  onTap: _isSubmitting
-                                      ? null
-                                      : _selectMetalinkFile,
-                                ),
-                                const SizedBox(height: 16),
-                                if (selectedMetalinkFilePath != null)
-                                  Text(
-                                    l10n.selectedFile(
-                                      selectedMetalinkFilePath!
-                                          .split(Platform.pathSeparator)
-                                          .last,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(),
-                    Padding(
-                      padding: const EdgeInsets.all(8),
+    final dialogHeight = (MediaQuery.sizeOf(context).height * 0.78)
+        .clamp(420.0, 760.0)
+        .toDouble();
+
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.enter, control: true): () {
+          unawaited(_submitCurrentTab());
+        },
+        const SingleActivator(LogicalKeyboardKey.enter, meta: true): () {
+          unawaited(_submitCurrentTab());
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: AlertDialog(
+          title: Text(l10n.addTaskDialogTitle),
+          content: SizedBox(
+            width: 560,
+            height: dialogHeight,
+            child: Column(
+              children: [
+                TabBar(
+                  controller: _tabController,
+                  physics: _isSubmitting
+                      ? const NeverScrollableScrollPhysics()
+                      : null,
+                  tabs: [
+                    Tab(text: l10n.uriTab),
+                    Tab(text: l10n.torrentTab),
+                    Tab(text: l10n.metalinkTab),
+                  ],
+                  indicatorSize: TabBarIndicatorSize.tab,
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: Scrollbar(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.only(right: 4),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          _buildCurrentTabContent(l10n),
+                          const Divider(height: 28),
                           if (!_hasAvailableTargets) ...[
                             Container(
                               width: double.infinity,
@@ -474,106 +846,26 @@ class _AddTaskDialogState extends State<AddTaskDialog> with Loggable {
                               ),
                             ],
                           ),
-                          if (showAdvancedOptions)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: Column(
-                                children: [
-                                  TextField(
-                                    controller: taskNameController,
-                                    enabled: !_isSubmitting,
-                                    decoration: InputDecoration(
-                                      labelText: l10n.taskName,
-                                      helperText: l10n.taskNameTip,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  TextField(
-                                    controller: splitController,
-                                    enabled: !_isSubmitting,
-                                    keyboardType: TextInputType.number,
-                                    decoration: InputDecoration(
-                                      labelText: l10n.splitCount,
-                                      helperText:
-                                          l10n.continueUnfinishedDownloads,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  SwitchListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    value: continueDownloads,
-                                    onChanged: _isSubmitting
-                                        ? null
-                                        : (value) {
-                                            setState(() {
-                                              continueDownloads = value;
-                                            });
-                                          },
-                                    title: Text(
-                                      l10n.continueUnfinishedDownloads,
-                                    ),
-                                  ),
-                                  SwitchListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    value: autoFileRenaming,
-                                    onChanged: _isSubmitting
-                                        ? null
-                                        : (value) {
-                                            setState(() {
-                                              autoFileRenaming = value;
-                                            });
-                                          },
-                                    title: Text(l10n.autoRenameFiles),
-                                  ),
-                                  SwitchListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    value: allowOverwrite,
-                                    onChanged: _isSubmitting
-                                        ? null
-                                        : (value) {
-                                            setState(() {
-                                              allowOverwrite = value;
-                                            });
-                                          },
-                                    title: Text(l10n.allowOverwrite),
-                                  ),
-                                  TextField(
-                                    controller: userAgentController,
-                                    enabled: !_isSubmitting,
-                                    decoration: InputDecoration(
-                                      labelText: l10n.userAgent,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                          _buildAdvancedSection(l10n),
                         ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          actions: [
+            Btn.cancel(
+              onTap: _isSubmitting ? null : () => Navigator.of(context).pop(),
+            ),
+            Btn.ok(
+              onTap: _hasAvailableTargets && !_isSubmitting
+                  ? () => unawaited(_submitCurrentTab())
+                  : null,
+            ),
+          ],
         ),
-        actions: [
-          Btn.cancel(
-            onTap: _isSubmitting ? null : () => Navigator.of(context).pop(),
-          ),
-          Btn.ok(
-            onTap: _hasAvailableTargets && !_isSubmitting
-                ? () {
-                    final currentTab = DefaultTabController.of(context).index;
-                    final taskType = switch (currentTab) {
-                      1 => 'torrent',
-                      2 => 'metalink',
-                      _ => 'uri',
-                    };
-                    _submitTask(taskType);
-                  }
-                : null,
-          ),
-        ],
       ),
     );
   }

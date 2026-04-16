@@ -1754,6 +1754,72 @@ abstract class AppLocalizations {
   /// **'Task added to {name} successfully'**
   String taskAddedToInstanceSuccess(Object name);
 
+  /// No description provided for @addTaskNoFileSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No file selected yet'**
+  String get addTaskNoFileSelected;
+
+  /// No description provided for @addTaskSplitInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Split count must be a positive integer.'**
+  String get addTaskSplitInvalid;
+
+  /// No description provided for @renameOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get renameOutput;
+
+  /// No description provided for @renameOutputTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to keep the original filename'**
+  String get renameOutputTip;
+
+  /// No description provided for @authorization.
+  ///
+  /// In en, this message translates to:
+  /// **'Authorization'**
+  String get authorization;
+
+  /// No description provided for @referer.
+  ///
+  /// In en, this message translates to:
+  /// **'Referer'**
+  String get referer;
+
+  /// No description provided for @cookie.
+  ///
+  /// In en, this message translates to:
+  /// **'Cookie'**
+  String get cookie;
+
+  /// No description provided for @perTaskProxy.
+  ///
+  /// In en, this message translates to:
+  /// **'Proxy'**
+  String get perTaskProxy;
+
+  /// No description provided for @perTaskProxyTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Used only for this task. Leave empty to follow the instance default.'**
+  String get perTaskProxyTip;
+
+  /// No description provided for @addTaskShowDownloadsAfterAddTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Only affects this submission and does not change the global preference.'**
+  String get addTaskShowDownloadsAfterAddTip;
+
+  /// No description provided for @thunderLinkNormalizationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The thunder link could not be decoded into a downloadable URL.'**
+  String get thunderLinkNormalizationFailed;
+
   /// No description provided for @resumeTasks.
   ///
   /// In en, this message translates to:

@@ -840,6 +840,7 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
           initialTorrentFilePath: initialTorrentFilePath,
           initialMetalinkFilePath: initialMetalinkFilePath,
           initialTabIndex: initialTabIndex,
+          initialShowDownloadsAfterAdd: settings.showDownloadsAfterAdd,
           onAddTask:
               (
                 taskType,
@@ -848,6 +849,7 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
                 fileContent,
                 targetInstanceId,
                 taskOptions,
+                showDownloadsAfterAdd,
               ) async {
                 final dialogInstanceManager = Provider.of<InstanceManager>(
                   context,
@@ -901,7 +903,7 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
                   }
 
                   _refreshTasksAndRestartTimer();
-                  if (settings.showDownloadsAfterAdd && mounted) {
+                  if (showDownloadsAfterAdd && mounted) {
                     _focusDownloadingView();
                   }
 
