@@ -189,7 +189,7 @@ class _AddTaskDialogState extends State<AddTaskDialog>
 
       final normalized = _normalizeUriInput(
         clipboardText,
-        showThunderWarning: true,
+        showThunderWarning: false,
       );
       if (normalized == null || normalized.isEmpty || !mounted) {
         return;
