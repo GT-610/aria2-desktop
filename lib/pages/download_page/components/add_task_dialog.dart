@@ -271,7 +271,7 @@ class _AddTaskDialogState extends State<AddTaskDialog>
         showThunderWarning: true,
       );
       setState(() {
-        uriController.text = normalized ?? clipboardText;
+        uriController.text = normalized ?? '';
       });
     } catch (e, stackTrace) {
       this.e('Failed to paste', error: e, stackTrace: stackTrace);
