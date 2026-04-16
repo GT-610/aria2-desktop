@@ -264,22 +264,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get logSettings => '日志设置';
+  String get viewLogs => '查看日志';
 
   @override
-  String get logLevel => '日志级别';
-
-  @override
-  String get saveLogToFile => '保存日志到文件';
-
-  @override
-  String get viewLogFiles => '查看日志文件';
-
-  @override
-  String get viewLogFilesTip => '打开内建 aria2 日志所在的目录';
-
-  @override
-  String get cannotOpenLogDirectory => '无法打开日志目录';
+  String get viewLogsTip => '查看应用内日志与调试输出';
 
   @override
   String get maintenance => '维护与恢复';
