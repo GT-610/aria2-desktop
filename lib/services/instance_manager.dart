@@ -323,11 +323,28 @@ class InstanceManager extends ChangeNotifier with Loggable {
           preserveVersion: instance.version,
         );
         resolvedInstance = getBuiltinInstance() ?? instance;
+        final validationError = _builtinInstanceService.validateBuiltinFiles();
+        if (validationError != null) {
+          this.e('Built-in instance validation failed: $validationError');
+          updateInstanceInList(
+            instance.id,
+            ConnectionStatus.failed,
+            errorMessage: validationError,
+          );
+          return false;
+        }
         this.i('Connecting to built-in instance, starting Aria2 process...');
         final isStarted = await _builtinInstanceService.startInstance();
         if (!isStarted) {
           this.e('Failed to start built-in Aria2 instance');
-          updateInstanceInList(instance.id, ConnectionStatus.failed);
+          final startFailureMessage =
+              _builtinInstanceService.validateBuiltinFiles() ??
+              'Failed to start built-in Aria2 instance';
+          updateInstanceInList(
+            instance.id,
+            ConnectionStatus.failed,
+            errorMessage: startFailureMessage,
+          );
           return false;
         }
 
@@ -347,7 +364,13 @@ class InstanceManager extends ChangeNotifier with Loggable {
           await _builtinInstanceService.stopInstance();
         }
 
-        updateInstanceInList(instance.id, ConnectionStatus.failed);
+        updateInstanceInList(
+          instance.id,
+          ConnectionStatus.failed,
+          errorMessage: instance.type == InstanceType.builtin
+              ? 'Built-in instance is offline or unreachable'
+              : null,
+        );
         return false;
       }
 
@@ -368,6 +391,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         instance.id,
         ConnectionStatus.connected,
         version: version,
+        errorMessage: '',
       );
 
       if (instance.type == InstanceType.builtin) {
@@ -392,7 +416,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
       }
 
       // Update instance status to failed
-      updateInstanceInList(instance.id, ConnectionStatus.failed);
+      updateInstanceInList(
+        instance.id,
+        ConnectionStatus.failed,
+        errorMessage: instance.type == InstanceType.builtin ? '$e' : null,
+      );
       return false;
     }
   }
@@ -406,7 +434,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
     }
 
     // Update instance status to disconnected
-    updateInstanceInList(instance.id, ConnectionStatus.disconnected);
+    updateInstanceInList(
+      instance.id,
+      ConnectionStatus.disconnected,
+      errorMessage: '',
+    );
 
     notifyListeners();
   }
@@ -421,12 +453,14 @@ class InstanceManager extends ChangeNotifier with Loggable {
     String instanceId,
     ConnectionStatus status, {
     String? version,
+    String? errorMessage,
   }) {
     final index = _instances.indexWhere((i) => i.id == instanceId);
     if (index != -1) {
       _instances[index] = _instances[index].copyWith(
         status: status,
         version: version,
+        errorMessage: errorMessage,
       );
       // Schedule notifyListeners to run after the current frame is built
       SchedulerBinding.instance.addPostFrameCallback((_) {

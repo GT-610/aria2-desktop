@@ -135,10 +135,33 @@ class BuiltinInstanceService with Loggable {
         : double.tryParse(rawValue?.toString() ?? '') ?? 1.0;
   }
 
+  String? validateBuiltinFiles() {
+    final requiredFiles = <({String label, String path})>[
+      (label: 'aria2c', path: _aria2cPath!),
+      (label: 'aria2.conf', path: _aria2ConfPath!),
+    ];
+
+    for (final fileInfo in requiredFiles) {
+      final file = File(fileInfo.path);
+      if (!file.existsSync()) {
+        return 'Missing ${fileInfo.label}: ${fileInfo.path}';
+      }
+
+      RandomAccessFile? handle;
+      try {
+        handle = file.openSync(mode: FileMode.read);
+      } catch (e) {
+        return 'Cannot open ${fileInfo.label}: ${fileInfo.path} ($e)';
+      } finally {
+        handle?.closeSync();
+      }
+    }
+
+    return null;
+  }
+
   bool checkBuiltinFiles() {
-    final aria2cExists = File(_aria2cPath!).existsSync();
-    final confExists = File(_aria2ConfPath!).existsSync();
-    return aria2cExists && confExists;
+    return validateBuiltinFiles() == null;
   }
 
   List<String> _buildArgs() {
@@ -242,8 +265,12 @@ class BuiltinInstanceService with Loggable {
     try {
       _isConnected = false;
 
-      if (!checkBuiltinFiles()) {
-        this.e('Built-in Aria2 files are missing, cannot start instance');
+      final validationError = validateBuiltinFiles();
+      if (validationError != null) {
+        this.e(
+          'Built-in Aria2 files are not ready, cannot start instance: '
+          '$validationError',
+        );
         return false;
       }
 
