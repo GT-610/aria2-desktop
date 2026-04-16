@@ -353,16 +353,16 @@ class WindowManagerService with Loggable {
 
   WindowManagerService._internal() {}
 
-  Future<void> initialize() async {
+  Future<void> initialize({bool hideTitleBar = false}) async {
     await windowManager.ensureInitialized();
 
-    const windowOptions = WindowOptions(
+    final windowOptions = WindowOptions(
       size: Size(1200, 800),
       minimumSize: Size(800, 600),
       center: true,
       backgroundColor: Color(0x00000000),
       skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.normal,
+      titleBarStyle: hideTitleBar ? TitleBarStyle.hidden : TitleBarStyle.normal,
       title: kAppName,
     );
 
@@ -372,6 +372,13 @@ class WindowManagerService with Loggable {
     });
 
     i('Window manager initialized');
+  }
+
+  Future<void> setHideTitleBar(bool hideTitleBar) async {
+    await windowManager.setTitleBarStyle(
+      hideTitleBar ? TitleBarStyle.hidden : TitleBarStyle.normal,
+    );
+    i('Window title bar visibility changed: hidden=$hideTitleBar');
   }
 
   Future<void> showWindow() async {

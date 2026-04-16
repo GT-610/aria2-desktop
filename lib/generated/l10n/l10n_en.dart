@@ -228,6 +228,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Display task progress bars in the download list';
 
   @override
+  String get hideTitleBar => 'Hide title bar';
+
+  @override
+  String get hideTitleBarTip =>
+      'Use a custom desktop window frame instead of the native title bar.';
+
+  @override
   String get appearance => 'Appearance';
 
   @override
@@ -306,6 +313,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get about => 'About';
+
+  @override
+  String get aboutProject => 'Project';
+
+  @override
+  String get aboutProjectDescription =>
+      'Setsuna is a modern aria2 desktop client focused on Motrix-level compatibility while adding built-in and remote instance management.';
+
+  @override
+  String get sourceCode => 'Source Code';
+
+  @override
+  String get reportIssue => 'Report Issue';
+
+  @override
+  String get participants => 'Participants';
 
   @override
   String get version => 'Version';

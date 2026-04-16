@@ -275,7 +275,12 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
     if (!_isInitialized) {
       return Scaffold(body: Center(child: fl.SizedLoading.medium));
     }
-    return const MainWindow();
+    final settings = Provider.of<Settings>(context);
+    return fl.VirtualWindowFrame(
+      title: kAppName,
+      showCaption: settings.hideTitleBar,
+      child: const MainWindow(),
+    );
   }
 }
 
@@ -394,6 +399,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     final generation = ++_shellSettingsGeneration;
     final settings = _settings ?? Provider.of<Settings>(context, listen: false);
     final trayService = SystemTrayService();
+    await WindowManagerService().setHideTitleBar(settings.hideTitleBar);
+    if (!mounted || generation != _shellSettingsGeneration) {
+      return;
+    }
     await trayService.initializeNotifications();
     if (!mounted || generation != _shellSettingsGeneration) {
       return;

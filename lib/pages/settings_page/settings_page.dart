@@ -4,14 +4,17 @@ import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../constants/app_branding.dart';
+import '../../constants/github_id.dart';
 import '../../generated/l10n/l10n.dart';
 import '../../models/settings.dart';
 import '../../services/protocol_integration_service.dart';
 import '../../utils/logging.dart';
 import './components/appearance_dialog.dart';
 
-enum _SettingsTab { global, system, maintenance, about }
+enum _SettingsTab { global, system, about }
 
 class _SettingsSection {
   const _SettingsSection({required this.title, required this.child});
@@ -110,13 +113,13 @@ class _SettingsPageState extends State<SettingsPage>
             _buildTabView([
               _buildBehaviorSection(settings, l10n),
               _buildAppearanceSection(settings, l10n),
+              _buildMaintenanceSection(l10n),
             ]),
             _buildTabView([
               _buildDesktopShellSection(settings, l10n),
               if (Platform.isWindows) _buildProtocolSection(settings, l10n),
             ]),
-            _buildTabView([_buildMaintenanceSection(l10n)]),
-            _buildTabView([_buildAboutSection(l10n)]),
+            _buildAboutTabView(l10n),
           ],
         ),
       ),
@@ -129,8 +132,6 @@ class _SettingsPageState extends State<SettingsPage>
         return l10n.globalSettings;
       case _SettingsTab.system:
         return l10n.systemIntegration;
-      case _SettingsTab.maintenance:
-        return l10n.maintenance;
       case _SettingsTab.about:
         return l10n.about;
     }
@@ -172,6 +173,13 @@ class _SettingsPageState extends State<SettingsPage>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildAboutTabView(AppLocalizations l10n) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: _buildAboutContent(l10n),
     );
   }
 
@@ -270,6 +278,13 @@ class _SettingsPageState extends State<SettingsPage>
           ),
           onTap: () => _showLanguageDialog(context, settings, l10n),
         ),
+        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+          _buildSwitchTile(
+            title: l10n.hideTitleBar,
+            subtitle: l10n.hideTitleBarTip,
+            value: settings.hideTitleBar,
+            onChanged: (value) => settings.setHideTitleBar(value),
+          ),
       ]),
     );
   }
@@ -429,23 +444,104 @@ class _SettingsPageState extends State<SettingsPage>
     );
   }
 
-  _SettingsSection _buildAboutSection(AppLocalizations l10n) {
-    return _SettingsSection(
-      title: l10n.about,
-      child: _buildSettingsGroup([
-        _buildTextCardTile(
-          title: l10n.version,
-          subtitle: Text(_version.isEmpty ? l10n.versionLoading : _version),
-        ),
-        _buildTextCardTile(
-          title: l10n.contributors,
-          trailing: const Icon(Icons.chevron_right),
-        ),
-        _buildTextCardTile(
-          title: l10n.license,
-          trailing: const Icon(Icons.chevron_right),
-        ),
-      ]),
+  Widget _buildAboutContent(AppLocalizations l10n) {
+    final repositoryUrl = Uri.parse('https://github.com/GT-610/aria2-desktop');
+    final issuesUrl = Uri.parse(
+      'https://github.com/GT-610/aria2-desktop/issues',
+    );
+    return Padding(
+      padding: const EdgeInsets.all(13),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 13),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 47, maxWidth: 47),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(kAppLogoAssetPath, fit: BoxFit.cover),
+              ),
+            ),
+          ),
+          const SizedBox(height: 13),
+          Text(
+            '$kAppName\nv${_version.isEmpty ? l10n.versionLoading : _version}',
+            textAlign: TextAlign.center,
+            style: fl.UIs.text15,
+          ),
+          const SizedBox(height: 13),
+          SizedBox(
+            height: 77,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 7),
+              scrollDirection: Axis.horizontal,
+              children:
+                  [
+                    _buildAboutActionButton(
+                      icon: Icons.code,
+                      label: l10n.sourceCode,
+                      onTap: () => _launchExternalUri(repositoryUrl),
+                    ),
+                    _buildAboutActionButton(
+                      icon: Icons.feedback_outlined,
+                      label: l10n.reportIssue,
+                      onTap: () => _launchExternalUri(issuesUrl),
+                    ),
+                    _buildAboutActionButton(
+                      icon: Icons.article_outlined,
+                      label: l10n.license,
+                      onTap: () => showLicensePage(context: context),
+                    ),
+                  ].map((button) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 13),
+                      child: button,
+                    );
+                  }).toList(),
+            ),
+          ),
+          const SizedBox(height: 13),
+          fl.CardX(
+            child: Padding(
+              padding: const EdgeInsets.all(13),
+              child: fl.SimpleMarkdown(
+                data:
+                    '''
+#### ${l10n.aboutProject}
+${l10n.aboutProjectDescription}
+
+#### ${l10n.contributors}
+${GithubIds.contributors.map((id) => id.markdownLink).join(' ')}
+
+#### ${l10n.participants}
+${GithubIds.participants.map((id) => id.markdownLink).join(' ')}
+''',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAboutActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return FilledButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon),
+      label: Text(label),
+      style: FilledButton.styleFrom(
+        backgroundColor: colorScheme.surfaceContainer,
+        foregroundColor: colorScheme.primary,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
     );
   }
 
@@ -649,6 +745,13 @@ class _SettingsPageState extends State<SettingsPage>
             fl.DebugPage(args: fl.DebugPageArgs(title: l10n.viewLogs)),
       ),
     );
+  }
+
+  Future<void> _launchExternalUri(Uri uri) async {
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      _showErrorSnackBar(AppLocalizations.of(context)!.operationFailed('$uri'));
+    }
   }
 
   Future<void> _confirmResetSettings() async {
