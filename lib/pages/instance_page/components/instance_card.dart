@@ -268,9 +268,20 @@ class _InstanceCardState extends State<InstanceCard> {
               const SizedBox(height: 8),
               if (widget.instance.type != InstanceType.builtin)
                 Text(
-                  '${widget.instance.protocol}://${widget.instance.host}:${widget.instance.port}',
+                  widget.instance.rpcUrl,
                   style: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
+              if (widget.instance.type != InstanceType.builtin &&
+                  widget.instance.rpcRequestHeaders.trim().isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  AppLocalizations.of(context)!.rpcHeadersConfigured,
+                  style: TextStyle(
+                    color: colorScheme.tertiary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
               if (widget.instance.type == InstanceType.builtin)
                 Text(
                   widget.instance.version != null &&

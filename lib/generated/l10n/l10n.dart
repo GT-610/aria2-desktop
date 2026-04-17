@@ -740,6 +740,54 @@ abstract class AppLocalizations {
   /// **'Leave empty if no secret required'**
   String get rpcSecretTip;
 
+  /// No description provided for @rpcPath.
+  ///
+  /// In en, this message translates to:
+  /// **'RPC Path'**
+  String get rpcPath;
+
+  /// No description provided for @rpcPathTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to use jsonrpc'**
+  String get rpcPathTip;
+
+  /// No description provided for @rpcRequestHeaders.
+  ///
+  /// In en, this message translates to:
+  /// **'RPC Request Headers'**
+  String get rpcRequestHeaders;
+
+  /// No description provided for @rpcRequestHeadersTip.
+  ///
+  /// In en, this message translates to:
+  /// **'One header per line, in the form Header-Name: value'**
+  String get rpcRequestHeadersTip;
+
+  /// No description provided for @instanceNameAutoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave blank to use {fallback} as a reference name'**
+  String instanceNameAutoHint(Object fallback);
+
+  /// No description provided for @testConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Connection'**
+  String get testConnection;
+
+  /// No description provided for @testingConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing...'**
+  String get testingConnection;
+
+  /// No description provided for @rpcHeadersConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom RPC headers configured'**
+  String get rpcHeadersConfigured;
+
   /// No description provided for @transferSettings.
   ///
   /// In en, this message translates to:
@@ -1309,12 +1357,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'RPC secret token'**
   String get rpcSecretHint;
-
-  /// No description provided for @testConnection.
-  ///
-  /// In en, this message translates to:
-  /// **'Test Connection'**
-  String get testConnection;
 
   /// No description provided for @connectionSuccess.
   ///

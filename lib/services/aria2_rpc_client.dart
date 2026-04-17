@@ -90,7 +90,7 @@ class Aria2RpcClient with Loggable {
       final response = await _httpClient!
           .post(
             Uri.parse(buildRpcUrl()),
-            headers: {'Content-Type': 'application/json'},
+            headers: _buildHttpHeaders(),
             body: jsonEncode(requestBody),
           )
           .timeout(const Duration(seconds: 10));
@@ -633,6 +633,37 @@ class Aria2RpcClient with Loggable {
 
   /// Build RPC URL
   String buildRpcUrl() {
-    return '${instance.protocol}://${instance.host}:${instance.port}/jsonrpc';
+    return instance.rpcUrl;
+  }
+
+  Map<String, String> _buildHttpHeaders() {
+    final headers = <String, String>{'Content-Type': 'application/json'};
+
+    final rawHeaders = instance.rpcRequestHeaders.trim();
+    if (rawHeaders.isEmpty) {
+      return headers;
+    }
+
+    for (final line in rawHeaders.split(RegExp(r'\r?\n'))) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) {
+        continue;
+      }
+
+      final separatorIndex = trimmed.indexOf(':');
+      if (separatorIndex <= 0) {
+        continue;
+      }
+
+      final name = trimmed.substring(0, separatorIndex).trim();
+      final value = trimmed.substring(separatorIndex + 1).trim();
+      if (name.isEmpty || value.isEmpty) {
+        continue;
+      }
+
+      headers[name] = value;
+    }
+
+    return headers;
   }
 }

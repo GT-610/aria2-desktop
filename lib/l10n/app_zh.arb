@@ -117,6 +117,19 @@
   "rpcPortDefault": "默认：16800",
   "rpcSecret": "RPC密钥",
   "rpcSecretTip": "留空则不需要密钥",
+  "rpcPath": "RPC 路径",
+  "rpcPathTip": "留空则使用 jsonrpc",
+  "rpcRequestHeaders": "RPC 请求头",
+  "rpcRequestHeadersTip": "每行一个请求头，格式为 Header-Name: value",
+  "instanceNameAutoHint": "留空时可参考 {fallback} 作为实例名称",
+  "@instanceNameAutoHint": {
+    "placeholders": {
+      "fallback": {}
+    }
+  },
+  "testConnection": "测试连接",
+  "testingConnection": "测试中...",
+  "rpcHeadersConfigured": "已配置自定义 RPC 请求头",
   "transferSettings": "传输设置",
   "maxConcurrentDownloads": "最大并发下载数",
   "maxConnectionPerServer": "单服务器最大连接数",
