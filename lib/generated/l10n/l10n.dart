@@ -770,6 +770,12 @@ abstract class AppLocalizations {
   /// **'BT listen port cannot be empty'**
   String get remoteSettingsBtPortRequired;
 
+  /// No description provided for @remoteSettingsDhtPortRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'DHT listen port cannot be empty'**
+  String get remoteSettingsDhtPortRequired;
+
   /// No description provided for @save.
   ///
   /// In en, this message translates to:

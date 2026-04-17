@@ -132,6 +132,7 @@
   "remoteSettingsDownloadDirRequired": "远程下载目录不能为空",
   "remoteSettingsInvalidSeedRatio": "做种比例必须是有效数字",
   "remoteSettingsBtPortRequired": "BT 监听端口不能为空",
+  "remoteSettingsDhtPortRequired": "DHT 监听端口不能为空",
   "save": "保存",
   "saveAndApply": "保存并应用",
   "basicSettings": "基础设置",

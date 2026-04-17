@@ -391,6 +391,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get remoteSettingsBtPortRequired => 'BT listen port cannot be empty';
 
   @override
+  String get remoteSettingsDhtPortRequired => 'DHT listen port cannot be empty';
+
+  @override
   String get save => 'Save';
 
   @override

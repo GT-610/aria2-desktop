@@ -132,6 +132,7 @@
   "remoteSettingsDownloadDirRequired": "The remote download directory cannot be empty",
   "remoteSettingsInvalidSeedRatio": "Seed ratio must be a valid number",
   "remoteSettingsBtPortRequired": "BT listen port cannot be empty",
+  "remoteSettingsDhtPortRequired": "DHT listen port cannot be empty",
   "save": "Save",
   "saveAndApply": "Save & Apply",
   "basicSettings": "Basic Settings",

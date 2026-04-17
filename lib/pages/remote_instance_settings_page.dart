@@ -23,6 +23,7 @@ class _RemoteInstanceSettingsPageState
 
   late final TextEditingController _downloadDirController;
   late final TextEditingController _btListenPortController;
+  late final TextEditingController _dhtListenPortController;
   late final TextEditingController _seedRatioController;
   late final TextEditingController _trackerController;
   late final TextEditingController _excludedTrackerController;
@@ -40,7 +41,6 @@ class _RemoteInstanceSettingsPageState
   bool _btLoadSavedMetadata = true;
   bool _btRequireCrypto = false;
   int _seedTime = 0;
-  int _dhtListenPort = 6801;
   bool _enableDht6 = true;
 
   String? _loadError;
@@ -51,6 +51,7 @@ class _RemoteInstanceSettingsPageState
     super.initState();
     _downloadDirController = TextEditingController();
     _btListenPortController = TextEditingController();
+    _dhtListenPortController = TextEditingController();
     _seedRatioController = TextEditingController();
     _trackerController = TextEditingController();
     _excludedTrackerController = TextEditingController();
@@ -64,6 +65,7 @@ class _RemoteInstanceSettingsPageState
   void dispose() {
     _downloadDirController.dispose();
     _btListenPortController.dispose();
+    _dhtListenPortController.dispose();
     _seedRatioController.dispose();
     _trackerController.dispose();
     _excludedTrackerController.dispose();
@@ -74,6 +76,13 @@ class _RemoteInstanceSettingsPageState
   }
 
   Future<void> _loadRemoteOptions() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _loadError = null;
+      });
+    }
+
     final client = Aria2RpcClient(widget.instance);
 
     try {
@@ -84,11 +93,10 @@ class _RemoteInstanceSettingsPageState
 
       final normalized = _normalizeOptions(options);
       setState(() {
-        _originalOptions = normalized;
+        _originalOptions = _normalizeOptionsForComparison(normalized);
         _applyNormalizedOptions(normalized);
         _isLoading = false;
         _hasLoaded = true;
-        _loadError = null;
       });
     } catch (error) {
       if (!mounted) {
@@ -110,6 +118,52 @@ class _RemoteInstanceSettingsPageState
       normalized[entry.key] = entry.value?.toString() ?? '';
     }
     return normalized;
+  }
+
+  Map<String, String> _normalizeOptionsForComparison(Map<String, String> raw) {
+    return {
+      'dir': raw['dir'] ?? '',
+      'max-concurrent-downloads': raw['max-concurrent-downloads'] ?? '5',
+      'max-connection-per-server': raw['max-connection-per-server'] ?? '16',
+      'split': raw['split'] ?? '5',
+      'continue': (_parseBoolOption(
+        raw['continue'],
+        fallback: true,
+      )).toString(),
+      'max-overall-download-limit': _formatSpeedLimitOption(
+        _parseSpeedLimitToKbps(raw['max-overall-download-limit']),
+      ),
+      'max-overall-upload-limit': _formatSpeedLimitOption(
+        _parseSpeedLimitToKbps(raw['max-overall-upload-limit']),
+      ),
+      'bt-save-metadata': (_parseBoolOption(
+        raw['bt-save-metadata'],
+        fallback: true,
+      )).toString(),
+      'bt-load-saved-metadata': (_parseBoolOption(
+        raw['bt-load-saved-metadata'],
+        fallback: true,
+      )).toString(),
+      'bt-require-crypto': (_parseBoolOption(
+        raw['bt-require-crypto'],
+        fallback: false,
+      )).toString(),
+      'seed-time': raw['seed-time'] ?? '0',
+      'seed-ratio': (raw['seed-ratio'] ?? '').trim().isEmpty
+          ? '0'
+          : raw['seed-ratio']!.trim(),
+      'listen-port': raw['listen-port'] ?? '',
+      'dht-listen-port': raw['dht-listen-port'] ?? '',
+      'enable-dht6': (_parseBoolOption(
+        raw['enable-dht6'],
+        fallback: true,
+      )).toString(),
+      'bt-tracker': raw['bt-tracker'] ?? '',
+      'bt-exclude-tracker': raw['bt-exclude-tracker'] ?? '',
+      'all-proxy': raw['all-proxy'] ?? '',
+      'no-proxy': raw['no-proxy'] ?? '',
+      'user-agent': raw['user-agent'] ?? '',
+    };
   }
 
   void _applyNormalizedOptions(Map<String, String> options) {
@@ -147,11 +201,7 @@ class _RemoteInstanceSettingsPageState
     _seedTime = _parseIntOption(options['seed-time'], fallback: 0, min: 0);
     _seedRatioController.text = options['seed-ratio'] ?? '1.0';
     _btListenPortController.text = options['listen-port'] ?? '';
-    _dhtListenPort = _parseIntOption(
-      options['dht-listen-port'],
-      fallback: 6801,
-      min: 0,
-    );
+    _dhtListenPortController.text = options['dht-listen-port'] ?? '';
     _enableDht6 = _parseBoolOption(options['enable-dht6'], fallback: true);
     _trackerController.text = options['bt-tracker'] ?? '';
     _excludedTrackerController.text = options['bt-exclude-tracker'] ?? '';
@@ -224,7 +274,7 @@ class _RemoteInstanceSettingsPageState
           ? '0'
           : _seedRatioController.text.trim(),
       'listen-port': _btListenPortController.text.trim(),
-      'dht-listen-port': _dhtListenPort.toString(),
+      'dht-listen-port': _dhtListenPortController.text.trim(),
       'enable-dht6': _enableDht6.toString(),
       'bt-tracker': _trackerController.text.trim(),
       'bt-exclude-tracker': _excludedTrackerController.text.trim(),
@@ -261,6 +311,11 @@ class _RemoteInstanceSettingsPageState
     final btListenPort = _btListenPortController.text.trim();
     if (btListenPort.isEmpty) {
       return l10n.remoteSettingsBtPortRequired;
+    }
+
+    final dhtListenPort = _dhtListenPortController.text.trim();
+    if (dhtListenPort.isEmpty) {
+      return l10n.remoteSettingsDhtPortRequired;
     }
 
     return null;
@@ -509,12 +564,9 @@ class _RemoteInstanceSettingsPageState
                 controller: _btListenPortController,
                 helperText: l10n.btListenPortTip,
               ),
-              _buildNumberSetting(
+              _buildTextFieldSetting(
                 l10n.dhtListenPort,
-                _dhtListenPort,
-                (value) => setState(() => _dhtListenPort = value),
-                min: 0,
-                max: 65535,
+                controller: _dhtListenPortController,
               ),
               _buildSwitchSetting(
                 l10n.enableDht6,

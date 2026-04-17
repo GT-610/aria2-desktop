@@ -370,6 +370,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get remoteSettingsBtPortRequired => 'BT 监听端口不能为空';
 
   @override
+  String get remoteSettingsDhtPortRequired => 'DHT 监听端口不能为空';
+
+  @override
   String get save => '保存';
 
   @override
