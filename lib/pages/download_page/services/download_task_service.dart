@@ -281,6 +281,8 @@ class DownloadTaskService with Loggable {
     return task.status == DownloadStatus.active || isPausedTask(task);
   }
 
+  // Paused tasks intentionally appear in both "Downloading" and "Waiting"
+  // filters to match the Motrix-style interaction model we chose.
   static bool matchesWaitingFilter(DownloadTask task) {
     return task.status == DownloadStatus.waiting;
   }
