@@ -47,6 +47,7 @@ dependencies:
   package_info_plus: ^9.0.0
 
   # System tray
+  launch_at_startup: ^0.5.1
   local_notifier: ^0.1.6
   tray_manager: ^0.5.2
   window_manager: ^0.5.1

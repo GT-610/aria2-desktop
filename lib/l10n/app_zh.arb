@@ -31,6 +31,7 @@
   "globalSettings": "全局设置",
   "runAtStartup": "系统启动时运行",
   "runAtStartupTip": "设置应用随系统启动而运行",
+  "runAtStartupRetryWarning": "开机启动偏好已保存，但系统注册失败。应用会在下次启动时重试。",
   "runMode": "运行模式",
   "runModeStandard": "标准",
   "runModeStandardTip": "使用普通窗口行为。关闭主窗口时直接退出应用。",

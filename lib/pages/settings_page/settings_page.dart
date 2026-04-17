@@ -11,6 +11,7 @@ import '../../constants/github_id.dart';
 import '../../generated/l10n/l10n.dart';
 import '../../models/settings.dart';
 import '../../services/protocol_integration_service.dart';
+import '../../services/startup_integration_service.dart';
 import '../../utils/logging.dart';
 import './components/appearance_dialog.dart';
 
@@ -301,7 +302,7 @@ class _SettingsPageState extends State<SettingsPage>
           title: l10n.runAtStartup,
           subtitle: l10n.runAtStartupTip,
           value: settings.autoStart,
-          onChanged: (value) => settings.setAutoStart(value),
+          onChanged: (value) => _setRunAtStartupPreference(value, settings),
         ),
         fl.CardX(
           child: Padding(
@@ -736,6 +737,32 @@ ${GithubIds.participants.map((id) => id.markdownLink).join(' ')}
     }
   }
 
+  Future<void> _setRunAtStartupPreference(bool value, Settings settings) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      await settings.setAutoStart(value);
+    } catch (e, stackTrace) {
+      this.e(
+        'Failed to save run-at-startup preference',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      _showErrorSnackBar(l10n.saveSettingsFailed);
+      return;
+    }
+
+    try {
+      await StartupIntegrationService().setEnabled(value);
+    } catch (e, stackTrace) {
+      this.w(
+        'Failed to apply run-at-startup preference immediately',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      _showWarningSnackBar(l10n.runAtStartupRetryWarning);
+    }
+  }
+
   void _openLogPage() {
     final l10n = AppLocalizations.of(context)!;
     i('Opening in-app log page');
@@ -785,6 +812,17 @@ ${GithubIds.participants.map((id) => id.markdownLink).join(' ')}
       await settings.resetToDefaults();
       final failedProtocols = await ProtocolIntegrationService()
           .reconcileProtocolPreferences(settings);
+      var startupPreferenceFailed = false;
+      try {
+        await StartupIntegrationService().reconcileStartupPreference(settings);
+      } catch (e, stackTrace) {
+        startupPreferenceFailed = true;
+        this.w(
+          'Failed to reconcile run-at-startup preference after reset',
+          error: e,
+          stackTrace: stackTrace,
+        );
+      }
       if (!mounted) {
         return;
       }
@@ -793,6 +831,8 @@ ${GithubIds.participants.map((id) => id.markdownLink).join(' ')}
         _showWarningSnackBar(
           l10n.protocolReconcileFailed(failedProtocols.join(', ')),
         );
+      } else if (startupPreferenceFailed) {
+        _showWarningSnackBar(l10n.runAtStartupRetryWarning);
       } else {
         _showInfoSnackBar(l10n.resetAppSettingsSuccess);
       }
