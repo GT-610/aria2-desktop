@@ -122,14 +122,9 @@ try {
 ## Unimplemented Features (for reference)
 
 When working on this codebase, consider these features that are not yet implemented:
-- System tray integration (has settings but no functionality)
-- Applying settings to Aria2 via RPC
-- Download notifications
-- Batch task selection
-- Task search/sort
-- Full task details with file list
-
-See `.trae/references/` for AriaNg and Motrix reference implementations.
+- Deeper tray interactions (for example drag-to-tray style entry flows)
+- Expanded remote maintenance and diagnostics tooling
+- Broader automated test coverage for desktop integration flows
 
 ---
 
@@ -144,6 +139,4 @@ See `.trae/references/` for AriaNg and Motrix reference implementations.
 
 ## Additional Notes
 
-- Reference AriaNg in `.trae/references/AriaNg` for UI patterns and Aria2 options
-- Reference Motrix in `.trae/references/Motrix` for system tray and process management
-- Aria2 RPC documentation available in `.trae/references/aria2c-docs.rst`
+- Prefer repository-tracked code and public upstream documentation as the source of truth.
