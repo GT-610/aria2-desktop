@@ -110,6 +110,29 @@
   "contributors": "Contributors",
   "license": "License",
   "instanceSettings": "Instance Settings",
+  "remoteAria2Settings": "Remote aria2 settings",
+  "remoteSettingsInfoTip": "These options are applied to the currently running remote aria2 instance, not to the saved connection profile.",
+  "remoteSettingsRequiresConnectedInstance": "Connect this remote instance before opening its aria2 settings.",
+  "remoteSettingsLoadFailed": "Failed to load remote aria2 settings",
+  "remoteSettingsLoadFailedWithError": "Failed to load remote aria2 settings: {error}",
+  "@remoteSettingsLoadFailedWithError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "remoteSettingsSaved": "Remote aria2 settings saved",
+  "remoteSettingsSaveFailed": "Failed to save remote aria2 settings",
+  "remoteSettingsSaveFailedWithError": "Failed to save remote aria2 settings: {error}",
+  "@remoteSettingsSaveFailedWithError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "remoteSettingsNoChanges": "No remote aria2 setting changes to save",
+  "remoteSettingsDownloadDirRequired": "The remote download directory cannot be empty",
+  "remoteSettingsInvalidSeedRatio": "Seed ratio must be a valid number",
+  "remoteSettingsBtPortRequired": "BT listen port cannot be empty",
+  "remoteSettingsDhtPortRequired": "DHT listen port cannot be empty",
   "save": "Save",
   "saveAndApply": "Save & Apply",
   "basicSettings": "Basic Settings",
