@@ -1120,11 +1120,11 @@ class TaskDetailsDialog {
   }
 
   static String _formatShareRatio(DownloadTask task) {
-    if (task.totalLengthBytes <= 0 || task.uploadLengthBytes <= 0) {
+    if (task.completedLengthBytes <= 0 || task.uploadLengthBytes <= 0) {
       return '0';
     }
 
-    final ratio = task.uploadLengthBytes / task.totalLengthBytes;
+    final ratio = task.uploadLengthBytes / task.completedLengthBytes;
     return ratio.toStringAsFixed(4);
   }
 

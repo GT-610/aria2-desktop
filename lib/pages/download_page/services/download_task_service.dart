@@ -611,6 +611,13 @@ class DownloadTaskService with Loggable {
       }
 
       await client.addUri(sourceUris, options);
+      if (task.status == DownloadStatus.stopped) {
+        try {
+          await client.removeDownloadResult(task.id);
+        } catch (error) {
+          _logW('Failed to remove original task record after retry: $error');
+        }
+      }
       onTaskUpdated();
     } catch (e) {
       _logE('Error retrying task: $e');
