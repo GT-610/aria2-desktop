@@ -58,6 +58,11 @@ class _ThemeProviderState extends State<_ThemeProvider> {
       locale: settings.locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) => fl.VirtualWindowFrame(
+        title: kAppName,
+        showCaption: settings.hideTitleBar,
+        child: ClipRect(child: child ?? const SizedBox.shrink()),
+      ),
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -275,12 +280,7 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
     if (!_isInitialized) {
       return Scaffold(body: Center(child: fl.SizedLoading.medium));
     }
-    final settings = Provider.of<Settings>(context);
-    return fl.VirtualWindowFrame(
-      title: kAppName,
-      showCaption: settings.hideTitleBar,
-      child: const MainWindow(),
-    );
+    return const MainWindow();
   }
 }
 
