@@ -302,6 +302,7 @@ class _SettingsPageState extends State<SettingsPage>
           title: l10n.runAtStartup,
           subtitle: l10n.runAtStartupTip,
           value: settings.autoStart,
+          logSuccess: false,
           onChanged: (value) => _setRunAtStartupPreference(value, settings),
         ),
         fl.CardX(
