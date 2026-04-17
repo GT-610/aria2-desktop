@@ -329,6 +329,47 @@ class AppLocalizationsZh extends AppLocalizations {
   String get instanceSettings => '实例设置';
 
   @override
+  String get remoteAria2Settings => '远程 aria2 设置';
+
+  @override
+  String get remoteSettingsInfoTip => '这里修改的是当前正在运行的远程 aria2 全局选项，不是本地保存的连接档案。';
+
+  @override
+  String get remoteSettingsRequiresConnectedInstance =>
+      '请先连接此远程实例，再打开它的 aria2 设置。';
+
+  @override
+  String get remoteSettingsLoadFailed => '加载远程 aria2 设置失败';
+
+  @override
+  String remoteSettingsLoadFailedWithError(Object error) {
+    return '加载远程 aria2 设置失败: $error';
+  }
+
+  @override
+  String get remoteSettingsSaved => '远程 aria2 设置已保存';
+
+  @override
+  String get remoteSettingsSaveFailed => '保存远程 aria2 设置失败';
+
+  @override
+  String remoteSettingsSaveFailedWithError(Object error) {
+    return '保存远程 aria2 设置失败: $error';
+  }
+
+  @override
+  String get remoteSettingsNoChanges => '没有需要保存的远程 aria2 设置改动';
+
+  @override
+  String get remoteSettingsDownloadDirRequired => '远程下载目录不能为空';
+
+  @override
+  String get remoteSettingsInvalidSeedRatio => '做种比例必须是有效数字';
+
+  @override
+  String get remoteSettingsBtPortRequired => 'BT 监听端口不能为空';
+
+  @override
   String get save => '保存';
 
   @override

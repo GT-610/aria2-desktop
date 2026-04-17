@@ -346,6 +346,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get instanceSettings => 'Instance Settings';
 
   @override
+  String get remoteAria2Settings => 'Remote aria2 settings';
+
+  @override
+  String get remoteSettingsInfoTip =>
+      'These options are applied to the currently running remote aria2 instance, not to the saved connection profile.';
+
+  @override
+  String get remoteSettingsRequiresConnectedInstance =>
+      'Connect this remote instance before opening its aria2 settings.';
+
+  @override
+  String get remoteSettingsLoadFailed => 'Failed to load remote aria2 settings';
+
+  @override
+  String remoteSettingsLoadFailedWithError(Object error) {
+    return 'Failed to load remote aria2 settings: $error';
+  }
+
+  @override
+  String get remoteSettingsSaved => 'Remote aria2 settings saved';
+
+  @override
+  String get remoteSettingsSaveFailed => 'Failed to save remote aria2 settings';
+
+  @override
+  String remoteSettingsSaveFailedWithError(Object error) {
+    return 'Failed to save remote aria2 settings: $error';
+  }
+
+  @override
+  String get remoteSettingsNoChanges =>
+      'No remote aria2 setting changes to save';
+
+  @override
+  String get remoteSettingsDownloadDirRequired =>
+      'The remote download directory cannot be empty';
+
+  @override
+  String get remoteSettingsInvalidSeedRatio =>
+      'Seed ratio must be a valid number';
+
+  @override
+  String get remoteSettingsBtPortRequired => 'BT listen port cannot be empty';
+
+  @override
   String get save => 'Save';
 
   @override

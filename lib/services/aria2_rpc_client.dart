@@ -565,7 +565,7 @@ class Aria2RpcClient with Loggable {
   /// Set global options (Aria2 global configuration)
   Future<bool> setGlobalOption(Map<String, dynamic> options) async {
     try {
-      final response = await callRpc('aria2.setGlobalOption', [options]);
+      final response = await callRpc('aria2.changeGlobalOption', [options]);
       this.d('Global options set successfully: $options');
       return response['result'] == 'OK';
     } catch (e, stackTrace) {

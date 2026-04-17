@@ -698,6 +698,78 @@ abstract class AppLocalizations {
   /// **'Instance Settings'**
   String get instanceSettings;
 
+  /// No description provided for @remoteAria2Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote aria2 settings'**
+  String get remoteAria2Settings;
+
+  /// No description provided for @remoteSettingsInfoTip.
+  ///
+  /// In en, this message translates to:
+  /// **'These options are applied to the currently running remote aria2 instance, not to the saved connection profile.'**
+  String get remoteSettingsInfoTip;
+
+  /// No description provided for @remoteSettingsRequiresConnectedInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect this remote instance before opening its aria2 settings.'**
+  String get remoteSettingsRequiresConnectedInstance;
+
+  /// No description provided for @remoteSettingsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load remote aria2 settings'**
+  String get remoteSettingsLoadFailed;
+
+  /// No description provided for @remoteSettingsLoadFailedWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load remote aria2 settings: {error}'**
+  String remoteSettingsLoadFailedWithError(Object error);
+
+  /// No description provided for @remoteSettingsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote aria2 settings saved'**
+  String get remoteSettingsSaved;
+
+  /// No description provided for @remoteSettingsSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save remote aria2 settings'**
+  String get remoteSettingsSaveFailed;
+
+  /// No description provided for @remoteSettingsSaveFailedWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save remote aria2 settings: {error}'**
+  String remoteSettingsSaveFailedWithError(Object error);
+
+  /// No description provided for @remoteSettingsNoChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'No remote aria2 setting changes to save'**
+  String get remoteSettingsNoChanges;
+
+  /// No description provided for @remoteSettingsDownloadDirRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'The remote download directory cannot be empty'**
+  String get remoteSettingsDownloadDirRequired;
+
+  /// No description provided for @remoteSettingsInvalidSeedRatio.
+  ///
+  /// In en, this message translates to:
+  /// **'Seed ratio must be a valid number'**
+  String get remoteSettingsInvalidSeedRatio;
+
+  /// No description provided for @remoteSettingsBtPortRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'BT listen port cannot be empty'**
+  String get remoteSettingsBtPortRequired;
+
   /// No description provided for @save.
   ///
   /// In en, this message translates to:
