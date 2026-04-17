@@ -298,14 +298,12 @@ class _InstanceCardState extends State<InstanceCard> {
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: widget.isSelected ? 4 : 2,
+      elevation: 2,
       shadowColor: Colors.black.withValues(alpha: 0.1),
       surfaceTintColor: colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: widget.isSelected
-            ? BorderSide(color: colorScheme.primary, width: 2)
-            : BorderSide.none,
+        side: BorderSide.none,
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),

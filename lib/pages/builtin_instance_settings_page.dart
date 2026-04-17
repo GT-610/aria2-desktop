@@ -9,6 +9,7 @@ import '../services/builtin_instance_service.dart';
 import '../services/instance_manager.dart';
 import '../services/settings_service.dart';
 import '../services/tracker_sync_service.dart';
+import 'components/builtin_settings_apply_hint_card.dart';
 import 'download_page/components/directory_picker.dart';
 
 class BuiltinInstanceSettingsPage extends StatefulWidget {
@@ -214,7 +215,7 @@ class _BuiltinInstanceSettingsPageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildApplyHintCard(settings, theme),
+            _buildApplyHintCard(settings),
             _buildSectionHeader(l10n.connectionSection, theme),
             _buildCard(
               theme: theme,
@@ -1202,9 +1203,8 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 
-  Widget _buildApplyHintCard(Settings settings, ThemeData theme) {
+  Widget _buildApplyHintCard(Settings settings) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = theme.colorScheme;
     final applyMode = _currentApplyMode(settings);
     final applyMessage = switch (applyMode) {
       _BuiltinSettingsApplyMode.liveApply => l10n.settingsApplyLiveHint,
@@ -1213,47 +1213,10 @@ class _BuiltinInstanceSettingsPageState
       _BuiltinSettingsApplyMode.none => l10n.settingsApplyNoPendingHint,
     };
 
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            applyMode == _BuiltinSettingsApplyMode.restartRequired
-                ? Icons.restart_alt
-                : Icons.info_outline,
-            color: colorScheme.onSecondaryContainer,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.settingsSaveOnlyHint,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSecondaryContainer,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  applyMessage,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSecondaryContainer,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return BuiltinSettingsApplyHintCard(
+      title: l10n.settingsSaveOnlyHint,
+      message: applyMessage,
+      restartRequired: applyMode == _BuiltinSettingsApplyMode.restartRequired,
     );
   }
 

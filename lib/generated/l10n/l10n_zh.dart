@@ -602,7 +602,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enableUpnp => '启用 UPnP / NAT-PMP';
 
   @override
-  String get enableUpnpTip => '为 BT 和 DHT 端口使用路由器端口映射。';
+  String get enableUpnpTip =>
+      '为 BT 和 DHT 端口使用路由器端口映射。若 BT 配置的是端口范围，则只映射首个解析出的 BT 端口。';
 
   @override
   String get fileSettings => '文件设置';

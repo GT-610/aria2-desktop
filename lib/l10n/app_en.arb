@@ -226,7 +226,7 @@
   "dhtListenPort": "DHT Listen Port",
   "enableDht6": "Enable DHT6",
   "enableUpnp": "Enable UPnP / NAT-PMP",
-  "enableUpnpTip": "Use router port mapping for BT and DHT ports.",
+  "enableUpnpTip": "Use router port mapping for BT and DHT ports. When a BT port range is configured, only the first resolved BT port is mapped.",
   "fileSettings": "File Settings",
   "downloadDir": "Download Directory",
   "defaultDownloadDir": "Default Download Directory",
