@@ -502,13 +502,6 @@ class Settings extends ChangeNotifier with Loggable {
     await _saveAllSettings();
   }
 
-  // Minimize to system tray setting
-  Future<void> setMinimizeToTray(bool value) async {
-    _minimizeToTray = value;
-    notifyListeners();
-    await _saveAllSettings();
-  }
-
   Future<void> setRunMode(AppRunMode value) async {
     _runMode = value;
     _minimizeToTray = value == AppRunMode.tray;

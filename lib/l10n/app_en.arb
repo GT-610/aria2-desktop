@@ -19,7 +19,6 @@
   "connect": "Connect",
   "reconnect": "Reconnect",
   "disconnect": "Disconnect",
-  "settings2": "Settings",
   "edit": "Edit",
   "delete": "Delete",
   "builtin": "Built-in",
@@ -39,8 +38,6 @@
   "runModeTrayTip": "Keep the app available in the system tray. Closing the main window hides it to the tray.",
   "runModeHideTray": "Hide tray",
   "runModeHideTrayTip": "Disable system tray integration entirely. Closing the main window exits the app.",
-  "minimizeToTray": "Minimize to tray",
-  "minimizeToTrayTip": "Minimize to tray when closing window instead of exiting",
   "autoHideWindow": "Auto hide window",
   "autoHideWindowTip": "Hide the main window automatically when it loses focus",
   "showTraySpeed": "Show tray speed",
@@ -114,14 +111,9 @@
   "aria2RpcAddress": "Aria2 RPC Address",
   "remoteAria2Settings": "Remote aria2 settings",
   "remoteStatusMaintenance": "Status & maintenance",
+  "editConnectionProfile": "Edit connection profile",
   "remoteStatusMaintenanceRequiresConnectedInstance": "Connect this remote instance before opening its status and maintenance tools.",
   "remoteStatusMaintenanceLoadFailed": "Failed to load remote aria2 status",
-  "remoteStatusMaintenanceLoadFailedWithError": "Failed to load remote aria2 status: {error}",
-  "@remoteStatusMaintenanceLoadFailedWithError": {
-    "placeholders": {
-      "error": {}
-    }
-  },
   "remoteStatusSummary": "Runtime Summary",
   "remoteReadonlyInfo": "Instance Info",
   "remoteMaintenanceActions": "Maintenance Actions",

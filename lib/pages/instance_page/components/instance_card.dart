@@ -406,7 +406,7 @@ class _InstanceCardState extends State<InstanceCard> {
                     ),
                     _buildInlineIconAction(
                       context: context,
-                      tooltip: l10n.edit,
+                      tooltip: l10n.editConnectionProfile,
                       icon: Icons.edit_outlined,
                       onPressed: () => widget.onEdit(widget.instance),
                     ),

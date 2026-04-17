@@ -322,8 +322,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   int _selectedIndex = 0;
   final GlobalKey<DownloadPageState> _downloadPageKey =
       GlobalKey<DownloadPageState>();
-  late final PageController _pageController;
-  bool _switchingPage = false;
   DownloadDataService? _downloadDataService;
   InstanceManager? _instanceManager;
   Settings? _settings;
@@ -334,7 +332,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: _selectedIndex);
     windowManager.addListener(this);
     _initSystemTrayCallbacks();
   }
@@ -345,7 +342,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     _instanceManager?.removeListener(_handleInstanceManagerChanged);
     _settings?.removeListener(_handleSettingsChanged);
     _pendingAutoHideTimer?.cancel();
-    _pageController.dispose();
     windowManager.removeListener(this);
     final systemTrayService = SystemTrayService();
     systemTrayService.setOnShowWindow(null);
@@ -595,15 +591,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
 
     if (_selectedIndex != 0) {
       setState(() => _selectedIndex = 0);
-      _switchingPage = true;
-      await _pageController.animateToPage(
-        0,
-        duration: const Duration(milliseconds: 677),
-        curve: Curves.fastLinearToSlowEaseIn,
-      );
-      if (mounted) {
-        _switchingPage = false;
-      }
     }
 
     if (!mounted) {
@@ -800,18 +787,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     if (_selectedIndex == index) return;
     if (index < 0 || index >= 3) return;
     setState(() => _selectedIndex = index);
-    _switchingPage = true;
-    _pageController
-        .animateToPage(
-          index,
-          duration: const Duration(milliseconds: 677),
-          curve: Curves.fastLinearToSlowEaseIn,
-        )
-        .then((_) {
-          if (mounted) {
-            _switchingPage = false;
-          }
-        });
   }
 
   @override
@@ -880,19 +855,9 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
                     ),
                   ],
                 ),
-                // Main content area with page transition animation
+                // Main content area
                 Expanded(
-                  child: PageView.builder(
-                    controller: _pageController,
-                    itemCount: 3,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (_, index) => pages[index],
-                    onPageChanged: (value) {
-                      if (!_switchingPage) {
-                        setState(() => _selectedIndex = value);
-                      }
-                    },
-                  ),
+                  child: IndexedStack(index: _selectedIndex, children: pages),
                 ),
               ],
             ),

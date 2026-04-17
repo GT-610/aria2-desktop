@@ -408,33 +408,6 @@ class Aria2RpcClient with Loggable {
     return await multicall(calls);
   }
 
-  /// Get all tasks using multicall (legacy method)
-  Future<Map<String, dynamic>> getTasksMulticall() async {
-    final multicallParams = [
-      {
-        "methodName": "aria2.tellActive",
-        "params": instance.secret.isNotEmpty
-            ? ["token:${instance.secret}"]
-            : [],
-      },
-      {
-        "methodName": "aria2.tellWaiting",
-        "params": instance.secret.isNotEmpty
-            ? ["token:${instance.secret}", 0, 1000]
-            : [0, 1000],
-      },
-      {
-        "methodName": "aria2.tellStopped",
-        "params": instance.secret.isNotEmpty
-            ? ["token:${instance.secret}", 0, 1000]
-            : [0, 1000],
-      },
-    ];
-
-    final response = await callRpc('system.multicall', [multicallParams]);
-    return response;
-  }
-
   /// Test connection
   Future<bool> testConnection() async {
     try {
