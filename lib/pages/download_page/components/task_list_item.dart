@@ -51,6 +51,14 @@ class TaskListItem extends StatelessWidget {
     await DownloadTaskService.removeFailedTask(context, task, onTaskUpdated);
   }
 
+  Future<void> _handleDeleteTask(BuildContext context) async {
+    await DownloadTaskService.stopTask(context, task, onTaskUpdated);
+  }
+
+  Future<void> _handleRetryTask(BuildContext context) async {
+    await DownloadTaskService.retryTask(context, task, onTaskUpdated);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -318,6 +326,31 @@ class TaskListItem extends StatelessWidget {
                           child: IconButton(
                             icon: const Icon(Icons.delete_outline),
                             onPressed: () => _handleRemoveFailedTask(context),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ),
+                      ] else if (task.status == DownloadStatus.stopped &&
+                          task.taskStatus == 'complete') ...[
+                        if ((task.uris ?? const <String>[]).any(
+                          (uri) => uri.trim().isNotEmpty,
+                        )) ...[
+                          Tooltip(
+                            message: l10n.retry,
+                            child: IconButton(
+                              icon: const Icon(Icons.refresh),
+                              onPressed: () => _handleRetryTask(context),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Tooltip(
+                          message: l10n.delete,
+                          child: IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _handleDeleteTask(context),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),

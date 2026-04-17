@@ -1940,6 +1940,18 @@ abstract class AppLocalizations {
   /// **'Failed to pause the task: {error}'**
   String failedToPauseTask(Object error);
 
+  /// No description provided for @failedToRetryTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to retry the task: {error}'**
+  String failedToRetryTask(Object error);
+
+  /// No description provided for @retryTaskSourceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This task cannot be retried because its original source link is unavailable.'**
+  String get retryTaskSourceUnavailable;
+
   /// No description provided for @failedToRemoveTask.
   ///
   /// In en, this message translates to:

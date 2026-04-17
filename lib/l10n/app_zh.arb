@@ -318,6 +318,13 @@
   "noDownloadDirectoryAvailable": "没有可用的下载目录",
   "targetInstanceNotConnected": "目标实例未连接。",
   "failedToPauseTask": "暂停任务失败: {error}",
+  "failedToRetryTask": "重试任务失败: {error}",
+  "@failedToRetryTask": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "retryTaskSourceUnavailable": "当前任务缺少原始来源链接，无法重试。",
   "failedToRemoveTask": "删除任务失败: {error}",
   "failedToResumeTask": "继续任务失败: {error}",
   "failedToRemoveFailedTask": "删除失败任务失败: {error}",

@@ -994,6 +994,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String failedToRetryTask(Object error) {
+    return '重试任务失败: $error';
+  }
+
+  @override
+  String get retryTaskSourceUnavailable => '当前任务缺少原始来源链接，无法重试。';
+
+  @override
   String failedToRemoveTask(Object error) {
     return '删除任务失败: $error';
   }

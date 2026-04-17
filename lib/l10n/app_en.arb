@@ -318,6 +318,13 @@
   "noDownloadDirectoryAvailable": "No download directory available",
   "targetInstanceNotConnected": "The target instance is not connected.",
   "failedToPauseTask": "Failed to pause the task: {error}",
+  "failedToRetryTask": "Failed to retry the task: {error}",
+  "@failedToRetryTask": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "retryTaskSourceUnavailable": "This task cannot be retried because its original source link is unavailable.",
   "failedToRemoveTask": "Failed to remove the task: {error}",
   "failedToResumeTask": "Failed to resume the task: {error}",
   "failedToRemoveFailedTask": "Failed to remove the failed task: {error}",

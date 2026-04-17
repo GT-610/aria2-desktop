@@ -1035,6 +1035,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String failedToRetryTask(Object error) {
+    return 'Failed to retry the task: $error';
+  }
+
+  @override
+  String get retryTaskSourceUnavailable =>
+      'This task cannot be retried because its original source link is unavailable.';
+
+  @override
   String failedToRemoveTask(Object error) {
     return 'Failed to remove the task: $error';
   }

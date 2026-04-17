@@ -427,6 +427,66 @@ class DownloadTaskService with Loggable {
     }
   }
 
+  static Future<void> retryTask(
+    BuildContext context,
+    DownloadTask task,
+    VoidCallback onTaskUpdated,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    Aria2RpcClient? client;
+    try {
+      final sourceUris = (task.uris ?? const <String>[])
+          .map((uri) => uri.trim())
+          .where((uri) => uri.isNotEmpty)
+          .toList();
+      if (sourceUris.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.retryTaskSourceUnavailable)),
+          );
+        }
+        return;
+      }
+
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
+      final targetInstance = instanceManager.getInstanceById(task.instanceId);
+      if (targetInstance?.status != ConnectionStatus.connected) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.targetInstanceNotConnected)),
+          );
+        }
+        return;
+      }
+
+      client = Aria2RpcClient(targetInstance!);
+      final options = <String, dynamic>{};
+      final taskDir = task.dir?.trim() ?? '';
+      if (taskDir.isNotEmpty) {
+        options['dir'] = taskDir;
+      }
+      final taskName = task.name.trim();
+      if (taskName.isNotEmpty) {
+        options['out'] = taskName;
+      }
+
+      await client.addUri(sourceUris, options);
+      onTaskUpdated();
+    } catch (e) {
+      _logE('Error retrying task: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.failedToRetryTask('$e'))));
+      }
+    } finally {
+      client?.close();
+    }
+  }
+
   static void openDirectory(DownloadTask task) {
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       if (task.dir != null) {
