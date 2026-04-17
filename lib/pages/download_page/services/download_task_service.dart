@@ -228,10 +228,7 @@ class DownloadTaskService with Loggable {
     }
 
     if (isSeedingTask(task)) {
-      return (
-        _isChineseLocale(context) ? '做种中' : 'Seeding',
-        const Color(0xFF4CAF50),
-      );
+      return (l10n.seeding, const Color(0xFF4CAF50));
     }
 
     if (task.status == DownloadStatus.stopped &&
@@ -294,22 +291,12 @@ class DownloadTaskService with Loggable {
         task.isSeeder;
   }
 
-  static bool _isChineseLocale(BuildContext context) {
-    return Localizations.localeOf(context).languageCode.toLowerCase().startsWith(
-      'zh',
-    );
-  }
-
   static String _stoppingSeedingTip(BuildContext context) {
-    return _isChineseLocale(context)
-        ? '正在停止做种，断开连接需要些时间，请耐心等待...'
-        : 'Stopping seeding, it may take some time to disconnect. Please wait.';
+    return AppLocalizations.of(context)!.stoppingSeedingTip;
   }
 
   static String _failedToStopSeedingMessage(BuildContext context, String error) {
-    return _isChineseLocale(context)
-        ? '停止做种失败: $error'
-        : 'Failed to stop seeding: $error';
+    return AppLocalizations.of(context)!.failedToStopSeeding(error);
   }
 
   static Future<void> pauseTask(

@@ -409,19 +409,7 @@ class TaskListItem extends StatelessWidget {
                             constraints: const BoxConstraints(),
                           ),
                         ),
-                      ] else if (task.status == DownloadStatus.stopped &&
-                          task.taskStatus != 'complete') ...[
-                        Tooltip(
-                          message: l10n.removeFailedTask,
-                          child: IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => _handleRemoveFailedTask(context),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ),
-                      ] else if (task.status == DownloadStatus.stopped &&
-                          task.taskStatus == 'complete') ...[
+                      ] else if (task.status == DownloadStatus.stopped) ...[
                         if ((task.uris ?? const <String>[]).any(
                           (uri) => uri.trim().isNotEmpty,
                         )) ...[
@@ -436,15 +424,26 @@ class TaskListItem extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                         ],
-                        Tooltip(
-                          message: l10n.delete,
-                          child: IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => _handleDeleteTask(context),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                        if (task.taskStatus == 'complete')
+                          Tooltip(
+                            message: l10n.delete,
+                            child: IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _handleDeleteTask(context),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          )
+                        else
+                          Tooltip(
+                            message: l10n.removeFailedTask,
+                            child: IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _handleRemoveFailedTask(context),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
                           ),
-                        ),
                       ],
                       const SizedBox(width: 8),
                       Tooltip(

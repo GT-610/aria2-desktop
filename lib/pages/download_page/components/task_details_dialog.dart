@@ -345,19 +345,19 @@ class TaskDetailsDialog {
                                           if (isBtTaskDetail) ...[
                                             const SizedBox(height: 8),
                                             Text(
-                                              '${_torrentOverviewConnectionsLabel(context)}: ${currentTask.connections ?? 0}',
+                                              '${l10n.torrentConnections}: ${currentTask.connections ?? 0}',
                                             ),
                                             const SizedBox(height: 8),
                                             Text(
-                                              '${_torrentOverviewSeedersLabel(context)}: ${currentTask.numSeeders ?? 0}',
+                                              '${l10n.torrentSeeders}: ${currentTask.numSeeders ?? 0}',
                                             ),
                                             const SizedBox(height: 8),
                                             Text(
-                                              '${_torrentOverviewUploadedLabel(context)}: ${formatBytes(currentTask.uploadLengthBytes)}',
+                                              '${l10n.torrentUploaded}: ${formatBytes(currentTask.uploadLengthBytes)}',
                                             ),
                                             const SizedBox(height: 8),
                                             Text(
-                                              '${_torrentOverviewRatioLabel(context)}: ${_formatShareRatio(currentTask)}',
+                                              '${l10n.torrentRatio}: ${_formatShareRatio(currentTask)}',
                                             ),
                                           ],
                                           if (!isSeeding &&
@@ -407,9 +407,7 @@ class TaskDetailsDialog {
                                           const SizedBox(height: 20),
                                           _buildSectionDivider(
                                             context,
-                                            _torrentOverviewSectionTitle(
-                                              context,
-                                            ),
+                                            l10n.torrentInfo,
                                           ),
                                           const SizedBox(height: 16),
                                           if (currentTask.infoHash != null &&
@@ -418,28 +416,28 @@ class TaskDetailsDialog {
                                                   .trim()
                                                   .isNotEmpty) ...[
                                             Text(
-                                              '${_torrentOverviewHashLabel(context)}: ${currentTask.infoHash!}',
+                                              '${l10n.torrentHash}: ${currentTask.infoHash!}',
                                             ),
                                             const SizedBox(height: 8),
                                           ],
                                           if (currentTask.pieceLength != null &&
                                               currentTask.pieceLength! > 0) ...[
                                             Text(
-                                              '${_torrentOverviewPieceSizeLabel(context)}: ${formatBytes(currentTask.pieceLength!)}',
+                                              '${l10n.torrentPieceSize}: ${formatBytes(currentTask.pieceLength!)}',
                                             ),
                                             const SizedBox(height: 8),
                                           ],
                                           if (currentTask.numPieces != null &&
                                               currentTask.numPieces! > 0) ...[
                                             Text(
-                                              '${_torrentOverviewPieceCountLabel(context)}: ${currentTask.numPieces}',
+                                              '${l10n.torrentPieceCount}: ${currentTask.numPieces}',
                                             ),
                                             const SizedBox(height: 8),
                                           ],
                                           if (torrentMetadata.creationDate !=
                                               null) ...[
                                             Text(
-                                              '${_torrentOverviewCreationDateLabel(context)}: ${torrentMetadata.creationDate!.toLocal()}',
+                                              '${l10n.torrentCreationDate}: ${torrentMetadata.creationDate!.toLocal()}',
                                             ),
                                             const SizedBox(height: 8),
                                           ],
@@ -448,7 +446,7 @@ class TaskDetailsDialog {
                                                   .trim()
                                                   .isNotEmpty)
                                             Text(
-                                              '${_torrentOverviewCommentLabel(context)}: ${torrentMetadata.comment!}',
+                                              '${l10n.torrentComment}: ${torrentMetadata.comment!}',
                                             ),
                                         ],
                                       ],
@@ -1071,52 +1069,6 @@ class TaskDetailsDialog {
         Expanded(child: Divider(color: dividerColor)),
       ],
     );
-  }
-
-  static bool _isChineseLocale(BuildContext context) {
-    return Localizations.localeOf(context).languageCode.toLowerCase().startsWith(
-      'zh',
-    );
-  }
-
-  static String _torrentOverviewSectionTitle(BuildContext context) {
-    return _isChineseLocale(context) ? '种子信息' : 'Torrent Info';
-  }
-
-  static String _torrentOverviewHashLabel(BuildContext context) {
-    return 'Hash';
-  }
-
-  static String _torrentOverviewPieceSizeLabel(BuildContext context) {
-    return _isChineseLocale(context) ? '分片大小' : 'Piece size';
-  }
-
-  static String _torrentOverviewPieceCountLabel(BuildContext context) {
-    return _isChineseLocale(context) ? '分片数量' : 'Piece count';
-  }
-
-  static String _torrentOverviewCreationDateLabel(BuildContext context) {
-    return _isChineseLocale(context) ? '发布时间' : 'Creation date';
-  }
-
-  static String _torrentOverviewCommentLabel(BuildContext context) {
-    return _isChineseLocale(context) ? '备注' : 'Comment';
-  }
-
-  static String _torrentOverviewConnectionsLabel(BuildContext context) {
-    return _isChineseLocale(context) ? '连接数' : 'Connections';
-  }
-
-  static String _torrentOverviewSeedersLabel(BuildContext context) {
-    return _isChineseLocale(context) ? '种子数' : 'Seeders';
-  }
-
-  static String _torrentOverviewUploadedLabel(BuildContext context) {
-    return _isChineseLocale(context) ? '已上传' : 'Uploaded';
-  }
-
-  static String _torrentOverviewRatioLabel(BuildContext context) {
-    return _isChineseLocale(context) ? '分享率' : 'Ratio';
   }
 
   static String _formatShareRatio(DownloadTask task) {

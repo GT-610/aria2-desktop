@@ -1377,6 +1377,47 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloadShort => '下载';
 
   @override
+  String get seeding => '做种中';
+
+  @override
+  String get stoppingSeedingTip => '正在停止做种，断开连接需要些时间，请耐心等待...';
+
+  @override
+  String failedToStopSeeding(Object error) {
+    return '停止做种失败: $error';
+  }
+
+  @override
+  String get torrentInfo => '种子信息';
+
+  @override
+  String get torrentHash => 'Hash';
+
+  @override
+  String get torrentPieceSize => '分片大小';
+
+  @override
+  String get torrentPieceCount => '分片数量';
+
+  @override
+  String get torrentCreationDate => '发布时间';
+
+  @override
+  String get torrentComment => '备注';
+
+  @override
+  String get torrentConnections => '连接数';
+
+  @override
+  String get torrentSeeders => '种子数';
+
+  @override
+  String get torrentUploaded => '已上传';
+
+  @override
+  String get torrentRatio => '分享率';
+
+  @override
   String get english => 'English';
 
   @override
