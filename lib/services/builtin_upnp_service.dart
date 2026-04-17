@@ -90,15 +90,19 @@ class BuiltinUpnpService with Loggable {
     final removedRules = _mappedRules.difference(desiredRules).toList();
     final addedRules = desiredRules.difference(_mappedRules).toList();
 
+    Set<_PortMappingRule> successfullyUnmapped = <_PortMappingRule>{};
     if (removedRules.isNotEmpty) {
-      await _unmapRules(gateway, removedRules);
+      successfullyUnmapped = await _unmapRules(gateway, removedRules);
     }
 
+    Set<_PortMappingRule> successfullyMapped = <_PortMappingRule>{};
     if (addedRules.isNotEmpty) {
-      await _mapRules(gateway, addedRules);
+      successfullyMapped = await _mapRules(gateway, addedRules);
     }
 
-    _mappedRules = desiredRules;
+    _mappedRules = _mappedRules
+        .difference(successfullyUnmapped)
+        .union(successfullyMapped);
   }
 
   Future<void> _shutdown() async {
@@ -222,7 +226,11 @@ class BuiltinUpnpService with Loggable {
     return port >= 1 && port <= 65535;
   }
 
-  Future<void> _mapRules(Gateway gateway, List<_PortMappingRule> rules) async {
+  Future<Set<_PortMappingRule>> _mapRules(
+    Gateway gateway,
+    List<_PortMappingRule> rules,
+  ) async {
+    final successfulRules = <_PortMappingRule>{};
     await Future.wait(
       rules.map((rule) async {
         try {
@@ -237,6 +245,7 @@ class BuiltinUpnpService with Loggable {
             'Mapped ${rule.protocol.name.toUpperCase()} port ${rule.port} via '
             'UPnP/NAT-PMP',
           );
+          successfulRules.add(rule);
         } catch (e, stackTrace) {
           w(
             'Failed to map ${rule.protocol.name.toUpperCase()} port '
@@ -247,12 +256,14 @@ class BuiltinUpnpService with Loggable {
         }
       }),
     );
+    return successfulRules;
   }
 
-  Future<void> _unmapRules(
+  Future<Set<_PortMappingRule>> _unmapRules(
     Gateway gateway,
     List<_PortMappingRule> rules,
   ) async {
+    final successfulRules = <_PortMappingRule>{};
     await Future.wait(
       rules.map((rule) async {
         try {
@@ -263,6 +274,7 @@ class BuiltinUpnpService with Loggable {
             'Unmapped ${rule.protocol.name.toUpperCase()} port ${rule.port} '
             'from UPnP/NAT-PMP',
           );
+          successfulRules.add(rule);
         } catch (e, stackTrace) {
           w(
             'Failed to unmap ${rule.protocol.name.toUpperCase()} port '
@@ -273,5 +285,6 @@ class BuiltinUpnpService with Loggable {
         }
       }),
     );
+    return successfulRules;
   }
 }
