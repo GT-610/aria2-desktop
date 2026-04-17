@@ -828,8 +828,13 @@ ${GithubIds.participants.map((id) => id.markdownLink).join(' ')}
       }
 
       if (failedProtocols.isNotEmpty) {
+        final protocolWarning = l10n.protocolReconcileFailed(
+          failedProtocols.join(', '),
+        );
         _showWarningSnackBar(
-          l10n.protocolReconcileFailed(failedProtocols.join(', ')),
+          startupPreferenceFailed
+              ? '$protocolWarning ${l10n.runAtStartupRetryWarning}'
+              : protocolWarning,
         );
       } else if (startupPreferenceFailed) {
         _showWarningSnackBar(l10n.runAtStartupRetryWarning);
