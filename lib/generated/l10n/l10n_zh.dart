@@ -110,6 +110,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get runAtStartupTip => '设置应用随系统启动而运行';
 
   @override
+  String get runAtStartupRetryWarning => '开机启动偏好已保存，但系统注册失败。应用会在下次启动时重试。';
+
+  @override
   String get runMode => '运行模式';
 
   @override

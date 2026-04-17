@@ -284,6 +284,12 @@ abstract class AppLocalizations {
   /// **'Start app when system starts'**
   String get runAtStartupTip;
 
+  /// No description provided for @runAtStartupRetryWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'The run-at-startup preference was saved, but system registration failed. The app will retry on next launch.'**
+  String get runAtStartupRetryWarning;
+
   /// No description provided for @runMode.
   ///
   /// In en, this message translates to:

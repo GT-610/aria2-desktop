@@ -19,6 +19,7 @@ import 'services/instance_manager.dart';
 import 'services/protocol_integration_service.dart';
 import 'services/settings_service.dart';
 import 'services/auto_hide_window_service.dart';
+import 'services/startup_integration_service.dart';
 import 'services/system_tray_service.dart';
 import 'services/tracker_sync_service.dart';
 import 'services/aria2_rpc_client.dart';
@@ -126,6 +127,17 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
 
     final protocolPreferenceFailures = await ProtocolIntegrationService()
         .reconcileProtocolPreferences(settings);
+    bool startupPreferenceFailure = false;
+    try {
+      await StartupIntegrationService().reconcileStartupPreference(settings);
+    } catch (e, stackTrace) {
+      startupPreferenceFailure = true;
+      this.w(
+        'Failed to reconcile run-at-startup preference',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
 
     final settingsService = Provider.of<SettingsService>(
       context,
@@ -182,6 +194,19 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
             ),
           ),
         );
+      });
+    }
+
+    if (startupPreferenceFailure && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.runAtStartupRetryWarning)));
       });
     }
   }

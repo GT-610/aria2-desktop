@@ -112,6 +112,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get runAtStartupTip => 'Start app when system starts';
 
   @override
+  String get runAtStartupRetryWarning =>
+      'The run-at-startup preference was saved, but system registration failed. The app will retry on next launch.';
+
+  @override
   String get runMode => 'Run mode';
 
   @override

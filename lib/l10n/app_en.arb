@@ -31,6 +31,7 @@
   "globalSettings": "Global Settings",
   "runAtStartup": "Run at startup",
   "runAtStartupTip": "Start app when system starts",
+  "runAtStartupRetryWarning": "The run-at-startup preference was saved, but system registration failed. The app will retry on next launch.",
   "runMode": "Run mode",
   "runModeStandard": "Standard",
   "runModeStandardTip": "Use normal window behavior. Closing the main window exits the app.",
