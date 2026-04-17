@@ -700,14 +700,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rpcSecretHint => 'RPC secret token';
 
   @override
-  String get connectionSuccess => 'Connection successful';
-
-  @override
-  String connectionFailed(Object error) {
-    return 'Connection failed: $error';
-  }
-
-  @override
   String get confirmDeleteTip =>
       'Are you sure you want to delete this instance?';
 
@@ -889,10 +881,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get showAdvancedOptions => 'Show advanced options';
-
-  @override
-  String get advancedOptionsPlanned =>
-      'Advanced per-task options are planned for a later stage.';
 
   @override
   String get saveLocation => 'Save location';

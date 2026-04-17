@@ -1358,18 +1358,6 @@ abstract class AppLocalizations {
   /// **'RPC secret token'**
   String get rpcSecretHint;
 
-  /// No description provided for @connectionSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection successful'**
-  String get connectionSuccess;
-
-  /// No description provided for @connectionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection failed: {error}'**
-  String connectionFailed(Object error);
-
   /// No description provided for @confirmDeleteTip.
   ///
   /// In en, this message translates to:
@@ -1705,12 +1693,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show advanced options'**
   String get showAdvancedOptions;
-
-  /// No description provided for @advancedOptionsPlanned.
-  ///
-  /// In en, this message translates to:
-  /// **'Advanced per-task options are planned for a later stage.'**
-  String get advancedOptionsPlanned;
 
   /// No description provided for @saveLocation.
   ///

@@ -38,6 +38,35 @@ class InstanceCard extends StatefulWidget {
 }
 
 class _InstanceCardState extends State<InstanceCard> {
+  void _openBuiltinSettings(BuildContext context) {
+    final settings = Provider.of<Settings>(context, listen: false);
+    final instanceManager = Provider.of<InstanceManager>(
+      context,
+      listen: false,
+    );
+    final settingsService = Provider.of<SettingsService>(
+      context,
+      listen: false,
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MultiProvider(
+          providers: [
+            ChangeNotifierProvider<Settings>.value(value: settings),
+            ChangeNotifierProvider<InstanceManager>.value(
+              value: instanceManager,
+            ),
+            ChangeNotifierProvider<SettingsService>.value(
+              value: settingsService,
+            ),
+          ],
+          child: const BuiltinInstanceSettingsPage(),
+        ),
+      ),
+    );
+  }
+
   Color _getStatusColor(ConnectionStatus status, ColorScheme colorScheme) {
     switch (status) {
       case ConnectionStatus.disconnected:
@@ -122,23 +151,88 @@ class _InstanceCardState extends State<InstanceCard> {
     );
   }
 
-  Widget _getStatusActionButton(
+  Widget _buildInlineTextAction(
+    BuildContext context, {
+    required VoidCallback? onPressed,
+    required IconData icon,
+    required String label,
+    bool destructive = false,
+    bool loading = false,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return TextButton.icon(
+      onPressed: onPressed,
+      icon: loading
+          ? const SizedBox(width: 16, height: 16, child: fl.SizedLoading.small)
+          : Icon(icon, size: 18),
+      label: Text(label),
+      style: TextButton.styleFrom(
+        foregroundColor: destructive ? colorScheme.error : null,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        minimumSize: const Size(0, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+  }
+
+  Widget _buildInlineIconAction({
+    required BuildContext context,
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    bool destructive = false,
+    bool loading = false,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        onPressed: onPressed,
+        icon: loading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: fl.SizedLoading.small,
+              )
+            : Icon(
+                icon,
+                size: 20,
+                color: destructive ? colorScheme.error : null,
+              ),
+        padding: const EdgeInsets.all(8),
+        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+        visualDensity: VisualDensity.compact,
+        splashRadius: 20,
+      ),
+    );
+  }
+
+  Widget _buildStatusAction(
     ConnectionStatus status,
     BuildContext context,
     VoidCallback onPressed,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final colorScheme = Theme.of(context).colorScheme;
 
     if (widget.instance.type == InstanceType.builtin) {
       switch (status) {
         case ConnectionStatus.disconnected:
-          return FilledButton(onPressed: onPressed, child: Text(l10n.connect));
-        case ConnectionStatus.failed:
-          return FilledButton(
+          return _buildInlineTextAction(
+            context,
             onPressed: onPressed,
-            style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
-            child: Text(l10n.retry),
+            icon: Icons.link,
+            label: l10n.connect,
+          );
+        case ConnectionStatus.failed:
+          return _buildInlineTextAction(
+            context,
+            onPressed: onPressed,
+            icon: Icons.refresh,
+            label: l10n.retry,
+            destructive: true,
           );
         default:
           return const SizedBox.shrink();
@@ -147,57 +241,48 @@ class _InstanceCardState extends State<InstanceCard> {
 
     switch (status) {
       case ConnectionStatus.disconnected:
-        return FilledButton(onPressed: onPressed, child: Text(l10n.connect));
-      case ConnectionStatus.connecting:
-        return FilledButton(
+        return _buildInlineIconAction(
+          context: context,
+          tooltip: l10n.connect,
+          icon: Icons.link,
           onPressed: onPressed,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: fl.SizedLoading.small,
-              ),
-              const SizedBox(width: 8),
-              Text(l10n.disconnect),
-            ],
-          ),
+        );
+      case ConnectionStatus.connecting:
+        return _buildInlineIconAction(
+          context: context,
+          tooltip: l10n.disconnect,
+          icon: Icons.link_off,
+          onPressed: onPressed,
+          loading: true,
         );
       case ConnectionStatus.connected:
-        return OutlinedButton(
+        return _buildInlineIconAction(
+          context: context,
+          tooltip: l10n.disconnect,
+          icon: Icons.link_off,
           onPressed: onPressed,
-          style: OutlinedButton.styleFrom(
-            side: BorderSide(color: colorScheme.error),
-          ),
-          child: Text(l10n.disconnect),
+          destructive: true,
         );
       case ConnectionStatus.failed:
-        return FilledButton(
+        return _buildInlineIconAction(
+          context: context,
+          tooltip: l10n.retry,
+          icon: Icons.refresh,
           onPressed: onPressed,
-          style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
-          child: Text(l10n.retry),
+          destructive: true,
         );
     }
-  }
-
-  Widget _buildCheckStatusButton(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return TextButton.icon(
-      onPressed: widget.isChecking
-          ? null
-          : () => widget.onCheckStatus(widget.instance),
-      icon: widget.isChecking
-          ? const SizedBox(width: 16, height: 16, child: fl.SizedLoading.small)
-          : const Icon(Icons.wifi_find_outlined, size: 18),
-      label: Text(l10n.check),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final builtinVersionText =
+        widget.instance.version != null && widget.instance.version!.isNotEmpty
+        ? l10n.aria2Version(widget.instance.version!)
+        : l10n.versionWillAppearAfterConnection;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -244,8 +329,8 @@ class _InstanceCardState extends State<InstanceCard> {
                       Chip(
                         label: Text(
                           widget.instance.type == InstanceType.builtin
-                              ? AppLocalizations.of(context)!.builtin
-                              : AppLocalizations.of(context)!.remote,
+                              ? l10n.builtin
+                              : l10n.remote,
                           style: const TextStyle(fontSize: 12),
                         ),
                         backgroundColor:
@@ -267,32 +352,95 @@ class _InstanceCardState extends State<InstanceCard> {
               ),
               const SizedBox(height: 8),
               if (widget.instance.type != InstanceType.builtin)
-                Text(
-                  widget.instance.rpcUrl,
-                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          widget.instance.rpcUrl,
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildInlineIconAction(
+                      context: context,
+                      tooltip: l10n.check,
+                      icon: Icons.wifi_find_outlined,
+                      onPressed: widget.isChecking
+                          ? null
+                          : () => widget.onCheckStatus(widget.instance),
+                      loading: widget.isChecking,
+                    ),
+                    _buildInlineIconAction(
+                      context: context,
+                      tooltip: l10n.edit,
+                      icon: Icons.edit_outlined,
+                      onPressed: () => widget.onEdit(widget.instance),
+                    ),
+                    _buildInlineIconAction(
+                      context: context,
+                      tooltip: l10n.delete,
+                      icon: Icons.delete_outline,
+                      onPressed: () => widget.onDelete(widget.instance),
+                      destructive: true,
+                    ),
+                    _buildStatusAction(
+                      widget.instance.status,
+                      context,
+                      () => widget.onToggleConnection(widget.instance),
+                    ),
+                  ],
                 ),
               if (widget.instance.type != InstanceType.builtin &&
                   widget.instance.rpcRequestHeaders.trim().isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
                   AppLocalizations.of(context)!.rpcHeadersConfigured,
-                  style: TextStyle(
-                    color: colorScheme.tertiary,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: colorScheme.tertiary, fontSize: 12),
                 ),
               ],
               if (widget.instance.type == InstanceType.builtin)
-                Text(
-                  widget.instance.version != null &&
-                          widget.instance.version!.isNotEmpty
-                      ? AppLocalizations.of(
-                          context,
-                        )!.aria2Version(widget.instance.version!)
-                      : AppLocalizations.of(
-                          context,
-                        )!.versionWillAppearAfterConnection,
-                  style: TextStyle(color: colorScheme.tertiary, fontSize: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        builtinVersionText,
+                        style: TextStyle(
+                          color: colorScheme.tertiary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Tooltip(
+                      message: l10n.settings,
+                      child: IconButton(
+                        onPressed: () => _openBuiltinSettings(context),
+                        icon: const Icon(Icons.settings_outlined, size: 20),
+                        padding: const EdgeInsets.all(8),
+                        constraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        splashRadius: 20,
+                      ),
+                    ),
+                    if (widget.instance.status ==
+                            ConnectionStatus.disconnected ||
+                        widget.instance.status == ConnectionStatus.failed) ...[
+                      const SizedBox(width: 4),
+                      _buildStatusAction(
+                        widget.instance.status,
+                        context,
+                        () => widget.onToggleConnection(widget.instance),
+                      ),
+                    ],
+                  ],
                 ),
               if (widget.instance.errorMessage != null &&
                   widget.instance.errorMessage!.isNotEmpty) ...[
@@ -315,72 +463,6 @@ class _InstanceCardState extends State<InstanceCard> {
                   ],
                 ),
               ],
-              const SizedBox(height: 12),
-              Wrap(
-                alignment: WrapAlignment.end,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (widget.instance.type != InstanceType.builtin)
-                    _buildCheckStatusButton(context),
-                  if (widget.instance.type == InstanceType.builtin)
-                    TextButton(
-                      onPressed: () {
-                        final settings = Provider.of<Settings>(
-                          context,
-                          listen: false,
-                        );
-                        final instanceManager = Provider.of<InstanceManager>(
-                          context,
-                          listen: false,
-                        );
-                        final settingsService = Provider.of<SettingsService>(
-                          context,
-                          listen: false,
-                        );
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => MultiProvider(
-                              providers: [
-                                ChangeNotifierProvider<Settings>.value(
-                                  value: settings,
-                                ),
-                                ChangeNotifierProvider<InstanceManager>.value(
-                                  value: instanceManager,
-                                ),
-                                ChangeNotifierProvider<SettingsService>.value(
-                                  value: settingsService,
-                                ),
-                              ],
-                              child: const BuiltinInstanceSettingsPage(),
-                            ),
-                          ),
-                        );
-                      },
-                      child: Text(AppLocalizations.of(context)!.settings),
-                    ),
-                  if (widget.instance.type != InstanceType.builtin) ...[
-                    TextButton(
-                      onPressed: () => widget.onEdit(widget.instance),
-                      child: Text(AppLocalizations.of(context)!.edit),
-                    ),
-                    TextButton(
-                      onPressed: () => widget.onDelete(widget.instance),
-                      child: Text(
-                        AppLocalizations.of(context)!.delete,
-                        style: TextStyle(color: colorScheme.error),
-                      ),
-                    ),
-                  ],
-                  _getStatusActionButton(
-                    widget.instance.status,
-                    context,
-                    () => widget.onToggleConnection(widget.instance),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
