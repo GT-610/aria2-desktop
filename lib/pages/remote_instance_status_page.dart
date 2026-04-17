@@ -41,7 +41,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
 
     final client = Aria2RpcClient(widget.instance);
     try {
-      final results = await Future.wait<dynamic>([
+      final results = await Future.wait<Map<String, dynamic>>([
         client.getVersionInfo(),
         client.getGlobalStat(),
       ]);
@@ -49,8 +49,8 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
         return;
       }
 
-      final versionInfo = Map<String, dynamic>.from(results[0] as Map);
-      final globalStat = Map<String, dynamic>.from(results[1] as Map);
+      final versionInfo = results[0];
+      final globalStat = results[1];
       setState(() {
         _snapshot = _RemoteStatusSnapshot.fromRpc(versionInfo, globalStat);
         _isLoading = false;
@@ -275,7 +275,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                l10n.remoteStatusMaintenanceLoadFailedWithError(_loadError!),
+                _loadError!,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
