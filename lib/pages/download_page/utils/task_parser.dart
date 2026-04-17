@@ -55,6 +55,10 @@ class TaskParser {
             errorMessage: parsedTask.errorMessage,
             startTime: parsedTask.startTime,
             bitfield: parsedTask.bitfield,
+            infoHash: parsedTask.infoHash,
+            pieceLength: parsedTask.pieceLength,
+            numPieces: parsedTask.numPieces,
+            isSeeder: parsedTask.isSeeder,
           );
           parsedTasks.add(taskWithStatus);
         } catch (e) {
@@ -139,6 +143,7 @@ class TaskParser {
     String? infoHash;
     int? pieceLength;
     int? numPieces;
+    final isSeeder = taskData['seeder']?.toString() == 'true';
     if (taskData.containsKey('bittorrent') && taskData['bittorrent'] is Map) {
       final bittorrent = taskData['bittorrent'] as Map<String, dynamic>;
       bittorrentInfo = json.encode(bittorrent);
@@ -268,6 +273,7 @@ class TaskParser {
       infoHash: infoHash,
       pieceLength: pieceLength,
       numPieces: numPieces,
+      isSeeder: isSeeder,
     );
   }
 

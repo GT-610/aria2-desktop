@@ -184,6 +184,7 @@ class DownloadTaskService with Loggable {
     final infoHash = taskData['infoHash']?.toString();
     final pieceLength = int.tryParse(taskData['pieceLength']?.toString() ?? '');
     final numPieces = int.tryParse(taskData['numPieces']?.toString() ?? '');
+    final isSeeder = taskData['seeder']?.toString() == 'true';
 
     return DownloadTask(
       id: gid,
@@ -205,6 +206,7 @@ class DownloadTaskService with Loggable {
       infoHash: infoHash,
       pieceLength: pieceLength,
       numPieces: numPieces,
+      isSeeder: isSeeder,
     );
   }
 
@@ -216,6 +218,13 @@ class DownloadTaskService with Loggable {
     final l10n = AppLocalizations.of(context)!;
     if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
       return (l10n.paused, colorScheme.tertiary);
+    }
+
+    if (isSeedingTask(task)) {
+      return (
+        _isChineseLocale(context) ? '做种中' : 'Seeding',
+        const Color(0xFF4CAF50),
+      );
     }
 
     if (task.status == DownloadStatus.stopped &&
@@ -238,6 +247,10 @@ class DownloadTaskService with Loggable {
       return Icon(Icons.pause, color: color);
     }
 
+    if (isSeedingTask(task)) {
+      return Icon(Icons.upload, color: color);
+    }
+
     if (task.status == DownloadStatus.stopped &&
         task.taskStatus == 'complete') {
       return Icon(Icons.check_circle, color: color);
@@ -251,6 +264,19 @@ class DownloadTaskService with Loggable {
       case DownloadStatus.stopped:
         return Icon(Icons.pause_circle, color: color);
     }
+  }
+
+  static bool isSeedingTask(DownloadTask task) {
+    return task.status == DownloadStatus.active &&
+        task.bittorrentInfo != null &&
+        task.bittorrentInfo!.isNotEmpty &&
+        task.isSeeder;
+  }
+
+  static bool _isChineseLocale(BuildContext context) {
+    return Localizations.localeOf(context).languageCode.toLowerCase().startsWith(
+      'zh',
+    );
   }
 
   static Future<void> pauseTask(

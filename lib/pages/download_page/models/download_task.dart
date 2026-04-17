@@ -28,6 +28,7 @@ class DownloadTask {
   final String? infoHash;
   final int? pieceLength;
   final int? numPieces;
+  final bool isSeeder;
 
   DownloadTask({
     required this.id,
@@ -57,6 +58,7 @@ class DownloadTask {
     this.infoHash,
     this.pieceLength,
     this.numPieces,
+    this.isSeeder = false,
   });
 
   factory DownloadTask.fromJson(Map<String, dynamic> json) {
@@ -88,6 +90,7 @@ class DownloadTask {
       infoHash: json['infoHash'],
       pieceLength: json['pieceLength'],
       numPieces: json['numPieces'],
+      isSeeder: json['isSeeder'] ?? false,
     );
   }
 
@@ -133,6 +136,7 @@ class DownloadTask {
       'infoHash': infoHash,
       'pieceLength': pieceLength,
       'numPieces': numPieces,
+      'isSeeder': isSeeder,
     };
   }
 }

@@ -11,6 +11,7 @@ import '../../../services/instance_manager.dart';
 import '../../../utils/format_utils.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
+import '../services/download_task_service.dart';
 import '../utils/task_utils.dart';
 
 class TaskDetailsDialog {
@@ -143,6 +144,7 @@ class TaskDetailsDialog {
             final taskDisplayName = currentTask.name.trim().isEmpty
                 ? currentTask.id
                 : currentTask.name;
+            final isSeeding = DownloadTaskService.isSeedingTask(currentTask);
             final saveLocation =
                 currentTask.dir == null || currentTask.dir!.trim().isEmpty
                 ? l10n.unknownPath
@@ -320,14 +322,16 @@ class TaskDetailsDialog {
                                         if (currentTask.status ==
                                                 DownloadStatus.active) ...[
                                           const SizedBox(height: 12),
-                                          Text(
-                                            l10n.downloadSpeedWithValue(
-                                              currentTask.downloadSpeedBytes
-                                                  .toString(),
-                                              currentTask.downloadSpeed,
+                                          if (!isSeeding) ...[
+                                            Text(
+                                              l10n.downloadSpeedWithValue(
+                                                currentTask.downloadSpeedBytes
+                                                    .toString(),
+                                                currentTask.downloadSpeed,
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 8),
+                                            const SizedBox(height: 8),
+                                          ],
                                           Text(
                                             l10n.uploadSpeedWithValue(
                                               currentTask.uploadSpeedBytes
@@ -335,7 +339,8 @@ class TaskDetailsDialog {
                                               currentTask.uploadSpeed,
                                             ),
                                           ),
-                                          if (currentTask.downloadSpeedBytes >
+                                          if (!isSeeding &&
+                                              currentTask.downloadSpeedBytes >
                                               0) ...[
                                             const SizedBox(height: 8),
                                             Text(
