@@ -273,6 +273,18 @@ class DownloadTaskService with Loggable {
     }
   }
 
+  static bool isPausedTask(DownloadTask task) {
+    return task.status == DownloadStatus.waiting && task.taskStatus == 'paused';
+  }
+
+  static bool matchesActiveFilter(DownloadTask task) {
+    return task.status == DownloadStatus.active || isPausedTask(task);
+  }
+
+  static bool matchesWaitingFilter(DownloadTask task) {
+    return task.status == DownloadStatus.waiting;
+  }
+
   static bool isSeedingTask(DownloadTask task) {
     return task.status == DownloadStatus.active &&
         task.bittorrentInfo != null &&
@@ -765,13 +777,9 @@ class DownloadTaskService with Loggable {
       case 'all':
         return tasks;
       case 'active':
-        return tasks
-            .where((task) => task.status == DownloadStatus.active)
-            .toList();
+        return tasks.where(matchesActiveFilter).toList();
       case 'waiting':
-        return tasks
-            .where((task) => task.status == DownloadStatus.waiting)
-            .toList();
+        return tasks.where(matchesWaitingFilter).toList();
       case 'stopped':
         return tasks
             .where((task) => task.status == DownloadStatus.stopped)
