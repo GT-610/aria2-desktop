@@ -199,7 +199,7 @@ class _RemoteInstanceSettingsPageState
       fallback: false,
     );
     _seedTime = _parseIntOption(options['seed-time'], fallback: 0, min: 0);
-    _seedRatioController.text = options['seed-ratio'] ?? '1.0';
+    _seedRatioController.text = options['seed-ratio'] ?? '0';
     _btListenPortController.text = options['listen-port'] ?? '';
     _dhtListenPortController.text = options['dht-listen-port'] ?? '';
     _enableDht6 = _parseBoolOption(options['enable-dht6'], fallback: true);
@@ -389,7 +389,6 @@ class _RemoteInstanceSettingsPageState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -405,7 +404,7 @@ class _RemoteInstanceSettingsPageState
                     height: 16,
                     child: fl.SizedLoading.small,
                   )
-                : Text(l10n.save, style: TextStyle(color: colorScheme.primary)),
+                : Text(l10n.save),
           ),
         ],
       ),
