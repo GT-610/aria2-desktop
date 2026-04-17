@@ -139,8 +139,6 @@ class TaskDetailsDialog {
               currentTask,
               Theme.of(context).colorScheme,
             );
-            final progressPercent = (currentTask.progress * 100)
-                .toStringAsFixed(2);
             final taskDisplayName = currentTask.name.trim().isEmpty
                 ? currentTask.id
                 : currentTask.name;
@@ -278,8 +276,6 @@ class TaskDetailsDialog {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(l10n.taskId(currentTask.id)),
-                                        const SizedBox(height: 8),
                                         Row(
                                           children: [
                                             Text(
@@ -310,46 +306,40 @@ class TaskDetailsDialog {
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          l10n.progressWithValue(
-                                            progressPercent,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          l10n.downloadSpeedWithValue(
-                                            currentTask.downloadSpeedBytes
-                                                .toString(),
-                                            currentTask.downloadSpeed,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          l10n.uploadSpeedWithValue(
-                                            currentTask.uploadSpeedBytes
-                                                .toString(),
-                                            currentTask.uploadSpeed,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          l10n.connectionsWithValue(
-                                            '${currentTask.connections ?? '--'}',
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
                                           l10n.saveLocationWithValue(
                                             saveLocation,
                                           ),
                                         ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          l10n.taskTypeWithValue(
-                                            currentTask.isLocal
-                                                ? l10n.builtin
-                                                : l10n.remote,
+                                        if (currentTask.status ==
+                                                DownloadStatus.active) ...[
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            l10n.downloadSpeedWithValue(
+                                              currentTask.downloadSpeedBytes
+                                                  .toString(),
+                                              currentTask.downloadSpeed,
+                                            ),
                                           ),
-                                        ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            l10n.uploadSpeedWithValue(
+                                              currentTask.uploadSpeedBytes
+                                                  .toString(),
+                                              currentTask.uploadSpeed,
+                                            ),
+                                          ),
+                                          if (currentTask.downloadSpeedBytes >
+                                              0) ...[
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              l10n.remainingTimeWithValue(
+                                                TaskUtils.calculateRemainingTime(
+                                                  currentTask,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                         const SizedBox(height: 8),
                                         if (currentTask.errorMessage != null &&
                                             currentTask
@@ -370,16 +360,6 @@ class TaskDetailsDialog {
                                               const SizedBox(height: 8),
                                             ],
                                           ),
-                                        if (currentTask.status ==
-                                                DownloadStatus.active &&
-                                            currentTask.downloadSpeedBytes > 0)
-                                          Text(
-                                            l10n.remainingTimeWithValue(
-                                              TaskUtils.calculateRemainingTime(
-                                                currentTask,
-                                              ),
-                                            ),
-                                          ),
                                         if (currentTask.startTime != null) ...[
                                           const SizedBox(height: 8),
                                           Text(
@@ -388,20 +368,6 @@ class TaskDetailsDialog {
                                                   .toLocal()
                                                   .toString(),
                                             ),
-                                          ),
-                                        ],
-                                        if (currentTask.uris != null &&
-                                            currentTask.uris!.isNotEmpty) ...[
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            l10n.sourceLinks,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          SelectableText(
-                                            currentTask.uris!.join('\n'),
                                           ),
                                         ],
                                       ],
