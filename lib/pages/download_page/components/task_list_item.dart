@@ -43,6 +43,10 @@ class TaskListItem extends StatelessWidget {
     await DownloadTaskService.stopTask(context, task, onTaskUpdated);
   }
 
+  Future<void> _handleStopSeedingTask(BuildContext context) async {
+    await DownloadTaskService.stopSeedingTask(context, task, onTaskUpdated);
+  }
+
   Future<void> _handleResumeTask(BuildContext context) async {
     await DownloadTaskService.resumeTask(context, task, onTaskUpdated);
   }
@@ -349,7 +353,7 @@ class TaskListItem extends StatelessWidget {
                             message: l10n.stop,
                             child: IconButton(
                               icon: const Icon(Icons.stop),
-                              onPressed: () => _handleStopTask(context),
+                              onPressed: () => _handleStopSeedingTask(context),
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
                             ),

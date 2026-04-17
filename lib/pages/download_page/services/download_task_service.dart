@@ -281,6 +281,18 @@ class DownloadTaskService with Loggable {
     );
   }
 
+  static String _stoppingSeedingTip(BuildContext context) {
+    return _isChineseLocale(context)
+        ? '正在停止做种，断开连接需要些时间，请耐心等待...'
+        : 'Stopping seeding, it may take some time to disconnect. Please wait.';
+  }
+
+  static String _failedToStopSeedingMessage(BuildContext context, String error) {
+    return _isChineseLocale(context)
+        ? '停止做种失败: $error'
+        : 'Failed to stop seeding: $error';
+  }
+
   static Future<void> pauseTask(
     BuildContext context,
     DownloadTask task,
@@ -364,6 +376,49 @@ class DownloadTaskService with Loggable {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.failedToRemoveTask('$e'))));
+      }
+    } finally {
+      client?.close();
+    }
+  }
+
+  static Future<void> stopSeedingTask(
+    BuildContext context,
+    DownloadTask task,
+    VoidCallback onTaskUpdated,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    Aria2RpcClient? client;
+    try {
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
+      final targetInstance = instanceManager.getInstanceById(task.instanceId);
+      if (targetInstance?.status == ConnectionStatus.connected) {
+        client = Aria2RpcClient(targetInstance!);
+        await client.changeOption(task.id, {'seed-time': '0'});
+        onTaskUpdated();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_stoppingSeedingTip(context)),
+              duration: const Duration(seconds: 8),
+            ),
+          );
+        }
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.targetInstanceNotConnected)),
+        );
+      }
+    } catch (e) {
+      _logE('Error stopping seeding task: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_failedToStopSeedingMessage(context, '$e'))),
+        );
       }
     } finally {
       client?.close();
