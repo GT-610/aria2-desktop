@@ -164,6 +164,10 @@ class DownloadTaskService with Loggable {
         taskData['completedLength'] != null && taskData['completedLength'] != ''
         ? int.tryParse(taskData['completedLength']) ?? 0
         : 0;
+    final uploadLength =
+        taskData['uploadLength'] != null && taskData['uploadLength'] != ''
+        ? int.tryParse(taskData['uploadLength']) ?? 0
+        : 0;
     final progress = totalLength > 0 ? completedLength / totalLength : 0.0;
 
     var name = '';
@@ -202,6 +206,7 @@ class DownloadTaskService with Loggable {
       isLocal: false,
       totalLengthBytes: totalLength,
       completedLengthBytes: completedLength,
+      uploadLengthBytes: uploadLength,
       numSeeders: numSeeders,
       downloadSpeedBytes: taskData['downloadSpeed'] ?? 0,
       uploadSpeedBytes: taskData['uploadSpeed'] ?? 0,
@@ -308,7 +313,11 @@ class DownloadTaskService with Loggable {
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
         client = Aria2RpcClient(targetInstance!);
-        await client.pauseTask(task.id);
+        if (task.bittorrentInfo != null && task.bittorrentInfo!.isNotEmpty) {
+          await client.forcePauseTask(task.id);
+        } else {
+          await client.pauseTask(task.id);
+        }
         onTaskUpdated();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -552,14 +561,39 @@ class DownloadTaskService with Loggable {
       }
 
       client = Aria2RpcClient(targetInstance!);
+      final currentOptions = await client.getOption(task.id);
       final options = <String, dynamic>{};
+
+      const retainedOptionKeys = <String>{
+        'dir',
+        'out',
+        'header',
+        'split',
+        'user-agent',
+        'referer',
+        'all-proxy',
+        'auto-file-renaming',
+        'allow-overwrite',
+        'max-connection-per-server',
+        'continue',
+      };
+      for (final key in retainedOptionKeys) {
+        final value = currentOptions[key];
+        if (value == null) {
+          continue;
+        }
+        if (value is String && value.trim().isEmpty) {
+          continue;
+        }
+        if (value is List && value.isEmpty) {
+          continue;
+        }
+        options[key] = value;
+      }
+
       final taskDir = task.dir?.trim() ?? '';
       if (taskDir.isNotEmpty) {
         options['dir'] = taskDir;
-      }
-      final taskName = task.name.trim();
-      if (taskName.isNotEmpty) {
-        options['out'] = taskName;
       }
 
       await client.addUri(sourceUris, options);

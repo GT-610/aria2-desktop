@@ -145,6 +145,9 @@ class TaskDetailsDialog {
                 ? currentTask.id
                 : currentTask.name;
             final isSeeding = DownloadTaskService.isSeedingTask(currentTask);
+            final isBtTaskDetail =
+                currentTask.bittorrentInfo != null &&
+                currentTask.bittorrentInfo!.isNotEmpty;
             final saveLocation =
                 currentTask.dir == null || currentTask.dir!.trim().isEmpty
                 ? l10n.unknownPath
@@ -339,6 +342,24 @@ class TaskDetailsDialog {
                                               currentTask.uploadSpeed,
                                             ),
                                           ),
+                                          if (isBtTaskDetail) ...[
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              '${_torrentOverviewConnectionsLabel(context)}: ${currentTask.connections ?? 0}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              '${_torrentOverviewSeedersLabel(context)}: ${currentTask.numSeeders ?? 0}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              '${_torrentOverviewUploadedLabel(context)}: ${formatBytes(currentTask.uploadLengthBytes)}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              '${_torrentOverviewRatioLabel(context)}: ${_formatShareRatio(currentTask)}',
+                                            ),
+                                          ],
                                           if (!isSeeding &&
                                               currentTask.downloadSpeedBytes >
                                               0) ...[
@@ -1080,6 +1101,31 @@ class TaskDetailsDialog {
 
   static String _torrentOverviewCommentLabel(BuildContext context) {
     return _isChineseLocale(context) ? '备注' : 'Comment';
+  }
+
+  static String _torrentOverviewConnectionsLabel(BuildContext context) {
+    return _isChineseLocale(context) ? '连接数' : 'Connections';
+  }
+
+  static String _torrentOverviewSeedersLabel(BuildContext context) {
+    return _isChineseLocale(context) ? '种子数' : 'Seeders';
+  }
+
+  static String _torrentOverviewUploadedLabel(BuildContext context) {
+    return _isChineseLocale(context) ? '已上传' : 'Uploaded';
+  }
+
+  static String _torrentOverviewRatioLabel(BuildContext context) {
+    return _isChineseLocale(context) ? '分享率' : 'Ratio';
+  }
+
+  static String _formatShareRatio(DownloadTask task) {
+    if (task.totalLengthBytes <= 0 || task.uploadLengthBytes <= 0) {
+      return '0';
+    }
+
+    final ratio = task.uploadLengthBytes / task.totalLengthBytes;
+    return ratio.toStringAsFixed(4);
   }
 
   static const String _unknownPeerId =

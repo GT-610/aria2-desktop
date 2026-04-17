@@ -445,6 +445,12 @@ class Aria2RpcClient with Loggable {
     return response['result'] as String; // Returns the GID of the paused task
   }
 
+  /// Force pause a download task, mainly used for BT tasks.
+  Future<String> forcePauseTask(String gid) async {
+    final response = await callRpc('aria2.forcePause', [gid]);
+    return response['result'] as String;
+  }
+
   /// Resume a paused download task
   Future<String> unpauseTask(String gid) async {
     final response = await callRpc('aria2.unpause', [gid]);
@@ -471,6 +477,12 @@ class Aria2RpcClient with Loggable {
   Future<String> changeOption(String gid, Map<String, dynamic> options) async {
     final response = await callRpc('aria2.changeOption', [gid, options]);
     return response['result'] as String;
+  }
+
+  /// Get task options.
+  Future<Map<String, dynamic>> getOption(String gid) async {
+    final response = await callRpc('aria2.getOption', [gid]);
+    return Map<String, dynamic>.from(response['result'] as Map);
   }
 
   /// Get peer information for a BT task.

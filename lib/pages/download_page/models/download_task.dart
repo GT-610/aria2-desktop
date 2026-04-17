@@ -17,6 +17,7 @@ class DownloadTask {
   final String? dir;
   final int totalLengthBytes;
   final int completedLengthBytes;
+  final int uploadLengthBytes;
   final int downloadSpeedBytes;
   final int uploadSpeedBytes;
   final List<Map<String, dynamic>>? files;
@@ -48,6 +49,7 @@ class DownloadTask {
     this.dir,
     this.totalLengthBytes = 0,
     this.completedLengthBytes = 0,
+    this.uploadLengthBytes = 0,
     this.downloadSpeedBytes = 0,
     this.uploadSpeedBytes = 0,
     this.files,
@@ -81,6 +83,7 @@ class DownloadTask {
       dir: json['dir'],
       totalLengthBytes: json['totalLengthBytes'] ?? 0,
       completedLengthBytes: json['completedLengthBytes'] ?? 0,
+      uploadLengthBytes: json['uploadLengthBytes'] ?? 0,
       downloadSpeedBytes: json['downloadSpeedBytes'] ?? 0,
       uploadSpeedBytes: json['uploadSpeedBytes'] ?? 0,
       files: json['files'] != null ? List<Map<String, dynamic>>.from(json['files']) : null,
@@ -128,6 +131,7 @@ class DownloadTask {
       'dir': dir,
       'totalLengthBytes': totalLengthBytes,
       'completedLengthBytes': completedLengthBytes,
+      'uploadLengthBytes': uploadLengthBytes,
       'downloadSpeedBytes': downloadSpeedBytes,
       'uploadSpeedBytes': uploadSpeedBytes,
       'files': files,

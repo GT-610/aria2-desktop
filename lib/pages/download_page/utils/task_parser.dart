@@ -47,6 +47,7 @@ class TaskParser {
             dir: parsedTask.dir,
             totalLengthBytes: parsedTask.totalLengthBytes,
             completedLengthBytes: parsedTask.completedLengthBytes,
+            uploadLengthBytes: parsedTask.uploadLengthBytes,
             downloadSpeedBytes: parsedTask.downloadSpeedBytes,
             uploadSpeedBytes: parsedTask.uploadSpeedBytes,
             files: parsedTask.files,
@@ -87,6 +88,8 @@ class TaskParser {
         int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0;
     final uploadSpeedBytes =
         int.tryParse(taskData['uploadSpeed'] as String? ?? '0') ?? 0;
+    final uploadLengthBytes =
+        int.tryParse(taskData['uploadLength'] as String? ?? '0') ?? 0;
 
     // Basic fields parsing
     String id = taskData['gid'] as String? ?? '';
@@ -266,6 +269,7 @@ class TaskParser {
       // Extended detailed information
       totalLengthBytes: totalLengthBytes,
       completedLengthBytes: completedLengthBytes,
+      uploadLengthBytes: uploadLengthBytes,
       downloadSpeedBytes: downloadSpeedBytes,
       uploadSpeedBytes: uploadSpeedBytes,
       files: files,
