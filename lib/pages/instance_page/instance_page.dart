@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../generated/l10n/l10n.dart';
 import '../../models/aria2_instance.dart';
+import '../../services/download_data_service.dart';
 import '../../services/instance_manager.dart';
 import '../remote_instance_settings_page.dart';
 import '../remote_instance_status_page.dart';
@@ -208,9 +209,28 @@ class _InstancePageState extends State<InstancePage> {
       return;
     }
 
+    final instanceManager = Provider.of<InstanceManager>(
+      context,
+      listen: false,
+    );
+    final downloadDataService = Provider.of<DownloadDataService>(
+      context,
+      listen: false,
+    );
+
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => RemoteInstanceStatusPage(instance: instance),
+        builder: (_) => MultiProvider(
+          providers: [
+            ChangeNotifierProvider<InstanceManager>.value(
+              value: instanceManager,
+            ),
+            ChangeNotifierProvider<DownloadDataService>.value(
+              value: downloadDataService,
+            ),
+          ],
+          child: RemoteInstanceStatusPage(instance: instance),
+        ),
       ),
     );
   }
