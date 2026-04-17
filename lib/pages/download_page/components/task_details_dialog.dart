@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -893,7 +894,7 @@ class TaskDetailsDialog {
       children: peers.map((peer) {
         final ip = peer['ip']?.toString() ?? '--';
         final port = peer['port']?.toString() ?? '--';
-        final peerId = peer['peerId']?.toString() ?? '--';
+        final peerId = _parsePeerClient(peer['peerId']?.toString());
         final progress = _bitfieldToPercent(peer['bitfield']?.toString());
         final uploadSpeed = formatBytes(
           int.tryParse(peer['uploadSpeed']?.toString() ?? '0') ?? 0,
@@ -927,6 +928,143 @@ class TaskDetailsDialog {
     }
     final completed = pieces.fold<int>(0, (sum, value) => sum + value);
     return (completed / (pieces.length * 15)) * 100;
+  }
+
+  static const String _unknownPeerId =
+      '%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00';
+
+  static const Map<String, String> _azureusClientNames = {
+    'AG': 'Ares',
+    'AR': 'Arctic',
+    'AT': 'Artemis',
+    'AV': 'Avicora',
+    'AX': 'BitPump',
+    'AZ': 'Vuze',
+    'BC': 'BitComet',
+    'BE': 'BitTorrent SDK',
+    'BG': 'BTGetit',
+    'BR': 'BitRocket',
+    'BS': 'BTSlave',
+    'BT': 'Mainline',
+    'BX': 'BittorrentX',
+    'CD': 'Enhanced CTorrent',
+    'CT': 'CTorrent',
+    'DE': 'Deluge',
+    'DP': 'Propagate Data Client',
+    'EB': 'EBit',
+    'ES': 'electric sheep',
+    'FC': 'FileCroc',
+    'FT': 'FoxTorrent',
+    'GS': 'GSTorrent',
+    'HK': 'Hekate',
+    'HL': 'Halite',
+    'HM': 'hMule',
+    'KG': 'KGet',
+    'KT': 'KTorrent',
+    'LC': 'LeechCraft',
+    'LH': 'LH-ABC',
+    'LP': 'Lphant',
+    'LT': 'libtorrent',
+    'lt': 'libTorrent',
+    'LW': 'LimeWire',
+    'MO': 'MonoTorrent',
+    'MP': 'MooPolice',
+    'MR': 'Miro',
+    'MT': 'MoonlightTorrent',
+    'NX': 'Net Transport',
+    'PD': 'Pando',
+    'PT': 'PHPTracker',
+    'qB': 'qBittorrent',
+    'QD': 'QQDownload',
+    'QT': 'Qt 4 Torrent example',
+    'RT': 'Retriever',
+    'S~': 'Shareaza alpha/beta',
+    'SB': 'Swiftbit',
+    'SS': 'SwarmScope',
+    'ST': 'SymTorrent',
+    'st': 'Sharktorrent',
+    'SZ': 'Shareaza',
+    'TN': 'TorrentDotNET',
+    'TR': 'Transmission',
+    'TS': 'Torrentstorm',
+    'TT': 'TuoTu',
+    'UL': 'uLeecher',
+    'UT': 'μTorrent',
+    'VG': 'Vagaa',
+    'WT': 'BitLet',
+    'WY': 'FireTorrent',
+    'XF': 'Xfplay',
+    'XL': 'Xunlei',
+    'XT': 'XanTorrent',
+    'XX': 'Xtorrent',
+    'ZT': 'ZipTorrent',
+  };
+
+  static String _parsePeerClient(String? rawPeerId) {
+    if (rawPeerId == null || rawPeerId.isEmpty || rawPeerId == _unknownPeerId) {
+      return 'unknown';
+    }
+
+    final decoded = _decodePeerId(rawPeerId);
+    if (decoded == null || decoded.isEmpty) {
+      return 'unknown';
+    }
+
+    final azureusMatch = RegExp(r'^-([A-Za-z~]{2})(.{4})-').firstMatch(decoded);
+    if (azureusMatch != null) {
+      final clientCode = azureusMatch.group(1)!;
+      final versionRaw = azureusMatch.group(2)!;
+      final clientName = _azureusClientNames[clientCode] ?? clientCode;
+      final version = _formatPeerVersion(versionRaw);
+      return version.isEmpty ? clientName : '$clientName v$version';
+    }
+
+    return decoded;
+  }
+
+  static String? _decodePeerId(String rawPeerId) {
+    try {
+      final bytes = <int>[];
+      for (var i = 0; i < rawPeerId.length;) {
+        final char = rawPeerId[i];
+        if (char == '%' && i + 2 < rawPeerId.length) {
+          final hex = rawPeerId.substring(i + 1, i + 3);
+          final value = int.tryParse(hex, radix: 16);
+          if (value != null) {
+            bytes.add(value);
+            i += 3;
+            continue;
+          }
+        }
+        bytes.add(char.codeUnitAt(0));
+        i++;
+      }
+
+      if (bytes.every((byte) => byte == 0)) {
+        return null;
+      }
+
+      return latin1.decode(bytes, allowInvalid: true);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static String _formatPeerVersion(String rawVersion) {
+    final segments = <String>[];
+    for (final char in rawVersion.split('')) {
+      if (RegExp(r'[0-9]').hasMatch(char)) {
+        segments.add(char);
+      } else if (RegExp(r'[A-Za-z]').hasMatch(char)) {
+        segments.add(char.toLowerCase());
+      }
+    }
+
+    while (segments.length > 1 && segments.last == '0') {
+      segments.removeLast();
+    }
+
+    return segments.join('.');
   }
 
   static Widget _buildStatRow(String label, String value, [Color? color]) {
