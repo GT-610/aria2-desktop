@@ -226,7 +226,6 @@
   "http": "HTTP",
   "https": "HTTPS",
   "rpcSecretHint": "RPC secret token",
-  "testConnection": "Test Connection",
   "connectionSuccess": "Connection successful",
   "connectionFailed": "Connection failed: {error}",
   "confirmDeleteTip": "Are you sure you want to delete this instance?",

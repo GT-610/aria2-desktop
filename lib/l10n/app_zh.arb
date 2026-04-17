@@ -226,7 +226,6 @@
   "http": "HTTP",
   "https": "HTTPS",
   "rpcSecretHint": "RPC密钥",
-  "testConnection": "测试连接",
   "connectionSuccess": "连接成功",
   "connectionFailed": "连接失败: {error}",
   "confirmDeleteTip": "确定要删除此实例吗？",
