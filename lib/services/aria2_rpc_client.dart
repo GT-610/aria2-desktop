@@ -487,15 +487,27 @@ class Aria2RpcClient with Loggable {
 
   /// Get peer information for a BT task.
   Future<List<Map<String, dynamic>>> getPeers(String gid) async {
-    final response = await callRpc('aria2.getPeers', [gid]);
-    final result = response['result'];
-    if (result is! List) {
-      return const [];
+    try {
+      final response = await callRpc('aria2.getPeers', [gid]);
+      final result = response['result'];
+      if (result is! List) {
+        return const [];
+      }
+      return result
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    } on Exception catch (error) {
+      if (_isNoPeerDataError(error)) {
+        return const [];
+      }
+      rethrow;
     }
-    return result
-        .whereType<Map>()
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList();
+  }
+
+  bool _isNoPeerDataError(Exception error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('no peer data is available');
   }
 
   /// Add a download task with URI(s)
