@@ -184,6 +184,7 @@ class DownloadTaskService with Loggable {
     final infoHash = taskData['infoHash']?.toString();
     final pieceLength = int.tryParse(taskData['pieceLength']?.toString() ?? '');
     final numPieces = int.tryParse(taskData['numPieces']?.toString() ?? '');
+    final numSeeders = int.tryParse(taskData['numSeeders']?.toString() ?? '');
     final isSeeder = taskData['seeder']?.toString() == 'true';
 
     return DownloadTask(
@@ -201,6 +202,7 @@ class DownloadTaskService with Loggable {
       isLocal: false,
       totalLengthBytes: totalLength,
       completedLengthBytes: completedLength,
+      numSeeders: numSeeders,
       downloadSpeedBytes: taskData['downloadSpeed'] ?? 0,
       uploadSpeedBytes: taskData['uploadSpeed'] ?? 0,
       infoHash: infoHash,

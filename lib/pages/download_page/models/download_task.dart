@@ -13,6 +13,7 @@ class DownloadTask {
   final bool isLocal;
   final String instanceId;
   final int? connections;
+  final int? numSeeders;
   final String? dir;
   final int totalLengthBytes;
   final int completedLengthBytes;
@@ -43,6 +44,7 @@ class DownloadTask {
     required this.isLocal,
     required this.instanceId,
     this.connections,
+    this.numSeeders,
     this.dir,
     this.totalLengthBytes = 0,
     this.completedLengthBytes = 0,
@@ -75,6 +77,7 @@ class DownloadTask {
       isLocal: json['isLocal'] ?? false,
       instanceId: json['instanceId'] ?? '',
       connections: json['connections'],
+      numSeeders: json['numSeeders'],
       dir: json['dir'],
       totalLengthBytes: json['totalLengthBytes'] ?? 0,
       completedLengthBytes: json['completedLengthBytes'] ?? 0,
@@ -121,6 +124,7 @@ class DownloadTask {
       'isLocal': isLocal,
       'instanceId': instanceId,
       'connections': connections,
+      'numSeeders': numSeeders,
       'dir': dir,
       'totalLengthBytes': totalLengthBytes,
       'completedLengthBytes': completedLengthBytes,

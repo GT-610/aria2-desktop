@@ -43,6 +43,7 @@ class TaskParser {
             isLocal: parsedTask.isLocal,
             instanceId: parsedTask.instanceId,
             connections: parsedTask.connections,
+            numSeeders: parsedTask.numSeeders,
             dir: parsedTask.dir,
             totalLengthBytes: parsedTask.totalLengthBytes,
             completedLengthBytes: parsedTask.completedLengthBytes,
@@ -133,6 +134,9 @@ class TaskParser {
     // Parse extended properties
     int? connections = taskData.containsKey('connections')
         ? int.tryParse(taskData['connections'] as String? ?? '')
+        : null;
+    int? numSeeders = taskData.containsKey('numSeeders')
+        ? int.tryParse(taskData['numSeeders']?.toString() ?? '')
         : null;
 
     String? dir = taskData['dir'] as String?;
@@ -257,6 +261,7 @@ class TaskParser {
       isLocal: isLocal,
       instanceId: instanceId,
       connections: connections,
+      numSeeders: numSeeders,
       dir: dir,
       // Extended detailed information
       totalLengthBytes: totalLengthBytes,
