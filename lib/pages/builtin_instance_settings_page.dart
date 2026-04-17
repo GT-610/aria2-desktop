@@ -961,6 +961,7 @@ class _BuiltinInstanceSettingsPageState
           .resetSessionFile();
 
       if (wasConnected) {
+        await Future.delayed(const Duration(milliseconds: 500));
         final refreshedBuiltinInstance =
             instanceManager.getBuiltinInstance() ?? builtinInstance;
         final reconnected = await instanceManager.connectInstance(
