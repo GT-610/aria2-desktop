@@ -94,13 +94,17 @@ class _InstanceDialogState extends State<InstanceDialog> {
       _protocol == 'http' || _protocol == 'https';
 
   String _nameHint(AppLocalizations l10n) {
+    return l10n.instanceNameAutoHint(_fallbackInstanceName());
+  }
+
+  String _fallbackInstanceName() {
     final host = _hostController.text.trim().isEmpty
         ? 'localhost'
         : _hostController.text.trim();
     final port = _portController.text.trim().isEmpty
         ? '6800'
         : _portController.text.trim();
-    return l10n.instanceNameAutoHint('$host:$port');
+    return '$host:$port';
   }
 
   bool _validate({required bool requireName}) {
@@ -108,6 +112,9 @@ class _InstanceDialogState extends State<InstanceDialog> {
     final nextName = _nameController.text;
     final nextHost = _hostController.text;
     final nextPortText = _portController.text.trim();
+    final resolvedName = nextName.trim().isEmpty
+        ? _fallbackInstanceName()
+        : nextName.trim();
     var isValid = true;
     int? parsedPort;
 
@@ -124,10 +131,10 @@ class _InstanceDialogState extends State<InstanceDialog> {
       _rpcRequestHeaders = _rpcRequestHeadersController.text;
 
       if (requireName) {
-        if (_name.trim().isEmpty) {
+        if (resolvedName.isEmpty) {
           _nameError = l10n.instanceNameRequired;
           isValid = false;
-        } else if (_name.trim().length > 30) {
+        } else if (resolvedName.length > 30) {
           _nameError = l10n.instanceNameTooLong;
           isValid = false;
         } else {
@@ -164,9 +171,13 @@ class _InstanceDialogState extends State<InstanceDialog> {
       return null;
     }
 
+    final resolvedName = _name.trim().isEmpty
+        ? _fallbackInstanceName()
+        : _name.trim();
+
     return Aria2Instance(
       id: widget.instance?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      name: _name.trim(),
+      name: resolvedName,
       type: InstanceType.remote,
       protocol: _protocol,
       host: _host.trim(),
