@@ -350,6 +350,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rpcSecretTip => '留空则不需要密钥';
 
   @override
+  String get rpcPath => 'RPC 路径';
+
+  @override
+  String get rpcPathTip => '留空则使用 jsonrpc';
+
+  @override
+  String get rpcRequestHeaders => 'RPC 请求头';
+
+  @override
+  String get rpcRequestHeadersTip => '每行一个请求头，格式为 Header-Name: value';
+
+  @override
+  String instanceNameAutoHint(Object fallback) {
+    return '留空时可参考 $fallback 作为实例名称';
+  }
+
+  @override
+  String get testConnection => '测试连接';
+
+  @override
+  String get testingConnection => '测试中...';
+
+  @override
+  String get rpcHeadersConfigured => '已配置自定义 RPC 请求头';
+
+  @override
   String get transferSettings => '传输设置';
 
   @override
@@ -649,9 +675,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get rpcSecretHint => 'RPC密钥';
-
-  @override
-  String get testConnection => '测试连接';
 
   @override
   String get connectionSuccess => '连接成功';

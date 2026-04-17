@@ -19,6 +19,8 @@ class Aria2Instance {
   int port;
   String secret;
   String downloadDir;
+  String rpcPath;
+  String rpcRequestHeaders;
   String? version;
   String? errorMessage;
   ConnectionStatus status;
@@ -32,6 +34,8 @@ class Aria2Instance {
     required this.port,
     this.secret = '',
     this.downloadDir = '',
+    this.rpcPath = 'jsonrpc',
+    this.rpcRequestHeaders = '',
     this.version,
     this.errorMessage,
     this.status = ConnectionStatus.disconnected,
@@ -48,6 +52,8 @@ class Aria2Instance {
       port: json['port'],
       secret: json['secret'] ?? '',
       downloadDir: json['downloadDir'] ?? '',
+      rpcPath: json['rpcPath'] ?? 'jsonrpc',
+      rpcRequestHeaders: json['rpcRequestHeaders'] ?? '',
       version: json['version'],
       errorMessage: json['errorMessage'],
       status: json.containsKey('status')
@@ -67,15 +73,31 @@ class Aria2Instance {
       'port': port,
       'secret': secret,
       'downloadDir': downloadDir,
+      'rpcPath': rpcPath,
+      'rpcRequestHeaders': rpcRequestHeaders,
       'version': version,
       'errorMessage': errorMessage,
       'status': status.name,
     };
   }
 
+  String get normalizedRpcPath {
+    final trimmed = rpcPath.trim();
+    if (trimmed.isEmpty) {
+      return 'jsonrpc';
+    }
+
+    final segments = trimmed
+        .split('/')
+        .map((segment) => segment.trim())
+        .where((segment) => segment.isNotEmpty)
+        .toList();
+    return segments.isEmpty ? 'jsonrpc' : segments.join('/');
+  }
+
   // Get RPC URL
   String get rpcUrl {
-    return '$protocol://$host:$port/jsonrpc';
+    return '$protocol://$host:$port/$normalizedRpcPath';
   }
 
   // Copy method for editing instances
@@ -88,6 +110,8 @@ class Aria2Instance {
     int? port,
     String? secret,
     String? downloadDir,
+    String? rpcPath,
+    String? rpcRequestHeaders,
     String? version,
     String? errorMessage,
     ConnectionStatus? status,
@@ -101,6 +125,8 @@ class Aria2Instance {
       port: port ?? this.port,
       secret: secret ?? this.secret,
       downloadDir: downloadDir ?? this.downloadDir,
+      rpcPath: rpcPath ?? this.rpcPath,
+      rpcRequestHeaders: rpcRequestHeaders ?? this.rpcRequestHeaders,
       version: version ?? this.version,
       errorMessage: errorMessage ?? this.errorMessage,
       status: status ?? this.status,

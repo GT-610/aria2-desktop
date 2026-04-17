@@ -367,6 +367,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rpcSecretTip => 'Leave empty if no secret required';
 
   @override
+  String get rpcPath => 'RPC Path';
+
+  @override
+  String get rpcPathTip => 'Leave empty to use jsonrpc';
+
+  @override
+  String get rpcRequestHeaders => 'RPC Request Headers';
+
+  @override
+  String get rpcRequestHeadersTip =>
+      'One header per line, in the form Header-Name: value';
+
+  @override
+  String instanceNameAutoHint(Object fallback) {
+    return 'Leave blank to use $fallback as a reference name';
+  }
+
+  @override
+  String get testConnection => 'Test Connection';
+
+  @override
+  String get testingConnection => 'Testing...';
+
+  @override
+  String get rpcHeadersConfigured => 'Custom RPC headers configured';
+
+  @override
   String get transferSettings => 'Transfer Settings';
 
   @override
@@ -671,9 +698,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rpcSecretHint => 'RPC secret token';
-
-  @override
-  String get testConnection => 'Test Connection';
 
   @override
   String get connectionSuccess => 'Connection successful';
