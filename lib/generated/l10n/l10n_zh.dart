@@ -677,14 +677,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get rpcSecretHint => 'RPC密钥';
 
   @override
-  String get connectionSuccess => '连接成功';
-
-  @override
-  String connectionFailed(Object error) {
-    return '连接失败: $error';
-  }
-
-  @override
   String get confirmDeleteTip => '确定要删除此实例吗？';
 
   @override
@@ -861,9 +853,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get showAdvancedOptions => '显示高级选项';
-
-  @override
-  String get advancedOptionsPlanned => '单任务高级选项将在后续阶段提供。';
 
   @override
   String get saveLocation => '保存位置';
