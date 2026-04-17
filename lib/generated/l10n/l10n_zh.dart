@@ -72,9 +72,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get disconnect => '断开';
 
   @override
-  String get settings2 => '设置';
-
-  @override
   String get edit => '编辑';
 
   @override
@@ -132,12 +129,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get runModeHideTrayTip => '完全禁用系统托盘集成。关闭主窗口时直接退出应用。';
-
-  @override
-  String get minimizeToTray => '最小化到系统托盘';
-
-  @override
-  String get minimizeToTrayTip => '关闭窗口时最小化到系统托盘而不是退出';
 
   @override
   String get autoHideWindow => '自动隐藏窗口';
@@ -341,16 +332,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get remoteStatusMaintenance => '状态与维护';
 
   @override
+  String get editConnectionProfile => '编辑连接档案';
+
+  @override
   String get remoteStatusMaintenanceRequiresConnectedInstance =>
       '请先连接此远程实例，再打开它的状态与维护工具。';
 
   @override
   String get remoteStatusMaintenanceLoadFailed => '加载远程 aria2 状态失败';
-
-  @override
-  String remoteStatusMaintenanceLoadFailedWithError(Object error) {
-    return '加载远程 aria2 状态失败: $error';
-  }
 
   @override
   String get remoteStatusSummary => '运行态摘要';

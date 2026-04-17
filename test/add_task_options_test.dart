@@ -7,7 +7,7 @@ void main() {
     test('builds normalized options from dialog values', () {
       final options = buildAria2TaskOptions(
         const AddTaskOptionsData(
-          taskName: ' file.zip ',
+          outputFileName: ' file.zip ',
           split: '8',
           userAgent: ' TestAgent ',
           continueDownloads: true,
@@ -28,7 +28,7 @@ void main() {
 
     test('omits optional string options when blank', () {
       final options = buildAria2TaskOptions(
-        const AddTaskOptionsData(taskName: '', split: '', userAgent: ''),
+        const AddTaskOptionsData(outputFileName: '', split: '', userAgent: ''),
       );
 
       expect(options.containsKey('out'), isFalse);

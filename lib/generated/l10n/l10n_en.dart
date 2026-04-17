@@ -74,9 +74,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get disconnect => 'Disconnect';
 
   @override
-  String get settings2 => 'Settings';
-
-  @override
   String get edit => 'Edit';
 
   @override
@@ -138,13 +135,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get runModeHideTrayTip =>
       'Disable system tray integration entirely. Closing the main window exits the app.';
-
-  @override
-  String get minimizeToTray => 'Minimize to tray';
-
-  @override
-  String get minimizeToTrayTip =>
-      'Minimize to tray when closing window instead of exiting';
 
   @override
   String get autoHideWindow => 'Auto hide window';
@@ -359,17 +349,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get remoteStatusMaintenance => 'Status & maintenance';
 
   @override
+  String get editConnectionProfile => 'Edit connection profile';
+
+  @override
   String get remoteStatusMaintenanceRequiresConnectedInstance =>
       'Connect this remote instance before opening its status and maintenance tools.';
 
   @override
   String get remoteStatusMaintenanceLoadFailed =>
       'Failed to load remote aria2 status';
-
-  @override
-  String remoteStatusMaintenanceLoadFailedWithError(Object error) {
-    return 'Failed to load remote aria2 status: $error';
-  }
 
   @override
   String get remoteStatusSummary => 'Runtime Summary';

@@ -212,12 +212,6 @@ abstract class AppLocalizations {
   /// **'Disconnect'**
   String get disconnect;
 
-  /// No description provided for @settings2.
-  ///
-  /// In en, this message translates to:
-  /// **'Settings'**
-  String get settings2;
-
   /// No description provided for @edit.
   ///
   /// In en, this message translates to:
@@ -331,18 +325,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Disable system tray integration entirely. Closing the main window exits the app.'**
   String get runModeHideTrayTip;
-
-  /// No description provided for @minimizeToTray.
-  ///
-  /// In en, this message translates to:
-  /// **'Minimize to tray'**
-  String get minimizeToTray;
-
-  /// No description provided for @minimizeToTrayTip.
-  ///
-  /// In en, this message translates to:
-  /// **'Minimize to tray when closing window instead of exiting'**
-  String get minimizeToTrayTip;
 
   /// No description provided for @autoHideWindow.
   ///
@@ -722,6 +704,12 @@ abstract class AppLocalizations {
   /// **'Status & maintenance'**
   String get remoteStatusMaintenance;
 
+  /// No description provided for @editConnectionProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit connection profile'**
+  String get editConnectionProfile;
+
   /// No description provided for @remoteStatusMaintenanceRequiresConnectedInstance.
   ///
   /// In en, this message translates to:
@@ -733,12 +721,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to load remote aria2 status'**
   String get remoteStatusMaintenanceLoadFailed;
-
-  /// No description provided for @remoteStatusMaintenanceLoadFailedWithError.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to load remote aria2 status: {error}'**
-  String remoteStatusMaintenanceLoadFailedWithError(Object error);
 
   /// No description provided for @remoteStatusSummary.
   ///

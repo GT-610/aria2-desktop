@@ -14,8 +14,6 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   bool _notificationsInitialized = false;
   Future<void>? _initializingTray;
   int _trayLifecycleGeneration = 0;
-  // ignore: unused_field - intended for future use in minimizeToTray()
-  bool _minimizeToTray = true;
   VoidCallback? _onShowWindow;
   Future<void> Function()? _onAddTask;
   Future<void> Function()? _onToggleWindow;
@@ -41,10 +39,6 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
 
   bool get isInitialized => _isInitialized;
   bool get notificationsInitialized => _notificationsInitialized;
-
-  void setMinimizeToTray(bool value) {
-    _minimizeToTray = value;
-  }
 
   void setOnShowWindow(VoidCallback? callback) {
     _onShowWindow = callback;
@@ -201,10 +195,8 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
 
     if (Platform.isWindows) {
       iconPath = kTrayIconAssetPath;
-    } else if (Platform.isMacOS) {
-      iconPath = '.trae/references/Motrix/static/mo-tray-colorful-normal.png';
     } else {
-      iconPath = '.trae/references/Motrix/static/mo-tray-colorful-normal.png';
+      iconPath = kAppLogoAssetPath;
     }
 
     await trayManager.setIcon(iconPath);
