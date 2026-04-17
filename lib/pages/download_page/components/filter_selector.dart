@@ -39,79 +39,116 @@ class FilterSelector extends StatelessWidget {
           bottom: BorderSide(color: colorScheme.surfaceContainerHighest),
         ),
       ),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          FilledButton.tonal(
-            onPressed: () => _showCategoryDialog(context),
-            style: FilledButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Row(
-              children: [
-                Text(_getCurrentCategoryText(l10n)),
-                const SizedBox(width: 4),
-                const Icon(Icons.arrow_drop_down),
-              ],
-            ),
-          ),
-          if (currentCategoryType != CategoryType.all)
-            if (currentCategoryType == CategoryType.byInstance) ...[
-              FilterChip(
-                label: Text(l10n.allInstances),
-                selected: selectedInstanceId == null,
-                onSelected: (_) => onInstanceSelected(null),
+          SizedBox(
+            width: 124,
+            child: FilledButton.tonal(
+              onPressed: () => _showCategoryDialog(context),
+              style: FilledButton.styleFrom(
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                minimumSize: const Size(124, 40),
+                maximumSize: const Size(124, 40),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
                 ),
               ),
-              ..._getInstanceFilterOptions().map((instanceId) {
-                final isSelected = selectedInstanceId == instanceId;
-                final instanceColor = colorScheme.tertiary;
-                final instanceName =
-                    instanceNames[instanceId] ?? l10n.unknownInstance;
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      _getCurrentCategoryText(l10n),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_drop_down),
+                ],
+              ),
+            ),
+          ),
+          if (currentCategoryType != CategoryType.all) ...[
+            const SizedBox(width: 12),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: currentCategoryType == CategoryType.byInstance
+                      ? [
+                          FilterChip(
+                            label: Text(l10n.allInstances),
+                            selected: selectedInstanceId == null,
+                            onSelected: (_) => onInstanceSelected(null),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          ..._getInstanceFilterOptions().map((instanceId) {
+                            final isSelected = selectedInstanceId == instanceId;
+                            final instanceColor = colorScheme.tertiary;
+                            final instanceName =
+                                instanceNames[instanceId] ??
+                                l10n.unknownInstance;
 
-                return FilterChip(
-                  label: Text(
-                    instanceName,
-                    style: TextStyle(color: instanceColor),
-                  ),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    onInstanceSelected(selected ? instanceId : null);
-                  },
-                  selectedColor: instanceColor.withValues(alpha: 0.1),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                );
-              }),
-            ] else
-              ..._getFilterOptionsForCurrentCategory().map((option) {
-                final isSelected = selectedFilter == option;
-                final filterColor = _getFilterColor(option, colorScheme);
+                            return Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: FilterChip(
+                                label: Text(
+                                  instanceName,
+                                  style: TextStyle(color: instanceColor),
+                                ),
+                                selected: isSelected,
+                                onSelected: (selected) {
+                                  onInstanceSelected(
+                                    selected ? instanceId : null,
+                                  );
+                                },
+                                selectedColor: instanceColor.withValues(
+                                  alpha: 0.1,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                            );
+                          }),
+                        ]
+                      : _getFilterOptionsForCurrentCategory().map((option) {
+                          final isSelected = selectedFilter == option;
+                          final filterColor = _getFilterColor(
+                            option,
+                            colorScheme,
+                          );
 
-                return FilterChip(
-                  label: Text(
-                    _getFilterText(l10n, option),
-                    style: TextStyle(color: filterColor),
-                  ),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) {
-                      onFilterChanged(option);
-                    }
-                  },
-                  selectedColor: filterColor.withValues(alpha: 0.1),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                );
-              }),
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: FilterChip(
+                              label: Text(
+                                _getFilterText(l10n, option),
+                                style: TextStyle(color: filterColor),
+                              ),
+                              selected: isSelected,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  onFilterChanged(option);
+                                }
+                              },
+                              selectedColor: filterColor.withValues(alpha: 0.1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
