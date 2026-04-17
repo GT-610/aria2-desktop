@@ -111,7 +111,54 @@
   "contributors": "Contributors",
   "license": "License",
   "instanceSettings": "Instance Settings",
+  "aria2RpcAddress": "Aria2 RPC Address",
   "remoteAria2Settings": "Remote aria2 settings",
+  "remoteStatusMaintenance": "Status & maintenance",
+  "remoteStatusMaintenanceRequiresConnectedInstance": "Connect this remote instance before opening its status and maintenance tools.",
+  "remoteStatusMaintenanceLoadFailed": "Failed to load remote aria2 status",
+  "remoteStatusMaintenanceLoadFailedWithError": "Failed to load remote aria2 status: {error}",
+  "@remoteStatusMaintenanceLoadFailedWithError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "remoteStatusSummary": "Runtime Summary",
+  "remoteReadonlyInfo": "Instance Info",
+  "remoteMaintenanceActions": "Maintenance Actions",
+  "enabledFeatures": "Enabled Features",
+  "noEnabledFeatures": "No enabled features reported",
+  "downloadSpeedLabel": "Download speed",
+  "uploadSpeedLabel": "Upload speed",
+  "activeTaskCountLabel": "Active tasks",
+  "waitingTaskCountLabel": "Waiting tasks",
+  "stoppedTaskCountLabel": "Stopped tasks",
+  "stoppedTasks": "Stopped: {count}",
+  "@stoppedTasks": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "refresh": "Refresh",
+  "saveSession": "Save Session",
+  "saveSessionSuccess": "Session saved successfully",
+  "saveSessionFailed": "Failed to save session",
+  "saveSessionFailedWithError": "Failed to save session: {error}",
+  "@saveSessionFailedWithError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "purgeDownloadResults": "Clear completed records",
+  "purgeDownloadResultsTip": "Remove all stopped task records from this remote aria2 instance.",
+  "purgeDownloadResultsConfirm": "Clear all stopped task records from this remote aria2 instance?",
+  "purgeDownloadResultsSuccess": "Stopped task records cleared",
+  "purgeDownloadResultsFailed": "Failed to clear stopped task records",
+  "purgeDownloadResultsFailedWithError": "Failed to clear stopped task records: {error}",
+  "@purgeDownloadResultsFailedWithError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "remoteSettingsInfoTip": "These options are applied to the currently running remote aria2 instance, not to the saved connection profile.",
   "remoteSettingsRequiresConnectedInstance": "Connect this remote instance before opening its aria2 settings.",
   "remoteSettingsLoadFailed": "Failed to load remote aria2 settings",

@@ -20,6 +20,7 @@ class InstanceCard extends StatefulWidget {
   final Function(Aria2Instance) onEdit;
   final Function(Aria2Instance) onDelete;
   final Function(Aria2Instance) onOpenRemoteSettings;
+  final Function(Aria2Instance) onOpenRemoteStatus;
 
   const InstanceCard({
     super.key,
@@ -33,6 +34,7 @@ class InstanceCard extends StatefulWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onOpenRemoteSettings,
+    required this.onOpenRemoteStatus,
   });
 
   @override
@@ -71,6 +73,10 @@ class _InstanceCardState extends State<InstanceCard> {
 
   void _openRemoteSettings(BuildContext context) {
     widget.onOpenRemoteSettings(widget.instance);
+  }
+
+  void _openRemoteStatus(BuildContext context) {
+    widget.onOpenRemoteStatus(widget.instance);
   }
 
   Color _getStatusColor(ConnectionStatus status, ColorScheme colorScheme) {
@@ -379,6 +385,15 @@ class _InstanceCardState extends State<InstanceCard> {
                           ? null
                           : () => widget.onCheckStatus(widget.instance),
                       loading: widget.isChecking,
+                    ),
+                    _buildInlineIconAction(
+                      context: context,
+                      tooltip: l10n.remoteStatusMaintenance,
+                      icon: Icons.monitor_heart_outlined,
+                      onPressed:
+                          widget.instance.status == ConnectionStatus.connected
+                          ? () => _openRemoteStatus(context)
+                          : null,
                     ),
                     _buildInlineIconAction(
                       context: context,

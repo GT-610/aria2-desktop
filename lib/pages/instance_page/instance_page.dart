@@ -5,6 +5,7 @@ import '../../generated/l10n/l10n.dart';
 import '../../models/aria2_instance.dart';
 import '../../services/instance_manager.dart';
 import '../remote_instance_settings_page.dart';
+import '../remote_instance_status_page.dart';
 import 'components/instance_card.dart';
 import 'components/instance_dialog.dart';
 
@@ -79,6 +80,7 @@ class _InstancePageState extends State<InstancePage> {
           onEdit: _handleEditInstance,
           onDelete: _handleDeleteInstance,
           onOpenRemoteSettings: _handleOpenRemoteSettings,
+          onOpenRemoteStatus: _handleOpenRemoteStatus,
         );
       },
     );
@@ -186,6 +188,29 @@ class _InstancePageState extends State<InstancePage> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => RemoteInstanceSettingsPage(instance: instance),
+      ),
+    );
+  }
+
+  Future<void> _handleOpenRemoteStatus(Aria2Instance instance) async {
+    final l10n = AppLocalizations.of(context)!;
+    if (instance.type != InstanceType.remote) {
+      return;
+    }
+
+    if (instance.status != ConnectionStatus.connected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.remoteStatusMaintenanceRequiresConnectedInstance),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RemoteInstanceStatusPage(instance: instance),
       ),
     );
   }
