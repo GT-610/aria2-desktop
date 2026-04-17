@@ -142,10 +142,18 @@ class BuiltinUpnpService with Loggable {
   }) {
     final rules = <_PortMappingRule>{};
 
-    for (final port in _expandPorts(btListenPort)) {
+    final btPorts = _expandPorts(btListenPort);
+    if (btPorts.length > 1) {
+      i(
+        'Multiple BT listen ports were configured for aria2; '
+        'UPnP/NAT-PMP will map only the first resolved port ${btPorts.first}',
+      );
+    }
+
+    if (btPorts.isNotEmpty) {
       rules.add(
         _PortMappingRule(
-          port: port,
+          port: btPorts.first,
           protocol: PortType.tcp,
           description: 'Setsuna aria2 BT',
         ),

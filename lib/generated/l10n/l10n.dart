@@ -1217,7 +1217,7 @@ abstract class AppLocalizations {
   /// No description provided for @enableUpnpTip.
   ///
   /// In en, this message translates to:
-  /// **'Use router port mapping for BT and DHT ports.'**
+  /// **'Use router port mapping for BT and DHT ports. When a BT port range is configured, only the first resolved BT port is mapped.'**
   String get enableUpnpTip;
 
   /// No description provided for @fileSettings.
