@@ -543,8 +543,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enableUpnp => 'Enable UPnP / NAT-PMP';
 
   @override
-  String get enableUpnpTip =>
-      'Use router port mapping for BT and DHT ports. Restart required.';
+  String get enableUpnpTip => 'Use router port mapping for BT and DHT ports.';
 
   @override
   String get fileSettings => 'File Settings';

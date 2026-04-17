@@ -186,7 +186,7 @@
   "dhtListenPort": "DHT监听端口",
   "enableDht6": "启用DHT6",
   "enableUpnp": "启用 UPnP / NAT-PMP",
-  "enableUpnpTip": "为 BT 和 DHT 端口使用路由器端口映射。需要重启后生效。",
+  "enableUpnpTip": "为 BT 和 DHT 端口使用路由器端口映射。",
   "fileSettings": "文件设置",
   "downloadDir": "下载目录",
   "defaultDownloadDir": "默认下载路径",

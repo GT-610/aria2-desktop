@@ -437,13 +437,9 @@ class _BuiltinInstanceSettingsPageState
                 _buildSwitchSetting(l10n.enableDht6, _enableDht6, (value) {
                   _updateDraft(() => _enableDht6 = value);
                 }),
-                _buildSwitchSetting(
-                  l10n.enableUpnp,
-                  _enableUpnp,
-                  (_) {},
-                  enabled: false,
-                  helperText: _buildPendingUpnpHelperText(l10n),
-                ),
+                _buildSwitchSetting(l10n.enableUpnp, _enableUpnp, (value) {
+                  _updateDraft(() => _enableUpnp = value);
+                }, helperText: l10n.enableUpnpTip),
               ],
             ),
             _buildSectionHeader(l10n.filesSection, theme),
@@ -532,6 +528,7 @@ class _BuiltinInstanceSettingsPageState
         _proxyEnabled != settings.proxyEnabled ||
         _allProxy != settings.allProxy ||
         _noProxy != settings.noProxy ||
+        _enableUpnp != settings.enableUpnp ||
         _autoFileRenaming != settings.autoFileRenaming ||
         _allowOverwrite != settings.allowOverwrite ||
         _userAgent != settings.userAgent;
@@ -731,14 +728,6 @@ class _BuiltinInstanceSettingsPageState
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
-  }
-
-  String _buildPendingUpnpHelperText(AppLocalizations l10n) {
-    final localeName = Localizations.localeOf(context).languageCode;
-    final pendingMessage = localeName == 'zh'
-        ? '该功能尚未实现，将在后续版本提供。'
-        : 'This feature is not implemented yet and will arrive in a future version.';
-    return '${l10n.enableUpnpTip} $pendingMessage';
   }
 
   Widget _buildNumberSetting(
@@ -1071,6 +1060,7 @@ class _BuiltinInstanceSettingsPageState
           listen: false,
         );
         final applied = await settingsService.applySettingsToBuiltin();
+        await BuiltinInstanceService().syncUpnpStateForRunningInstance();
         if (!mounted) {
           return;
         }
