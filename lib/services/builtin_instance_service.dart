@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../models/aria2_instance.dart';
+import 'builtin_upnp_service.dart';
 import '../utils/logging.dart';
 
 /// Service class for managing the built-in Aria2 instance
@@ -18,6 +19,7 @@ class BuiltinInstanceService with Loggable {
   bool _isConnected = false;
   StreamSubscription<String>? _stdoutSubscription;
   StreamSubscription<String>? _stderrSubscription;
+  final BuiltinUpnpService _upnpService = BuiltinUpnpService();
 
   factory BuiltinInstanceService() {
     _instance ??= BuiltinInstanceService._internal();
@@ -100,6 +102,25 @@ class BuiltinInstanceService with Loggable {
     final executablePath = Platform.resolvedExecutable;
     final executableDir = Directory(executablePath).parent;
     return '${executableDir.path}/data/downloads';
+  }
+
+  String _resolveEffectiveBtListenPort(Map<String, dynamic> settings) {
+    final configuredPort = (settings['btListenPort'] as String? ?? '').trim();
+    return configuredPort.isNotEmpty ? configuredPort : '6881-6999';
+  }
+
+  int _resolveEffectiveDhtListenPort(Map<String, dynamic> settings) {
+    final rawValue = settings['dhtListenPort'];
+    if (rawValue is int && rawValue >= 1 && rawValue <= 65535) {
+      return rawValue;
+    }
+    if (rawValue is String) {
+      final parsed = int.tryParse(rawValue.trim());
+      if (parsed != null && parsed >= 1 && parsed <= 65535) {
+        return parsed;
+      }
+    }
+    return 26701;
   }
 
   String _resolveEffectiveSessionPath(Map<String, dynamic> settings) {
@@ -210,6 +231,19 @@ class BuiltinInstanceService with Loggable {
     }
   }
 
+  Future<void> syncUpnpStateForRunningInstance() async {
+    if (!isRunning()) {
+      return;
+    }
+
+    final settings = _readSettingsSnapshot();
+    await _upnpService.syncMappings(
+      enabled: settings['enableUpnp'] == true,
+      btListenPort: _resolveEffectiveBtListenPort(settings),
+      dhtListenPort: _resolveEffectiveDhtListenPort(settings),
+    );
+  }
+
   List<String> _buildArgs() {
     final settings = _readSettingsSnapshot();
     final rpcPort = _getConfiguredRpcPort();
@@ -217,10 +251,7 @@ class BuiltinInstanceService with Loggable {
     final keepSeeding = settings['keepSeeding'] == true;
     final seedTime = _effectiveSeedTime(keepSeeding, settings['seedTime']);
     final seedRatio = _effectiveSeedRatio(keepSeeding, settings['seedRatio']);
-    final btListenPort =
-        (settings['btListenPort'] as String? ?? '').trim().isNotEmpty
-        ? (settings['btListenPort'] as String).trim()
-        : '6881-6999';
+    final btListenPort = _resolveEffectiveBtListenPort(settings);
     final sessionPath = _resolveEffectiveSessionPath(settings);
     final logPath = _resolveConfiguredFilePath(
       settings['logPath'],
@@ -326,6 +357,7 @@ class BuiltinInstanceService with Loggable {
         this.w(
           'Built-in Aria2 process is already running, PID: ${_aria2Process!.pid}',
         );
+        unawaited(syncUpnpStateForRunningInstance());
         return true;
       }
 
@@ -341,11 +373,14 @@ class BuiltinInstanceService with Loggable {
         this.w('Built-in Aria2 process exited with code: $exitCode');
         _aria2Process = null;
         _isConnected = false;
+        unawaited(_upnpService.shutdown());
       });
 
       if (kDebugMode) {
         _monitorProcessOutput();
       }
+
+      unawaited(syncUpnpStateForRunningInstance());
 
       return true;
     } catch (e, stackTrace) {
@@ -373,6 +408,7 @@ class BuiltinInstanceService with Loggable {
 
       _aria2Process = null;
       _isConnected = false;
+      await _upnpService.shutdown();
       return true;
     } catch (e, stackTrace) {
       this.e(
@@ -440,6 +476,7 @@ class BuiltinInstanceService with Loggable {
     if (_aria2Process != null) {
       stopInstance();
     }
+    unawaited(_upnpService.shutdown());
     _instance = null;
   }
 }

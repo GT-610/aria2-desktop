@@ -917,6 +917,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.5.2"
+  port_forwarder:
+    dependency: "direct main"
+    description:
+      name: port_forwarder
+      sha256: "80f762d6bba492aa6f458a4cb00ecdbac02007bfa6435907397212370962ca7d"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "1.0.0"
   posix:
     dependency: transitive
     description:
