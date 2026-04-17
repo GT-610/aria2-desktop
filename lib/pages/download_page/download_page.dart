@@ -315,7 +315,8 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
       tasks = tasks
           .where((task) => task.instanceId == _selectedInstanceId)
           .toList();
-    } else {
+    } else if (_currentCategoryType == CategoryType.byStatus ||
+        _currentCategoryType == CategoryType.byType) {
       switch (_selectedFilter) {
         case FilterOption.all:
           break;
