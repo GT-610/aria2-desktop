@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../generated/l10n/l10n.dart';
 import '../models/aria2_instance.dart';
 import '../models/settings.dart';
+import '../services/builtin_instance_service.dart';
 import '../services/instance_manager.dart';
 import '../services/settings_service.dart';
 import '../services/tracker_sync_service.dart';
@@ -22,6 +23,7 @@ class _BuiltinInstanceSettingsPageState
     extends State<BuiltinInstanceSettingsPage> {
   bool _hasChanges = false;
   bool _isSaving = false;
+  bool _isResettingSession = false;
   bool _didInitializeDraft = false;
 
   late int _rpcListenPort;
@@ -78,6 +80,8 @@ class _BuiltinInstanceSettingsPageState
     }
     return _BuiltinSettingsApplyMode.none;
   }
+
+  bool get _isBusy => _isSaving || _isResettingSession;
 
   @override
   void didChangeDependencies() {
@@ -171,7 +175,9 @@ class _BuiltinInstanceSettingsPageState
         ),
         actions: [
           TextButton(
-            onPressed: _hasChanges ? () => _saveSettings(settings) : null,
+            onPressed: _hasChanges && !_isBusy
+                ? () => _saveSettings(settings)
+                : null,
             child: Text(
               l10n.save,
               style: TextStyle(
@@ -182,7 +188,7 @@ class _BuiltinInstanceSettingsPageState
             ),
           ),
           TextButton(
-            onPressed: _hasChanges
+            onPressed: _hasChanges && !_isBusy
                 ? () => _saveAndApplySettings(settings)
                 : null,
             child: _isSaving
@@ -475,6 +481,13 @@ class _BuiltinInstanceSettingsPageState
                 _buildTextFieldSetting(l10n.userAgent, _userAgent, (value) {
                   _updateDraft(() => _userAgent = value);
                 }, controller: _userAgentController),
+                _buildDangerActionSetting(
+                  title: l10n.resetSessionRecord,
+                  description: l10n.resetSessionRecordTip,
+                  actionLabel: l10n.reset,
+                  icon: Icons.restart_alt,
+                  onPressed: _isBusy ? null : _resetSessionRecord,
+                ),
               ],
             ),
           ],
@@ -608,6 +621,35 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 
+  Widget _buildDangerActionSetting({
+    required String title,
+    required String description,
+    required String actionLabel,
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return ListTile(
+      leading: Icon(icon, color: colorScheme.error),
+      title: Text(title, style: theme.textTheme.bodyMedium),
+      subtitle: Text(
+        description,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+      trailing: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(foregroundColor: colorScheme.error),
+        child: Text(actionLabel),
+      ),
+      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+    );
+  }
+
   Widget _buildTrackerSourceSetting(ThemeData theme) {
     final colorScheme = theme.colorScheme;
     return ListTile(
@@ -648,7 +690,7 @@ class _BuiltinInstanceSettingsPageState
           Align(
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
-              onPressed: _isSaving ? null : _syncTrackerList,
+              onPressed: _isBusy ? null : _syncTrackerList,
               icon: const Icon(Icons.sync),
               label: Text(AppLocalizations.of(context)!.syncTrackerList),
             ),
@@ -858,6 +900,125 @@ class _BuiltinInstanceSettingsPageState
     }
   }
 
+  Future<void> _resetSessionRecord() async {
+    final l10n = AppLocalizations.of(context)!;
+    final sessionPath = BuiltinInstanceService().getEffectiveSessionPath();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.resetSessionRecord),
+        content: Text(l10n.resetSessionRecordConfirm(sessionPath)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              l10n.reset,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final instanceManager = Provider.of<InstanceManager>(
+      context,
+      listen: false,
+    );
+    final builtinInstance = instanceManager.getBuiltinInstance();
+    if (builtinInstance == null) {
+      _showSettingsSnackBar(
+        l10n.builtinInstanceMissing,
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+
+    final wasConnected = builtinInstance.status == ConnectionStatus.connected;
+
+    setState(() {
+      _isResettingSession = true;
+    });
+
+    if (mounted) {
+      _showProgressDialog(l10n.resettingSessionRecord);
+    }
+
+    try {
+      if (wasConnected) {
+        await instanceManager.disconnectInstance(builtinInstance);
+      }
+
+      final removedExistingFile = await BuiltinInstanceService()
+          .resetSessionFile();
+
+      if (wasConnected) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        final refreshedBuiltinInstance =
+            instanceManager.getBuiltinInstance() ?? builtinInstance;
+        final reconnected = await instanceManager.connectInstance(
+          refreshedBuiltinInstance,
+        );
+
+        if (!mounted) {
+          return;
+        }
+
+        Navigator.pop(context);
+        setState(() {
+          _isResettingSession = false;
+        });
+
+        _showSettingsSnackBar(
+          reconnected
+              ? (removedExistingFile
+                    ? l10n.sessionRecordResetSuccess
+                    : l10n.sessionRecordAlreadyClean)
+              : l10n.sessionRecordResetReconnectFailed,
+          backgroundColor: reconnected ? null : Colors.orange,
+          duration: Duration(seconds: reconnected ? 2 : 3),
+        );
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.pop(context);
+      setState(() {
+        _isResettingSession = false;
+      });
+
+      _showSettingsSnackBar(
+        removedExistingFile
+            ? l10n.sessionRecordResetSuccess
+            : l10n.sessionRecordAlreadyClean,
+      );
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        setState(() {
+          _isResettingSession = false;
+        });
+
+        _showSettingsSnackBar(
+          l10n.sessionRecordResetFailedWithError('$e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        );
+      }
+    }
+  }
+
   Future<void> _saveSettings(Settings settings) async {
     setState(() {
       _isSaving = true;
@@ -940,19 +1101,7 @@ class _BuiltinInstanceSettingsPageState
     }
 
     if (mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          content: Row(
-            children: [
-              fl.SizedLoading.medium,
-              const SizedBox(width: 16),
-              Expanded(child: Text(l10n.restartingBuiltinInstance)),
-            ],
-          ),
-        ),
-      );
+      _showProgressDialog(l10n.restartingBuiltinInstance);
     }
 
     try {
@@ -1043,6 +1192,22 @@ class _BuiltinInstanceSettingsPageState
         duration: duration,
         behavior: SnackBarBehavior.floating,
         backgroundColor: backgroundColor,
+      ),
+    );
+  }
+
+  void _showProgressDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        content: Row(
+          children: [
+            fl.SizedLoading.medium,
+            const SizedBox(width: 16),
+            Expanded(child: Text(message)),
+          ],
+        ),
       ),
     );
   }

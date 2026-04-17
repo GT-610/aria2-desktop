@@ -1293,6 +1293,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get logFilePathTip => '留空则使用默认的 data/core/aria2.log 路径。需要重启后生效。';
 
   @override
+  String get reset => '重置';
+
+  @override
+  String get resetSessionRecord => '重置 Session 记录';
+
+  @override
+  String get resetSessionRecordTip =>
+      '仅清理内建 aria2 的 Session 记录，不会修改设置，也不会删除已下载文件。';
+
+  @override
+  String resetSessionRecordConfirm(Object path) {
+    return '要重置位于“$path”的内建 aria2 Session 记录吗？已下载文件和已保存设置都会保留。';
+  }
+
+  @override
   String get userAgent => 'User Agent';
 
   @override
@@ -1323,6 +1338,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get restartingBuiltinInstance => '正在重启内建实例，请稍候...';
 
   @override
+  String get resettingSessionRecord => '正在重置内建实例的 Session 记录，请稍候...';
+
+  @override
   String get builtinInstanceMissing => '缺少内建实例';
 
   @override
@@ -1340,6 +1358,20 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String settingsSavedRestartFailedWithError(Object error) {
     return '设置已保存，但重启内建实例失败: $error';
+  }
+
+  @override
+  String get sessionRecordResetSuccess => 'Session 记录已重置';
+
+  @override
+  String get sessionRecordAlreadyClean => 'Session 记录已经是干净状态';
+
+  @override
+  String get sessionRecordResetReconnectFailed => 'Session 记录已重置，但重新连接内建实例失败';
+
+  @override
+  String sessionRecordResetFailedWithError(Object error) {
+    return '重置 Session 记录失败: $error';
   }
 
   @override

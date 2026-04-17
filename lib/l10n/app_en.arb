@@ -445,6 +445,15 @@
   "sessionFilePathTip": "Leave empty to use the default data/core/aria2.session path. Restart required.",
   "logFilePath": "Log file path",
   "logFilePathTip": "Leave empty to use the default data/core/aria2.log path. Restart required.",
+  "reset": "Reset",
+  "resetSessionRecord": "Reset session record",
+  "resetSessionRecordTip": "Clear only the built-in aria2 session record. This does not change settings or delete downloaded files.",
+  "resetSessionRecordConfirm": "Reset the built-in aria2 session record at \"{path}\"? Downloaded files and your saved settings will be kept.",
+  "@resetSessionRecordConfirm": {
+    "placeholders": {
+      "path": {}
+    }
+  },
   "userAgent": "User agent",
   "decrease": "Decrease",
   "increase": "Increase",
@@ -455,12 +464,22 @@
   "settingsApplyRestartHint": "Save and Apply will restart the built-in instance to apply these changes.",
   "settingsApplyNoPendingHint": "Save and Apply updates the running built-in instance when possible.",
   "restartingBuiltinInstance": "Restarting the built-in instance, please wait...",
+  "resettingSessionRecord": "Resetting the built-in session record, please wait...",
   "builtinInstanceMissing": "Built-in instance is missing",
   "settingsSavedAppliedSuccess": "Settings saved and applied successfully",
   "settingsSavedRpcApplyFailed": "Settings were saved, but applying them to the running built-in instance failed",
   "settingsSavedApplyWhenConnected": "Settings saved. Supported changes will apply the next time the built-in instance connects",
   "settingsSavedRestartFailed": "Settings were saved, but restarting the built-in instance failed",
   "settingsSavedRestartFailedWithError": "Settings were saved, but restarting the built-in instance failed: {error}",
+  "sessionRecordResetSuccess": "Session record reset successfully",
+  "sessionRecordAlreadyClean": "Session record is already clean",
+  "sessionRecordResetReconnectFailed": "Session record was reset, but reconnecting the built-in instance failed",
+  "sessionRecordResetFailedWithError": "Failed to reset the session record: {error}",
+  "@sessionRecordResetFailedWithError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "trackerSyncSuccess": "Tracker list synced into the draft settings",
   "trackerSyncFailed": "Failed to sync tracker list: {error}",
   "@trackerSyncFailed": {

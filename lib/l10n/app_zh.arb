@@ -445,6 +445,15 @@
   "sessionFilePathTip": "留空则使用默认的 data/core/aria2.session 路径。需要重启后生效。",
   "logFilePath": "日志文件路径",
   "logFilePathTip": "留空则使用默认的 data/core/aria2.log 路径。需要重启后生效。",
+  "reset": "重置",
+  "resetSessionRecord": "重置 Session 记录",
+  "resetSessionRecordTip": "仅清理内建 aria2 的 Session 记录，不会修改设置，也不会删除已下载文件。",
+  "resetSessionRecordConfirm": "要重置位于“{path}”的内建 aria2 Session 记录吗？已下载文件和已保存设置都会保留。",
+  "@resetSessionRecordConfirm": {
+    "placeholders": {
+      "path": {}
+    }
+  },
   "userAgent": "User Agent",
   "decrease": "减少",
   "increase": "增加",
@@ -455,12 +464,22 @@
   "settingsApplyRestartHint": "“保存并应用”会重启内建实例来应用这些改动。",
   "settingsApplyNoPendingHint": "“保存并应用”会在可能时把设置更新到当前运行中的内建实例。",
   "restartingBuiltinInstance": "正在重启内建实例，请稍候...",
+  "resettingSessionRecord": "正在重置内建实例的 Session 记录，请稍候...",
   "builtinInstanceMissing": "缺少内建实例",
   "settingsSavedAppliedSuccess": "设置已保存并成功应用",
   "settingsSavedRpcApplyFailed": "设置已保存，但将其应用到当前运行中的内建实例失败",
   "settingsSavedApplyWhenConnected": "设置已保存。支持在线更新的改动会在内建实例下次连接时应用",
   "settingsSavedRestartFailed": "设置已保存，但重启内建实例失败",
   "settingsSavedRestartFailedWithError": "设置已保存，但重启内建实例失败: {error}",
+  "sessionRecordResetSuccess": "Session 记录已重置",
+  "sessionRecordAlreadyClean": "Session 记录已经是干净状态",
+  "sessionRecordResetReconnectFailed": "Session 记录已重置，但重新连接内建实例失败",
+  "sessionRecordResetFailedWithError": "重置 Session 记录失败: {error}",
+  "@sessionRecordResetFailedWithError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "trackerSyncSuccess": "Tracker 列表已同步到当前草稿设置",
   "trackerSyncFailed": "同步 Tracker 列表失败: {error}",
   "@trackerSyncFailed": {

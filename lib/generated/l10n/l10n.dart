@@ -2443,6 +2443,30 @@ abstract class AppLocalizations {
   /// **'Leave empty to use the default data/core/aria2.log path. Restart required.'**
   String get logFilePathTip;
 
+  /// No description provided for @reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get reset;
+
+  /// No description provided for @resetSessionRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset session record'**
+  String get resetSessionRecord;
+
+  /// No description provided for @resetSessionRecordTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear only the built-in aria2 session record. This does not change settings or delete downloaded files.'**
+  String get resetSessionRecordTip;
+
+  /// No description provided for @resetSessionRecordConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the built-in aria2 session record at \"{path}\"? Downloaded files and your saved settings will be kept.'**
+  String resetSessionRecordConfirm(Object path);
+
   /// No description provided for @userAgent.
   ///
   /// In en, this message translates to:
@@ -2503,6 +2527,12 @@ abstract class AppLocalizations {
   /// **'Restarting the built-in instance, please wait...'**
   String get restartingBuiltinInstance;
 
+  /// No description provided for @resettingSessionRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Resetting the built-in session record, please wait...'**
+  String get resettingSessionRecord;
+
   /// No description provided for @builtinInstanceMissing.
   ///
   /// In en, this message translates to:
@@ -2538,6 +2568,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings were saved, but restarting the built-in instance failed: {error}'**
   String settingsSavedRestartFailedWithError(Object error);
+
+  /// No description provided for @sessionRecordResetSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Session record reset successfully'**
+  String get sessionRecordResetSuccess;
+
+  /// No description provided for @sessionRecordAlreadyClean.
+  ///
+  /// In en, this message translates to:
+  /// **'Session record is already clean'**
+  String get sessionRecordAlreadyClean;
+
+  /// No description provided for @sessionRecordResetReconnectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Session record was reset, but reconnecting the built-in instance failed'**
+  String get sessionRecordResetReconnectFailed;
+
+  /// No description provided for @sessionRecordResetFailedWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to reset the session record: {error}'**
+  String sessionRecordResetFailedWithError(Object error);
 
   /// No description provided for @trackerSyncSuccess.
   ///
