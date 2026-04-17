@@ -344,6 +344,12 @@ class Aria2RpcClient with Loggable {
     return response['result']['version'];
   }
 
+  /// Get detailed version information, including enabled features.
+  Future<Map<String, dynamic>> getVersionInfo() async {
+    final response = await callRpc('aria2.getVersion', []);
+    return Map<String, dynamic>.from(response['result'] as Map);
+  }
+
   /// Execute multiple RPC calls in one request
   Future<List<Map<String, dynamic>>> multicall(
     List<Map<String, dynamic>> calls,
@@ -581,6 +587,43 @@ class Aria2RpcClient with Loggable {
       return response['result'] as Map<String, dynamic>;
     } catch (e, stackTrace) {
       this.e('Failed to get global options', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Get global status information.
+  Future<Map<String, dynamic>> getGlobalStat() async {
+    try {
+      final response = await callRpc('aria2.getGlobalStat', []);
+      return Map<String, dynamic>.from(response['result'] as Map);
+    } catch (e, stackTrace) {
+      this.e('Failed to get global stat', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Save the current aria2 session.
+  Future<bool> saveSession() async {
+    try {
+      final response = await callRpc('aria2.saveSession', []);
+      return response['result'] == 'OK';
+    } catch (e, stackTrace) {
+      this.e('Failed to save session', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
+  /// Purge all stopped download results from aria2.
+  Future<bool> purgeDownloadResult() async {
+    try {
+      final response = await callRpc('aria2.purgeDownloadResult', []);
+      return response['result'] == 'OK';
+    } catch (e, stackTrace) {
+      this.e(
+        'Failed to purge download results',
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }

@@ -111,7 +111,54 @@
   "contributors": "贡献者",
   "license": "许可协议",
   "instanceSettings": "实例设置",
+  "aria2RpcAddress": "Aria2 RPC 地址",
   "remoteAria2Settings": "远程 aria2 设置",
+  "remoteStatusMaintenance": "状态与维护",
+  "remoteStatusMaintenanceRequiresConnectedInstance": "请先连接此远程实例，再打开它的状态与维护工具。",
+  "remoteStatusMaintenanceLoadFailed": "加载远程 aria2 状态失败",
+  "remoteStatusMaintenanceLoadFailedWithError": "加载远程 aria2 状态失败: {error}",
+  "@remoteStatusMaintenanceLoadFailedWithError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "remoteStatusSummary": "运行态摘要",
+  "remoteReadonlyInfo": "实例信息",
+  "remoteMaintenanceActions": "维护动作",
+  "enabledFeatures": "已启用特性",
+  "noEnabledFeatures": "未报告已启用特性",
+  "downloadSpeedLabel": "下载速度",
+  "uploadSpeedLabel": "上传速度",
+  "activeTaskCountLabel": "活跃任务",
+  "waitingTaskCountLabel": "等待任务",
+  "stoppedTaskCountLabel": "已停止任务",
+  "stoppedTasks": "已停止: {count}",
+  "@stoppedTasks": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "refresh": "刷新",
+  "saveSession": "保存会话",
+  "saveSessionSuccess": "会话保存成功",
+  "saveSessionFailed": "会话保存失败",
+  "saveSessionFailedWithError": "会话保存失败: {error}",
+  "@saveSessionFailedWithError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "purgeDownloadResults": "清空已完成记录",
+  "purgeDownloadResultsTip": "移除此远程 aria2 实例中的全部 stopped 任务记录。",
+  "purgeDownloadResultsConfirm": "要清除此远程 aria2 实例中的全部 stopped 任务记录吗？",
+  "purgeDownloadResultsSuccess": "已完成记录已清空",
+  "purgeDownloadResultsFailed": "清空已完成记录失败",
+  "purgeDownloadResultsFailedWithError": "清空已完成记录失败: {error}",
+  "@purgeDownloadResultsFailedWithError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "remoteSettingsInfoTip": "这里修改的是当前正在运行的远程 aria2 全局选项，不是本地保存的连接档案。",
   "remoteSettingsRequiresConnectedInstance": "请先连接此远程实例，再打开它的 aria2 设置。",
   "remoteSettingsLoadFailed": "加载远程 aria2 设置失败",

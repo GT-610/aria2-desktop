@@ -704,11 +704,173 @@ abstract class AppLocalizations {
   /// **'Instance Settings'**
   String get instanceSettings;
 
+  /// No description provided for @aria2RpcAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Aria2 RPC Address'**
+  String get aria2RpcAddress;
+
   /// No description provided for @remoteAria2Settings.
   ///
   /// In en, this message translates to:
   /// **'Remote aria2 settings'**
   String get remoteAria2Settings;
+
+  /// No description provided for @remoteStatusMaintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Status & maintenance'**
+  String get remoteStatusMaintenance;
+
+  /// No description provided for @remoteStatusMaintenanceRequiresConnectedInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect this remote instance before opening its status and maintenance tools.'**
+  String get remoteStatusMaintenanceRequiresConnectedInstance;
+
+  /// No description provided for @remoteStatusMaintenanceLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load remote aria2 status'**
+  String get remoteStatusMaintenanceLoadFailed;
+
+  /// No description provided for @remoteStatusMaintenanceLoadFailedWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load remote aria2 status: {error}'**
+  String remoteStatusMaintenanceLoadFailedWithError(Object error);
+
+  /// No description provided for @remoteStatusSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Runtime Summary'**
+  String get remoteStatusSummary;
+
+  /// No description provided for @remoteReadonlyInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Instance Info'**
+  String get remoteReadonlyInfo;
+
+  /// No description provided for @remoteMaintenanceActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance Actions'**
+  String get remoteMaintenanceActions;
+
+  /// No description provided for @enabledFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled Features'**
+  String get enabledFeatures;
+
+  /// No description provided for @noEnabledFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'No enabled features reported'**
+  String get noEnabledFeatures;
+
+  /// No description provided for @downloadSpeedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Download speed'**
+  String get downloadSpeedLabel;
+
+  /// No description provided for @uploadSpeedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload speed'**
+  String get uploadSpeedLabel;
+
+  /// No description provided for @activeTaskCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Active tasks'**
+  String get activeTaskCountLabel;
+
+  /// No description provided for @waitingTaskCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting tasks'**
+  String get waitingTaskCountLabel;
+
+  /// No description provided for @stoppedTaskCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped tasks'**
+  String get stoppedTaskCountLabel;
+
+  /// No description provided for @stoppedTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped: {count}'**
+  String stoppedTasks(Object count);
+
+  /// No description provided for @refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// No description provided for @saveSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Session'**
+  String get saveSession;
+
+  /// No description provided for @saveSessionSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Session saved successfully'**
+  String get saveSessionSuccess;
+
+  /// No description provided for @saveSessionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save session'**
+  String get saveSessionFailed;
+
+  /// No description provided for @saveSessionFailedWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save session: {error}'**
+  String saveSessionFailedWithError(Object error);
+
+  /// No description provided for @purgeDownloadResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear completed records'**
+  String get purgeDownloadResults;
+
+  /// No description provided for @purgeDownloadResultsTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all stopped task records from this remote aria2 instance.'**
+  String get purgeDownloadResultsTip;
+
+  /// No description provided for @purgeDownloadResultsConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all stopped task records from this remote aria2 instance?'**
+  String get purgeDownloadResultsConfirm;
+
+  /// No description provided for @purgeDownloadResultsSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped task records cleared'**
+  String get purgeDownloadResultsSuccess;
+
+  /// No description provided for @purgeDownloadResultsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clear stopped task records'**
+  String get purgeDownloadResultsFailed;
+
+  /// No description provided for @purgeDownloadResultsFailedWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clear stopped task records: {error}'**
+  String purgeDownloadResultsFailedWithError(Object error);
 
   /// No description provided for @remoteSettingsInfoTip.
   ///

@@ -332,7 +332,98 @@ class AppLocalizationsZh extends AppLocalizations {
   String get instanceSettings => '实例设置';
 
   @override
+  String get aria2RpcAddress => 'Aria2 RPC 地址';
+
+  @override
   String get remoteAria2Settings => '远程 aria2 设置';
+
+  @override
+  String get remoteStatusMaintenance => '状态与维护';
+
+  @override
+  String get remoteStatusMaintenanceRequiresConnectedInstance =>
+      '请先连接此远程实例，再打开它的状态与维护工具。';
+
+  @override
+  String get remoteStatusMaintenanceLoadFailed => '加载远程 aria2 状态失败';
+
+  @override
+  String remoteStatusMaintenanceLoadFailedWithError(Object error) {
+    return '加载远程 aria2 状态失败: $error';
+  }
+
+  @override
+  String get remoteStatusSummary => '运行态摘要';
+
+  @override
+  String get remoteReadonlyInfo => '实例信息';
+
+  @override
+  String get remoteMaintenanceActions => '维护动作';
+
+  @override
+  String get enabledFeatures => '已启用特性';
+
+  @override
+  String get noEnabledFeatures => '未报告已启用特性';
+
+  @override
+  String get downloadSpeedLabel => '下载速度';
+
+  @override
+  String get uploadSpeedLabel => '上传速度';
+
+  @override
+  String get activeTaskCountLabel => '活跃任务';
+
+  @override
+  String get waitingTaskCountLabel => '等待任务';
+
+  @override
+  String get stoppedTaskCountLabel => '已停止任务';
+
+  @override
+  String stoppedTasks(Object count) {
+    return '已停止: $count';
+  }
+
+  @override
+  String get refresh => '刷新';
+
+  @override
+  String get saveSession => '保存会话';
+
+  @override
+  String get saveSessionSuccess => '会话保存成功';
+
+  @override
+  String get saveSessionFailed => '会话保存失败';
+
+  @override
+  String saveSessionFailedWithError(Object error) {
+    return '会话保存失败: $error';
+  }
+
+  @override
+  String get purgeDownloadResults => '清空已完成记录';
+
+  @override
+  String get purgeDownloadResultsTip => '移除此远程 aria2 实例中的全部 stopped 任务记录。';
+
+  @override
+  String get purgeDownloadResultsConfirm =>
+      '要清除此远程 aria2 实例中的全部 stopped 任务记录吗？';
+
+  @override
+  String get purgeDownloadResultsSuccess => '已完成记录已清空';
+
+  @override
+  String get purgeDownloadResultsFailed => '清空已完成记录失败';
+
+  @override
+  String purgeDownloadResultsFailedWithError(Object error) {
+    return '清空已完成记录失败: $error';
+  }
 
   @override
   String get remoteSettingsInfoTip => '这里修改的是当前正在运行的远程 aria2 全局选项，不是本地保存的连接档案。';

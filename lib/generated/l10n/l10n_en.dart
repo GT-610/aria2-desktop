@@ -350,7 +350,101 @@ class AppLocalizationsEn extends AppLocalizations {
   String get instanceSettings => 'Instance Settings';
 
   @override
+  String get aria2RpcAddress => 'Aria2 RPC Address';
+
+  @override
   String get remoteAria2Settings => 'Remote aria2 settings';
+
+  @override
+  String get remoteStatusMaintenance => 'Status & maintenance';
+
+  @override
+  String get remoteStatusMaintenanceRequiresConnectedInstance =>
+      'Connect this remote instance before opening its status and maintenance tools.';
+
+  @override
+  String get remoteStatusMaintenanceLoadFailed =>
+      'Failed to load remote aria2 status';
+
+  @override
+  String remoteStatusMaintenanceLoadFailedWithError(Object error) {
+    return 'Failed to load remote aria2 status: $error';
+  }
+
+  @override
+  String get remoteStatusSummary => 'Runtime Summary';
+
+  @override
+  String get remoteReadonlyInfo => 'Instance Info';
+
+  @override
+  String get remoteMaintenanceActions => 'Maintenance Actions';
+
+  @override
+  String get enabledFeatures => 'Enabled Features';
+
+  @override
+  String get noEnabledFeatures => 'No enabled features reported';
+
+  @override
+  String get downloadSpeedLabel => 'Download speed';
+
+  @override
+  String get uploadSpeedLabel => 'Upload speed';
+
+  @override
+  String get activeTaskCountLabel => 'Active tasks';
+
+  @override
+  String get waitingTaskCountLabel => 'Waiting tasks';
+
+  @override
+  String get stoppedTaskCountLabel => 'Stopped tasks';
+
+  @override
+  String stoppedTasks(Object count) {
+    return 'Stopped: $count';
+  }
+
+  @override
+  String get refresh => 'Refresh';
+
+  @override
+  String get saveSession => 'Save Session';
+
+  @override
+  String get saveSessionSuccess => 'Session saved successfully';
+
+  @override
+  String get saveSessionFailed => 'Failed to save session';
+
+  @override
+  String saveSessionFailedWithError(Object error) {
+    return 'Failed to save session: $error';
+  }
+
+  @override
+  String get purgeDownloadResults => 'Clear completed records';
+
+  @override
+  String get purgeDownloadResultsTip =>
+      'Remove all stopped task records from this remote aria2 instance.';
+
+  @override
+  String get purgeDownloadResultsConfirm =>
+      'Clear all stopped task records from this remote aria2 instance?';
+
+  @override
+  String get purgeDownloadResultsSuccess => 'Stopped task records cleared';
+
+  @override
+  String get purgeDownloadResultsFailed =>
+      'Failed to clear stopped task records';
+
+  @override
+  String purgeDownloadResultsFailedWithError(Object error) {
+    return 'Failed to clear stopped task records: $error';
+  }
 
   @override
   String get remoteSettingsInfoTip =>
