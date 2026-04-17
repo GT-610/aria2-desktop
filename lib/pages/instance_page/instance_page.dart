@@ -22,6 +22,27 @@ class _InstancePageState extends State<InstancePage> {
   bool _isChecking = false;
   bool _isConnectionInProgress = false;
 
+  void _showFeedback(String message, {Color? backgroundColor}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+    );
+  }
+
+  bool _requireConnectedRemoteInstance(
+    Aria2Instance instance, {
+    required String message,
+  }) {
+    if (instance.type != InstanceType.remote) {
+      return false;
+    }
+    if (instance.status == ConnectionStatus.connected) {
+      return true;
+    }
+
+    _showFeedback(message, backgroundColor: Colors.orange);
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -107,23 +128,15 @@ class _InstancePageState extends State<InstancePage> {
       final isOnline = await instanceManager.checkConnection(instance);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isOnline
-                  ? l10n.instanceReachable
-                  : l10n.instanceOfflineUnreachable,
-            ),
-          ),
+        _showFeedback(
+          isOnline ? l10n.instanceReachable : l10n.instanceOfflineUnreachable,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.checkStatusFailed('$e')),
-            backgroundColor: Colors.red,
-          ),
+        _showFeedback(
+          l10n.checkStatusFailed('$e'),
+          backgroundColor: Colors.red,
         );
       }
     } finally {
@@ -150,9 +163,7 @@ class _InstancePageState extends State<InstancePage> {
       if (instance.status == ConnectionStatus.connected) {
         await instanceManager.disconnectInstance(instance);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.disconnectedSuccessfully)),
-          );
+          _showFeedback(l10n.disconnectedSuccessfully);
         }
       } else {
         await _handleConnectInstance(instance);
@@ -172,17 +183,10 @@ class _InstancePageState extends State<InstancePage> {
 
   Future<void> _handleOpenRemoteSettings(Aria2Instance instance) async {
     final l10n = AppLocalizations.of(context)!;
-    if (instance.type != InstanceType.remote) {
-      return;
-    }
-
-    if (instance.status != ConnectionStatus.connected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.remoteSettingsRequiresConnectedInstance),
-          backgroundColor: Colors.orange,
-        ),
-      );
+    if (!_requireConnectedRemoteInstance(
+      instance,
+      message: l10n.remoteSettingsRequiresConnectedInstance,
+    )) {
       return;
     }
 
@@ -195,17 +199,10 @@ class _InstancePageState extends State<InstancePage> {
 
   Future<void> _handleOpenRemoteStatus(Aria2Instance instance) async {
     final l10n = AppLocalizations.of(context)!;
-    if (instance.type != InstanceType.remote) {
-      return;
-    }
-
-    if (instance.status != ConnectionStatus.connected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.remoteStatusMaintenanceRequiresConnectedInstance),
-          backgroundColor: Colors.orange,
-        ),
-      );
+    if (!_requireConnectedRemoteInstance(
+      instance,
+      message: l10n.remoteStatusMaintenanceRequiresConnectedInstance,
+    )) {
       return;
     }
 
@@ -271,17 +268,13 @@ class _InstancePageState extends State<InstancePage> {
         await instanceManager.deleteInstance(instance.id);
 
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.instanceDeletedSuccess)));
+          _showFeedback(l10n.instanceDeletedSuccess);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.failedToDeleteInstance('$e')),
-              backgroundColor: Colors.red,
-            ),
+          _showFeedback(
+            l10n.failedToDeleteInstance('$e'),
+            backgroundColor: Colors.red,
           );
         }
       }
@@ -304,25 +297,19 @@ class _InstancePageState extends State<InstancePage> {
         if (instance != null) {
           await instanceManager.updateInstance(result);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.instanceUpdatedSuccess)),
-            );
+            _showFeedback(l10n.instanceUpdatedSuccess);
           }
         } else {
           await instanceManager.addInstance(result);
           if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(l10n.instanceAddedSuccess)));
+            _showFeedback(l10n.instanceAddedSuccess);
           }
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.operationFailed('$e')),
-              backgroundColor: Colors.red,
-            ),
+          _showFeedback(
+            l10n.operationFailed('$e'),
+            backgroundColor: Colors.red,
           );
         }
       }
@@ -339,25 +326,19 @@ class _InstancePageState extends State<InstancePage> {
       final connectSuccess = await instanceManager.connectInstance(instance);
       if (mounted) {
         if (connectSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.successConnected(instance.name))),
-          );
+          _showFeedback(l10n.successConnected(instance.name));
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.connectionFailedCheckConfig),
-              backgroundColor: Colors.red,
-            ),
+          _showFeedback(
+            l10n.connectionFailedCheckConfig,
+            backgroundColor: Colors.red,
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.connectionFailedError('$e')),
-            backgroundColor: Colors.red,
-          ),
+        _showFeedback(
+          l10n.connectionFailedError('$e'),
+          backgroundColor: Colors.red,
         );
       }
     }

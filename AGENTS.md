@@ -22,7 +22,7 @@ flutter analyze --fatal-infos --fatal-warnings  # Stricter rules
 ### Testing
 ```bash
 flutter test                   # Run all tests
-flutter test test/aria2_rpc_client.dart  # Run single test file
+flutter test test/add_task_options_test.dart  # Run single test file
 flutter test --name "testName" # Run specific test by name
 flutter test --reporter expanded  # Verbose output
 flutter test --coverage        # Run with code coverage
@@ -32,7 +32,7 @@ flutter test --coverage        # Run with code coverage
 ```bash
 flutter pub get        # Get dependencies
 flutter pub upgrade   # Update dependencies
-flutter format .      # Format code
+dart format .         # Format code
 ```
 
 ---
@@ -114,17 +114,8 @@ try {
 - **DRY** - Don't Repeat Yourself
 - **YAGNI** - Avoid over-engineering
 - **Single Responsibility** - each class/method does one thing
-- **Keep files small** - typically <200 lines per file
+- **Prefer smaller files when practical** - extract only when it clearly improves clarity
 - **Write tests** for critical logic (RPC client, services)
-
----
-
-## Unimplemented Features (for reference)
-
-When working on this codebase, consider these features that are not yet implemented:
-- Deeper tray interactions (for example drag-to-tray style entry flows)
-- Expanded remote maintenance and diagnostics tooling
-- Broader automated test coverage for desktop integration flows
 
 ---
 
@@ -133,8 +124,8 @@ When working on this codebase, consider these features that are not yet implemen
 |------|---------|
 | Run app | `flutter run` |
 | Analyze | `flutter analyze` |
-| Format | `flutter format .` |
-| Test one file | `flutter test test/file.dart` |
+| Format | `dart format .` |
+| Test one file | `flutter test test/add_task_options_test.dart` |
 | Build Windows | `flutter build windows --release` |
 
 ## Additional Notes
