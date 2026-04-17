@@ -16,8 +16,11 @@ class InstanceDialog extends StatefulWidget {
 }
 
 class _InstanceDialogState extends State<InstanceDialog> {
+  static const double _dialogPadding = 24;
+  static const double _sectionSpacing = 20;
+  static const double _fieldSpacing = 16;
+
   late String _name;
-  late InstanceType _type;
   late String _protocol;
   late String _host;
   late int _port;
@@ -46,7 +49,6 @@ class _InstanceDialogState extends State<InstanceDialog> {
 
     if (widget.instance != null) {
       _name = widget.instance!.name;
-      _type = widget.instance!.type;
       _protocol = widget.instance!.protocol;
       _host = widget.instance!.host;
       _port = widget.instance!.port;
@@ -56,7 +58,6 @@ class _InstanceDialogState extends State<InstanceDialog> {
       _rpcRequestHeaders = widget.instance!.rpcRequestHeaders;
     } else {
       _name = '';
-      _type = InstanceType.remote;
       _protocol = 'http';
       _host = 'localhost';
       _port = 6800;
@@ -166,7 +167,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
     return Aria2Instance(
       id: widget.instance?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       name: _name.trim(),
-      type: _type,
+      type: InstanceType.remote,
       protocol: _protocol,
       host: _host.trim(),
       port: _port,
@@ -177,30 +178,6 @@ class _InstanceDialogState extends State<InstanceDialog> {
           ? _rpcRequestHeadersController.text
           : '',
     );
-  }
-
-  String _previewRpcUrl() {
-    final host = _hostController.text.trim().isEmpty
-        ? 'localhost'
-        : _hostController.text.trim();
-    final port = _portController.text.trim().isEmpty
-        ? 6800
-        : int.tryParse(_portController.text.trim()) ?? 6800;
-    final previewInstance = Aria2Instance(
-      id: widget.instance?.id ?? 'preview',
-      name: _nameController.text.trim(),
-      type: _type,
-      protocol: _protocol,
-      host: host,
-      port: port,
-      secret: _secretController.text.trim(),
-      downloadDir: _downloadDirController.text.trim(),
-      rpcPath: _rpcPathController.text.trim(),
-      rpcRequestHeaders: _usesHttpTransport
-          ? _rpcRequestHeadersController.text
-          : '',
-    );
-    return previewInstance.rpcUrl;
   }
 
   Future<void> _testConnection() async {
@@ -298,7 +275,10 @@ class _InstanceDialogState extends State<InstanceDialog> {
       backgroundColor: colorScheme.surface,
       surfaceTintColor: colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: _dialogPadding,
+        vertical: _dialogPadding,
+      ),
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: 720,
@@ -309,7 +289,9 @@ class _InstanceDialogState extends State<InstanceDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.all(24).copyWith(bottom: 16),
+              padding: const EdgeInsets.all(_dialogPadding).copyWith(
+                bottom: _fieldSpacing,
+              ),
               child: Text(
                 widget.instance == null ? l10n.addInstance : l10n.editInstance,
                 style: theme.textTheme.headlineMedium,
@@ -317,7 +299,12 @@ class _InstanceDialogState extends State<InstanceDialog> {
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.fromLTRB(
+                  _dialogPadding,
+                  0,
+                  _dialogPadding,
+                  8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -335,112 +322,131 @@ class _InstanceDialogState extends State<InstanceDialog> {
                         }
                       },
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Icon(Icons.cloud_outlined, color: colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          _type == InstanceType.builtin
-                              ? l10n.builtin
-                              : l10n.remote,
-                          style: theme.textTheme.bodyLarge,
+                    const SizedBox(height: _fieldSpacing),
+                    Container(
+                      padding: const EdgeInsets.all(_fieldSpacing),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest.withValues(
+                          alpha: 0.35,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      l10n.protocol,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 112,
-                          child: DropdownButtonFormField<String>(
-                            initialValue: _protocol,
-                            decoration: const InputDecoration(
-                              isDense: true,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: colorScheme.outlineVariant.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            l10n.protocol,
+                            style: theme.textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 12),
+                          SegmentedButton<String>(
+                            segments: const [
+                              ButtonSegment(
+                                value: 'http',
+                                label: Text('HTTP'),
+                              ),
+                              ButtonSegment(
+                                value: 'https',
+                                label: Text('HTTPS'),
+                              ),
+                              ButtonSegment(value: 'ws', label: Text('WS')),
+                              ButtonSegment(value: 'wss', label: Text('WSS')),
+                            ],
+                            selected: {_protocol},
+                            onSelectionChanged: (newSelection) {
+                              if (newSelection.isEmpty) {
+                                return;
+                              }
+                              setState(() {
+                                _protocol = newSelection.first;
+                              });
+                            },
+                            style: SegmentedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              backgroundColor:
+                                  colorScheme.surfaceContainerHighest,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                            items: ['http', 'https', 'ws', 'wss'].map((p) {
-                              return DropdownMenuItem(
-                                value: p,
-                                child: Text(p.toUpperCase()),
-                              );
-                            }).toList(),
+                          ),
+                          const SizedBox(height: _fieldSpacing),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _hostController,
+                                  onChanged: (value) {
+                                    _host = value;
+                                    if (_hostError != null) {
+                                      setState(() {
+                                        _hostError = null;
+                                      });
+                                    } else {
+                                      setState(() {});
+                                    }
+                                  },
+                                  decoration: InputDecoration(
+                                    labelText: l10n.host,
+                                    hintText: 'localhost',
+                                    errorText: _hostError,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 112,
+                                child: TextField(
+                                  controller: _portController,
+                                  keyboardType: TextInputType.number,
+                                  onChanged: (value) {
+                                    if (_portError != null) {
+                                      setState(() {
+                                        _portError = null;
+                                      });
+                                    } else {
+                                      setState(() {});
+                                    }
+                                    final port = int.tryParse(value);
+                                    if (port != null) {
+                                      _port = port;
+                                    }
+                                  },
+                                  decoration: InputDecoration(
+                                    labelText: l10n.port,
+                                    hintText: '6800',
+                                    errorText: _portError,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: _fieldSpacing),
+                          fl.Input(
+                            controller: _rpcPathController,
+                            label: l10n.rpcPath,
+                            hint: l10n.rpcPathTip,
                             onChanged: (value) {
                               setState(() {
-                                _protocol = value!;
+                                _rpcPath = value;
                               });
                             },
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _hostController,
-                            onChanged: (value) {
-                              _host = value;
-                              if (_hostError != null) {
-                                setState(() {
-                                  _hostError = null;
-                                });
-                              } else {
-                                setState(() {});
-                              }
-                            },
-                            decoration: InputDecoration(
-                              labelText: l10n.host,
-                              hintText: 'localhost',
-                              errorText: _hostError,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 112,
-                          child: TextField(
-                            controller: _portController,
-                            keyboardType: TextInputType.number,
-                            onChanged: (value) {
-                              if (_portError != null) {
-                                setState(() {
-                                  _portError = null;
-                                });
-                              } else {
-                                setState(() {});
-                              }
-                              final port = int.tryParse(value);
-                              if (port != null) {
-                                _port = port;
-                              }
-                            },
-                            decoration: InputDecoration(
-                              labelText: l10n.port,
-                              hintText: '6800',
-                              errorText: _portError,
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    fl.Input(
-                      controller: _rpcPathController,
-                      label: l10n.rpcPath,
-                      hint: l10n.rpcPathTip,
-                      onChanged: (value) {
-                        setState(() {
-                          _rpcPath = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: _sectionSpacing),
                     _buildSecretField(context, l10n),
                     if (_usesHttpTransport) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: _fieldSpacing),
                       TextField(
                         controller: _rpcRequestHeadersController,
                         minLines: 4,
@@ -453,59 +459,57 @@ class _InstanceDialogState extends State<InstanceDialog> {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 16),
+                    const SizedBox(height: _sectionSpacing),
                     fl.Input(
                       controller: _downloadDirController,
                       label: l10n.defaultDownloadDir,
                       hint: l10n.remoteDownloadDirHint,
                       onChanged: (value) => _downloadDir = value,
                     ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest.withValues(
-                          alpha: 0.45,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _previewRpcUrl(),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(24).copyWith(top: 8),
+              padding: const EdgeInsets.all(_dialogPadding).copyWith(top: 8),
               child: Row(
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: _isTestingConnection ? null : _testConnection,
-                    icon: _isTestingConnection
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: fl.SizedLoading.small,
-                          )
-                        : const Icon(Icons.wifi_find_outlined),
-                    label: Text(
-                      _isTestingConnection
-                          ? l10n.testingConnection
-                          : l10n.testConnection,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _isTestingConnection ? null : _testConnection,
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 40),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                        ),
+                        icon: _isTestingConnection
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: fl.SizedLoading.small,
+                              )
+                            : const Icon(Icons.wifi_find_outlined),
+                        label: Text(
+                          _isTestingConnection
+                              ? l10n.testingConnection
+                              : l10n.testConnection,
+                        ),
+                      ),
+                    ],
                   ),
                   const Spacer(),
-                  fl.Btn.cancel(onTap: () => Navigator.of(context).pop()),
-                  const SizedBox(width: 8),
-                  fl.Btn.elevated(
-                    text: widget.instance == null ? l10n.add : l10n.save,
-                    onTap: _submit,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      fl.Btn.cancel(onTap: () => Navigator.of(context).pop()),
+                      const SizedBox(width: 8),
+                      fl.Btn.elevated(
+                        text: widget.instance == null ? l10n.add : l10n.save,
+                        onTap: _submit,
+                      ),
+                    ],
                   ),
                 ],
               ),
