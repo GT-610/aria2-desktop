@@ -43,9 +43,11 @@ class TaskParser {
             isLocal: parsedTask.isLocal,
             instanceId: parsedTask.instanceId,
             connections: parsedTask.connections,
+            numSeeders: parsedTask.numSeeders,
             dir: parsedTask.dir,
             totalLengthBytes: parsedTask.totalLengthBytes,
             completedLengthBytes: parsedTask.completedLengthBytes,
+            uploadLengthBytes: parsedTask.uploadLengthBytes,
             downloadSpeedBytes: parsedTask.downloadSpeedBytes,
             uploadSpeedBytes: parsedTask.uploadSpeedBytes,
             files: parsedTask.files,
@@ -55,6 +57,10 @@ class TaskParser {
             errorMessage: parsedTask.errorMessage,
             startTime: parsedTask.startTime,
             bitfield: parsedTask.bitfield,
+            infoHash: parsedTask.infoHash,
+            pieceLength: parsedTask.pieceLength,
+            numPieces: parsedTask.numPieces,
+            isSeeder: parsedTask.isSeeder,
           );
           parsedTasks.add(taskWithStatus);
         } catch (e) {
@@ -82,6 +88,8 @@ class TaskParser {
         int.tryParse(taskData['downloadSpeed'] as String? ?? '0') ?? 0;
     final uploadSpeedBytes =
         int.tryParse(taskData['uploadSpeed'] as String? ?? '0') ?? 0;
+    final uploadLengthBytes =
+        int.tryParse(taskData['uploadLength'] as String? ?? '0') ?? 0;
 
     // Basic fields parsing
     String id = taskData['gid'] as String? ?? '';
@@ -130,12 +138,19 @@ class TaskParser {
     int? connections = taskData.containsKey('connections')
         ? int.tryParse(taskData['connections'] as String? ?? '')
         : null;
+    int? numSeeders = taskData.containsKey('numSeeders')
+        ? int.tryParse(taskData['numSeeders']?.toString() ?? '')
+        : null;
 
     String? dir = taskData['dir'] as String?;
 
     // Parse BT metadata
     String? bittorrentInfo;
     List<String>? trackers;
+    String? infoHash;
+    int? pieceLength;
+    int? numPieces;
+    final isSeeder = taskData['seeder']?.toString() == 'true';
     if (taskData.containsKey('bittorrent') && taskData['bittorrent'] is Map) {
       final bittorrent = taskData['bittorrent'] as Map<String, dynamic>;
       bittorrentInfo = json.encode(bittorrent);
@@ -158,6 +173,10 @@ class TaskParser {
         }).toList();
       }
     }
+
+    infoHash = taskData['infoHash'] as String?;
+    pieceLength = int.tryParse(taskData['pieceLength']?.toString() ?? '');
+    numPieces = int.tryParse(taskData['numPieces']?.toString() ?? '');
 
     // Parse download links
     List<String>? uris;
@@ -245,10 +264,12 @@ class TaskParser {
       isLocal: isLocal,
       instanceId: instanceId,
       connections: connections,
+      numSeeders: numSeeders,
       dir: dir,
       // Extended detailed information
       totalLengthBytes: totalLengthBytes,
       completedLengthBytes: completedLengthBytes,
+      uploadLengthBytes: uploadLengthBytes,
       downloadSpeedBytes: downloadSpeedBytes,
       uploadSpeedBytes: uploadSpeedBytes,
       files: files,
@@ -258,6 +279,10 @@ class TaskParser {
       errorMessage: errorMessage,
       startTime: startTime,
       bitfield: bitfield,
+      infoHash: infoHash,
+      pieceLength: pieceLength,
+      numPieces: numPieces,
+      isSeeder: isSeeder,
     );
   }
 

@@ -164,6 +164,10 @@ class DownloadTaskService with Loggable {
         taskData['completedLength'] != null && taskData['completedLength'] != ''
         ? int.tryParse(taskData['completedLength']) ?? 0
         : 0;
+    final uploadLength =
+        taskData['uploadLength'] != null && taskData['uploadLength'] != ''
+        ? int.tryParse(taskData['uploadLength']) ?? 0
+        : 0;
     final progress = totalLength > 0 ? completedLength / totalLength : 0.0;
 
     var name = '';
@@ -181,6 +185,11 @@ class DownloadTaskService with Loggable {
     }
 
     final dir = taskData['dir'] ?? '';
+    final infoHash = taskData['infoHash']?.toString();
+    final pieceLength = int.tryParse(taskData['pieceLength']?.toString() ?? '');
+    final numPieces = int.tryParse(taskData['numPieces']?.toString() ?? '');
+    final numSeeders = int.tryParse(taskData['numSeeders']?.toString() ?? '');
+    final isSeeder = taskData['seeder']?.toString() == 'true';
 
     return DownloadTask(
       id: gid,
@@ -197,8 +206,14 @@ class DownloadTaskService with Loggable {
       isLocal: false,
       totalLengthBytes: totalLength,
       completedLengthBytes: completedLength,
+      uploadLengthBytes: uploadLength,
+      numSeeders: numSeeders,
       downloadSpeedBytes: taskData['downloadSpeed'] ?? 0,
       uploadSpeedBytes: taskData['uploadSpeed'] ?? 0,
+      infoHash: infoHash,
+      pieceLength: pieceLength,
+      numPieces: numPieces,
+      isSeeder: isSeeder,
     );
   }
 
@@ -210,6 +225,10 @@ class DownloadTaskService with Loggable {
     final l10n = AppLocalizations.of(context)!;
     if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
       return (l10n.paused, colorScheme.tertiary);
+    }
+
+    if (isSeedingTask(task)) {
+      return (l10n.seeding, const Color(0xFF4CAF50));
     }
 
     if (task.status == DownloadStatus.stopped &&
@@ -232,6 +251,10 @@ class DownloadTaskService with Loggable {
       return Icon(Icons.pause, color: color);
     }
 
+    if (isSeedingTask(task)) {
+      return Icon(Icons.upload, color: color);
+    }
+
     if (task.status == DownloadStatus.stopped &&
         task.taskStatus == 'complete') {
       return Icon(Icons.check_circle, color: color);
@@ -245,6 +268,35 @@ class DownloadTaskService with Loggable {
       case DownloadStatus.stopped:
         return Icon(Icons.pause_circle, color: color);
     }
+  }
+
+  static bool isPausedTask(DownloadTask task) {
+    return task.status == DownloadStatus.waiting && task.taskStatus == 'paused';
+  }
+
+  static bool matchesActiveFilter(DownloadTask task) {
+    return task.status == DownloadStatus.active || isPausedTask(task);
+  }
+
+  // Paused tasks intentionally appear in both "Downloading" and "Waiting"
+  // filters to match the Motrix-style interaction model we chose.
+  static bool matchesWaitingFilter(DownloadTask task) {
+    return task.status == DownloadStatus.waiting;
+  }
+
+  static bool isSeedingTask(DownloadTask task) {
+    return task.status == DownloadStatus.active &&
+        task.bittorrentInfo != null &&
+        task.bittorrentInfo!.isNotEmpty &&
+        task.isSeeder;
+  }
+
+  static String _stoppingSeedingTip(BuildContext context) {
+    return AppLocalizations.of(context)!.stoppingSeedingTip;
+  }
+
+  static String _failedToStopSeedingMessage(BuildContext context, String error) {
+    return AppLocalizations.of(context)!.failedToStopSeeding(error);
   }
 
   static Future<void> pauseTask(
@@ -262,7 +314,11 @@ class DownloadTaskService with Loggable {
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
         client = Aria2RpcClient(targetInstance!);
-        await client.pauseTask(task.id);
+        if (task.bittorrentInfo != null && task.bittorrentInfo!.isNotEmpty) {
+          await client.forcePauseTask(task.id);
+        } else {
+          await client.pauseTask(task.id);
+        }
         onTaskUpdated();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -330,6 +386,49 @@ class DownloadTaskService with Loggable {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.failedToRemoveTask('$e'))));
+      }
+    } finally {
+      client?.close();
+    }
+  }
+
+  static Future<void> stopSeedingTask(
+    BuildContext context,
+    DownloadTask task,
+    VoidCallback onTaskUpdated,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    Aria2RpcClient? client;
+    try {
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
+      final targetInstance = instanceManager.getInstanceById(task.instanceId);
+      if (targetInstance?.status == ConnectionStatus.connected) {
+        client = Aria2RpcClient(targetInstance!);
+        await client.changeOption(task.id, {'seed-time': '0'});
+        onTaskUpdated();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_stoppingSeedingTip(context)),
+              duration: const Duration(seconds: 8),
+            ),
+          );
+        }
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.targetInstanceNotConnected)),
+        );
+      }
+    } catch (e) {
+      _logE('Error stopping seeding task: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_failedToStopSeedingMessage(context, '$e'))),
+        );
       }
     } finally {
       client?.close();
@@ -421,6 +520,98 @@ class DownloadTaskService with Loggable {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.failedToRemoveFailedTask('$e'))),
         );
+      }
+    } finally {
+      client?.close();
+    }
+  }
+
+  static Future<void> retryTask(
+    BuildContext context,
+    DownloadTask task,
+    VoidCallback onTaskUpdated,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    Aria2RpcClient? client;
+    try {
+      final sourceUris = (task.uris ?? const <String>[])
+          .map((uri) => uri.trim())
+          .where((uri) => uri.isNotEmpty)
+          .toList();
+      if (sourceUris.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.retryTaskSourceUnavailable)),
+          );
+        }
+        return;
+      }
+
+      final instanceManager = Provider.of<InstanceManager>(
+        context,
+        listen: false,
+      );
+      final targetInstance = instanceManager.getInstanceById(task.instanceId);
+      if (targetInstance?.status != ConnectionStatus.connected) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.targetInstanceNotConnected)),
+          );
+        }
+        return;
+      }
+
+      client = Aria2RpcClient(targetInstance!);
+      final currentOptions = await client.getOption(task.id);
+      final options = <String, dynamic>{};
+
+      const retainedOptionKeys = <String>{
+        'dir',
+        'out',
+        'header',
+        'split',
+        'user-agent',
+        'referer',
+        'all-proxy',
+        'auto-file-renaming',
+        'allow-overwrite',
+        'max-connection-per-server',
+        'continue',
+      };
+      for (final key in retainedOptionKeys) {
+        final value = currentOptions[key];
+        if (value == null) {
+          continue;
+        }
+        if (value is String && value.trim().isEmpty) {
+          continue;
+        }
+        if (value is List && value.isEmpty) {
+          continue;
+        }
+        options[key] = value;
+      }
+
+      final taskDir = task.dir?.trim() ?? '';
+      if (taskDir.isNotEmpty) {
+        options['dir'] = taskDir;
+      }
+
+      await client.addUri(sourceUris, options);
+      if (task.status == DownloadStatus.stopped) {
+        try {
+          await client.removeDownloadResult(task.id);
+        } catch (error) {
+          _logW('Failed to remove original task record after retry: $error');
+        }
+      }
+      onTaskUpdated();
+    } catch (e) {
+      _logE('Error retrying task: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.failedToRetryTask('$e'))));
       }
     } finally {
       client?.close();
@@ -582,13 +773,9 @@ class DownloadTaskService with Loggable {
       case 'all':
         return tasks;
       case 'active':
-        return tasks
-            .where((task) => task.status == DownloadStatus.active)
-            .toList();
+        return tasks.where(matchesActiveFilter).toList();
       case 'waiting':
-        return tasks
-            .where((task) => task.status == DownloadStatus.waiting)
-            .toList();
+        return tasks.where(matchesWaitingFilter).toList();
       case 'stopped':
         return tasks
             .where((task) => task.status == DownloadStatus.stopped)

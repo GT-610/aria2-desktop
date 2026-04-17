@@ -13,9 +13,11 @@ class DownloadTask {
   final bool isLocal;
   final String instanceId;
   final int? connections;
+  final int? numSeeders;
   final String? dir;
   final int totalLengthBytes;
   final int completedLengthBytes;
+  final int uploadLengthBytes;
   final int downloadSpeedBytes;
   final int uploadSpeedBytes;
   final List<Map<String, dynamic>>? files;
@@ -25,6 +27,10 @@ class DownloadTask {
   final String? errorMessage;
   final DateTime? startTime;
   final String? bitfield;
+  final String? infoHash;
+  final int? pieceLength;
+  final int? numPieces;
+  final bool isSeeder;
 
   DownloadTask({
     required this.id,
@@ -39,9 +45,11 @@ class DownloadTask {
     required this.isLocal,
     required this.instanceId,
     this.connections,
+    this.numSeeders,
     this.dir,
     this.totalLengthBytes = 0,
     this.completedLengthBytes = 0,
+    this.uploadLengthBytes = 0,
     this.downloadSpeedBytes = 0,
     this.uploadSpeedBytes = 0,
     this.files,
@@ -51,6 +59,10 @@ class DownloadTask {
     this.errorMessage,
     this.startTime,
     this.bitfield,
+    this.infoHash,
+    this.pieceLength,
+    this.numPieces,
+    this.isSeeder = false,
   });
 
   factory DownloadTask.fromJson(Map<String, dynamic> json) {
@@ -67,9 +79,11 @@ class DownloadTask {
       isLocal: json['isLocal'] ?? false,
       instanceId: json['instanceId'] ?? '',
       connections: json['connections'],
+      numSeeders: json['numSeeders'],
       dir: json['dir'],
       totalLengthBytes: json['totalLengthBytes'] ?? 0,
       completedLengthBytes: json['completedLengthBytes'] ?? 0,
+      uploadLengthBytes: json['uploadLengthBytes'] ?? 0,
       downloadSpeedBytes: json['downloadSpeedBytes'] ?? 0,
       uploadSpeedBytes: json['uploadSpeedBytes'] ?? 0,
       files: json['files'] != null ? List<Map<String, dynamic>>.from(json['files']) : null,
@@ -79,6 +93,10 @@ class DownloadTask {
       errorMessage: json['errorMessage'],
       startTime: json['startTime'] != null ? DateTime.tryParse(json['startTime']) : null,
       bitfield: json['bitfield'],
+      infoHash: json['infoHash'],
+      pieceLength: json['pieceLength'],
+      numPieces: json['numPieces'],
+      isSeeder: json['isSeeder'] ?? false,
     );
   }
 
@@ -109,9 +127,11 @@ class DownloadTask {
       'isLocal': isLocal,
       'instanceId': instanceId,
       'connections': connections,
+      'numSeeders': numSeeders,
       'dir': dir,
       'totalLengthBytes': totalLengthBytes,
       'completedLengthBytes': completedLengthBytes,
+      'uploadLengthBytes': uploadLengthBytes,
       'downloadSpeedBytes': downloadSpeedBytes,
       'uploadSpeedBytes': uploadSpeedBytes,
       'files': files,
@@ -121,6 +141,10 @@ class DownloadTask {
       'errorMessage': errorMessage,
       'startTime': startTime?.toIso8601String(),
       'bitfield': bitfield,
+      'infoHash': infoHash,
+      'pieceLength': pieceLength,
+      'numPieces': numPieces,
+      'isSeeder': isSeeder,
     };
   }
 }

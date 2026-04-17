@@ -318,6 +318,13 @@
   "noDownloadDirectoryAvailable": "没有可用的下载目录",
   "targetInstanceNotConnected": "目标实例未连接。",
   "failedToPauseTask": "暂停任务失败: {error}",
+  "failedToRetryTask": "重试任务失败: {error}",
+  "@failedToRetryTask": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "retryTaskSourceUnavailable": "当前任务缺少原始来源链接，无法重试。",
   "failedToRemoveTask": "删除任务失败: {error}",
   "failedToResumeTask": "继续任务失败: {error}",
   "failedToRemoveFailedTask": "删除失败任务失败: {error}",
@@ -469,6 +476,24 @@
   "clientLabel": "客户端",
   "uploadShort": "上传",
   "downloadShort": "下载",
+  "seeding": "做种中",
+  "stoppingSeedingTip": "正在停止做种，断开连接需要些时间，请耐心等待...",
+  "failedToStopSeeding": "停止做种失败: {error}",
+  "@failedToStopSeeding": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "torrentInfo": "种子信息",
+  "torrentHash": "Hash",
+  "torrentPieceSize": "分片大小",
+  "torrentPieceCount": "分片数量",
+  "torrentCreationDate": "发布时间",
+  "torrentComment": "备注",
+  "torrentConnections": "连接数",
+  "torrentSeeders": "种子数",
+  "torrentUploaded": "已上传",
+  "torrentRatio": "分享率",
   "english": "English",
   "chinese": "中文"
 }

@@ -320,7 +320,12 @@ class TaskActionDialogs {
               if ((task.status == DownloadStatus.active ||
                       task.status == DownloadStatus.waiting) &&
                   task.taskStatus != 'paused') {
-                await client.pauseTask(task.id);
+                if (task.bittorrentInfo != null &&
+                    task.bittorrentInfo!.isNotEmpty) {
+                  await client.forcePauseTask(task.id);
+                } else {
+                  await client.pauseTask(task.id);
+                }
                 successCount++;
               } else {
                 skippedCount++;

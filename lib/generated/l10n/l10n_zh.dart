@@ -994,6 +994,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String failedToRetryTask(Object error) {
+    return '重试任务失败: $error';
+  }
+
+  @override
+  String get retryTaskSourceUnavailable => '当前任务缺少原始来源链接，无法重试。';
+
+  @override
   String failedToRemoveTask(Object error) {
     return '删除任务失败: $error';
   }
@@ -1367,6 +1375,47 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get downloadShort => '下载';
+
+  @override
+  String get seeding => '做种中';
+
+  @override
+  String get stoppingSeedingTip => '正在停止做种，断开连接需要些时间，请耐心等待...';
+
+  @override
+  String failedToStopSeeding(Object error) {
+    return '停止做种失败: $error';
+  }
+
+  @override
+  String get torrentInfo => '种子信息';
+
+  @override
+  String get torrentHash => 'Hash';
+
+  @override
+  String get torrentPieceSize => '分片大小';
+
+  @override
+  String get torrentPieceCount => '分片数量';
+
+  @override
+  String get torrentCreationDate => '发布时间';
+
+  @override
+  String get torrentComment => '备注';
+
+  @override
+  String get torrentConnections => '连接数';
+
+  @override
+  String get torrentSeeders => '种子数';
+
+  @override
+  String get torrentUploaded => '已上传';
+
+  @override
+  String get torrentRatio => '分享率';
 
   @override
   String get english => 'English';

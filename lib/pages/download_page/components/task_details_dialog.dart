@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +11,7 @@ import '../../../services/instance_manager.dart';
 import '../../../utils/format_utils.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
+import '../services/download_task_service.dart';
 import '../utils/task_utils.dart';
 
 class TaskDetailsDialog {
@@ -139,15 +141,23 @@ class TaskDetailsDialog {
               currentTask,
               Theme.of(context).colorScheme,
             );
-            final progressPercent = (currentTask.progress * 100)
-                .toStringAsFixed(2);
             final taskDisplayName = currentTask.name.trim().isEmpty
                 ? currentTask.id
                 : currentTask.name;
+            final isSeeding = DownloadTaskService.isSeedingTask(currentTask);
+            final isBtTaskDetail =
+                currentTask.bittorrentInfo != null &&
+                currentTask.bittorrentInfo!.isNotEmpty;
             final saveLocation =
                 currentTask.dir == null || currentTask.dir!.trim().isEmpty
                 ? l10n.unknownPath
                 : currentTask.dir!;
+            final torrentMetadata = _parseTorrentMetadata(
+              currentTask.bittorrentInfo,
+            );
+            final showTorrentSection =
+                currentTask.bittorrentInfo != null &&
+                _hasTorrentOverviewData(currentTask, torrentMetadata);
 
             return PopScope(
               canPop: true,
@@ -278,8 +288,6 @@ class TaskDetailsDialog {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(l10n.taskId(currentTask.id)),
-                                        const SizedBox(height: 8),
                                         Row(
                                           children: [
                                             Text(
@@ -310,46 +318,61 @@ class TaskDetailsDialog {
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          l10n.progressWithValue(
-                                            progressPercent,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          l10n.downloadSpeedWithValue(
-                                            currentTask.downloadSpeedBytes
-                                                .toString(),
-                                            currentTask.downloadSpeed,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          l10n.uploadSpeedWithValue(
-                                            currentTask.uploadSpeedBytes
-                                                .toString(),
-                                            currentTask.uploadSpeed,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          l10n.connectionsWithValue(
-                                            '${currentTask.connections ?? '--'}',
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
                                           l10n.saveLocationWithValue(
                                             saveLocation,
                                           ),
                                         ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          l10n.taskTypeWithValue(
-                                            currentTask.isLocal
-                                                ? l10n.builtin
-                                                : l10n.remote,
+                                        if (currentTask.status ==
+                                                DownloadStatus.active) ...[
+                                          const SizedBox(height: 12),
+                                          if (!isSeeding) ...[
+                                            Text(
+                                              l10n.downloadSpeedWithValue(
+                                                currentTask.downloadSpeedBytes
+                                                    .toString(),
+                                                currentTask.downloadSpeed,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                          Text(
+                                            l10n.uploadSpeedWithValue(
+                                              currentTask.uploadSpeedBytes
+                                                  .toString(),
+                                              currentTask.uploadSpeed,
+                                            ),
                                           ),
-                                        ),
+                                          if (isBtTaskDetail) ...[
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              '${l10n.torrentConnections}: ${currentTask.connections ?? 0}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              '${l10n.torrentSeeders}: ${currentTask.numSeeders ?? 0}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              '${l10n.torrentUploaded}: ${formatBytes(currentTask.uploadLengthBytes)}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              '${l10n.torrentRatio}: ${_formatShareRatio(currentTask)}',
+                                            ),
+                                          ],
+                                          if (!isSeeding &&
+                                              currentTask.downloadSpeedBytes >
+                                              0) ...[
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              l10n.remainingTimeWithValue(
+                                                TaskUtils.calculateRemainingTime(
+                                                  currentTask,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
                                         const SizedBox(height: 8),
                                         if (currentTask.errorMessage != null &&
                                             currentTask
@@ -370,16 +393,6 @@ class TaskDetailsDialog {
                                               const SizedBox(height: 8),
                                             ],
                                           ),
-                                        if (currentTask.status ==
-                                                DownloadStatus.active &&
-                                            currentTask.downloadSpeedBytes > 0)
-                                          Text(
-                                            l10n.remainingTimeWithValue(
-                                              TaskUtils.calculateRemainingTime(
-                                                currentTask,
-                                              ),
-                                            ),
-                                          ),
                                         if (currentTask.startTime != null) ...[
                                           const SizedBox(height: 8),
                                           Text(
@@ -390,19 +403,51 @@ class TaskDetailsDialog {
                                             ),
                                           ),
                                         ],
-                                        if (currentTask.uris != null &&
-                                            currentTask.uris!.isNotEmpty) ...[
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            l10n.sourceLinks,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
+                                        if (showTorrentSection) ...[
+                                          const SizedBox(height: 20),
+                                          _buildSectionDivider(
+                                            context,
+                                            l10n.torrentInfo,
+                                          ),
+                                          const SizedBox(height: 16),
+                                          if (currentTask.infoHash != null &&
+                                              currentTask
+                                                  .infoHash!
+                                                  .trim()
+                                                  .isNotEmpty) ...[
+                                            Text(
+                                              '${l10n.torrentHash}: ${currentTask.infoHash!}',
                                             ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          SelectableText(
-                                            currentTask.uris!.join('\n'),
-                                          ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                          if (currentTask.pieceLength != null &&
+                                              currentTask.pieceLength! > 0) ...[
+                                            Text(
+                                              '${l10n.torrentPieceSize}: ${formatBytes(currentTask.pieceLength!)}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                          if (currentTask.numPieces != null &&
+                                              currentTask.numPieces! > 0) ...[
+                                            Text(
+                                              '${l10n.torrentPieceCount}: ${currentTask.numPieces}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                          if (torrentMetadata.creationDate !=
+                                              null) ...[
+                                            Text(
+                                              '${l10n.torrentCreationDate}: ${torrentMetadata.creationDate!.toLocal()}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                          if (torrentMetadata.comment != null &&
+                                              torrentMetadata.comment!
+                                                  .trim()
+                                                  .isNotEmpty)
+                                            Text(
+                                              '${l10n.torrentComment}: ${torrentMetadata.comment!}',
+                                            ),
                                         ],
                                       ],
                                     ),
@@ -927,7 +972,7 @@ class TaskDetailsDialog {
       children: peers.map((peer) {
         final ip = peer['ip']?.toString() ?? '--';
         final port = peer['port']?.toString() ?? '--';
-        final peerId = peer['peerId']?.toString() ?? '--';
+        final peerId = _parsePeerClient(peer['peerId']?.toString());
         final progress = _bitfieldToPercent(peer['bitfield']?.toString());
         final uploadSpeed = formatBytes(
           int.tryParse(peer['uploadSpeed']?.toString() ?? '0') ?? 0,
@@ -961,6 +1006,215 @@ class TaskDetailsDialog {
     }
     final completed = pieces.fold<int>(0, (sum, value) => sum + value);
     return (completed / (pieces.length * 15)) * 100;
+  }
+
+  static _TorrentOverviewMetadata _parseTorrentMetadata(String? bittorrentInfo) {
+    if (bittorrentInfo == null || bittorrentInfo.trim().isEmpty) {
+      return const _TorrentOverviewMetadata();
+    }
+
+    try {
+      final decoded = json.decode(bittorrentInfo);
+      if (decoded is! Map) {
+        return const _TorrentOverviewMetadata();
+      }
+
+      final map = Map<String, dynamic>.from(decoded);
+      final comment = (map['comment.utf-8'] ?? map['comment'])?.toString();
+      final creationTimestamp = int.tryParse(
+        map['creationDate']?.toString() ?? '',
+      );
+
+      return _TorrentOverviewMetadata(
+        comment: comment,
+        creationDate: creationTimestamp != null && creationTimestamp > 0
+            ? DateTime.fromMillisecondsSinceEpoch(
+                creationTimestamp * 1000,
+                isUtc: true,
+              )
+            : null,
+      );
+    } catch (_) {
+      return const _TorrentOverviewMetadata();
+    }
+  }
+
+  static bool _hasTorrentOverviewData(
+    DownloadTask task,
+    _TorrentOverviewMetadata metadata,
+  ) {
+    return (task.infoHash?.trim().isNotEmpty ?? false) ||
+        (task.pieceLength != null && task.pieceLength! > 0) ||
+        (task.numPieces != null && task.numPieces! > 0) ||
+        metadata.creationDate != null ||
+        (metadata.comment?.trim().isNotEmpty ?? false);
+  }
+
+  static Widget _buildSectionDivider(BuildContext context, String label) {
+    final theme = Theme.of(context);
+    final dividerColor = theme.dividerColor.withValues(alpha: 0.5);
+    return Row(
+      children: [
+        Expanded(child: Divider(color: dividerColor)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.secondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(child: Divider(color: dividerColor)),
+      ],
+    );
+  }
+
+  static String _formatShareRatio(DownloadTask task) {
+    if (task.completedLengthBytes <= 0 || task.uploadLengthBytes <= 0) {
+      return '0';
+    }
+
+    final ratio = task.uploadLengthBytes / task.completedLengthBytes;
+    return ratio.toStringAsFixed(4);
+  }
+
+  static const String _unknownPeerId =
+      '%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00';
+
+  static const Map<String, String> _azureusClientNames = {
+    'AG': 'Ares',
+    'AR': 'Arctic',
+    'AT': 'Artemis',
+    'AV': 'Avicora',
+    'AX': 'BitPump',
+    'AZ': 'Vuze',
+    'BC': 'BitComet',
+    'BE': 'BitTorrent SDK',
+    'BG': 'BTGetit',
+    'BR': 'BitRocket',
+    'BS': 'BTSlave',
+    'BT': 'Mainline',
+    'BX': 'BittorrentX',
+    'CD': 'Enhanced CTorrent',
+    'CT': 'CTorrent',
+    'DE': 'Deluge',
+    'DP': 'Propagate Data Client',
+    'EB': 'EBit',
+    'ES': 'electric sheep',
+    'FC': 'FileCroc',
+    'FT': 'FoxTorrent',
+    'GS': 'GSTorrent',
+    'HK': 'Hekate',
+    'HL': 'Halite',
+    'HM': 'hMule',
+    'KG': 'KGet',
+    'KT': 'KTorrent',
+    'LC': 'LeechCraft',
+    'LH': 'LH-ABC',
+    'LP': 'Lphant',
+    'LT': 'libtorrent',
+    'lt': 'libTorrent',
+    'LW': 'LimeWire',
+    'MO': 'MonoTorrent',
+    'MP': 'MooPolice',
+    'MR': 'Miro',
+    'MT': 'MoonlightTorrent',
+    'NX': 'Net Transport',
+    'PD': 'Pando',
+    'PT': 'PHPTracker',
+    'qB': 'qBittorrent',
+    'QD': 'QQDownload',
+    'QT': 'Qt 4 Torrent example',
+    'RT': 'Retriever',
+    'S~': 'Shareaza alpha/beta',
+    'SB': 'Swiftbit',
+    'SS': 'SwarmScope',
+    'ST': 'SymTorrent',
+    'st': 'Sharktorrent',
+    'SZ': 'Shareaza',
+    'TN': 'TorrentDotNET',
+    'TR': 'Transmission',
+    'TS': 'Torrentstorm',
+    'TT': 'TuoTu',
+    'UL': 'uLeecher',
+    'UT': 'μTorrent',
+    'VG': 'Vagaa',
+    'WT': 'BitLet',
+    'WY': 'FireTorrent',
+    'XF': 'Xfplay',
+    'XL': 'Xunlei',
+    'XT': 'XanTorrent',
+    'XX': 'Xtorrent',
+    'ZT': 'ZipTorrent',
+  };
+
+  static String _parsePeerClient(String? rawPeerId) {
+    if (rawPeerId == null || rawPeerId.isEmpty || rawPeerId == _unknownPeerId) {
+      return 'unknown';
+    }
+
+    final decoded = _decodePeerId(rawPeerId);
+    if (decoded == null || decoded.isEmpty) {
+      return 'unknown';
+    }
+
+    final azureusMatch = RegExp(r'^-([A-Za-z~]{2})(.{4})-').firstMatch(decoded);
+    if (azureusMatch != null) {
+      final clientCode = azureusMatch.group(1)!;
+      final versionRaw = azureusMatch.group(2)!;
+      final clientName = _azureusClientNames[clientCode] ?? clientCode;
+      final version = _formatPeerVersion(versionRaw);
+      return version.isEmpty ? clientName : '$clientName v$version';
+    }
+
+    return decoded;
+  }
+
+  static String? _decodePeerId(String rawPeerId) {
+    try {
+      final bytes = <int>[];
+      for (var i = 0; i < rawPeerId.length;) {
+        final char = rawPeerId[i];
+        if (char == '%' && i + 2 < rawPeerId.length) {
+          final hex = rawPeerId.substring(i + 1, i + 3);
+          final value = int.tryParse(hex, radix: 16);
+          if (value != null) {
+            bytes.add(value);
+            i += 3;
+            continue;
+          }
+        }
+        bytes.add(char.codeUnitAt(0));
+        i++;
+      }
+
+      if (bytes.every((byte) => byte == 0)) {
+        return null;
+      }
+
+      return latin1.decode(bytes, allowInvalid: true);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static String _formatPeerVersion(String rawVersion) {
+    final segments = <String>[];
+    for (final char in rawVersion.split('')) {
+      if (RegExp(r'[0-9]').hasMatch(char)) {
+        segments.add(char);
+      } else if (RegExp(r'[A-Za-z]').hasMatch(char)) {
+        segments.add(char.toLowerCase());
+      }
+    }
+
+    while (segments.length > 1 && segments.last == '0') {
+      segments.removeLast();
+    }
+
+    return segments.join('.');
   }
 
   static Widget _buildStatRow(String label, String value, [Color? color]) {
@@ -1050,4 +1304,14 @@ class TaskDetailsDialog {
         return Colors.grey;
     }
   }
+}
+
+class _TorrentOverviewMetadata {
+  final String? comment;
+  final DateTime? creationDate;
+
+  const _TorrentOverviewMetadata({
+    this.comment,
+    this.creationDate,
+  });
 }

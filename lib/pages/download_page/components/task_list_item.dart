@@ -43,6 +43,10 @@ class TaskListItem extends StatelessWidget {
     await DownloadTaskService.stopTask(context, task, onTaskUpdated);
   }
 
+  Future<void> _handleStopSeedingTask(BuildContext context) async {
+    await DownloadTaskService.stopSeedingTask(context, task, onTaskUpdated);
+  }
+
   Future<void> _handleResumeTask(BuildContext context) async {
     await DownloadTaskService.resumeTask(context, task, onTaskUpdated);
   }
@@ -51,11 +55,22 @@ class TaskListItem extends StatelessWidget {
     await DownloadTaskService.removeFailedTask(context, task, onTaskUpdated);
   }
 
+  Future<void> _handleDeleteTask(BuildContext context) async {
+    await DownloadTaskService.stopTask(context, task, onTaskUpdated);
+  }
+
+  Future<void> _handleRetryTask(BuildContext context) async {
+    await DownloadTaskService.retryTask(context, task, onTaskUpdated);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isSeeding = DownloadTaskService.isSeedingTask(task);
+    final isBtTask =
+        task.bittorrentInfo != null && task.bittorrentInfo!.isNotEmpty;
     final (statusText, statusColor) = DownloadTaskService.getStatusInfo(
       context,
       task,
@@ -159,35 +174,96 @@ class TaskListItem extends StatelessWidget {
                             ],
                           ),
                         ),
-                        Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.download,
-                                size: 14,
-                                color: colorScheme.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                task.downloadSpeed,
-                                style: TextStyle(
+                        if (!isSeeding)
+                          Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.download,
+                                  size: 14,
                                   color: colorScheme.primary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Text(
+                                  task.downloadSpeed,
+                                  style: TextStyle(
+                                    color: colorScheme.primary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        if (isBtTask)
+                          Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.link,
+                                  size: 14,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${task.numSeeders ?? 0}',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (isBtTask)
+                          Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.account_tree_outlined,
+                                  size: 14,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${task.connections ?? 0}',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   Container(
@@ -229,65 +305,90 @@ class TaskListItem extends StatelessWidget {
                 const SizedBox(height: 8),
               ] else
                 const SizedBox(height: 12),
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                runSpacing: 12,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 4),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.tertiary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          _getInstanceName(context, task.instanceId),
-                          style: TextStyle(
-                            color: colorScheme.tertiary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.tertiary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            _getInstanceName(context, task.instanceId),
+                            style: TextStyle(
+                              color: colorScheme.tertiary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
-                      Text(
-                        '${task.completedSize} / ${task.size} (${TaskUtils.calculateRemainingTime(task)})',
-                        style: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 13,
+                        Text(
+                          task.status == DownloadStatus.active && !isSeeding
+                              ? '${task.completedSize} / ${task.size} (${TaskUtils.calculateRemainingTime(task)})'
+                              : '${task.completedSize} / ${task.size}',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (task.status == DownloadStatus.active) ...[
-                        Tooltip(
-                          message: l10n.pause,
-                          child: IconButton(
-                            icon: const Icon(Icons.pause),
-                            onPressed: () => _handlePauseTask(context),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                        if (isSeeding) ...[
+                          Tooltip(
+                            message: l10n.stop,
+                            child: IconButton(
+                              icon: const Icon(Icons.stop),
+                              onPressed: () => _handleStopSeedingTask(context),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Tooltip(
-                          message: l10n.stop,
-                          child: IconButton(
-                            icon: const Icon(Icons.stop),
-                            onPressed: () => _handleStopTask(context),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                          const SizedBox(width: 8),
+                          Tooltip(
+                            message: l10n.delete,
+                            child: IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _handleDeleteTask(context),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
                           ),
-                        ),
+                        ] else ...[
+                          Tooltip(
+                            message: l10n.pause,
+                            child: IconButton(
+                              icon: const Icon(Icons.pause),
+                              onPressed: () => _handlePauseTask(context),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Tooltip(
+                            message: l10n.stop,
+                            child: IconButton(
+                              icon: const Icon(Icons.stop),
+                              onPressed: () => _handleStopTask(context),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ),
+                        ],
                       ] else if (task.status == DownloadStatus.waiting) ...[
                         Tooltip(
                           message: l10n.resume,
@@ -308,17 +409,41 @@ class TaskListItem extends StatelessWidget {
                             constraints: const BoxConstraints(),
                           ),
                         ),
-                      ] else if (task.status == DownloadStatus.stopped &&
-                          task.taskStatus != 'complete') ...[
-                        Tooltip(
-                          message: l10n.removeFailedTask,
-                          child: IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => _handleRemoveFailedTask(context),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                      ] else if (task.status == DownloadStatus.stopped) ...[
+                        if ((task.uris ?? const <String>[]).any(
+                          (uri) => uri.trim().isNotEmpty,
+                        )) ...[
+                          Tooltip(
+                            message: l10n.retry,
+                            child: IconButton(
+                              icon: const Icon(Icons.refresh),
+                              onPressed: () => _handleRetryTask(context),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                        ],
+                        if (task.taskStatus == 'complete')
+                          Tooltip(
+                            message: l10n.delete,
+                            child: IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _handleDeleteTask(context),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          )
+                        else
+                          Tooltip(
+                            message: l10n.removeFailedTask,
+                            child: IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _handleRemoveFailedTask(context),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ),
                       ],
                       const SizedBox(width: 8),
                       Tooltip(

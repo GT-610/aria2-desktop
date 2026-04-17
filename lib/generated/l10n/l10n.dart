@@ -1940,6 +1940,18 @@ abstract class AppLocalizations {
   /// **'Failed to pause the task: {error}'**
   String failedToPauseTask(Object error);
 
+  /// No description provided for @failedToRetryTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to retry the task: {error}'**
+  String failedToRetryTask(Object error);
+
+  /// No description provided for @retryTaskSourceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This task cannot be retried because its original source link is unavailable.'**
+  String get retryTaskSourceUnavailable;
+
   /// No description provided for @failedToRemoveTask.
   ///
   /// In en, this message translates to:
@@ -2586,6 +2598,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Down'**
   String get downloadShort;
+
+  /// No description provided for @seeding.
+  ///
+  /// In en, this message translates to:
+  /// **'Seeding'**
+  String get seeding;
+
+  /// No description provided for @stoppingSeedingTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopping seeding, it may take some time to disconnect. Please wait.'**
+  String get stoppingSeedingTip;
+
+  /// No description provided for @failedToStopSeeding.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to stop seeding: {error}'**
+  String failedToStopSeeding(Object error);
+
+  /// No description provided for @torrentInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Torrent Info'**
+  String get torrentInfo;
+
+  /// No description provided for @torrentHash.
+  ///
+  /// In en, this message translates to:
+  /// **'Hash'**
+  String get torrentHash;
+
+  /// No description provided for @torrentPieceSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Piece size'**
+  String get torrentPieceSize;
+
+  /// No description provided for @torrentPieceCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Piece count'**
+  String get torrentPieceCount;
+
+  /// No description provided for @torrentCreationDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Creation date'**
+  String get torrentCreationDate;
+
+  /// No description provided for @torrentComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Comment'**
+  String get torrentComment;
+
+  /// No description provided for @torrentConnections.
+  ///
+  /// In en, this message translates to:
+  /// **'Connections'**
+  String get torrentConnections;
+
+  /// No description provided for @torrentSeeders.
+  ///
+  /// In en, this message translates to:
+  /// **'Seeders'**
+  String get torrentSeeders;
+
+  /// No description provided for @torrentUploaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploaded'**
+  String get torrentUploaded;
+
+  /// No description provided for @torrentRatio.
+  ///
+  /// In en, this message translates to:
+  /// **'Ratio'**
+  String get torrentRatio;
 
   /// No description provided for @english.
   ///

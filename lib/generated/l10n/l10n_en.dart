@@ -1035,6 +1035,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String failedToRetryTask(Object error) {
+    return 'Failed to retry the task: $error';
+  }
+
+  @override
+  String get retryTaskSourceUnavailable =>
+      'This task cannot be retried because its original source link is unavailable.';
+
+  @override
   String failedToRemoveTask(Object error) {
     return 'Failed to remove the task: $error';
   }
@@ -1428,6 +1437,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloadShort => 'Down';
+
+  @override
+  String get seeding => 'Seeding';
+
+  @override
+  String get stoppingSeedingTip =>
+      'Stopping seeding, it may take some time to disconnect. Please wait.';
+
+  @override
+  String failedToStopSeeding(Object error) {
+    return 'Failed to stop seeding: $error';
+  }
+
+  @override
+  String get torrentInfo => 'Torrent Info';
+
+  @override
+  String get torrentHash => 'Hash';
+
+  @override
+  String get torrentPieceSize => 'Piece size';
+
+  @override
+  String get torrentPieceCount => 'Piece count';
+
+  @override
+  String get torrentCreationDate => 'Creation date';
+
+  @override
+  String get torrentComment => 'Comment';
+
+  @override
+  String get torrentConnections => 'Connections';
+
+  @override
+  String get torrentSeeders => 'Seeders';
+
+  @override
+  String get torrentUploaded => 'Uploaded';
+
+  @override
+  String get torrentRatio => 'Ratio';
 
   @override
   String get english => 'English';

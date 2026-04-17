@@ -445,6 +445,12 @@ class Aria2RpcClient with Loggable {
     return response['result'] as String; // Returns the GID of the paused task
   }
 
+  /// Force pause a download task, mainly used for BT tasks.
+  Future<String> forcePauseTask(String gid) async {
+    final response = await callRpc('aria2.forcePause', [gid]);
+    return response['result'] as String;
+  }
+
   /// Resume a paused download task
   Future<String> unpauseTask(String gid) async {
     final response = await callRpc('aria2.unpause', [gid]);
@@ -473,17 +479,35 @@ class Aria2RpcClient with Loggable {
     return response['result'] as String;
   }
 
+  /// Get task options.
+  Future<Map<String, dynamic>> getOption(String gid) async {
+    final response = await callRpc('aria2.getOption', [gid]);
+    return Map<String, dynamic>.from(response['result'] as Map);
+  }
+
   /// Get peer information for a BT task.
   Future<List<Map<String, dynamic>>> getPeers(String gid) async {
-    final response = await callRpc('aria2.getPeers', [gid]);
-    final result = response['result'];
-    if (result is! List) {
-      return const [];
+    try {
+      final response = await callRpc('aria2.getPeers', [gid]);
+      final result = response['result'];
+      if (result is! List) {
+        return const [];
+      }
+      return result
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    } on Exception catch (error) {
+      if (_isNoPeerDataError(error)) {
+        return const [];
+      }
+      rethrow;
     }
-    return result
-        .whereType<Map>()
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList();
+  }
+
+  bool _isNoPeerDataError(Exception error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('no peer data is available');
   }
 
   /// Add a download task with URI(s)

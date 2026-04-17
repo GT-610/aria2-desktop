@@ -320,13 +320,11 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
         case FilterOption.all:
           break;
         case FilterOption.active:
-          tasks = tasks
-              .where((task) => task.status == DownloadStatus.active)
-              .toList();
+          tasks = tasks.where(DownloadTaskService.matchesActiveFilter).toList();
           break;
         case FilterOption.waiting:
           tasks = tasks
-              .where((task) => task.status == DownloadStatus.waiting)
+              .where(DownloadTaskService.matchesWaitingFilter)
               .toList();
           break;
         case FilterOption.stopped:
