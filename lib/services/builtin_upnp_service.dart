@@ -178,7 +178,10 @@ class BuiltinUpnpService with Loggable {
 
         final start = int.tryParse(bounds[0]);
         final end = int.tryParse(bounds[1]);
-        if (start == null || end == null || !_isValidPort(start)) {
+        if (start == null ||
+            end == null ||
+            !_isValidPort(start) ||
+            !_isValidPort(end)) {
           w('Ignoring invalid UPnP port range: $segment');
           continue;
         }
