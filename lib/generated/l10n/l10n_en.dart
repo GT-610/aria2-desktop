@@ -1343,6 +1343,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'Leave empty to use the default data/core/aria2.log path. Restart required.';
 
   @override
+  String get reset => 'Reset';
+
+  @override
+  String get resetSessionRecord => 'Reset session record';
+
+  @override
+  String get resetSessionRecordTip =>
+      'Clear only the built-in aria2 session record. This does not change settings or delete downloaded files.';
+
+  @override
+  String resetSessionRecordConfirm(Object path) {
+    return 'Reset the built-in aria2 session record at \"$path\"? Downloaded files and your saved settings will be kept.';
+  }
+
+  @override
   String get userAgent => 'User agent';
 
   @override
@@ -1379,6 +1394,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Restarting the built-in instance, please wait...';
 
   @override
+  String get resettingSessionRecord =>
+      'Resetting the built-in session record, please wait...';
+
+  @override
   String get builtinInstanceMissing => 'Built-in instance is missing';
 
   @override
@@ -1400,6 +1419,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String settingsSavedRestartFailedWithError(Object error) {
     return 'Settings were saved, but restarting the built-in instance failed: $error';
+  }
+
+  @override
+  String get sessionRecordResetSuccess => 'Session record reset successfully';
+
+  @override
+  String get sessionRecordAlreadyClean => 'Session record is already clean';
+
+  @override
+  String get sessionRecordResetReconnectFailed =>
+      'Session record was reset, but reconnecting the built-in instance failed';
+
+  @override
+  String sessionRecordResetFailedWithError(Object error) {
+    return 'Failed to reset the session record: $error';
   }
 
   @override

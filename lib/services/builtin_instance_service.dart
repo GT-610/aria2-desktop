@@ -102,6 +102,13 @@ class BuiltinInstanceService with Loggable {
     return '${executableDir.path}/data/downloads';
   }
 
+  String _resolveEffectiveSessionPath(Map<String, dynamic> settings) {
+    return _resolveConfiguredFilePath(
+      settings['sessionPath'],
+      _defaultSessionPath(),
+    );
+  }
+
   String _resolveConfiguredFilePath(dynamic rawValue, String fallbackPath) {
     final configuredPath = (rawValue as String? ?? '').trim();
     return configuredPath.isNotEmpty ? configuredPath : fallbackPath;
@@ -170,6 +177,39 @@ class BuiltinInstanceService with Loggable {
     return validateBuiltinFiles() == null;
   }
 
+  String getEffectiveSessionPath() {
+    final settings = _readSettingsSnapshot();
+    return _resolveEffectiveSessionPath(settings);
+  }
+
+  Future<bool> resetSessionFile() async {
+    final sessionPath = getEffectiveSessionPath();
+
+    if (isRunning()) {
+      final stopped = await stopInstance();
+      if (!stopped) {
+        throw Exception('Failed to stop the built-in instance before reset');
+      }
+    }
+
+    final file = File(sessionPath);
+    if (!file.existsSync()) {
+      return false;
+    }
+
+    try {
+      await file.delete();
+      return true;
+    } catch (e, stackTrace) {
+      this.e(
+        'Failed to reset built-in session file',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
   List<String> _buildArgs() {
     final settings = _readSettingsSnapshot();
     final rpcPort = _getConfiguredRpcPort();
@@ -181,10 +221,7 @@ class BuiltinInstanceService with Loggable {
         (settings['btListenPort'] as String? ?? '').trim().isNotEmpty
         ? (settings['btListenPort'] as String).trim()
         : '6881-6999';
-    final sessionPath = _resolveConfiguredFilePath(
-      settings['sessionPath'],
-      _defaultSessionPath(),
-    );
+    final sessionPath = _resolveEffectiveSessionPath(settings);
     final logPath = _resolveConfiguredFilePath(
       settings['logPath'],
       _defaultLogPath(),
