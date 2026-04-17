@@ -136,6 +136,9 @@ class TaskParser {
     // Parse BT metadata
     String? bittorrentInfo;
     List<String>? trackers;
+    String? infoHash;
+    int? pieceLength;
+    int? numPieces;
     if (taskData.containsKey('bittorrent') && taskData['bittorrent'] is Map) {
       final bittorrent = taskData['bittorrent'] as Map<String, dynamic>;
       bittorrentInfo = json.encode(bittorrent);
@@ -158,6 +161,10 @@ class TaskParser {
         }).toList();
       }
     }
+
+    infoHash = taskData['infoHash'] as String?;
+    pieceLength = int.tryParse(taskData['pieceLength']?.toString() ?? '');
+    numPieces = int.tryParse(taskData['numPieces']?.toString() ?? '');
 
     // Parse download links
     List<String>? uris;
@@ -258,6 +265,9 @@ class TaskParser {
       errorMessage: errorMessage,
       startTime: startTime,
       bitfield: bitfield,
+      infoHash: infoHash,
+      pieceLength: pieceLength,
+      numPieces: numPieces,
     );
   }
 

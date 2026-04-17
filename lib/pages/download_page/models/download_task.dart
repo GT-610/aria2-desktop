@@ -25,6 +25,9 @@ class DownloadTask {
   final String? errorMessage;
   final DateTime? startTime;
   final String? bitfield;
+  final String? infoHash;
+  final int? pieceLength;
+  final int? numPieces;
 
   DownloadTask({
     required this.id,
@@ -51,6 +54,9 @@ class DownloadTask {
     this.errorMessage,
     this.startTime,
     this.bitfield,
+    this.infoHash,
+    this.pieceLength,
+    this.numPieces,
   });
 
   factory DownloadTask.fromJson(Map<String, dynamic> json) {
@@ -79,6 +85,9 @@ class DownloadTask {
       errorMessage: json['errorMessage'],
       startTime: json['startTime'] != null ? DateTime.tryParse(json['startTime']) : null,
       bitfield: json['bitfield'],
+      infoHash: json['infoHash'],
+      pieceLength: json['pieceLength'],
+      numPieces: json['numPieces'],
     );
   }
 
@@ -121,6 +130,9 @@ class DownloadTask {
       'errorMessage': errorMessage,
       'startTime': startTime?.toIso8601String(),
       'bitfield': bitfield,
+      'infoHash': infoHash,
+      'pieceLength': pieceLength,
+      'numPieces': numPieces,
     };
   }
 }

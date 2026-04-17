@@ -147,6 +147,12 @@ class TaskDetailsDialog {
                 currentTask.dir == null || currentTask.dir!.trim().isEmpty
                 ? l10n.unknownPath
                 : currentTask.dir!;
+            final torrentMetadata = _parseTorrentMetadata(
+              currentTask.bittorrentInfo,
+            );
+            final showTorrentSection =
+                currentTask.bittorrentInfo != null &&
+                _hasTorrentOverviewData(currentTask, torrentMetadata);
 
             return PopScope(
               canPop: true,
@@ -370,6 +376,54 @@ class TaskDetailsDialog {
                                                   .toString(),
                                             ),
                                           ),
+                                        ],
+                                        if (showTorrentSection) ...[
+                                          const SizedBox(height: 20),
+                                          _buildSectionDivider(
+                                            context,
+                                            _torrentOverviewSectionTitle(
+                                              context,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          if (currentTask.infoHash != null &&
+                                              currentTask
+                                                  .infoHash!
+                                                  .trim()
+                                                  .isNotEmpty) ...[
+                                            Text(
+                                              '${_torrentOverviewHashLabel(context)}: ${currentTask.infoHash!}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                          if (currentTask.pieceLength != null &&
+                                              currentTask.pieceLength! > 0) ...[
+                                            Text(
+                                              '${_torrentOverviewPieceSizeLabel(context)}: ${formatBytes(currentTask.pieceLength!)}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                          if (currentTask.numPieces != null &&
+                                              currentTask.numPieces! > 0) ...[
+                                            Text(
+                                              '${_torrentOverviewPieceCountLabel(context)}: ${currentTask.numPieces}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                          if (torrentMetadata.creationDate !=
+                                              null) ...[
+                                            Text(
+                                              '${_torrentOverviewCreationDateLabel(context)}: ${torrentMetadata.creationDate!.toLocal()}',
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                          if (torrentMetadata.comment != null &&
+                                              torrentMetadata.comment!
+                                                  .trim()
+                                                  .isNotEmpty)
+                                            Text(
+                                              '${_torrentOverviewCommentLabel(context)}: ${torrentMetadata.comment!}',
+                                            ),
                                         ],
                                       ],
                                     ),
@@ -930,6 +984,99 @@ class TaskDetailsDialog {
     return (completed / (pieces.length * 15)) * 100;
   }
 
+  static _TorrentOverviewMetadata _parseTorrentMetadata(String? bittorrentInfo) {
+    if (bittorrentInfo == null || bittorrentInfo.trim().isEmpty) {
+      return const _TorrentOverviewMetadata();
+    }
+
+    try {
+      final decoded = json.decode(bittorrentInfo);
+      if (decoded is! Map) {
+        return const _TorrentOverviewMetadata();
+      }
+
+      final map = Map<String, dynamic>.from(decoded);
+      final comment = (map['comment.utf-8'] ?? map['comment'])?.toString();
+      final creationTimestamp = int.tryParse(
+        map['creationDate']?.toString() ?? '',
+      );
+
+      return _TorrentOverviewMetadata(
+        comment: comment,
+        creationDate: creationTimestamp != null && creationTimestamp > 0
+            ? DateTime.fromMillisecondsSinceEpoch(
+                creationTimestamp * 1000,
+                isUtc: true,
+              )
+            : null,
+      );
+    } catch (_) {
+      return const _TorrentOverviewMetadata();
+    }
+  }
+
+  static bool _hasTorrentOverviewData(
+    DownloadTask task,
+    _TorrentOverviewMetadata metadata,
+  ) {
+    return (task.infoHash?.trim().isNotEmpty ?? false) ||
+        (task.pieceLength != null && task.pieceLength! > 0) ||
+        (task.numPieces != null && task.numPieces! > 0) ||
+        metadata.creationDate != null ||
+        (metadata.comment?.trim().isNotEmpty ?? false);
+  }
+
+  static Widget _buildSectionDivider(BuildContext context, String label) {
+    final theme = Theme.of(context);
+    final dividerColor = theme.dividerColor.withValues(alpha: 0.5);
+    return Row(
+      children: [
+        Expanded(child: Divider(color: dividerColor)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.secondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(child: Divider(color: dividerColor)),
+      ],
+    );
+  }
+
+  static bool _isChineseLocale(BuildContext context) {
+    return Localizations.localeOf(context).languageCode.toLowerCase().startsWith(
+      'zh',
+    );
+  }
+
+  static String _torrentOverviewSectionTitle(BuildContext context) {
+    return _isChineseLocale(context) ? '种子信息' : 'Torrent Info';
+  }
+
+  static String _torrentOverviewHashLabel(BuildContext context) {
+    return 'Hash';
+  }
+
+  static String _torrentOverviewPieceSizeLabel(BuildContext context) {
+    return _isChineseLocale(context) ? '分片大小' : 'Piece size';
+  }
+
+  static String _torrentOverviewPieceCountLabel(BuildContext context) {
+    return _isChineseLocale(context) ? '分片数量' : 'Piece count';
+  }
+
+  static String _torrentOverviewCreationDateLabel(BuildContext context) {
+    return _isChineseLocale(context) ? '发布时间' : 'Creation date';
+  }
+
+  static String _torrentOverviewCommentLabel(BuildContext context) {
+    return _isChineseLocale(context) ? '备注' : 'Comment';
+  }
+
   static const String _unknownPeerId =
       '%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00';
 
@@ -1154,4 +1301,14 @@ class TaskDetailsDialog {
         return Colors.grey;
     }
   }
+}
+
+class _TorrentOverviewMetadata {
+  final String? comment;
+  final DateTime? creationDate;
+
+  const _TorrentOverviewMetadata({
+    this.comment,
+    this.creationDate,
+  });
 }

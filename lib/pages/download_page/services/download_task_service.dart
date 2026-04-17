@@ -181,6 +181,9 @@ class DownloadTaskService with Loggable {
     }
 
     final dir = taskData['dir'] ?? '';
+    final infoHash = taskData['infoHash']?.toString();
+    final pieceLength = int.tryParse(taskData['pieceLength']?.toString() ?? '');
+    final numPieces = int.tryParse(taskData['numPieces']?.toString() ?? '');
 
     return DownloadTask(
       id: gid,
@@ -199,6 +202,9 @@ class DownloadTaskService with Loggable {
       completedLengthBytes: completedLength,
       downloadSpeedBytes: taskData['downloadSpeed'] ?? 0,
       uploadSpeedBytes: taskData['uploadSpeed'] ?? 0,
+      infoHash: infoHash,
+      pieceLength: pieceLength,
+      numPieces: numPieces,
     );
   }
 
