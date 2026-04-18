@@ -288,7 +288,6 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     if (!_notificationsInitialized) {
       return;
     }
-    d('Tray notification: $title - $message');
 
     final notification = LocalNotification(title: title, body: message);
     _activeNotifications.add(notification);
@@ -362,15 +361,12 @@ class WindowManagerService with Loggable {
       await windowManager.show();
       await windowManager.focus();
     });
-
-    i('Window manager initialized');
   }
 
   Future<void> setHideTitleBar(bool hideTitleBar) async {
     await windowManager.setTitleBarStyle(
       hideTitleBar ? TitleBarStyle.hidden : TitleBarStyle.normal,
     );
-    i('Window title bar visibility changed: hidden=$hideTitleBar');
   }
 
   Future<void> showWindow() async {

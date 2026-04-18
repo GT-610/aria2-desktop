@@ -1,8 +1,8 @@
 # Aria2 Desktop Logging
 
 This project uses `package:logging` for log levels and routes all log records
-through `fl_lib`'s `DebugProvider`, so debug builds can inspect structured
-records in-app while release builds still keep a consistent output path.
+through `fl_lib`'s `DebugProvider`, keeping output and in-app inspection on the
+same path.
 
 ## Architecture
 
@@ -37,7 +37,6 @@ Use either a tagged logger or the `Loggable` mixin. Both map to real
 ```dart
 final logger = taggedLogger('RemoteInstanceStatusPage');
 
-logger.d('Refreshing remote status');
 logger.i('Remote session saved');
 logger.w('Fell back to cached value');
 logger.e(
@@ -52,14 +51,13 @@ logger.e(
 ```dart
 class InstanceManager with ChangeNotifier, Loggable {
   Future<void> refresh() async {
-    d('Refreshing instances');
+    i('Refreshing instances');
   }
 }
 ```
 
 ## Level Guidelines
 
-- `d`: frequent progress, polling, parsing details, debug-only diagnostics
 - `i`: important lifecycle milestones, successful saves, successful connects,
   state transitions worth keeping in release logs
 - `w`: recoverable failures, retries, fallbacks, skipped work, partial success
@@ -72,11 +70,9 @@ text multiple times.
 
 ## Default policy
 
-- Debug builds: `Level.ALL`
-- Release builds: `Level.INFO`
+- App default: `Level.INFO`
 
-This keeps debug noise available during development while suppressing verbose
-records in release builds without changing business-layer call sites.
+This keeps output focused on actionable lifecycle, warning, and error signals.
 
 ## Do and Don't
 

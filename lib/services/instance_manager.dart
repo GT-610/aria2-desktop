@@ -68,7 +68,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
     String dataDirPath = '${executableDir.path}/data';
     Directory dataDir = Directory(dataDirPath);
     if (!dataDir.existsSync()) {
-      this.d('Creating data directory: $dataDirPath');
       dataDir.createSync(recursive: true);
     }
 
@@ -145,13 +144,10 @@ class InstanceManager extends ChangeNotifier with Loggable {
       final dataDir = _getDataDirectory();
       final configDir = Directory('${dataDir.path}/config');
       if (!configDir.existsSync()) {
-        this.d('Creating config directory: ${configDir.path}');
         configDir.createSync(recursive: true);
       }
       final filePath = '${configDir.path}/$_fileName';
       final file = File(filePath);
-
-      this.d('Loading instance data: reading from $filePath');
 
       if (file.existsSync()) {
         final jsonString = await file.readAsString();
@@ -167,7 +163,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
         this.i('Successfully read ${_instances.length} instances');
       } else {
-        this.d('Instance file does not exist, creating default instance');
         await _createDefaultInstance();
       }
     } catch (e, stackTrace) {
@@ -200,20 +195,15 @@ class InstanceManager extends ChangeNotifier with Loggable {
       final dataDir = _getDataDirectory();
       final configDir = Directory('${dataDir.path}/config');
       if (!configDir.existsSync()) {
-        this.d('Creating config directory: ${configDir.path}');
         await configDir.create(recursive: true);
       }
       final filePath = '${configDir.path}/$_fileName';
       final file = File(filePath);
 
-      this.d('Saving instance data: writing to $filePath');
-
       final jsonList = _instances.map((instance) => instance.toJson()).toList();
       final jsonString = jsonEncode(jsonList);
 
       await file.writeAsString(jsonString);
-      this.d('Instance data saved successfully');
-
       // Verify file was successfully written
       if (!file.existsSync()) {
         this.w('Warning: File write verification failed, file does not exist');
@@ -236,7 +226,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
         instance = instance.copyWith(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
         );
-        this.d('Instance ID duplicate, generating new ID');
       }
 
       // Ensure instance status is disconnected
@@ -398,10 +387,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
         _builtinInstanceService.onConnected();
       }
 
-      this.d(
-        'Instance connection status set - Instance: ${resolvedInstance.name}, Status: ${ConnectionStatus.connected}',
-      );
-
       await _saveInstances();
       this.i('Successfully connected to instance: ${resolvedInstance.name}');
       notifyListeners();
@@ -474,7 +459,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
     try {
       return _instances.firstWhere((instance) => instance.id == instanceId);
     } catch (e) {
-      this.d('Cannot find instance with ID $instanceId');
       return null;
     }
   }

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:fl_lib/fl_lib.dart';
 import 'package:logging/logging.dart';
 
-Level get defaultLogLevel => BuildMode.isDebug ? Level.ALL : Level.INFO;
+Level get defaultLogLevel => Level.INFO;
 
 StreamSubscription<LogRecord>? _rootLogSubscription;
 
@@ -32,9 +32,6 @@ void initializeAppLogging({Level? level}) {
 Logger taggedLogger(String tag) => Logger(tag);
 
 extension LoggerLevelX on Logger {
-  void d(String message, {Object? error, StackTrace? stackTrace}) =>
-      log(Level.FINE, message, error, stackTrace);
-
   void i(String message, {Object? error, StackTrace? stackTrace}) =>
       log(Level.INFO, message, error, stackTrace);
 
@@ -47,9 +44,6 @@ extension LoggerLevelX on Logger {
 
 mixin Loggable {
   Logger get logger => taggedLogger(runtimeType.toString());
-
-  void d(String message, {Object? error, StackTrace? stackTrace}) =>
-      logger.d(message, error: error, stackTrace: stackTrace);
 
   void i(String message, {Object? error, StackTrace? stackTrace}) =>
       logger.i(message, error: error, stackTrace: stackTrace);

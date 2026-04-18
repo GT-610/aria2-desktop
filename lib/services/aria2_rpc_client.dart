@@ -246,8 +246,6 @@ class Aria2RpcClient with Loggable {
       gid = firstParam['gid'] as String;
     }
 
-    d('Received Aria2 notification: $method, GID: $gid');
-
     Aria2Event? event;
     switch (method) {
       case 'aria2.onDownloadStart':
@@ -545,7 +543,6 @@ class Aria2RpcClient with Loggable {
   Future<bool> setGlobalOption(Map<String, dynamic> options) async {
     try {
       final response = await callRpc('aria2.changeGlobalOption', [options]);
-      this.d('Global options set successfully: $options');
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
       this.e('Failed to set global options', error: e, stackTrace: stackTrace);

@@ -112,7 +112,6 @@ class _AddTaskDialogState extends State<AddTaskDialog>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_syncSaveLocationFromSelectedTarget(force: true));
     });
-    i('AddTaskDialog initialized');
   }
 
   @override

@@ -28,9 +28,7 @@ class DownloadTaskNotification {
 /// Unified download task data service
 /// Responsible for periodically fetching task data from Aria2, performing unified data encapsulation and caching
 class DownloadDataService extends ChangeNotifier with Loggable {
-  DownloadDataService() {
-    i('Service initialization completed');
-  }
+  DownloadDataService();
 
   Timer? _refreshTimer;
 
@@ -66,7 +64,6 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       return;
     }
     _refreshInterval = milliseconds;
-    i('Task refresh interval updated to ${_refreshInterval}ms');
     _restartTimer();
   }
 
@@ -81,7 +78,6 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   void stopPeriodicRefresh() {
     _refreshTimer?.cancel();
     _refreshTimer = null;
-    this.d('Timer stopped');
   }
 
   Future<void> refreshTasks(List<Aria2Instance> instances) async {
@@ -230,9 +226,6 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     final connectedInstances = _connectedInstancesProvider?.call() ?? const [];
 
     if (connectedInstances.isNotEmpty) {
-      i(
-        'Starting task refresh timer for ${connectedInstances.length} connected instance(s) at ${_refreshInterval}ms',
-      );
       _refreshTimer = Timer.periodic(Duration(milliseconds: _refreshInterval), (
         timer,
       ) {
@@ -310,7 +303,6 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     try {
       return _tasks.firstWhere((task) => task.id == taskId);
     } catch (e) {
-      this.d('Task not found: $taskId');
       return null;
     }
   }

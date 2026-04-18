@@ -33,7 +33,6 @@ class ProtocolIntegrationService with Loggable {
       final normalizedUri = normalizeIncomingUri(argument);
       if (normalizedUri != null) {
         _pendingLaunchUri = normalizedUri;
-        i('Captured external launch URI: $normalizedUri');
         return;
       }
     }

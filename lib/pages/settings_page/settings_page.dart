@@ -60,9 +60,7 @@ class _SettingsPageState extends State<SettingsPage>
 
   Future<void> _loadSettings() async {
     try {
-      i('Loading settings in settings page');
       await Provider.of<Settings>(context, listen: false).loadSettings();
-      i('Settings loaded successfully');
     } catch (err) {
       this.e('Failed to load settings', error: err);
       if (mounted) {
@@ -624,9 +622,6 @@ ${GithubIds.participants.map((id) => id.markdownLink).join(' ')}
   }) async {
     try {
       await action();
-      if (successLog != null) {
-        i(successLog);
-      }
     } catch (e, stackTrace) {
       this.e('Failed to update setting', error: e, stackTrace: stackTrace);
       _showErrorSnackBar(errorMessage);
@@ -773,7 +768,6 @@ ${GithubIds.participants.map((id) => id.markdownLink).join(' ')}
 
   void _openLogPage() {
     final l10n = AppLocalizations.of(context)!;
-    i('Opening in-app log page');
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) =>
