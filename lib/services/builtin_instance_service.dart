@@ -220,8 +220,17 @@ class BuiltinInstanceService with Loggable {
     _pendingApplyMode = mode;
   }
 
-  void clearPendingApply() {
-    _pendingApplyMode = BuiltinInstanceApplyMode.none;
+  void clearPendingApply({BuiltinInstanceApplyMode? appliedMode}) {
+    if (appliedMode == null ||
+        appliedMode == BuiltinInstanceApplyMode.restartRequired) {
+      _pendingApplyMode = BuiltinInstanceApplyMode.none;
+      return;
+    }
+
+    if (appliedMode == BuiltinInstanceApplyMode.liveApply &&
+        _pendingApplyMode == BuiltinInstanceApplyMode.liveApply) {
+      _pendingApplyMode = BuiltinInstanceApplyMode.none;
+    }
   }
 
   Future<bool> resetSessionFile() async {

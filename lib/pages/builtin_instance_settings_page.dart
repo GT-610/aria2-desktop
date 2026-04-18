@@ -1165,7 +1165,7 @@ class _BuiltinInstanceSettingsPageState
         }
 
         if (applied) {
-          BuiltinInstanceService().clearPendingApply();
+          BuiltinInstanceService().clearPendingApply(appliedMode: applyMode);
         } else {
           BuiltinInstanceService().markPendingApply(applyMode);
         }
@@ -1228,7 +1228,7 @@ class _BuiltinInstanceSettingsPageState
       Navigator.pop(context);
 
       if (success) {
-        BuiltinInstanceService().clearPendingApply();
+        BuiltinInstanceService().clearPendingApply(appliedMode: applyMode);
         setState(() {
           if (clearDraftChanges) {
             _hasChanges = false;
