@@ -2234,12 +2234,6 @@ abstract class AppLocalizations {
   /// **'Task removed, but some files could not be deleted.'**
   String get taskRemovedWithFileWarnings;
 
-  /// No description provided for @taskRemovedSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Task removed successfully.'**
-  String get taskRemovedSuccess;
-
   /// No description provided for @taskActionNoMatchingTasks.
   ///
   /// In en, this message translates to:

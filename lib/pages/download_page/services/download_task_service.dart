@@ -380,8 +380,6 @@ class DownloadTaskService with Loggable {
               SnackBar(content: Text(l10n.taskRemovedWithFileWarnings)),
             );
           }
-        } else {
-          _showTaskSnackBar(context, l10n.taskRemovedSuccess);
         }
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -528,8 +526,6 @@ class DownloadTaskService with Loggable {
               SnackBar(content: Text(l10n.taskRemovedWithFileWarnings)),
             );
           }
-        } else {
-          _showTaskSnackBar(context, l10n.taskRemovedSuccess);
         }
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -668,16 +664,6 @@ class DownloadTaskService with Loggable {
         }
       }
     }
-  }
-
-  static void _showTaskSnackBar(BuildContext context, String message) {
-    if (!context.mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   static void _scheduleFollowUpRefresh(VoidCallback onTaskUpdated) {

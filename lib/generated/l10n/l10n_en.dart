@@ -1212,9 +1212,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Task removed, but some files could not be deleted.';
 
   @override
-  String get taskRemovedSuccess => 'Task removed successfully.';
-
-  @override
   String taskActionNoMatchingTasks(Object action) {
     return 'No matching tasks for $action.';
   }

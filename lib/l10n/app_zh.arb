@@ -402,7 +402,6 @@
   "failedToResumeTask": "继续任务失败: {error}",
   "failedToRemoveFailedTask": "删除失败任务失败: {error}",
   "taskRemovedWithFileWarnings": "任务已移除，但部分文件未能删除。",
-  "taskRemovedSuccess": "任务移除成功。",
   "taskActionNoMatchingTasks": "{action}：没有匹配的任务。",
   "@taskActionNoMatchingTasks": {
     "placeholders": {

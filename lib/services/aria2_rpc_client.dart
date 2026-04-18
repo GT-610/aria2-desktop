@@ -35,6 +35,7 @@ typedef Aria2EventCallback = void Function(String gid);
 
 /// Aria2 RPC client service
 class Aria2RpcClient with Loggable {
+  static int _requestSequence = 0;
   final Aria2Instance instance;
   http.Client? _httpClient;
   WebSocket? _webSocket;
@@ -85,7 +86,7 @@ class Aria2RpcClient with Loggable {
     List<dynamic> params,
   ) async {
     try {
-      final requestId = DateTime.now().millisecondsSinceEpoch.toString();
+      final requestId = _nextRequestId();
       final requestBody = _buildRequestBody(method, params, requestId);
 
       final response = await _httpClient!
@@ -147,7 +148,7 @@ class Aria2RpcClient with Loggable {
     for (int attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         await _initWebSocket();
-        requestId = DateTime.now().millisecondsSinceEpoch.toString();
+        requestId = _nextRequestId();
         final requestBody = _buildRequestBody(method, params, requestId);
 
         final completer = Completer<Map<String, dynamic>>();
@@ -742,5 +743,10 @@ class Aria2RpcClient with Loggable {
     }
 
     return headers;
+  }
+
+  String _nextRequestId() {
+    _requestSequence++;
+    return '${DateTime.now().microsecondsSinceEpoch}-${_requestSequence.toRadixString(16)}';
   }
 }

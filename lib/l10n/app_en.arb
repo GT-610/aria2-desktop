@@ -402,7 +402,6 @@
   "failedToResumeTask": "Failed to resume the task: {error}",
   "failedToRemoveFailedTask": "Failed to remove the failed task: {error}",
   "taskRemovedWithFileWarnings": "Task removed, but some files could not be deleted.",
-  "taskRemovedSuccess": "Task removed successfully.",
   "taskActionNoMatchingTasks": "No matching tasks for {action}.",
   "@taskActionNoMatchingTasks": {
     "placeholders": {

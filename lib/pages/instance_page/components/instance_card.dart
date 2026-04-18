@@ -1,4 +1,3 @@
-import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -98,7 +97,10 @@ class _InstanceCardState extends State<InstanceCard> {
         return const SizedBox(
           width: 16,
           height: 16,
-          child: fl.SizedLoading.small,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
         );
       case ConnectionStatus.connected:
         return const Icon(Icons.link, size: 16, color: Colors.white);
@@ -148,7 +150,7 @@ class _InstanceCardState extends State<InstanceCard> {
                 const SizedBox(
                   width: 12,
                   height: 12,
-                  child: fl.SizedLoading.small,
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 const SizedBox(width: 4),
                 Text(label, style: TextStyle(fontSize: 12, color: textColor)),
@@ -174,7 +176,11 @@ class _InstanceCardState extends State<InstanceCard> {
     return TextButton.icon(
       onPressed: onPressed,
       icon: loading
-          ? const SizedBox(width: 16, height: 16, child: fl.SizedLoading.small)
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
           : Icon(icon, size: 18),
       label: Text(label),
       style: TextButton.styleFrom(
@@ -205,7 +211,7 @@ class _InstanceCardState extends State<InstanceCard> {
             ? const SizedBox(
                 width: 18,
                 height: 18,
-                child: fl.SizedLoading.small,
+                child: CircularProgressIndicator(strokeWidth: 2),
               )
             : Icon(
                 icon,

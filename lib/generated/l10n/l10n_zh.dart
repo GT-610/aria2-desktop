@@ -1163,9 +1163,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskRemovedWithFileWarnings => '任务已移除，但部分文件未能删除。';
 
   @override
-  String get taskRemovedSuccess => '任务移除成功。';
-
-  @override
   String taskActionNoMatchingTasks(Object action) {
     return '$action：没有匹配的任务。';
   }

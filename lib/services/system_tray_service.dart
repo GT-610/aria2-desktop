@@ -97,12 +97,6 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     if (!_isInitialized || !hasChanged) {
       return;
     }
-
-    try {
-      await trayManager.setContextMenu(_buildMenu());
-    } catch (e, stackTrace) {
-      w('Failed to update tray menu state', error: e, stackTrace: stackTrace);
-    }
   }
 
   Future<void> initialize() async {
@@ -258,7 +252,16 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   void onTrayIconRightMouseDown() {
     _pendingTrayToggleTimer?.cancel();
     _pendingTrayToggleTimer = null;
-    trayManager.popUpContextMenu();
+    unawaited(_showContextMenu());
+  }
+
+  Future<void> _showContextMenu() async {
+    try {
+      await trayManager.setContextMenu(_buildMenu());
+      await trayManager.popUpContextMenu();
+    } catch (e, stackTrace) {
+      w('Failed to show tray context menu', error: e, stackTrace: stackTrace);
+    }
   }
 
   @override
