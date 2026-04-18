@@ -29,7 +29,8 @@ class DownloadPage extends StatefulWidget {
   State<DownloadPage> createState() => DownloadPageState();
 }
 
-class DownloadPageState extends State<DownloadPage> with Loggable {
+class DownloadPageState extends State<DownloadPage>
+    with AutomaticKeepAliveClientMixin, Loggable {
   FilterOption _selectedFilter = FilterOption.all;
   CategoryType _currentCategoryType = CategoryType.all;
   TaskSortOption _sortOption = TaskSortOption.name;
@@ -315,7 +316,8 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
       tasks = tasks
           .where((task) => task.instanceId == _selectedInstanceId)
           .toList();
-    } else {
+    } else if (_currentCategoryType == CategoryType.byStatus ||
+        _currentCategoryType == CategoryType.byType) {
       switch (_selectedFilter) {
         case FilterOption.all:
           break;
@@ -529,6 +531,7 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final l10n = AppLocalizations.of(context)!;
     context.watch<InstanceManager>();
     context.watch<DownloadDataService>();
@@ -932,6 +935,9 @@ class DownloadPageState extends State<DownloadPage> with Loggable {
       },
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }
 
 class _SelectionToolbar extends StatelessWidget {

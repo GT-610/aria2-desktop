@@ -129,6 +129,13 @@ class TaskToolbar extends StatelessWidget {
               const SizedBox(width: 12),
               PopupMenuButton<TaskSortOption>(
                 tooltip: l10n.sortTasks,
+                style: ButtonStyle(
+                  shape: WidgetStatePropertyAll(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
                 onSelected: onSortChanged,
                 itemBuilder: (context) => TaskSortOption.values.map((option) {
                   return PopupMenuItem<TaskSortOption>(
@@ -161,18 +168,23 @@ class TaskToolbar extends StatelessWidget {
                         horizontal: 16,
                         vertical: 10,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.sort, color: colorScheme.onSurface),
-                          const SizedBox(width: 8),
-                          Text(
-                            _sortLabel(l10n, sortOption),
-                            style: textTheme.labelLarge?.copyWith(
-                              color: colorScheme.onSurface,
-                            ),
+                      child: IconTheme.merge(
+                        data: IconThemeData(color: colorScheme.onSurface),
+                        child: DefaultTextStyle.merge(
+                          style:
+                              textTheme.labelLarge?.copyWith(
+                                color: colorScheme.onSurface,
+                              ) ??
+                              TextStyle(color: colorScheme.onSurface),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.sort),
+                              const SizedBox(width: 8),
+                              Text(_sortLabel(l10n, sortOption)),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),

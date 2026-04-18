@@ -6,7 +6,7 @@ Setsuna is a Flutter desktop client for aria2 that combines:
 - remote aria2 connection profiles and task management
 - desktop-focused integrations such as tray, notifications, protocol handling, UPnP/NAT-PMP, and run-at-startup
 
-The current product goal is to cover the core day-to-day workflow of a Motrix-style desktop downloader while also providing AriaNg-style remote aria2 management in a single app.
+The current product goal is to cover the day-to-day workflow of a Motrix-style desktop downloader while also providing AriaNg-style remote aria2 management in a single app.
 
 ## Current Capabilities
 
@@ -83,9 +83,8 @@ test/
 
 ## Notes
 
-- Built-in instance management is the primary product path.
-- Remote instance management is designed as a strong companion workflow rather than a browser-style frontend clone.
-- Local reference materials and personal workspace files are not part of the shipped product documentation.
+- Built-in instance management remains the primary product path.
+- Remote instance management is designed as a desktop companion workflow, not a browser-style frontend clone.
 
 ## License
 

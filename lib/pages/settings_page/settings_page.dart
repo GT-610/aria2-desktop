@@ -32,7 +32,10 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage>
-    with Loggable, SingleTickerProviderStateMixin {
+    with
+        AutomaticKeepAliveClientMixin,
+        Loggable,
+        SingleTickerProviderStateMixin {
   String _version = '';
   bool _isLoading = true;
   late final TabController _tabController = TabController(
@@ -86,6 +89,7 @@ class _SettingsPageState extends State<SettingsPage>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (_isLoading) {
       return Scaffold(body: Center(child: fl.SizedLoading.medium));
     }
@@ -126,6 +130,9 @@ class _SettingsPageState extends State<SettingsPage>
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   String _tabTitle(_SettingsTab tab, AppLocalizations l10n) {
     switch (tab) {
