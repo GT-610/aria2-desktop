@@ -209,6 +209,14 @@ class BuiltinInstanceService with Loggable {
   BuiltinInstanceApplyMode get pendingApplyMode => _pendingApplyMode;
 
   void markPendingApply(BuiltinInstanceApplyMode mode) {
+    if (_pendingApplyMode == BuiltinInstanceApplyMode.restartRequired &&
+        mode != BuiltinInstanceApplyMode.restartRequired) {
+      return;
+    }
+    if (_pendingApplyMode == BuiltinInstanceApplyMode.liveApply &&
+        mode == BuiltinInstanceApplyMode.none) {
+      return;
+    }
     _pendingApplyMode = mode;
   }
 

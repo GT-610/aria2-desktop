@@ -1134,6 +1134,17 @@ class _BuiltinInstanceSettingsPageState
   }) async {
     final l10n = AppLocalizations.of(context)!;
 
+    if (applyMode == BuiltinInstanceApplyMode.none) {
+      setState(() {
+        if (clearDraftChanges) {
+          _hasChanges = false;
+        }
+        _isSaving = false;
+      });
+      _showSettingsSnackBar(successMessage);
+      return;
+    }
+
     if (applyMode == BuiltinInstanceApplyMode.liveApply) {
       final instanceManager = Provider.of<InstanceManager>(
         context,
