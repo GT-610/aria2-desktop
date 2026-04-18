@@ -459,6 +459,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get save => '保存';
 
   @override
+  String get apply => '应用';
+
+  @override
   String get saveAndApply => '保存并应用';
 
   @override
@@ -1158,6 +1161,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get taskRemovedWithFileWarnings => '任务已移除，但部分文件未能删除。';
+
+  @override
+  String get taskRemovedSuccess => '任务移除成功。';
 
   @override
   String taskActionNoMatchingTasks(Object action) {

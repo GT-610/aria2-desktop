@@ -483,6 +483,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get save => 'Save';
 
   @override
+  String get apply => 'Apply';
+
+  @override
   String get saveAndApply => 'Save & Apply';
 
   @override
@@ -1207,6 +1210,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get taskRemovedWithFileWarnings =>
       'Task removed, but some files could not be deleted.';
+
+  @override
+  String get taskRemovedSuccess => 'Task removed successfully.';
 
   @override
   String taskActionNoMatchingTasks(Object action) {

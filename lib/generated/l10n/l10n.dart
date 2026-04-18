@@ -932,6 +932,12 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get save;
 
+  /// No description provided for @apply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get apply;
+
   /// No description provided for @saveAndApply.
   ///
   /// In en, this message translates to:
@@ -2227,6 +2233,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Task removed, but some files could not be deleted.'**
   String get taskRemovedWithFileWarnings;
+
+  /// No description provided for @taskRemovedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Task removed successfully.'**
+  String get taskRemovedSuccess;
 
   /// No description provided for @taskActionNoMatchingTasks.
   ///

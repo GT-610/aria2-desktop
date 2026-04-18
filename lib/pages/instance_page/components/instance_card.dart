@@ -13,7 +13,6 @@ class InstanceCard extends StatefulWidget {
   final Aria2Instance instance;
   final bool isSelected;
   final bool isChecking;
-  final bool isConnectionInProgress;
   final Function(Aria2Instance) onSelect;
   final Function(Aria2Instance) onCheckStatus;
   final Function(Aria2Instance) onToggleConnection;
@@ -27,7 +26,6 @@ class InstanceCard extends StatefulWidget {
     required this.instance,
     required this.isSelected,
     required this.isChecking,
-    required this.isConnectionInProgress,
     required this.onSelect,
     required this.onCheckStatus,
     required this.onToggleConnection,
@@ -246,6 +244,14 @@ class _InstanceCardState extends State<InstanceCard> {
             label: l10n.retry,
             destructive: true,
           );
+        case ConnectionStatus.connecting:
+          return _buildInlineTextAction(
+            context,
+            onPressed: null,
+            icon: Icons.link,
+            label: l10n.connecting,
+            loading: true,
+          );
         default:
           return const SizedBox.shrink();
       }
@@ -460,6 +466,7 @@ class _InstanceCardState extends State<InstanceCard> {
                     ),
                     if (widget.instance.status ==
                             ConnectionStatus.disconnected ||
+                        widget.instance.status == ConnectionStatus.connecting ||
                         widget.instance.status == ConnectionStatus.failed) ...[
                       const SizedBox(width: 4),
                       _buildStatusAction(

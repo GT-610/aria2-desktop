@@ -21,6 +21,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   Future<void> Function()? _onPauseAll;
   Future<void> Function()? _onResumeAll;
   final Set<LocalNotification> _activeNotifications = <LocalNotification>{};
+  Timer? _pendingTrayToggleTimer;
   String _statusLabel = kAppName;
   String _addTaskLabel = 'Add Task';
   String _toggleWindowLabel = 'Show Window';
@@ -245,12 +246,18 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
   @override
   void onTrayIconMouseDown() {
     if (Platform.isWindows) {
-      _onToggleWindow?.call();
+      _pendingTrayToggleTimer?.cancel();
+      _pendingTrayToggleTimer = Timer(const Duration(milliseconds: 160), () {
+        _pendingTrayToggleTimer = null;
+        _onToggleWindow?.call();
+      });
     }
   }
 
   @override
   void onTrayIconRightMouseDown() {
+    _pendingTrayToggleTimer?.cancel();
+    _pendingTrayToggleTimer = null;
     trayManager.popUpContextMenu();
   }
 
@@ -313,6 +320,8 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
 
   void destroy() {
     _trayLifecycleGeneration++;
+    _pendingTrayToggleTimer?.cancel();
+    _pendingTrayToggleTimer = null;
 
     if (_isInitialized) {
       trayManager.removeListener(this);
