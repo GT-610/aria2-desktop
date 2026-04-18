@@ -87,8 +87,14 @@ class BuiltinUpnpService with Loggable {
       return;
     }
 
-    final removedRules = _mappedRules.difference(desiredRules).toList();
-    final addedRules = desiredRules.difference(_mappedRules).toList();
+    final alreadyMappedRules = await _findAlreadyMappedRules(
+      gateway,
+      desiredRules.toList(),
+    );
+    final trackedRules = _mappedRules.union(alreadyMappedRules);
+
+    final removedRules = trackedRules.difference(desiredRules).toList();
+    final addedRules = desiredRules.difference(trackedRules).toList();
 
     Set<_PortMappingRule> successfullyUnmapped = <_PortMappingRule>{};
     if (removedRules.isNotEmpty) {
@@ -100,7 +106,7 @@ class BuiltinUpnpService with Loggable {
       successfullyMapped = await _mapRules(gateway, addedRules);
     }
 
-    _mappedRules = _mappedRules
+    _mappedRules = trackedRules
         .difference(successfullyUnmapped)
         .union(successfullyMapped);
   }
@@ -243,6 +249,23 @@ class BuiltinUpnpService with Loggable {
               )
               .timeout(_mappingTimeout);
           successfulRules.add(rule);
+        } on UPnPError catch (e, stackTrace) {
+          final alreadyMapped = await _isRuleAlreadyMapped(gateway, rule);
+          if (alreadyMapped) {
+            successfulRules.add(rule);
+            i(
+              'Port mapping already exists for '
+              '${rule.protocol.name.toUpperCase()} port ${rule.port}, '
+              'reusing the existing router entry',
+            );
+            return;
+          }
+          w(
+            'Failed to map ${rule.protocol.name.toUpperCase()} port '
+            '${rule.port}',
+            error: e,
+            stackTrace: stackTrace,
+          );
         } catch (e, stackTrace) {
           w(
             'Failed to map ${rule.protocol.name.toUpperCase()} port '
@@ -254,6 +277,39 @@ class BuiltinUpnpService with Loggable {
       }),
     );
     return successfulRules;
+  }
+
+  Future<Set<_PortMappingRule>> _findAlreadyMappedRules(
+    Gateway gateway,
+    List<_PortMappingRule> rules,
+  ) async {
+    final mappedRules = <_PortMappingRule>{};
+    await Future.wait(
+      rules.map((rule) async {
+        if (await _isRuleAlreadyMapped(gateway, rule)) {
+          mappedRules.add(rule);
+          i(
+            'Detected existing router mapping for '
+            '${rule.protocol.name.toUpperCase()} port ${rule.port}, '
+            'reusing it',
+          );
+        }
+      }),
+    );
+    return mappedRules;
+  }
+
+  Future<bool> _isRuleAlreadyMapped(
+    Gateway gateway,
+    _PortMappingRule rule,
+  ) async {
+    try {
+      return await gateway
+          .isMapped(protocol: rule.protocol, externalPort: rule.port)
+          .timeout(_mappingTimeout);
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<Set<_PortMappingRule>> _unmapRules(
