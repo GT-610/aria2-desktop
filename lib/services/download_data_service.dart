@@ -114,7 +114,11 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       notifyListeners();
     } catch (e, stackTrace) {
       _lastError = e.toString();
-      this.e('Failed to refresh tasks', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to refresh tasks across connected instances',
+        error: e,
+        stackTrace: stackTrace,
+      );
       notifyListeners();
     } finally {
       _isRefreshing = false;

@@ -99,7 +99,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
           ),
         );
         await _saveInstances();
-        this.i('Added missing built-in instance');
+        this.i('Added missing built-in instance record');
       }
 
       // Migrate builtin instance protocol from http to ws
@@ -111,7 +111,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
           protocol: 'ws',
         );
         await _saveInstances();
-        this.i('Migrated builtin instance protocol from http to ws');
+        this.i('Migrated built-in instance protocol from http to ws');
       }
 
       await refreshBuiltinInstanceConfig();
@@ -161,7 +161,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
             )
             .toList();
 
-        this.i('Successfully read ${_instances.length} instances');
+        this.i('Loaded ${_instances.length} instance records');
       } else {
         await _createDefaultInstance();
       }
@@ -186,7 +186,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
       ),
     ];
     await _saveInstances();
-    this.i('Built-in instance created');
+    this.i('Created default built-in instance record');
   }
 
   /// Save instance data to file
@@ -206,7 +206,9 @@ class InstanceManager extends ChangeNotifier with Loggable {
       await file.writeAsString(jsonString);
       // Verify file was successfully written
       if (!file.existsSync()) {
-        this.w('Warning: File write verification failed, file does not exist');
+        this.w(
+          'Instance data file write verification failed because the file does not exist after save',
+        );
       }
     } catch (e, stackTrace) {
       this.e('Failed to save instance data', error: e, stackTrace: stackTrace);
@@ -235,7 +237,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
       _instances.add(newInstance);
       await _saveInstances();
-      this.i('Instance added successfully: ${newInstance.name}');
+      this.i('Added instance ${newInstance.name}');
 
       // Notify listeners
       notifyListeners();
@@ -258,10 +260,12 @@ class InstanceManager extends ChangeNotifier with Loggable {
         _instances[index] = updatedInstance;
 
         await _saveInstances();
-        this.i('Instance updated successfully: ${updatedInstance.name}');
+        this.i('Updated instance ${updatedInstance.name}');
         notifyListeners();
       } else {
-        this.w('Cannot find instance to update: ${updatedInstance.id}');
+        this.w(
+          'Cannot update instance because ${updatedInstance.id} was not found',
+        );
         throw Exception('Cannot find instance to update');
       }
     } catch (e, stackTrace) {
@@ -326,7 +330,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
           );
           return false;
         }
-        this.i('Connecting to built-in instance, starting Aria2 process...');
+        this.i('Starting built-in Aria2 process before connecting');
         final isStarted = await _builtinInstanceService.startInstance();
         if (!isStarted) {
           this.e('Failed to start built-in Aria2 instance');
@@ -349,7 +353,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
       final canConnect = await checkConnection(resolvedInstance);
       if (!canConnect) {
         this.w(
-          'Connection test failed, cannot connect to instance: ${resolvedInstance.name}',
+          'Connection test failed, so instance ${resolvedInstance.name} was not connected',
         );
 
         // If it's a built-in instance, stop the process if it was started
@@ -372,7 +376,9 @@ class InstanceManager extends ChangeNotifier with Loggable {
       String? version;
       try {
         version = await client.getVersion();
-        this.i('Aria2 version: $version');
+        this.i(
+          'Retrieved aria2 version $version for instance ${resolvedInstance.name}',
+        );
       } catch (e, stackTrace) {
         this.w(
           'Failed to get Aria2 version for instance ${resolvedInstance.name}',
@@ -396,7 +402,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
       }
 
       await _saveInstances();
-      this.i('Successfully connected to instance: ${resolvedInstance.name}');
+      this.i('Connected to instance ${resolvedInstance.name}');
       notifyListeners();
 
       return true;
@@ -422,7 +428,9 @@ class InstanceManager extends ChangeNotifier with Loggable {
   Future<void> disconnectInstance(Aria2Instance instance) async {
     // For built-in instances, stop the Aria2 process
     if (instance.type == InstanceType.builtin) {
-      this.i('Disconnecting built-in instance, stopping Aria2 process...');
+      this.i(
+        'Stopping built-in Aria2 process while disconnecting the built-in instance',
+      );
       await _builtinInstanceService.stopInstance();
     }
 

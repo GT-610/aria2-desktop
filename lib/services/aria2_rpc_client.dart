@@ -387,7 +387,9 @@ class Aria2RpcClient with Loggable {
           }
         }).toList();
       }
-      this.e('Invalid multicall response format: $response');
+      this.e(
+        'Received invalid multicall response format from ${instance.name}: $response',
+      );
       return [];
     } catch (e, stackTrace) {
       this.e(
@@ -565,7 +567,11 @@ class Aria2RpcClient with Loggable {
       final response = await callRpc('aria2.changeGlobalOption', [options]);
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
-      this.e('Failed to set global options', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to set global options for ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
@@ -576,7 +582,11 @@ class Aria2RpcClient with Loggable {
       final response = await callRpc('aria2.getGlobalOption', []);
       return response['result'] as Map<String, dynamic>;
     } catch (e, stackTrace) {
-      this.e('Failed to get global options', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to get global options for ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
@@ -587,7 +597,11 @@ class Aria2RpcClient with Loggable {
       final response = await callRpc('aria2.getGlobalStat', []);
       return Map<String, dynamic>.from(response['result'] as Map);
     } catch (e, stackTrace) {
-      this.e('Failed to get global stat', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to get global stat for ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
@@ -598,7 +612,11 @@ class Aria2RpcClient with Loggable {
       final response = await callRpc('aria2.saveSession', []);
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
-      this.e('Failed to save session', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to save session for ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
@@ -610,7 +628,7 @@ class Aria2RpcClient with Loggable {
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
       this.e(
-        'Failed to purge download results',
+        'Failed to purge download results for ${instance.name}',
         error: e,
         stackTrace: stackTrace,
       );

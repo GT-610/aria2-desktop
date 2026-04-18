@@ -19,7 +19,9 @@ class SettingsService extends ChangeNotifier with Loggable {
 
   Map<String, dynamic> _convertSettingsToRuntimeAria2Options() {
     if (_settings == null) {
-      w('Settings is null, cannot convert runtime settings to Aria2 options');
+      w(
+        'Cannot convert runtime settings to aria2 options because settings are not initialized',
+      );
       return {};
     }
 
@@ -64,7 +66,9 @@ class SettingsService extends ChangeNotifier with Loggable {
 
   Future<bool> applySettingsToBuiltin() async {
     if (_settings == null) {
-      w('Settings is null, cannot apply settings');
+      w(
+        'Cannot apply built-in aria2 settings because settings are not initialized',
+      );
       return false;
     }
 
@@ -76,10 +80,10 @@ class SettingsService extends ChangeNotifier with Loggable {
         _convertSettingsToRuntimeAria2Options(),
       );
       if (result) {
-        i('Settings applied successfully to built-in Aria2');
+        i('Applied runtime settings to the built-in aria2 instance');
       } else {
         w(
-          'Built-in Aria2 reported unsuccessful runtime settings apply without throwing an exception',
+          'Built-in aria2 rejected the runtime settings update without throwing an exception',
         );
       }
       return result;
