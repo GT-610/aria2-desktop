@@ -72,17 +72,25 @@ class _BuiltinInstanceSettingsPageState
   final TextEditingController _logPathController = TextEditingController();
   final TextEditingController _userAgentController = TextEditingController();
 
-  _BuiltinSettingsApplyMode _currentApplyMode(Settings settings) {
+  BuiltinInstanceApplyMode _currentDraftApplyMode(Settings settings) {
     if (_hasRestartRequiredSettingChanges(settings)) {
-      return _BuiltinSettingsApplyMode.restartRequired;
+      return BuiltinInstanceApplyMode.restartRequired;
     }
     if (_hasLiveApplySettingChanges(settings)) {
-      return _BuiltinSettingsApplyMode.liveApply;
+      return BuiltinInstanceApplyMode.liveApply;
     }
-    return _BuiltinSettingsApplyMode.none;
+    return BuiltinInstanceApplyMode.none;
   }
 
   bool get _isBusy => _isSaving || _isResettingSession;
+
+  BuiltinInstanceApplyMode _effectiveApplyMode(Settings settings) {
+    final draftApplyMode = _currentDraftApplyMode(settings);
+    if (draftApplyMode != BuiltinInstanceApplyMode.none) {
+      return draftApplyMode;
+    }
+    return BuiltinInstanceService().pendingApplyMode;
+  }
 
   @override
   void didChangeDependencies() {
@@ -189,7 +197,31 @@ class _BuiltinInstanceSettingsPageState
             ),
           ),
           TextButton(
-            onPressed: _hasChanges && !_isBusy
+            onPressed:
+                !_hasChanges &&
+                    !_isBusy &&
+                    _effectiveApplyMode(settings) !=
+                        BuiltinInstanceApplyMode.none
+                ? () => _applySavedSettings(settings)
+                : null,
+            child: Text(
+              l10n.apply,
+              style: TextStyle(
+                color:
+                    !_hasChanges &&
+                        _effectiveApplyMode(settings) !=
+                            BuiltinInstanceApplyMode.none
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed:
+                (_hasChanges ||
+                        _effectiveApplyMode(settings) !=
+                            BuiltinInstanceApplyMode.none) &&
+                    !_isBusy
                 ? () => _saveAndApplySettings(settings)
                 : null,
             child: _isSaving
@@ -201,7 +233,10 @@ class _BuiltinInstanceSettingsPageState
                 : Text(
                     l10n.saveAndApply,
                     style: TextStyle(
-                      color: _hasChanges
+                      color:
+                          (_hasChanges ||
+                              _effectiveApplyMode(settings) !=
+                                  BuiltinInstanceApplyMode.none)
                           ? colorScheme.primary
                           : colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
@@ -722,10 +757,6 @@ class _BuiltinInstanceSettingsPageState
           : null,
       value: value,
       onChanged: enabled ? onChanged : null,
-      activeThumbColor: colorScheme.primary,
-      activeTrackColor: colorScheme.primary.withValues(alpha: 0.3),
-      inactiveThumbColor: colorScheme.onSurfaceVariant,
-      inactiveTrackColor: colorScheme.surfaceContainerHighest,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
@@ -1010,44 +1041,111 @@ class _BuiltinInstanceSettingsPageState
   }
 
   Future<void> _saveSettings(Settings settings) async {
-    setState(() {
-      _isSaving = true;
-    });
-
-    await _persistDraft(settings);
-    _syncNormalizedDraft(settings);
-    await _refreshBuiltinInstanceSnapshot();
-
-    setState(() {
-      _hasChanges = false;
-      _isSaving = false;
-    });
-
-    _showSettingsSnackBar(AppLocalizations.of(context)!.settingsSaved);
-  }
-
-  Future<void> _saveAndApplySettings(Settings settings) async {
     final l10n = AppLocalizations.of(context)!;
-    final applyMode = _currentApplyMode(settings);
-
+    final applyMode = _currentDraftApplyMode(settings);
     setState(() {
       _isSaving = true;
     });
 
-    await _persistDraft(settings);
-    _syncNormalizedDraft(settings);
-    await _refreshBuiltinInstanceSnapshot();
+    try {
+      await _persistDraft(settings);
+      _syncNormalizedDraft(settings);
+      await _refreshBuiltinInstanceSnapshot();
+      if (applyMode != BuiltinInstanceApplyMode.none) {
+        BuiltinInstanceService().markPendingApply(applyMode);
+      }
 
-    if (applyMode == _BuiltinSettingsApplyMode.none) {
       setState(() {
         _hasChanges = false;
         _isSaving = false;
       });
+
       _showSettingsSnackBar(l10n.settingsSaved);
+    } catch (_) {
+      setState(() {
+        _isSaving = false;
+      });
+      _showSettingsSnackBar(
+        l10n.saveSettingsFailed,
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      );
+    }
+  }
+
+  Future<void> _saveAndApplySettings(Settings settings) async {
+    if (_hasChanges) {
+      final l10n = AppLocalizations.of(context)!;
+      final applyMode = _effectiveApplyMode(settings);
+
+      setState(() {
+        _isSaving = true;
+      });
+
+      try {
+        await _persistDraft(settings);
+        _syncNormalizedDraft(settings);
+        await _refreshBuiltinInstanceSnapshot();
+      } catch (_) {
+        setState(() {
+          _isSaving = false;
+        });
+        _showSettingsSnackBar(
+          l10n.saveSettingsFailed,
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        );
+        return;
+      }
+
+      await _applyPersistedSettings(
+        applyMode: applyMode,
+        clearDraftChanges: true,
+        successMessage: l10n.settingsSavedAppliedSuccess,
+      );
       return;
     }
 
-    if (applyMode == _BuiltinSettingsApplyMode.liveApply) {
+    await _applySavedSettings(settings);
+  }
+
+  Future<void> _applySavedSettings(Settings settings) async {
+    final l10n = AppLocalizations.of(context)!;
+    final applyMode = _effectiveApplyMode(settings);
+    if (applyMode == BuiltinInstanceApplyMode.none) {
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    await _applyPersistedSettings(
+      applyMode: applyMode,
+      clearDraftChanges: false,
+      successMessage: l10n.settingsSavedAppliedSuccess,
+    );
+  }
+
+  Future<void> _applyPersistedSettings({
+    required BuiltinInstanceApplyMode applyMode,
+    required bool clearDraftChanges,
+    required String successMessage,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    if (applyMode == BuiltinInstanceApplyMode.none) {
+      setState(() {
+        if (clearDraftChanges) {
+          _hasChanges = false;
+        }
+        _isSaving = false;
+      });
+      _showSettingsSnackBar(successMessage);
+      return;
+    }
+
+    if (applyMode == BuiltinInstanceApplyMode.liveApply) {
       final instanceManager = Provider.of<InstanceManager>(
         context,
         listen: false,
@@ -1066,22 +1164,31 @@ class _BuiltinInstanceSettingsPageState
           return;
         }
 
+        if (applied) {
+          BuiltinInstanceService().clearPendingApply(appliedMode: applyMode);
+        } else {
+          BuiltinInstanceService().markPendingApply(applyMode);
+        }
+
         setState(() {
-          _hasChanges = false;
+          if (clearDraftChanges) {
+            _hasChanges = false;
+          }
           _isSaving = false;
         });
 
         _showSettingsSnackBar(
-          applied
-              ? l10n.settingsSavedAppliedSuccess
-              : l10n.settingsSavedRpcApplyFailed,
+          applied ? successMessage : l10n.settingsSavedRpcApplyFailed,
           backgroundColor: applied ? null : Colors.orange,
         );
         return;
       }
 
+      BuiltinInstanceService().markPendingApply(applyMode);
       setState(() {
-        _hasChanges = false;
+        if (clearDraftChanges) {
+          _hasChanges = false;
+        }
         _isSaving = false;
       });
       _showSettingsSnackBar(
@@ -1105,6 +1212,7 @@ class _BuiltinInstanceSettingsPageState
         throw Exception(l10n.builtinInstanceMissing);
       }
 
+      BuiltinInstanceService().markPendingApply(applyMode);
       await instanceManager.disconnectInstance(builtinInstance);
       await Future.delayed(const Duration(milliseconds: 500));
       final refreshedBuiltinInstance =
@@ -1113,32 +1221,43 @@ class _BuiltinInstanceSettingsPageState
         refreshedBuiltinInstance,
       );
 
-      if (mounted) {
-        Navigator.pop(context);
+      if (!mounted) {
+        return;
+      }
 
-        if (success) {
-          setState(() {
+      Navigator.pop(context);
+
+      if (success) {
+        BuiltinInstanceService().clearPendingApply(appliedMode: applyMode);
+        setState(() {
+          if (clearDraftChanges) {
             _hasChanges = false;
-            _isSaving = false;
-          });
+          }
+          _isSaving = false;
+        });
 
-          _showSettingsSnackBar(l10n.settingsSavedAppliedSuccess);
-        } else {
-          setState(() {
-            _isSaving = false;
-          });
+        _showSettingsSnackBar(successMessage);
+      } else {
+        setState(() {
+          if (clearDraftChanges) {
+            _hasChanges = false;
+          }
+          _isSaving = false;
+        });
 
-          _showSettingsSnackBar(
-            l10n.settingsSavedRestartFailed,
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          );
-        }
+        _showSettingsSnackBar(
+          l10n.settingsSavedRestartFailed,
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        );
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
         setState(() {
+          if (clearDraftChanges) {
+            _hasChanges = false;
+          }
           _isSaving = false;
         });
 
@@ -1205,18 +1324,17 @@ class _BuiltinInstanceSettingsPageState
 
   Widget _buildApplyHintCard(Settings settings) {
     final l10n = AppLocalizations.of(context)!;
-    final applyMode = _currentApplyMode(settings);
+    final applyMode = _effectiveApplyMode(settings);
     final applyMessage = switch (applyMode) {
-      _BuiltinSettingsApplyMode.liveApply => l10n.settingsApplyLiveHint,
-      _BuiltinSettingsApplyMode.restartRequired =>
-        l10n.settingsApplyRestartHint,
-      _BuiltinSettingsApplyMode.none => l10n.settingsApplyNoPendingHint,
+      BuiltinInstanceApplyMode.liveApply => l10n.settingsApplyLiveHint,
+      BuiltinInstanceApplyMode.restartRequired => l10n.settingsApplyRestartHint,
+      BuiltinInstanceApplyMode.none => l10n.settingsApplyNoPendingHint,
     };
 
     return BuiltinSettingsApplyHintCard(
       title: l10n.settingsSaveOnlyHint,
       message: applyMessage,
-      restartRequired: applyMode == _BuiltinSettingsApplyMode.restartRequired,
+      restartRequired: applyMode == BuiltinInstanceApplyMode.restartRequired,
     );
   }
 
@@ -1269,5 +1387,3 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 }
-
-enum _BuiltinSettingsApplyMode { none, liveApply, restartRequired }

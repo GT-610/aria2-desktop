@@ -1,4 +1,3 @@
-import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,7 +12,6 @@ class InstanceCard extends StatefulWidget {
   final Aria2Instance instance;
   final bool isSelected;
   final bool isChecking;
-  final bool isConnectionInProgress;
   final Function(Aria2Instance) onSelect;
   final Function(Aria2Instance) onCheckStatus;
   final Function(Aria2Instance) onToggleConnection;
@@ -27,7 +25,6 @@ class InstanceCard extends StatefulWidget {
     required this.instance,
     required this.isSelected,
     required this.isChecking,
-    required this.isConnectionInProgress,
     required this.onSelect,
     required this.onCheckStatus,
     required this.onToggleConnection,
@@ -100,7 +97,10 @@ class _InstanceCardState extends State<InstanceCard> {
         return const SizedBox(
           width: 16,
           height: 16,
-          child: fl.SizedLoading.small,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
         );
       case ConnectionStatus.connected:
         return const Icon(Icons.link, size: 16, color: Colors.white);
@@ -150,7 +150,7 @@ class _InstanceCardState extends State<InstanceCard> {
                 const SizedBox(
                   width: 12,
                   height: 12,
-                  child: fl.SizedLoading.small,
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 const SizedBox(width: 4),
                 Text(label, style: TextStyle(fontSize: 12, color: textColor)),
@@ -176,7 +176,11 @@ class _InstanceCardState extends State<InstanceCard> {
     return TextButton.icon(
       onPressed: onPressed,
       icon: loading
-          ? const SizedBox(width: 16, height: 16, child: fl.SizedLoading.small)
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
           : Icon(icon, size: 18),
       label: Text(label),
       style: TextButton.styleFrom(
@@ -207,7 +211,7 @@ class _InstanceCardState extends State<InstanceCard> {
             ? const SizedBox(
                 width: 18,
                 height: 18,
-                child: fl.SizedLoading.small,
+                child: CircularProgressIndicator(strokeWidth: 2),
               )
             : Icon(
                 icon,
@@ -245,6 +249,14 @@ class _InstanceCardState extends State<InstanceCard> {
             icon: Icons.refresh,
             label: l10n.retry,
             destructive: true,
+          );
+        case ConnectionStatus.connecting:
+          return _buildInlineTextAction(
+            context,
+            onPressed: null,
+            icon: Icons.link,
+            label: l10n.connecting,
+            loading: true,
           );
         default:
           return const SizedBox.shrink();
@@ -460,6 +472,7 @@ class _InstanceCardState extends State<InstanceCard> {
                     ),
                     if (widget.instance.status ==
                             ConnectionStatus.disconnected ||
+                        widget.instance.status == ConnectionStatus.connecting ||
                         widget.instance.status == ConnectionStatus.failed) ...[
                       const SizedBox(width: 4),
                       _buildStatusAction(

@@ -21,7 +21,6 @@ class _InstancePageState extends State<InstancePage>
     with AutomaticKeepAliveClientMixin {
   Aria2Instance? _selectedInstance;
   bool _isChecking = false;
-  bool _isConnectionInProgress = false;
 
   void _showFeedback(String message, {Color? backgroundColor}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -100,7 +99,6 @@ class _InstancePageState extends State<InstancePage>
           instance: instance,
           isSelected: _selectedInstance?.id == instance.id,
           isChecking: _isChecking,
-          isConnectionInProgress: _isConnectionInProgress,
           onSelect: _handleSelectInstance,
           onCheckStatus: _handleCheckStatus,
           onToggleConnection: _handleToggleConnection,
@@ -155,31 +153,24 @@ class _InstancePageState extends State<InstancePage>
 
   Future<void> _handleToggleConnection(Aria2Instance instance) async {
     final l10n = AppLocalizations.of(context)!;
-    try {
-      setState(() {
-        _isConnectionInProgress = true;
-      });
+    final instanceManager = Provider.of<InstanceManager>(
+      context,
+      listen: false,
+    );
 
-      final instanceManager = Provider.of<InstanceManager>(
-        context,
-        listen: false,
-      );
-
-      if (instance.status == ConnectionStatus.connected) {
-        await instanceManager.disconnectInstance(instance);
-        if (mounted) {
-          _showFeedback(l10n.disconnectedSuccessfully);
-        }
-      } else {
-        await _handleConnectInstance(instance);
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isConnectionInProgress = false;
-        });
-      }
+    if (instance.status == ConnectionStatus.connecting) {
+      return;
     }
+
+    if (instance.status == ConnectionStatus.connected) {
+      await instanceManager.disconnectInstance(instance);
+      if (mounted) {
+        _showFeedback(l10n.disconnectedSuccessfully);
+      }
+      return;
+    }
+
+    await _handleConnectInstance(instance);
   }
 
   void _handleEditInstance(Aria2Instance instance) {

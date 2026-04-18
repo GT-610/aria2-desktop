@@ -8,6 +8,8 @@ import '../models/aria2_instance.dart';
 import 'builtin_upnp_service.dart';
 import '../utils/logging.dart';
 
+enum BuiltinInstanceApplyMode { none, liveApply, restartRequired }
+
 /// Service class for managing the built-in Aria2 instance
 class BuiltinInstanceService with Loggable {
   static BuiltinInstanceService? _instance;
@@ -20,6 +22,7 @@ class BuiltinInstanceService with Loggable {
   StreamSubscription<String>? _stdoutSubscription;
   StreamSubscription<String>? _stderrSubscription;
   final BuiltinUpnpService _upnpService = BuiltinUpnpService();
+  BuiltinInstanceApplyMode _pendingApplyMode = BuiltinInstanceApplyMode.none;
 
   factory BuiltinInstanceService() {
     _instance ??= BuiltinInstanceService._internal();
@@ -201,6 +204,33 @@ class BuiltinInstanceService with Loggable {
   String getEffectiveSessionPath() {
     final settings = _readSettingsSnapshot();
     return _resolveEffectiveSessionPath(settings);
+  }
+
+  BuiltinInstanceApplyMode get pendingApplyMode => _pendingApplyMode;
+
+  void markPendingApply(BuiltinInstanceApplyMode mode) {
+    if (_pendingApplyMode == BuiltinInstanceApplyMode.restartRequired &&
+        mode != BuiltinInstanceApplyMode.restartRequired) {
+      return;
+    }
+    if (_pendingApplyMode == BuiltinInstanceApplyMode.liveApply &&
+        mode == BuiltinInstanceApplyMode.none) {
+      return;
+    }
+    _pendingApplyMode = mode;
+  }
+
+  void clearPendingApply({BuiltinInstanceApplyMode? appliedMode}) {
+    if (appliedMode == null ||
+        appliedMode == BuiltinInstanceApplyMode.restartRequired) {
+      _pendingApplyMode = BuiltinInstanceApplyMode.none;
+      return;
+    }
+
+    if (appliedMode == BuiltinInstanceApplyMode.liveApply &&
+        _pendingApplyMode == BuiltinInstanceApplyMode.liveApply) {
+      _pendingApplyMode = BuiltinInstanceApplyMode.none;
+    }
   }
 
   Future<bool> resetSessionFile() async {
@@ -444,6 +474,7 @@ class BuiltinInstanceService with Loggable {
 
   void onConnected() {
     _isConnected = true;
+    clearPendingApply();
     _stdoutSubscription?.cancel();
     _stderrSubscription?.cancel();
     _stdoutSubscription = null;
@@ -473,6 +504,7 @@ class BuiltinInstanceService with Loggable {
       stopInstance();
     }
     unawaited(_upnpService.shutdown());
+    clearPendingApply();
     _instance = null;
   }
 }

@@ -932,6 +932,12 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get save;
 
+  /// No description provided for @apply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get apply;
+
   /// No description provided for @saveAndApply.
   ///
   /// In en, this message translates to:

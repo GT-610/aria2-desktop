@@ -41,16 +41,12 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
 
     final client = Aria2RpcClient(widget.instance);
     try {
-      final results = await Future.wait<Map<String, dynamic>>([
-        client.getVersionInfo(),
-        client.getGlobalStat(),
-      ]);
+      final versionInfo = await client.getVersionInfo();
+      final globalStat = await client.getGlobalStat();
       if (!mounted) {
         return;
       }
 
-      final versionInfo = results[0];
-      final globalStat = results[1];
       setState(() {
         _snapshot = _RemoteStatusSnapshot.fromRpc(versionInfo, globalStat);
         _isLoading = false;

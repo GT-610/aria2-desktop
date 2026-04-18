@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fl_lib/fl_lib.dart' as fl;
 import 'app.dart';
 import 'models/settings.dart';
 import 'services/protocol_integration_service.dart';
@@ -10,6 +11,7 @@ void main(List<String> args) async {
   // Ensure all platform initializations are complete
   WidgetsFlutterBinding.ensureInitialized();
   initializeAppLogging();
+  await fl.PrefStore.shared.init();
 
   ProtocolIntegrationService().captureInitialArguments(args);
 

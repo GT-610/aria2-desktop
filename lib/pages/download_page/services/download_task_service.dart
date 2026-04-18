@@ -369,6 +369,8 @@ class DownloadTaskService with Loggable {
           task,
           deleteDownloadedFiles: deleteDownloadedFiles,
         );
+        onTaskUpdated();
+        _scheduleFollowUpRefresh(onTaskUpdated);
         if (result.hasFileDeletionErrors) {
           _logger.w(
             'Task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
@@ -379,7 +381,6 @@ class DownloadTaskService with Loggable {
             );
           }
         }
-        onTaskUpdated();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.targetInstanceNotConnected)),
@@ -514,6 +515,8 @@ class DownloadTaskService with Loggable {
           task,
           deleteDownloadedFiles: deleteDownloadedFiles,
         );
+        onTaskUpdated();
+        _scheduleFollowUpRefresh(onTaskUpdated);
         if (result.hasFileDeletionErrors) {
           _logger.w(
             'Failed task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
@@ -524,8 +527,6 @@ class DownloadTaskService with Loggable {
             );
           }
         }
-
-        onTaskUpdated();
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.targetInstanceNotConnected)),
@@ -663,6 +664,10 @@ class DownloadTaskService with Loggable {
         }
       }
     }
+  }
+
+  static void _scheduleFollowUpRefresh(VoidCallback onTaskUpdated) {
+    Future<void>.delayed(const Duration(milliseconds: 600), onTaskUpdated);
   }
 
   static Future<List<String>> _deleteDownloadedFiles(DownloadTask task) async {

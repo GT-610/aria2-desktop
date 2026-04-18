@@ -702,15 +702,10 @@ class _RemoteInstanceSettingsPageState
     ValueChanged<bool> onChanged,
   ) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     return SwitchListTile(
       title: Text(title, style: theme.textTheme.bodyMedium),
       value: value,
       onChanged: _isSaving ? null : onChanged,
-      activeThumbColor: colorScheme.primary,
-      activeTrackColor: colorScheme.primary.withValues(alpha: 0.3),
-      inactiveThumbColor: colorScheme.onSurfaceVariant,
-      inactiveTrackColor: colorScheme.surfaceContainerHighest,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );

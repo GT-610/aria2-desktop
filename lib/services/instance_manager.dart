@@ -312,11 +312,17 @@ class InstanceManager extends ChangeNotifier with Loggable {
   Future<bool> connectInstance(Aria2Instance instance) async {
     try {
       var resolvedInstance = instance;
+      updateInstanceInList(
+        instance.id,
+        ConnectionStatus.connecting,
+        version: instance.version,
+        errorMessage: '',
+      );
 
       // If it's a built-in instance, start the process first
       if (instance.type == InstanceType.builtin) {
         await refreshBuiltinInstanceConfig(
-          preserveStatus: instance.status,
+          preserveStatus: ConnectionStatus.connecting,
           preserveVersion: instance.version,
         );
         resolvedInstance = getBuiltinInstance() ?? instance;
@@ -418,6 +424,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
       updateInstanceInList(
         instance.id,
         ConnectionStatus.failed,
+        version: instance.version,
         errorMessage: instance.type == InstanceType.builtin ? '$e' : null,
       );
       return false;
@@ -438,6 +445,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     updateInstanceInList(
       instance.id,
       ConnectionStatus.disconnected,
+      version: instance.version,
       errorMessage: '',
     );
 

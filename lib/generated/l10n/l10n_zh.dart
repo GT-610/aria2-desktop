@@ -459,6 +459,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get save => '保存';
 
   @override
+  String get apply => '应用';
+
+  @override
   String get saveAndApply => '保存并应用';
 
   @override

@@ -35,9 +35,11 @@ typedef Aria2EventCallback = void Function(String gid);
 
 /// Aria2 RPC client service
 class Aria2RpcClient with Loggable {
+  static int _requestSequence = 0;
   final Aria2Instance instance;
   http.Client? _httpClient;
   WebSocket? _webSocket;
+  Future<void>? _webSocketInitFuture;
   final Map<String, Completer<Map<String, dynamic>>> _pendingRequests = {};
   bool _isWebSocket = false;
 
@@ -84,7 +86,7 @@ class Aria2RpcClient with Loggable {
     List<dynamic> params,
   ) async {
     try {
-      final requestId = DateTime.now().millisecondsSinceEpoch.toString();
+      final requestId = _nextRequestId();
       final requestBody = _buildRequestBody(method, params, requestId);
 
       final response = await _httpClient!
@@ -146,7 +148,7 @@ class Aria2RpcClient with Loggable {
     for (int attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         await _initWebSocket();
-        requestId = DateTime.now().millisecondsSinceEpoch.toString();
+        requestId = _nextRequestId();
         final requestBody = _buildRequestBody(method, params, requestId);
 
         final completer = Completer<Map<String, dynamic>>();
@@ -188,6 +190,30 @@ class Aria2RpcClient with Loggable {
 
   /// Initialize WebSocket connection
   Future<void> _initWebSocket() async {
+    if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
+      return;
+    }
+
+    final inFlightInitialization = _webSocketInitFuture;
+    if (inFlightInitialization != null) {
+      await inFlightInitialization;
+      if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
+        return;
+      }
+    }
+
+    final initialization = _connectWebSocket();
+    _webSocketInitFuture = initialization;
+    try {
+      await initialization;
+    } finally {
+      if (identical(_webSocketInitFuture, initialization)) {
+        _webSocketInitFuture = null;
+      }
+    }
+  }
+
+  Future<void> _connectWebSocket() async {
     if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
       return;
     }
@@ -639,6 +665,7 @@ class Aria2RpcClient with Loggable {
   /// Close connection
   void close() {
     if (_isWebSocket) {
+      _webSocketInitFuture = null;
       _webSocket?.close();
       _webSocket = null;
       _pendingRequests.clear();
@@ -716,5 +743,10 @@ class Aria2RpcClient with Loggable {
     }
 
     return headers;
+  }
+
+  String _nextRequestId() {
+    _requestSequence++;
+    return '${DateTime.now().microsecondsSinceEpoch}-${_requestSequence.toRadixString(16)}';
   }
 }
