@@ -17,7 +17,8 @@ class InstancePage extends StatefulWidget {
   State<InstancePage> createState() => _InstancePageState();
 }
 
-class _InstancePageState extends State<InstancePage> {
+class _InstancePageState extends State<InstancePage>
+    with AutomaticKeepAliveClientMixin {
   Aria2Instance? _selectedInstance;
   bool _isChecking = false;
   bool _isConnectionInProgress = false;
@@ -45,6 +46,7 @@ class _InstancePageState extends State<InstancePage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.instance)),
@@ -56,6 +58,9 @@ class _InstancePageState extends State<InstancePage> {
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   Widget _buildInstanceListView() {
     final l10n = AppLocalizations.of(context)!;
