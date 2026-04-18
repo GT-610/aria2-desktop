@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
+
+import 'logging.dart';
+
+final _logger = taggedLogger('FormatUtils');
 
 class FormatUtils {}
 
@@ -83,8 +86,12 @@ String? parseBitfield(String? bittorrentInfo) {
           return info['bitfield'] as String;
         }
       }
-    } catch (e) {
-      lprint('[FormatUtils] Failed to parse bitfield: $e');
+    } catch (e, stackTrace) {
+      _logger.w(
+        'Failed to parse bittorrent bitfield payload',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
   return null;

@@ -1,97 +1,83 @@
-# Aria2 Desktop Logging System
+# Aria2 Desktop Logging
 
-> **NOTE: This is a developer-facing document.** End users do not need to be concerned with this information.
+This project uses `package:logging` for log levels and routes all log records
+through `fl_lib`'s `DebugProvider`, keeping output and in-app inspection on the
+same path.
 
-## Overview
+## Architecture
 
-This logging system is built on top of the [logger](https://pub.dev/packages/logger) package, providing a unified logging functionality for the entire application. It supports easy integration across different pages and components, helping developers track application behavior, debug issues, and monitor performance.
+- `lib/utils/logging.dart` is the single logging facade for app code.
+- `initializeAppLogging()` configures `Logger.root.level` and the root record
+  listener.
+- The root listener forwards each `LogRecord` to `DebugProvider.addLog(record)`.
+- The same listener writes formatted output through `Loggers.log(...)`.
+- Errors and stack traces are emitted from the root listener, not ad hoc in
+  feature code.
 
-## Core Components
+## Startup
 
-1. **LogConfig** - Centralized configuration class for all logging-related settings
-2. **LogManager** - Singleton log manager responsible for creating and managing Logger instances
-3. **AppLogger** - Log extension class providing tag-based logging methods
-4. **Loggable** - Mixin for easy logging integration in pages or components
+Call `initializeAppLogging()` as early as possible in `main()` after
+`WidgetsFlutterBinding.ensureInitialized()`.
+
+```dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  initializeAppLogging();
+  runApp(const MyApp());
+}
+```
 
 ## Usage
 
-### 1. Direct Usage with LogManager
+Use either a tagged logger or the `Loggable` mixin. Both map to real
+`Logger/Level` records.
+
+### Tagged logger
 
 ```dart
-import 'package:aria2_desktop/utils/logging/log_manager.dart';
+final logger = taggedLogger('RemoteInstanceStatusPage');
 
-// Usage in code
-LogManager().logger.d('Debug message');
-LogManager().logger.e('Error occurred', error: e, stackTrace: stackTrace);
+logger.i('Remote session saved');
+logger.w('Fell back to cached value');
+logger.e(
+  'Failed to load remote status',
+  error: e,
+  stackTrace: stackTrace,
+);
 ```
 
-### 2. Using AppLogger (Recommended)
+### `Loggable` mixin
 
 ```dart
-import 'package:aria2_desktop/utils/logging/log_extensions.dart';
-
-class MyClass {
-  final AppLogger logger = AppLogger('MyClass');
-  
-  void doSomething() {
-    logger.d('Starting operation');
-    try {
-      // Business logic
-      logger.i('Operation completed successfully');
-    } catch (e, stackTrace) {
-      logger.e('Operation failed', error: e, stackTrace: stackTrace);
-    }
+class InstanceManager with ChangeNotifier, Loggable {
+  Future<void> refresh() async {
+    i('Refreshing instances');
   }
 }
 ```
 
-### 3. Using Loggable Mixin
+## Level Guidelines
 
-```dart
-import 'package:aria2_desktop/utils/logging/log_extensions.dart';
+- `i`: important lifecycle milestones, successful saves, successful connects,
+  state transitions worth keeping in release logs
+- `w`: recoverable failures, retries, fallbacks, skipped work, partial success
+- `e`: operation failures, unexpected exceptions, paths that need
+  troubleshooting
 
-class MyPage extends StatefulWidget with Loggable {
-  @override
-  void initState() {
-    super.initState();
-    initLogger(); // Initialize logger
-    logger.i('Page initialized');
-  }
-  
-  void loadData() {
-    logger.d('Starting data loading');
-    // Data loading logic
-  }
-}
-```
+Keep messages contextual. Include the instance, task, or action being handled,
+and pass `error` / `stackTrace` instead of manually appending duplicate error
+text multiple times.
 
-## Log Levels
+## Default policy
 
-The system supports the following log levels (from lowest to highest):
+- App default: `Level.INFO`
 
-- **verbose (t)** - Most detailed log information
-- **debug (d)** - Debug information, used during development
-- **info (i)** - General information logs
-- **warning (w)** - Warning messages
-- **error (e)** - Error messages
-- **fatal (f)** - Critical error messages
+This keeps output focused on actionable lifecycle, warning, and error signals.
 
-## Configuration
+## Do and Don't
 
-You can modify the default logging configuration in `log_config.dart`, including log levels, output formats, and more.
-
-```dart
-// Modify default log level
-LogManager().setLogLevel(Level.info);
-
-// Reset logger (apply new configuration)
-LogManager().resetLogger();
-```
-
-## Best Practices
-
-1. In production builds, set a higher log level (e.g., warning or error) to reduce log volume
-2. Avoid logging sensitive information such as passwords or personal data
-3. For large objects, consider implementing a custom `toString()` method to optimize log output
-4. Use appropriate log levels to filter logs effectively during debugging
-5. Include contextual information in logs to make debugging easier
+- Do use `taggedLogger(...)` or `Loggable`.
+- Do pass `error` and `stackTrace` for failures.
+- Do choose the lowest level that matches the event severity.
+- Don't call `debugPrint`, `dprint`, or `lprint` directly in business code.
+- Don't log secrets such as RPC tokens, passwords, or private headers.

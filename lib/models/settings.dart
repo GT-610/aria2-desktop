@@ -83,9 +83,7 @@ class Settings extends ChangeNotifier with Loggable {
   final String _settingsFileName = 'settings.json';
 
   // Constructor initialization
-  Settings() {
-    i('Settings instance created');
-  }
+  Settings();
 
   /// Get program data directory
   Directory _getDataDirectory() {
@@ -97,7 +95,6 @@ class Settings extends ChangeNotifier with Loggable {
     String dataDirPath = '${executableDir.path}/data';
     Directory dataDir = Directory(dataDirPath);
     if (!dataDir.existsSync()) {
-      this.d('Creating data directory: $dataDirPath');
       dataDir.createSync(recursive: true);
     }
 
@@ -180,7 +177,6 @@ class Settings extends ChangeNotifier with Loggable {
     final dataDir = _getDataDirectory();
     final configDir = Directory('${dataDir.path}/config');
     if (!configDir.existsSync()) {
-      this.d('Creating config directory: ${configDir.path}');
       configDir.createSync(recursive: true);
     }
     return '${configDir.path}/$_settingsFileName';
@@ -267,7 +263,6 @@ class Settings extends ChangeNotifier with Loggable {
   // Load all settings from JSON file
   Future<void> loadSettings() async {
     try {
-      this.i('Loading settings from JSON file...');
       final filePath = _getSettingsFilePath();
       final file = File(filePath);
 
@@ -374,10 +369,7 @@ class Settings extends ChangeNotifier with Loggable {
         _userAgent =
             settingsMap['userAgent'] ??
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
-        this.i('Settings loaded successfully from $filePath');
       } else {
-        this.d('Settings file does not exist, applying default settings');
         _applyDefaultSettings();
       }
 
@@ -397,7 +389,6 @@ class Settings extends ChangeNotifier with Loggable {
 
   // Apply default settings
   void _applyDefaultSettings() {
-    this.i('Applying default settings');
     _assignDefaultSettings();
     // Schedule notifyListeners to run after the current frame is built
     SchedulerBinding.instance.addPostFrameCallback((_) {
@@ -476,8 +467,6 @@ class Settings extends ChangeNotifier with Loggable {
 
       final jsonString = jsonEncode(settingsMap);
       await file.writeAsString(jsonString);
-
-      this.i('All settings saved successfully to $filePath');
     } catch (e) {
       this.e('Failed to save settings', error: e);
     }
@@ -582,12 +571,6 @@ class Settings extends ChangeNotifier with Loggable {
     _customColorCode = isCustom ? color.toARGB32().toString() : null;
     notifyListeners();
     await _saveAllSettings();
-
-    if (isCustom) {
-      this.d('Custom primary color saved: $color');
-    } else {
-      this.d('Standard primary color saved: $color');
-    }
   }
 
   // Locale setting

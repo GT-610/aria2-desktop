@@ -1,11 +1,11 @@
 import 'dart:convert';
-import 'package:fl_lib/fl_lib.dart';
+
 import '../enums.dart';
 import '../models/download_task.dart';
 import '../../../utils/format_utils.dart';
+import '../../../utils/logging.dart';
 
-void _logD(String msg) => dprint('[TaskParser] $msg');
-void _logE(String msg) => lprint('[TaskParser] $msg');
+final _logger = taggedLogger('TaskParser');
 
 class TaskParser {
   static List<DownloadTask> parseTasks(
@@ -16,10 +16,8 @@ class TaskParser {
   ) {
     List<DownloadTask> parsedTasks = [];
 
-    // Handle nested array structure: if tasks is a nested array (tasks[0] is also an array), use tasks[0] as the task list
     List taskList = tasks;
     if (tasks.isNotEmpty && tasks[0] is List) {
-      _logD('Data structure optimization: Processing nested array');
       taskList = tasks[0];
     }
 
@@ -63,8 +61,12 @@ class TaskParser {
             isSeeder: parsedTask.isSeeder,
           );
           parsedTasks.add(taskWithStatus);
-        } catch (e) {
-          _logE('Failed to parse task: ${e.toString()}');
+        } catch (e, stackTrace) {
+          _logger.e(
+            'Failed to parse task payload for instance $instanceId',
+            error: e,
+            stackTrace: stackTrace,
+          );
           continue;
         }
       }
@@ -229,12 +231,6 @@ class TaskParser {
     String? errorMessage;
     if (taskData.containsKey('errorMessage')) {
       errorMessage = taskData['errorMessage'] as String?;
-      // Only log warning when there is an error message
-      if (errorMessage != null && errorMessage.isNotEmpty) {
-        _logD(
-          'Task[${id.length > 8 ? id.substring(0, 8) : id}] error: ${errorMessage.length > 80 ? errorMessage.substring(0, 80) : errorMessage}',
-        );
-      }
     }
 
     // Parse bitfield data

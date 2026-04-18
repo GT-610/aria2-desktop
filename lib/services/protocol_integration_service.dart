@@ -33,7 +33,6 @@ class ProtocolIntegrationService with Loggable {
       final normalizedUri = normalizeIncomingUri(argument);
       if (normalizedUri != null) {
         _pendingLaunchUri = normalizedUri;
-        i('Captured external launch URI: $normalizedUri');
         return;
       }
     }
@@ -70,7 +69,7 @@ class ProtocolIntegrationService with Loggable {
 
   Future<void> setProtocolEnabled(String scheme, bool enabled) async {
     if (!isSupported) {
-      w('Protocol integration is not supported on this platform');
+      w('Protocol integration is not supported on the current platform');
       return;
     }
 
@@ -78,7 +77,9 @@ class ProtocolIntegrationService with Loggable {
       'scheme': scheme,
       'enabled': enabled,
     });
-    i('Protocol ${scheme.toLowerCase()} enabled=$enabled applied');
+    i(
+      'Applied protocol preference for ${scheme.toLowerCase()}: enabled=$enabled',
+    );
   }
 
   String? normalizeIncomingUri(String rawValue) {

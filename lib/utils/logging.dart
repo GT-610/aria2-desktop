@@ -1,54 +1,56 @@
+import 'dart:async';
+
 import 'package:fl_lib/fl_lib.dart';
+import 'package:logging/logging.dart';
 
-enum Level { debug, info, warning, error }
+Level get defaultLogLevel => Level.INFO;
 
-void _log(
-  Level level,
-  String message, {
-  dynamic error,
-  StackTrace? stackTrace,
-  String? tag,
-}) {
-  final prefix = tag != null ? '[$tag] ' : '';
-  final msg = error != null
-      ? '$prefix$message\nError: $error'
-      : '$prefix$message';
+StreamSubscription<LogRecord>? _rootLogSubscription;
 
-  switch (level) {
-    case Level.debug:
-      dprint(msg);
-    case Level.info:
-      dprint(msg);
-    case Level.warning:
-      dprint(msg);
-    case Level.error:
-      lprint(msg);
-      if (stackTrace != null) {
-        lprint(stackTrace.toString());
-      }
+String _formatRecord(LogRecord record) {
+  final message =
+      '[${record.loggerName}][${record.level.name}] ${record.message}';
+  if (record.error == null) {
+    return message;
   }
+  return '$message\nError: ${record.error}';
+}
+
+void initializeAppLogging({Level? level}) {
+  final nextLevel = level ?? defaultLogLevel;
+  Logger.root.level = nextLevel;
+  _rootLogSubscription?.cancel();
+  _rootLogSubscription = Logger.root.onRecord.listen((record) {
+    DebugProvider.addLog(record);
+    Loggers.log(_formatRecord(record));
+    if (record.stackTrace != null) {
+      Loggers.log(record.stackTrace!);
+    }
+  });
+}
+
+Logger taggedLogger(String tag) => Logger(tag);
+
+extension LoggerLevelX on Logger {
+  void i(String message, {Object? error, StackTrace? stackTrace}) =>
+      log(Level.INFO, message, error, stackTrace);
+
+  void w(String message, {Object? error, StackTrace? stackTrace}) =>
+      log(Level.WARNING, message, error, stackTrace);
+
+  void e(String message, {Object? error, StackTrace? stackTrace}) =>
+      log(Level.SEVERE, message, error, stackTrace);
 }
 
 mixin Loggable {
-  void log(
-    Level level,
-    String message, {
-    dynamic error,
-    StackTrace? stackTrace,
-  }) {
-    _log(
-      level,
-      message,
-      error: error,
-      stackTrace: stackTrace,
-      tag: runtimeType.toString(),
-    );
-  }
+  Logger get logger => taggedLogger(runtimeType.toString());
 
-  void d(String message) => log(Level.debug, message);
-  void i(String message) => log(Level.info, message);
-  void w(String message, {dynamic error, StackTrace? stackTrace}) =>
-      log(Level.warning, message, error: error, stackTrace: stackTrace);
-  void e(String message, {dynamic error, StackTrace? stackTrace}) =>
-      log(Level.error, message, error: error, stackTrace: stackTrace);
+  void i(String message, {Object? error, StackTrace? stackTrace}) =>
+      logger.i(message, error: error, stackTrace: stackTrace);
+
+  void w(String message, {Object? error, StackTrace? stackTrace}) =>
+      logger.w(message, error: error, stackTrace: stackTrace);
+
+  void e(String message, {Object? error, StackTrace? stackTrace}) =>
+      logger.e(message, error: error, stackTrace: stackTrace);
 }

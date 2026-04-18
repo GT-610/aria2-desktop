@@ -52,7 +52,6 @@ class DownloadPageState extends State<DownloadPage>
   void initState() {
     super.initState();
     _searchController = TextEditingController();
-    d('DownloadPage initialized');
   }
 
   @override
@@ -151,9 +150,6 @@ class DownloadPageState extends State<DownloadPage>
     }
 
     final connectedInstances = instanceManager!.getConnectedInstances();
-    d(
-      'Updating refresh timer for ${connectedInstances.length} connected instance(s)',
-    );
 
     if (connectedInstances.isEmpty) {
       downloadDataService!.stopPeriodicRefresh();
@@ -207,8 +203,6 @@ class DownloadPageState extends State<DownloadPage>
   }
 
   void _showTaskDetails(BuildContext context, DownloadTask task) {
-    d('Show task details dialog for: ${task.name} (ID: ${task.id})');
-
     TaskDetailsDialog.showTaskDetailsDialog(
       context,
       task,

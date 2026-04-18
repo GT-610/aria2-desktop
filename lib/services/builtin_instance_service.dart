@@ -429,13 +429,9 @@ class BuiltinInstanceService with Loggable {
   void _monitorProcessOutput() {
     if (_aria2Process == null) return;
 
-    _stdoutSubscription = _aria2Process!.stdout.transform(utf8.decoder).listen((
-      data,
-    ) {
-      if (!_isConnected) {
-        d('Aria2 [builtin] stdout: $data');
-      }
-    });
+    _stdoutSubscription = _aria2Process!.stdout
+        .transform(utf8.decoder)
+        .listen((_) {});
 
     _stderrSubscription = _aria2Process!.stderr.transform(utf8.decoder).listen((
       data,

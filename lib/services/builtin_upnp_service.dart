@@ -143,13 +143,6 @@ class BuiltinUpnpService with Loggable {
     final rules = <_PortMappingRule>{};
 
     final btPorts = _expandPorts(btListenPort);
-    if (btPorts.length > 1) {
-      i(
-        'Multiple BT listen ports were configured for aria2; '
-        'UPnP/NAT-PMP will map only the first resolved port ${btPorts.first}',
-      );
-    }
-
     if (btPorts.isNotEmpty) {
       rules.add(
         _PortMappingRule(
@@ -249,10 +242,6 @@ class BuiltinUpnpService with Loggable {
                 portDescription: rule.description,
               )
               .timeout(_mappingTimeout);
-          i(
-            'Mapped ${rule.protocol.name.toUpperCase()} port ${rule.port} via '
-            'UPnP/NAT-PMP',
-          );
           successfulRules.add(rule);
         } catch (e, stackTrace) {
           w(
@@ -278,10 +267,6 @@ class BuiltinUpnpService with Loggable {
           await gateway
               .closePort(protocol: rule.protocol, externalPort: rule.port)
               .timeout(_mappingTimeout);
-          i(
-            'Unmapped ${rule.protocol.name.toUpperCase()} port ${rule.port} '
-            'from UPnP/NAT-PMP',
-          );
           successfulRules.add(rule);
         } catch (e, stackTrace) {
           w(

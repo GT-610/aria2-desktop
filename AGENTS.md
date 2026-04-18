@@ -107,7 +107,8 @@ try {
 
 ### 9. Logging
 - Use project's logging system (`lib/utils/logging.dart`)
-- Log levels: `log.d()`, `log.i()`, `log.w()`, `log.e()`
+- Repository-tracked log levels: `log.i()`, `log.w()`, `log.e()`
+- Temporary debug logging may be added locally during development or troubleshooting, but it must be removed before the final commit/PR
 - Don't log sensitive data (passwords, secrets)
 
 ### 10. General Best Practices

@@ -155,7 +155,7 @@ class Aria2RpcClient with Loggable {
         _webSocket!.add(jsonEncode(requestBody));
 
         return await completer.future.timeout(const Duration(seconds: 10));
-      } catch (e) {
+      } catch (e, stackTrace) {
         // Clean up current request from pending before rethrowing
         if (requestId != null) {
           _pendingRequests.remove(requestId);
@@ -166,7 +166,11 @@ class Aria2RpcClient with Loggable {
           }
           rethrow;
         }
-        w('WebSocket attempt ${attempt + 1} failed, retrying: $e');
+        w(
+          'WebSocket RPC attempt ${attempt + 1} failed for ${instance.name}, retrying',
+          error: e,
+          stackTrace: stackTrace,
+        );
         _webSocket?.close();
         _webSocket = null;
         // Complete pending requests with error before clearing
@@ -230,8 +234,12 @@ class Aria2RpcClient with Loggable {
       } else if (data.containsKey('method')) {
         _handleNotification(data);
       }
-    } catch (err) {
-      e('Failed to parse WebSocket message', error: err);
+    } catch (err, stackTrace) {
+      e(
+        'Failed to parse WebSocket message for ${instance.name}',
+        error: err,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -245,8 +253,6 @@ class Aria2RpcClient with Loggable {
       final firstParam = params[0] as Map<String, dynamic>;
       gid = firstParam['gid'] as String;
     }
-
-    d('Received Aria2 notification: $method, GID: $gid');
 
     Aria2Event? event;
     switch (method) {
@@ -293,8 +299,12 @@ class Aria2RpcClient with Loggable {
     for (final callback in callbacks) {
       try {
         callback(gid);
-      } catch (err) {
-        e('Error in event callback', error: err);
+      } catch (err, stackTrace) {
+        e(
+          'Error in Aria2 event callback for ${instance.name}',
+          error: err,
+          stackTrace: stackTrace,
+        );
       }
     }
   }
@@ -367,16 +377,26 @@ class Aria2RpcClient with Loggable {
             // Directly judge the content of the item without additional nesting levels
             final isSuccess = item is List<dynamic>;
             return {'success': isSuccess, 'data': item};
-          } catch (e) {
-            this.e('Error processing multicall item', error: e);
+          } catch (e, stackTrace) {
+            this.e(
+              'Error processing multicall item for ${instance.name}',
+              error: e,
+              stackTrace: stackTrace,
+            );
             return {'success': false, 'error': 'Error processing item: $e'};
           }
         }).toList();
       }
-      this.e('Invalid multicall response format: $response');
+      this.e(
+        'Received invalid multicall response format from ${instance.name}: $response',
+      );
       return [];
-    } catch (e) {
-      this.e('Multicall failed', error: e);
+    } catch (e, stackTrace) {
+      this.e(
+        'Multicall failed for ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
@@ -545,10 +565,13 @@ class Aria2RpcClient with Loggable {
   Future<bool> setGlobalOption(Map<String, dynamic> options) async {
     try {
       final response = await callRpc('aria2.changeGlobalOption', [options]);
-      this.d('Global options set successfully: $options');
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
-      this.e('Failed to set global options', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to set global options for ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
@@ -559,7 +582,11 @@ class Aria2RpcClient with Loggable {
       final response = await callRpc('aria2.getGlobalOption', []);
       return response['result'] as Map<String, dynamic>;
     } catch (e, stackTrace) {
-      this.e('Failed to get global options', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to get global options for ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
@@ -570,7 +597,11 @@ class Aria2RpcClient with Loggable {
       final response = await callRpc('aria2.getGlobalStat', []);
       return Map<String, dynamic>.from(response['result'] as Map);
     } catch (e, stackTrace) {
-      this.e('Failed to get global stat', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to get global stat for ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
@@ -581,7 +612,11 @@ class Aria2RpcClient with Loggable {
       final response = await callRpc('aria2.saveSession', []);
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
-      this.e('Failed to save session', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to save session for ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }
@@ -593,7 +628,7 @@ class Aria2RpcClient with Loggable {
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
       this.e(
-        'Failed to purge download results',
+        'Failed to purge download results for ${instance.name}',
         error: e,
         stackTrace: stackTrace,
       );

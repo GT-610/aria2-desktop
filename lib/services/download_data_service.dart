@@ -28,9 +28,7 @@ class DownloadTaskNotification {
 /// Unified download task data service
 /// Responsible for periodically fetching task data from Aria2, performing unified data encapsulation and caching
 class DownloadDataService extends ChangeNotifier with Loggable {
-  DownloadDataService() {
-    i('Service initialization completed');
-  }
+  DownloadDataService();
 
   Timer? _refreshTimer;
 
@@ -62,6 +60,9 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   }
 
   void setRefreshInterval(int milliseconds) {
+    if (_refreshInterval == milliseconds) {
+      return;
+    }
     _refreshInterval = milliseconds;
     _restartTimer();
   }
@@ -77,7 +78,6 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   void stopPeriodicRefresh() {
     _refreshTimer?.cancel();
     _refreshTimer = null;
-    this.d('Timer stopped');
   }
 
   Future<void> refreshTasks(List<Aria2Instance> instances) async {
@@ -114,7 +114,11 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       notifyListeners();
     } catch (e, stackTrace) {
       _lastError = e.toString();
-      this.e('Failed to refresh tasks', error: e, stackTrace: stackTrace);
+      this.e(
+        'Failed to refresh tasks across connected instances',
+        error: e,
+        stackTrace: stackTrace,
+      );
       notifyListeners();
     } finally {
       _isRefreshing = false;
@@ -133,7 +137,9 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     Aria2Instance instance,
   ) async {
     if (instance.status != ConnectionStatus.connected) {
-      this.w('Instance not connected, skipping task fetch: ${instance.name}');
+      this.w(
+        'Skipping task fetch because instance ${instance.name} is not marked connected',
+      );
       return [];
     }
 
@@ -147,7 +153,6 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       final results = await client.getDownloadStatus();
 
       if (results.isEmpty) {
-        this.d('Task data is empty');
         return allTasks;
       }
 
@@ -191,12 +196,10 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         );
       }
 
-      this.d('Task fetch completed: ${allTasks.length} total');
-
       return allTasks;
     } catch (e, stackTrace) {
       this.e(
-        'Failed to fetch tasks: ${instance.name}',
+        'Failed to fetch tasks for instance ${instance.name}',
         error: e,
         stackTrace: stackTrace,
       );
@@ -229,22 +232,15 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     final connectedInstances = _connectedInstancesProvider?.call() ?? const [];
 
     if (connectedInstances.isNotEmpty) {
-      this.i(
-        'Preparing to start timer for ${connectedInstances.length} connected instance(s), fixed interval ${_refreshInterval}ms',
-      );
       _refreshTimer = Timer.periodic(Duration(milliseconds: _refreshInterval), (
         timer,
       ) {
         if (timer.isActive && !_isRefreshing) {
-          this.d('Timer triggered task refresh');
           final latestConnectedInstances =
               _connectedInstancesProvider?.call() ?? const [];
           refreshTasks(latestConnectedInstances);
         }
       });
-      this.i(
-        'Timer started successfully for ${connectedInstances.length} connected instance(s), interval ${_refreshInterval}ms',
-      );
     }
   }
 
@@ -313,7 +309,6 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     try {
       return _tasks.firstWhere((task) => task.id == taskId);
     } catch (e) {
-      this.d('Task not found: $taskId');
       return null;
     }
   }

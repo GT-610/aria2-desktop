@@ -1,13 +1,13 @@
-import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
 import '../../../generated/l10n/l10n.dart';
 import '../../../utils/format_utils.dart';
+import '../../../utils/logging.dart';
 import '../models/download_task.dart';
 
-void _logE(String msg) => lprint('[TaskUtils] $msg');
+final _logger = taggedLogger('TaskUtils');
 
 class TaskUtils {
   static String calculateRemainingTime(DownloadTask task) {
@@ -65,8 +65,12 @@ class TaskUtils {
           }
         }
       }
-    } catch (e) {
-      _logE('Error opening directory: $e');
+    } catch (e, stackTrace) {
+      _logger.e(
+        'Failed to open download directory for task ${task.id}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.errorOpeningDirectory('$e'))),
