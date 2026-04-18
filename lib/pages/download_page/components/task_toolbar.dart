@@ -129,19 +129,12 @@ class TaskToolbar extends StatelessWidget {
               const SizedBox(width: 12),
               PopupMenuButton<TaskSortOption>(
                 tooltip: l10n.sortTasks,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+                style: ButtonStyle(
+                  shape: WidgetStatePropertyAll(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  side: BorderSide(
-                    color: colorScheme.outline.withValues(alpha: 0.5),
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  foregroundColor: colorScheme.onSurface,
-                  textStyle: textTheme.labelLarge,
                 ),
                 onSelected: onSortChanged,
                 itemBuilder: (context) => TaskSortOption.values.map((option) {
@@ -159,21 +152,40 @@ class TaskToolbar extends StatelessWidget {
                     ),
                   );
                 }).toList(),
-                child: IconTheme.merge(
-                  data: IconThemeData(color: colorScheme.onSurface),
-                  child: DefaultTextStyle.merge(
-                    style:
-                        textTheme.labelLarge?.copyWith(
-                          color: colorScheme.onSurface,
-                        ) ??
-                        TextStyle(color: colorScheme.onSurface),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.sort),
-                        const SizedBox(width: 8),
-                        Text(_sortLabel(l10n, sortOption)),
-                      ],
+                child: Material(
+                  color: Colors.transparent,
+                  child: Ink(
+                    decoration: ShapeDecoration(
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(
+                          color: colorScheme.outline.withValues(alpha: 0.5),
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      child: IconTheme.merge(
+                        data: IconThemeData(color: colorScheme.onSurface),
+                        child: DefaultTextStyle.merge(
+                          style:
+                              textTheme.labelLarge?.copyWith(
+                                color: colorScheme.onSurface,
+                              ) ??
+                              TextStyle(color: colorScheme.onSurface),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.sort),
+                              const SizedBox(width: 8),
+                              Text(_sortLabel(l10n, sortOption)),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
