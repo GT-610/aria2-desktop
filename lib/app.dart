@@ -665,6 +665,11 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
+    await downloadDataService.refreshTasks(connectedInstances);
+    if (!mounted) {
+      return;
+    }
+
     final actionableTasks = downloadDataService.tasks
         .where(shouldProcess)
         .toList();
