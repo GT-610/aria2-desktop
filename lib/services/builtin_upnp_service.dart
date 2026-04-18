@@ -307,7 +307,13 @@ class BuiltinUpnpService with Loggable {
       return await gateway
           .isMapped(protocol: rule.protocol, externalPort: rule.port)
           .timeout(_mappingTimeout);
-    } catch (_) {
+    } catch (e, stackTrace) {
+      w(
+        'Failed to check if ${rule.protocol.name.toUpperCase()} port '
+        '${rule.port} is already mapped',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }
