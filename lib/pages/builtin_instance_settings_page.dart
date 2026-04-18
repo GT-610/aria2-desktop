@@ -1076,7 +1076,7 @@ class _BuiltinInstanceSettingsPageState
   Future<void> _saveAndApplySettings(Settings settings) async {
     if (_hasChanges) {
       final l10n = AppLocalizations.of(context)!;
-      final applyMode = _currentDraftApplyMode(settings);
+      final applyMode = _effectiveApplyMode(settings);
 
       setState(() {
         _isSaving = true;
