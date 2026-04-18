@@ -155,7 +155,7 @@ class Aria2RpcClient with Loggable {
         _webSocket!.add(jsonEncode(requestBody));
 
         return await completer.future.timeout(const Duration(seconds: 10));
-      } catch (e) {
+      } catch (e, stackTrace) {
         // Clean up current request from pending before rethrowing
         if (requestId != null) {
           _pendingRequests.remove(requestId);
@@ -166,7 +166,11 @@ class Aria2RpcClient with Loggable {
           }
           rethrow;
         }
-        w('WebSocket attempt ${attempt + 1} failed, retrying: $e');
+        w(
+          'WebSocket RPC attempt ${attempt + 1} failed for ${instance.name}, retrying',
+          error: e,
+          stackTrace: stackTrace,
+        );
         _webSocket?.close();
         _webSocket = null;
         // Complete pending requests with error before clearing
@@ -230,8 +234,12 @@ class Aria2RpcClient with Loggable {
       } else if (data.containsKey('method')) {
         _handleNotification(data);
       }
-    } catch (err) {
-      e('Failed to parse WebSocket message', error: err);
+    } catch (err, stackTrace) {
+      e(
+        'Failed to parse WebSocket message for ${instance.name}',
+        error: err,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -291,8 +299,12 @@ class Aria2RpcClient with Loggable {
     for (final callback in callbacks) {
       try {
         callback(gid);
-      } catch (err) {
-        e('Error in event callback', error: err);
+      } catch (err, stackTrace) {
+        e(
+          'Error in Aria2 event callback for ${instance.name}',
+          error: err,
+          stackTrace: stackTrace,
+        );
       }
     }
   }
@@ -365,16 +377,24 @@ class Aria2RpcClient with Loggable {
             // Directly judge the content of the item without additional nesting levels
             final isSuccess = item is List<dynamic>;
             return {'success': isSuccess, 'data': item};
-          } catch (e) {
-            this.e('Error processing multicall item', error: e);
+          } catch (e, stackTrace) {
+            this.e(
+              'Error processing multicall item for ${instance.name}',
+              error: e,
+              stackTrace: stackTrace,
+            );
             return {'success': false, 'error': 'Error processing item: $e'};
           }
         }).toList();
       }
       this.e('Invalid multicall response format: $response');
       return [];
-    } catch (e) {
-      this.e('Multicall failed', error: e);
+    } catch (e, stackTrace) {
+      this.e(
+        'Multicall failed for ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       rethrow;
     }
   }

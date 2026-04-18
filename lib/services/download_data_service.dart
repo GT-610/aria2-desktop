@@ -133,7 +133,9 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     Aria2Instance instance,
   ) async {
     if (instance.status != ConnectionStatus.connected) {
-      this.w('Instance not connected, skipping task fetch: ${instance.name}');
+      this.w(
+        'Skipping task fetch because instance ${instance.name} is not marked connected',
+      );
       return [];
     }
 
@@ -193,7 +195,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       return allTasks;
     } catch (e, stackTrace) {
       this.e(
-        'Failed to fetch tasks: ${instance.name}',
+        'Failed to fetch tasks for instance ${instance.name}',
         error: e,
         stackTrace: stackTrace,
       );

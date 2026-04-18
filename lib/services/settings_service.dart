@@ -78,7 +78,9 @@ class SettingsService extends ChangeNotifier with Loggable {
       if (result) {
         i('Settings applied successfully to built-in Aria2');
       } else {
-        w('Failed to apply settings to built-in Aria2');
+        w(
+          'Built-in Aria2 reported unsuccessful runtime settings apply without throwing an exception',
+        );
       }
       return result;
     } catch (err, stackTrace) {

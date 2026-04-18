@@ -294,8 +294,12 @@ class InstanceManager extends ChangeNotifier with Loggable {
       final isConnected = await client.testConnection();
       client.close();
       return isConnected;
-    } catch (e) {
-      this.w('Connection test failed: $e');
+    } catch (e, stackTrace) {
+      this.w(
+        'Connection test failed for instance ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }
@@ -369,8 +373,12 @@ class InstanceManager extends ChangeNotifier with Loggable {
       try {
         version = await client.getVersion();
         this.i('Aria2 version: $version');
-      } catch (e) {
-        this.w('Failed to get Aria2 version: $e');
+      } catch (e, stackTrace) {
+        this.w(
+          'Failed to get Aria2 version for instance ${resolvedInstance.name}',
+          error: e,
+          stackTrace: stackTrace,
+        );
       } finally {
         client.close();
       }
