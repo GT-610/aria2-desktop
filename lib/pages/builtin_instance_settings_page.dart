@@ -233,7 +233,10 @@ class _BuiltinInstanceSettingsPageState
                 : Text(
                     l10n.saveAndApply,
                     style: TextStyle(
-                      color: _hasChanges
+                      color:
+                          (_hasChanges ||
+                              _effectiveApplyMode(settings) !=
+                                  BuiltinInstanceApplyMode.none)
                           ? colorScheme.primary
                           : colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
@@ -1225,6 +1228,9 @@ class _BuiltinInstanceSettingsPageState
         _showSettingsSnackBar(successMessage);
       } else {
         setState(() {
+          if (clearDraftChanges) {
+            _hasChanges = false;
+          }
           _isSaving = false;
         });
 
@@ -1238,6 +1244,9 @@ class _BuiltinInstanceSettingsPageState
       if (mounted) {
         Navigator.pop(context);
         setState(() {
+          if (clearDraftChanges) {
+            _hasChanges = false;
+          }
           _isSaving = false;
         });
 
