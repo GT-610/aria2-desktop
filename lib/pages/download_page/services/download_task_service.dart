@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
@@ -15,8 +14,7 @@ import '../../../utils/logging.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
 
-void _logE(String msg) => fl.lprint('[DownloadTaskService] $msg');
-void _logW(String msg) => fl.lprint('[DownloadTaskService][WARN] $msg');
+final _logger = taggedLogger('DownloadTaskService');
 
 class DeleteTaskResult {
   const DeleteTaskResult({
@@ -107,7 +105,7 @@ class DownloadTaskService with Loggable {
     }
 
     if (fileDeletionErrors.isNotEmpty) {
-      _logW(
+      _logger.w(
         'Task ${task.id} was removed from Aria2, but file cleanup had issues: ${fileDeletionErrors.join(', ')}',
       );
     }
@@ -295,7 +293,10 @@ class DownloadTaskService with Loggable {
     return AppLocalizations.of(context)!.stoppingSeedingTip;
   }
 
-  static String _failedToStopSeedingMessage(BuildContext context, String error) {
+  static String _failedToStopSeedingMessage(
+    BuildContext context,
+    String error,
+  ) {
     return AppLocalizations.of(context)!.failedToStopSeeding(error);
   }
 
@@ -325,8 +326,12 @@ class DownloadTaskService with Loggable {
           SnackBar(content: Text(l10n.targetInstanceNotConnected)),
         );
       }
-    } catch (e) {
-      _logE('Error pausing task: $e');
+    } catch (e, stackTrace) {
+      _logger.e(
+        'Failed to pause task ${task.id}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -365,7 +370,7 @@ class DownloadTaskService with Loggable {
           deleteDownloadedFiles: deleteDownloadedFiles,
         );
         if (result.hasFileDeletionErrors) {
-          _logW(
+          _logger.w(
             'Task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
           );
           if (context.mounted) {
@@ -380,8 +385,12 @@ class DownloadTaskService with Loggable {
           SnackBar(content: Text(l10n.targetInstanceNotConnected)),
         );
       }
-    } catch (e) {
-      _logE('Error stopping task: $e');
+    } catch (e, stackTrace) {
+      _logger.e(
+        'Failed to stop task ${task.id}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -423,8 +432,12 @@ class DownloadTaskService with Loggable {
           SnackBar(content: Text(l10n.targetInstanceNotConnected)),
         );
       }
-    } catch (e) {
-      _logE('Error stopping seeding task: $e');
+    } catch (e, stackTrace) {
+      _logger.e(
+        'Failed to stop seeding task ${task.id}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(_failedToStopSeedingMessage(context, '$e'))),
@@ -457,8 +470,12 @@ class DownloadTaskService with Loggable {
           SnackBar(content: Text(l10n.targetInstanceNotConnected)),
         );
       }
-    } catch (e) {
-      _logE('Error resuming task: $e');
+    } catch (e, stackTrace) {
+      _logger.e(
+        'Failed to resume task ${task.id}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -498,7 +515,7 @@ class DownloadTaskService with Loggable {
           deleteDownloadedFiles: deleteDownloadedFiles,
         );
         if (result.hasFileDeletionErrors) {
-          _logW(
+          _logger.w(
             'Failed task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
           );
           if (context.mounted) {
@@ -514,8 +531,12 @@ class DownloadTaskService with Loggable {
           SnackBar(content: Text(l10n.targetInstanceNotConnected)),
         );
       }
-    } catch (e) {
-      _logE('Error removing failed task: $e');
+    } catch (e, stackTrace) {
+      _logger.e(
+        'Failed to remove failed task ${task.id}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.failedToRemoveFailedTask('$e'))),
@@ -601,13 +622,21 @@ class DownloadTaskService with Loggable {
       if (task.status == DownloadStatus.stopped) {
         try {
           await client.removeDownloadResult(task.id);
-        } catch (error) {
-          _logW('Failed to remove original task record after retry: $error');
+        } catch (error, stackTrace) {
+          _logger.w(
+            'Retried task ${task.id}, but failed to remove original result record',
+            error: error,
+            stackTrace: stackTrace,
+          );
         }
       }
       onTaskUpdated();
-    } catch (e) {
-      _logE('Error retrying task: $e');
+    } catch (e, stackTrace) {
+      _logger.e(
+        'Failed to retry task ${task.id}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,

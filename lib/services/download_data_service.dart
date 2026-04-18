@@ -62,7 +62,11 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   }
 
   void setRefreshInterval(int milliseconds) {
+    if (_refreshInterval == milliseconds) {
+      return;
+    }
     _refreshInterval = milliseconds;
+    i('Task refresh interval updated to ${_refreshInterval}ms');
     _restartTimer();
   }
 
@@ -147,7 +151,6 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       final results = await client.getDownloadStatus();
 
       if (results.isEmpty) {
-        this.d('Task data is empty');
         return allTasks;
       }
 
@@ -191,8 +194,6 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         );
       }
 
-      this.d('Task fetch completed: ${allTasks.length} total');
-
       return allTasks;
     } catch (e, stackTrace) {
       this.e(
@@ -229,22 +230,18 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     final connectedInstances = _connectedInstancesProvider?.call() ?? const [];
 
     if (connectedInstances.isNotEmpty) {
-      this.i(
-        'Preparing to start timer for ${connectedInstances.length} connected instance(s), fixed interval ${_refreshInterval}ms',
+      i(
+        'Starting task refresh timer for ${connectedInstances.length} connected instance(s) at ${_refreshInterval}ms',
       );
       _refreshTimer = Timer.periodic(Duration(milliseconds: _refreshInterval), (
         timer,
       ) {
         if (timer.isActive && !_isRefreshing) {
-          this.d('Timer triggered task refresh');
           final latestConnectedInstances =
               _connectedInstancesProvider?.call() ?? const [];
           refreshTasks(latestConnectedInstances);
         }
       });
-      this.i(
-        'Timer started successfully for ${connectedInstances.length} connected instance(s), interval ${_refreshInterval}ms',
-      );
     }
   }
 

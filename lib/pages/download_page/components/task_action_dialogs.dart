@@ -1,4 +1,3 @@
-import 'package:fl_lib/fl_lib.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart' as p;
 
@@ -8,13 +7,12 @@ import '../../../models/settings.dart';
 import '../../../services/aria2_rpc_client.dart';
 import '../../../services/download_data_service.dart';
 import '../../../services/instance_manager.dart';
+import '../../../utils/logging.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
 import '../services/download_task_service.dart';
 
-void _logE(String message) {
-  lprint('[TaskActionDialogs] $message');
-}
+final _logger = taggedLogger('TaskActionDialogs');
 
 enum TaskActionType { resume, pause, delete }
 
@@ -291,7 +289,7 @@ class TaskActionDialogs {
     bool deleteDownloadedFiles = false,
   }) async {
     if (tasks.isEmpty) {
-      _logE('No tasks to process for instance: ${instance.name}');
+      _logger.w('No tasks to process for instance ${instance.name}');
       return const _TaskActionOutcome();
     }
 
@@ -339,24 +337,32 @@ class TaskActionDialogs {
               );
               if (result.hasFileDeletionErrors) {
                 fileDeletionWarningCount++;
-                _logE(
+                _logger.w(
                   'Task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
                 );
               }
               successCount++;
               break;
           }
-        } catch (e) {
+        } catch (e, stackTrace) {
           failCount++;
-          _logE('Failed to ${actionType.name} task ${task.id}: $e');
+          _logger.e(
+            'Failed to ${actionType.name} task ${task.id}',
+            error: e,
+            stackTrace: stackTrace,
+          );
         }
       }
 
-      _logE(
+      _logger.i(
         'Action ${actionType.name} completed for instance ${instance.name}: $successCount success, $failCount failed, $skippedCount skipped',
       );
-    } catch (e) {
-      _logE('Error executing task operation for instance ${instance.name}: $e');
+    } catch (e, stackTrace) {
+      _logger.e(
+        'Failed to execute ${actionType.name} action for instance ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
       failCount += tasks.length;
     } finally {
       client?.close();
