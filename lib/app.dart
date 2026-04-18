@@ -328,7 +328,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   Settings? _settings;
   Timer? _pendingAutoHideTimer;
   bool _isWindowBlurred = false;
-  bool _isSwitchingPage = false;
   int _shellSettingsGeneration = 0;
 
   @override
@@ -595,15 +594,11 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
 
     if (_selectedIndex != 0) {
       setState(() => _selectedIndex = 0);
-      _isSwitchingPage = true;
       await _pageController.animateToPage(
         0,
         duration: const Duration(milliseconds: 677),
         curve: Curves.fastLinearToSlowEaseIn,
       );
-      if (mounted) {
-        _isSwitchingPage = false;
-      }
     }
 
     if (!mounted) {
@@ -801,18 +796,11 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     if (index < 0 || index >= 3) return;
 
     setState(() => _selectedIndex = index);
-    _isSwitchingPage = true;
-    _pageController
-        .animateToPage(
-          index,
-          duration: const Duration(milliseconds: 677),
-          curve: Curves.fastLinearToSlowEaseIn,
-        )
-        .whenComplete(() {
-          if (mounted) {
-            _isSwitchingPage = false;
-          }
-        });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 677),
+      curve: Curves.fastLinearToSlowEaseIn,
+    );
   }
 
   @override
@@ -890,12 +878,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
                     itemBuilder: (_, index) => pages[index],
                     onPageChanged: (value) {
                       FocusScope.of(context).unfocus();
-                      if (!_isSwitchingPage && mounted) {
-                        setState(() {
-                          _selectedIndex = value;
-                        });
-                      }
-                      _isSwitchingPage = false;
                     },
                   ),
                 ),
