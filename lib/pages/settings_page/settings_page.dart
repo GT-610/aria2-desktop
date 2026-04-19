@@ -36,7 +36,7 @@ class _SettingsPageState extends State<SettingsPage>
         AutomaticKeepAliveClientMixin,
         Loggable,
         SingleTickerProviderStateMixin {
-  String _version = '';
+  String _versionLabel = '';
   bool _isLoading = true;
   late final TabController _tabController = TabController(
     length: _SettingsTab.values.length,
@@ -81,8 +81,24 @@ class _SettingsPageState extends State<SettingsPage>
       return;
     }
     setState(() {
-      _version = packageInfo.version;
+      _versionLabel = _formatVersionLabel(
+        version: packageInfo.version,
+        buildNumber: packageInfo.buildNumber,
+      );
     });
+  }
+
+  String _formatVersionLabel({
+    required String version,
+    required String buildNumber,
+  }) {
+    final segments = version.split('.');
+    final displayVersion = segments.isNotEmpty ? segments.last : version;
+    final normalizedBuildNumber = buildNumber.trim();
+    if (normalizedBuildNumber.isEmpty) {
+      return 'v$displayVersion';
+    }
+    return 'v$displayVersion (rev $normalizedBuildNumber)';
   }
 
   @override
@@ -473,7 +489,8 @@ class _SettingsPageState extends State<SettingsPage>
           ),
           const SizedBox(height: 13),
           Text(
-            '$kAppName\nv${_version.isEmpty ? l10n.versionLoading : _version}',
+            '$kAppName\n'
+            '${_versionLabel.isEmpty ? l10n.versionLoading : _versionLabel}',
             textAlign: TextAlign.center,
             style: fl.UIs.text15,
           ),
