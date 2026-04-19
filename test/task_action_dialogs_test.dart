@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:aria2_desktop/pages/download_page/components/task_action_dialogs.dart';
-import 'package:aria2_desktop/pages/download_page/enums.dart';
-import 'package:aria2_desktop/pages/download_page/models/download_task.dart';
+import 'package:setsuna/pages/download_page/components/task_action_dialogs.dart';
+import 'package:setsuna/pages/download_page/enums.dart';
+import 'package:setsuna/pages/download_page/models/download_task.dart';
 
 DownloadTask _task({required DownloadStatus status, String? taskStatus}) {
   return DownloadTask(

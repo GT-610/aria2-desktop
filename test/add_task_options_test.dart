@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:aria2_desktop/pages/download_page/utils/add_task_options.dart';
+import 'package:setsuna/pages/download_page/utils/add_task_options.dart';
 
 void main() {
   group('buildAria2TaskOptions', () {

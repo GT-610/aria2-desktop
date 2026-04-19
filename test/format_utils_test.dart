@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:aria2_desktop/utils/format_utils.dart';
+import 'package:setsuna/utils/format_utils.dart';
 
 void main() {
   group('formatRemainingTime', () {

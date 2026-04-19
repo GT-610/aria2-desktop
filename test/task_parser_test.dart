@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:aria2_desktop/pages/download_page/enums.dart';
-import 'package:aria2_desktop/pages/download_page/utils/task_parser.dart';
+import 'package:setsuna/pages/download_page/enums.dart';
+import 'package:setsuna/pages/download_page/utils/task_parser.dart';
 
 void main() {
   group('TaskParser', () {

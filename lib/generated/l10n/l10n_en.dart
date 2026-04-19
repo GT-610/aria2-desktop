@@ -313,7 +313,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutProjectDescription =>
-      'Setsuna is a modern aria2 desktop client focused on Motrix-level compatibility while adding built-in and remote instance management.';
+      'Setsuna is a desktop aria2 client with built-in and remote instance management, remote settings and maintenance tools, and everyday download workflows for URI, Torrent, and Metalink tasks.';
+
+  @override
+  String get author => 'Author';
 
   @override
   String get sourceCode => 'Source Code';

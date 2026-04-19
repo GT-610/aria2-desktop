@@ -635,8 +635,14 @@ abstract class AppLocalizations {
   /// No description provided for @aboutProjectDescription.
   ///
   /// In en, this message translates to:
-  /// **'Setsuna is a modern aria2 desktop client focused on Motrix-level compatibility while adding built-in and remote instance management.'**
+  /// **'Setsuna is a desktop aria2 client with built-in and remote instance management, remote settings and maintenance tools, and everyday download workflows for URI, Torrent, and Metalink tasks.'**
   String get aboutProjectDescription;
+
+  /// No description provided for @author.
+  ///
+  /// In en, this message translates to:
+  /// **'Author'**
+  String get author;
 
   /// No description provided for @sourceCode.
   ///

@@ -3,11 +3,11 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
-import 'package:aria2_desktop/models/aria2_instance.dart';
-import 'package:aria2_desktop/pages/download_page/enums.dart';
-import 'package:aria2_desktop/pages/download_page/models/download_task.dart';
-import 'package:aria2_desktop/pages/download_page/services/download_task_service.dart';
-import 'package:aria2_desktop/services/aria2_rpc_client.dart';
+import 'package:setsuna/models/aria2_instance.dart';
+import 'package:setsuna/pages/download_page/enums.dart';
+import 'package:setsuna/pages/download_page/models/download_task.dart';
+import 'package:setsuna/pages/download_page/services/download_task_service.dart';
+import 'package:setsuna/services/aria2_rpc_client.dart';
 
 void main() {
   group('DownloadTaskService path safety', () {

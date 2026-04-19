@@ -1,11 +1,11 @@
-name: aria2_desktop
+name: setsuna
 description: "Setsuna is a cross-platform Aria2 download manager built with Flutter, providing a user-friendly interface to manage local and remote download instances."
 
 # Private package - not published to pub.dev
 publish_to: 'none'
 
-# Version and build number
-version: 0.1.0
+# Source builds are non-release by default; CI injects the real version.
+version: 0.0.0+0
 
 environment:
   sdk: ^3.10.4
