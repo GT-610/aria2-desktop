@@ -296,7 +296,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aboutProjectDescription =>
-      'Setsuna 是一个现代化的 aria2 桌面客户端，目标是在兼容 Motrix 核心能力的同时，提供内建实例与远程实例管理能力。';
+      'Setsuna 是一个 aria2 桌面客户端，提供内建实例与远程实例管理、远程设置与维护能力，以及面向 URI、Torrent、Metalink 的日常下载工作流。';
+
+  @override
+  String get author => '作者';
 
   @override
   String get sourceCode => '源代码';

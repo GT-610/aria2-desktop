@@ -530,23 +530,31 @@ class _SettingsPageState extends State<SettingsPage>
             child: Padding(
               padding: const EdgeInsets.all(13),
               child: fl.SimpleMarkdown(
-                data:
-                    '''
-#### ${l10n.aboutProject}
-${l10n.aboutProjectDescription}
-
-#### ${l10n.contributors}
-${GithubIds.contributors.map((id) => id.markdownLink).join(' ')}
-
-#### ${l10n.participants}
-${GithubIds.participants.map((id) => id.markdownLink).join(' ')}
-''',
+                data: _buildAboutMarkdown(l10n),
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _buildAboutMarkdown(AppLocalizations l10n) {
+    final buffer = StringBuffer()
+      ..writeln(l10n.aboutProjectDescription)
+      ..writeln()
+      ..writeln('#### ${l10n.author}')
+      ..writeln(GithubIds.author.markdownLink)
+      ..writeln()
+      ..writeln()
+      ..writeln('#### ${l10n.contributors}')
+      ..writeln(GithubIds.contributors.map((id) => id.markdownLink).join(' '))
+      ..writeln()
+      ..writeln()
+      ..writeln('#### ${l10n.participants}')
+      ..writeln(GithubIds.participants.map((id) => id.markdownLink).join(' '));
+
+    return buffer.toString().trim();
   }
 
   Widget _buildAboutActionButton({

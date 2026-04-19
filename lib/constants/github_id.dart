@@ -1,4 +1,6 @@
 abstract final class GithubIds {
+  static const author = 'GT-610';
+
   static const contributors = <GhId>{};
 
   static const participants = <GhId>{};
