@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  APP_NAME: Setsuna
+
+jobs:
+  release_windows:
+    name: Release Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          COMMIT_COUNT="$(git rev-list --count HEAD)"
+          REVISION=0
+
+          while git rev-parse -q --verify "refs/tags/v1.0.${COMMIT_COUNT}+${REVISION}" >/dev/null; do
+            REVISION=$((REVISION + 1))
+          done
+
+          VERSION_NAME="1.0.${COMMIT_COUNT}"
+          TAG_NAME="v${VERSION_NAME}+${REVISION}"
+          RELEASE_NAME="v${COMMIT_COUNT} (rev ${REVISION})"
+          ARCHIVE_NAME="${APP_NAME}_${TAG_NAME}_windows_amd64.zip"
+
+          echo "commit_count=${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "revision=${REVISION}" >> "$GITHUB_OUTPUT"
+          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "release_name=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve latest aria2 release
+        id: aria2
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RELEASE_JSON="$(curl -fsSL https://api.github.com/repos/aria2/aria2/releases/latest)"
+          TAG_NAME="$(printf '%s' "$RELEASE_JSON" | python -c "import json,sys; print(json.load(sys.stdin)['tag_name'])")"
+          ASSET_URL="$(printf '%s' "$RELEASE_JSON" | python -c "import json,sys; assets=json.load(sys.stdin)['assets']; print(next(asset['browser_download_url'] for asset in assets if asset['name'].endswith('win-64bit-build1.zip')))")"
+
+          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "asset_url=${ASSET_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Download bundled aria2
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\aria2" | Out-Null
+          Invoke-WebRequest -Uri "${{ steps.aria2.outputs.asset_url }}" -OutFile "$env:RUNNER_TEMP\aria2\aria2.zip"
+          Expand-Archive -LiteralPath "$env:RUNNER_TEMP\aria2\aria2.zip" -DestinationPath "$env:RUNNER_TEMP\aria2\unzipped" -Force
+          $aria2Exe = Get-ChildItem -Path "$env:RUNNER_TEMP\aria2\unzipped" -Recurse -Filter aria2c.exe | Select-Object -First 1
+          if (-not $aria2Exe) {
+            throw 'aria2c.exe not found in the downloaded aria2 archive.'
+          }
+          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\core" | Out-Null
+          Copy-Item -LiteralPath $aria2Exe.FullName -Destination "$env:RUNNER_TEMP\core\aria2c.exe"
+          Copy-Item -LiteralPath "${{ github.workspace }}\assets\core\aria2.conf" -Destination "$env:RUNNER_TEMP\core\aria2.conf"
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Build Windows release
+        run: >
+          flutter build windows --release
+          --build-name=${{ steps.version.outputs.version_name }}
+          --build-number=${{ steps.version.outputs.revision }}
+
+      - name: Bundle built-in aria2 core
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $coreDir = "${{ github.workspace }}\build\windows\x64\runner\Release\data\core"
+          New-Item -ItemType Directory -Force -Path $coreDir | Out-Null
+          Copy-Item -LiteralPath "$env:RUNNER_TEMP\core\aria2c.exe" -Destination "$coreDir\aria2c.exe" -Force
+          Copy-Item -LiteralPath "$env:RUNNER_TEMP\core\aria2.conf" -Destination "$coreDir\aria2.conf" -Force
+          Remove-Item -LiteralPath "$coreDir\aria2.log" -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath "$coreDir\aria2.session" -ErrorAction SilentlyContinue
+
+      - name: Create release archive
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $releaseDir = "${{ github.workspace }}\build\windows\x64\runner\Release"
+          $archivePath = "${{ github.workspace }}\${{ steps.version.outputs.archive_name }}"
+          if (Test-Path -LiteralPath $archivePath) {
+            Remove-Item -LiteralPath $archivePath -Force
+          }
+          Compress-Archive -Path "$releaseDir\*" -DestinationPath $archivePath -Force
+
+      - name: Create and push tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.version.outputs.tag_name }}"
+          git push origin "${{ steps.version.outputs.tag_name }}"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag_name }}
+          name: ${{ steps.version.outputs.release_name }}
+          files: ${{ steps.version.outputs.archive_name }}
+          generate_release_notes: true
