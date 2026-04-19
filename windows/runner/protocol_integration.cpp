@@ -295,7 +295,7 @@ class ProtocolIntegration::Impl {
   explicit Impl(flutter::FlutterEngine* engine) {
     channel_ =
         std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-            engine->messenger(), "aria2_desktop/protocol_integration",
+            engine->messenger(), "setsuna/protocol_integration",
             &flutter::StandardMethodCodec::GetInstance());
     channel_->SetMethodCallHandler(
         [this](const flutter::MethodCall<flutter::EncodableValue>& call,
