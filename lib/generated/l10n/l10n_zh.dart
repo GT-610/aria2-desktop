@@ -1357,6 +1357,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get filesSection => '文件';
 
   @override
+  String get connectionTransferTab => '连接与传输';
+
+  @override
+  String get btNetworkTab => 'BT / 网络';
+
+  @override
+  String get filesMaintenanceTab => '文件与维护';
+
+  @override
   String get leaveEmptyToDisableSecretAuth => '留空则禁用 Secret 验证';
 
   @override

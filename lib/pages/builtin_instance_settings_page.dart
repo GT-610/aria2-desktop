@@ -1,5 +1,5 @@
-import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
+import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:provider/provider.dart';
 
 import '../generated/l10n/l10n.dart';
@@ -21,13 +21,34 @@ class BuiltinInstanceSettingsPage extends StatefulWidget {
       _BuiltinInstanceSettingsPageState();
 }
 
+enum _BuiltinSettingsTab {
+  connectionAndTransfer,
+  btAndNetwork,
+  filesAndMaintenance,
+}
+
+class _BuiltinSettingsSection {
+  const _BuiltinSettingsSection({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+}
+
 class _BuiltinInstanceSettingsPageState
-    extends State<BuiltinInstanceSettingsPage> {
+    extends State<BuiltinInstanceSettingsPage>
+    with SingleTickerProviderStateMixin {
+  static const _kSettingCardSpacing = 10.0;
+  static const _kSettingTilePadding = EdgeInsets.fromLTRB(16, 6, 16, 6);
+
   final _logger = taggedLogger('BuiltinInstanceSettingsPage');
   bool _hasChanges = false;
   bool _isSaving = false;
   bool _isResettingSession = false;
   bool _didInitializeDraft = false;
+  late final TabController _tabController = TabController(
+    length: _BuiltinSettingsTab.values.length,
+    vsync: this,
+  );
 
   late int _rpcListenPort;
   late String _rpcSecret;
@@ -154,6 +175,7 @@ class _BuiltinInstanceSettingsPageState
 
   @override
   void dispose() {
+    _tabController.dispose();
     _rpcSecretController.dispose();
     _downloadDirController.dispose();
     _btListenPortController.dispose();
@@ -246,288 +268,409 @@ class _BuiltinInstanceSettingsPageState
                   ),
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          dividerHeight: 0,
+          tabAlignment: TabAlignment.center,
+          isScrollable: true,
+          tabs: _BuiltinSettingsTab.values
+              .map((tab) => Tab(text: _tabTitle(tab, l10n)))
+              .toList(growable: false),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: _buildApplyHintCard(settings),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSettingsTabView(_buildConnectionAndTransferSections()),
+                _buildSettingsTabView(_buildBtAndNetworkSections()),
+                _buildSettingsTabView(_buildFilesAndMaintenanceSections()),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _tabTitle(_BuiltinSettingsTab tab, AppLocalizations l10n) {
+    switch (tab) {
+      case _BuiltinSettingsTab.connectionAndTransfer:
+        return l10n.connectionTransferTab;
+      case _BuiltinSettingsTab.btAndNetwork:
+        return l10n.btNetworkTab;
+      case _BuiltinSettingsTab.filesAndMaintenance:
+        return l10n.filesMaintenanceTab;
+    }
+  }
+
+  Widget _buildSettingsTabView(List<_BuiltinSettingsSection> sections) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final columns = width >= 1440
+            ? 3
+            : width >= 900
+            ? 2
+            : 1;
+        const gap = 16.0;
+        final distributedSections = List.generate(
+          columns,
+          (_) => <_BuiltinSettingsSection>[],
+        );
+
+        for (var index = 0; index < sections.length; index++) {
+          distributedSections[index % columns].add(sections[index]);
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < distributedSections.length; i++) ...[
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: distributedSections[i]
+                        .map(
+                          (section) => Padding(
+                            padding: const EdgeInsets.only(bottom: gap),
+                            child: _buildSectionBlock(section),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                ),
+                if (i < distributedSections.length - 1)
+                  const SizedBox(width: gap),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionBlock(_BuiltinSettingsSection section) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        fl.CenterGreyTitle(section.title),
+        const SizedBox(height: 4),
+        section.child,
+      ],
+    );
+  }
+
+  List<_BuiltinSettingsSection> _buildConnectionAndTransferSections() {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return [
+      _BuiltinSettingsSection(
+        title: l10n.connectionSection,
+        child: _buildCard(
+          theme: theme,
           children: [
-            _buildApplyHintCard(settings),
-            _buildSectionHeader(l10n.connectionSection, theme),
-            _buildCard(
-              theme: theme,
-              children: [
-                _buildTextFieldSetting(
-                  l10n.rpcListenPort,
-                  _rpcListenPort.toString(),
-                  (value) {
-                    _updateDraft(
-                      () => _rpcListenPort = int.tryParse(value) ?? 16800,
-                    );
-                  },
-                  keyboardType: TextInputType.number,
-                  helperText: l10n.rpcPortDefault,
-                ),
-                _buildTextFieldSetting(
-                  l10n.rpcSecret,
-                  _rpcSecret,
-                  (value) {
-                    _updateDraft(() => _rpcSecret = value);
-                  },
-                  obscureText: true,
-                  helperText: l10n.leaveEmptyToDisableSecretAuth,
-                  controller: _rpcSecretController,
-                ),
-              ],
+            _buildTextFieldSetting(
+              l10n.rpcListenPort,
+              _rpcListenPort.toString(),
+              (value) {
+                _updateDraft(
+                  () => _rpcListenPort = int.tryParse(value) ?? 16800,
+                );
+              },
+              keyboardType: TextInputType.number,
+              helperText: l10n.rpcPortDefault,
             ),
-            _buildSectionHeader(l10n.transferSection, theme),
-            _buildCard(
-              theme: theme,
-              children: [
-                _buildNumberSetting(
-                  l10n.maxConcurrentDownloads,
-                  _maxConcurrentDownloads,
-                  (value) {
-                    _updateDraft(() => _maxConcurrentDownloads = value);
-                  },
-                  min: 1,
-                  max: 16,
-                ),
-                _buildNumberSetting(
-                  l10n.maxConnectionPerServer,
-                  _maxConnectionPerServer,
-                  (value) {
-                    _updateDraft(() => _maxConnectionPerServer = value);
-                  },
-                  min: 1,
-                  max: 128,
-                ),
-                _buildNumberSetting(
-                  l10n.splitCount,
-                  _split,
-                  (value) {
-                    _updateDraft(() => _split = value);
-                  },
-                  min: 1,
-                  max: 128,
-                ),
-                _buildSwitchSetting(
-                  l10n.continueUnfinishedDownloads,
-                  _continueDownloads,
-                  (value) {
-                    _updateDraft(() => _continueDownloads = value);
-                  },
-                ),
-                _buildDirectorySetting(l10n.defaultDownloadDir, _downloadDir),
-              ],
-            ),
-            _buildSectionHeader(l10n.speedLimits, theme),
-            _buildCard(
-              theme: theme,
-              children: [
-                _buildNumberSetting(
-                  l10n.maxOverallDownloadLimit,
-                  _maxOverallDownloadLimit,
-                  (value) {
-                    _updateDraft(() => _maxOverallDownloadLimit = value);
-                  },
-                  min: 0,
-                  max: 65535,
-                  suffix: l10n.downloadLimitTip,
-                ),
-                _buildNumberSetting(
-                  l10n.maxOverallUploadLimit,
-                  _maxOverallUploadLimit,
-                  (value) {
-                    _updateDraft(() => _maxOverallUploadLimit = value);
-                  },
-                  min: 0,
-                  max: 65535,
-                  suffix: l10n.uploadLimitTip,
-                ),
-              ],
-            ),
-            _buildSectionHeader(l10n.btPtSection, theme),
-            _buildCard(
-              theme: theme,
-              children: [
-                _buildSwitchSetting(l10n.saveBtMetadata, _btSaveMetadata, (
-                  value,
-                ) {
-                  _updateDraft(() => _btSaveMetadata = value);
-                }),
-                _buildSwitchSetting(
-                  l10n.loadSavedBtMetadata,
-                  _btLoadSavedMetadata,
-                  (value) {
-                    _updateDraft(() => _btLoadSavedMetadata = value);
-                  },
-                ),
-                _buildSwitchSetting(
-                  l10n.forceBtEncryption,
-                  _btForceEncryption,
-                  (value) {
-                    _updateDraft(() => _btForceEncryption = value);
-                  },
-                ),
-                _buildSwitchSetting(
-                  l10n.keepSeedingAfterCompletion,
-                  _keepSeeding,
-                  (value) {
-                    _updateDraft(() => _keepSeeding = value);
-                  },
-                ),
-                if (!_keepSeeding) ...[
-                  _buildNumberSetting(
-                    l10n.seedRatio,
-                    _seedRatio.toInt(),
-                    (value) {
-                      _updateDraft(() => _seedRatio = value.toDouble());
-                    },
-                    min: 0,
-                    max: 100,
-                    suffix: l10n.seedingRatioTip,
-                  ),
-                  _buildNumberSetting(
-                    l10n.seedTimeMinutes,
-                    _seedTime,
-                    (value) {
-                      _updateDraft(() => _seedTime = value);
-                    },
-                    min: 0,
-                    max: 10080,
-                    suffix: l10n.seedingTimeTip,
-                  ),
-                ],
-                _buildTextFieldSetting(
-                  l10n.btListenPort,
-                  _btListenPort,
-                  (value) {
-                    _updateDraft(() => _btListenPort = value.trim());
-                  },
-                  helperText: l10n.btListenPortTip,
-                  controller: _btListenPortController,
-                ),
-                _buildTrackerSourceSetting(theme),
-                _buildSwitchSetting(l10n.autoSyncTracker, _autoSyncTracker, (
-                  value,
-                ) {
-                  _updateDraft(() => _autoSyncTracker = value);
-                }),
-                _buildTextFieldSetting(
-                  l10n.btTrackerServers,
-                  _btTracker,
-                  (value) {
-                    _updateDraft(() => _btTracker = value.trim());
-                  },
-                  helperText: l10n.btTrackerServersTip,
-                  maxLines: 4,
-                  controller: _trackerServersController,
-                ),
-                _buildTextFieldSetting(
-                  l10n.excludedTrackers,
-                  _btExcludeTracker,
-                  (value) {
-                    _updateDraft(() => _btExcludeTracker = value);
-                  },
-                  helperText: l10n.trackersTip,
-                  maxLines: 2,
-                  controller: _excludedTrackersController,
-                ),
-              ],
-            ),
-            _buildSectionHeader(l10n.networkSection, theme),
-            _buildCard(
-              theme: theme,
-              children: [
-                _buildSwitchSetting(l10n.enableProxy, _proxyEnabled, (value) {
-                  _updateDraft(() => _proxyEnabled = value);
-                }, helperText: l10n.enableProxyTip),
-                _buildTextFieldSetting(
-                  l10n.globalProxy,
-                  _allProxy,
-                  (value) {
-                    _updateDraft(() => _allProxy = value);
-                  },
-                  helperText: l10n.exampleProxy,
-                  controller: _allProxyController,
-                  enabled: _proxyEnabled,
-                ),
-                _buildTextFieldSetting(
-                  l10n.noProxyHosts,
-                  _noProxy,
-                  (value) {
-                    _updateDraft(() => _noProxy = value);
-                  },
-                  helperText: l10n.multipleHostsComma,
-                  controller: _noProxyController,
-                  enabled: _proxyEnabled,
-                ),
-                _buildNumberSetting(
-                  l10n.dhtListenPort,
-                  _dhtListenPort,
-                  (value) {
-                    _updateDraft(() => _dhtListenPort = value);
-                  },
-                  min: 1024,
-                  max: 65535,
-                ),
-                _buildSwitchSetting(l10n.enableDht6, _enableDht6, (value) {
-                  _updateDraft(() => _enableDht6 = value);
-                }),
-                _buildSwitchSetting(l10n.enableUpnp, _enableUpnp, (value) {
-                  _updateDraft(() => _enableUpnp = value);
-                }, helperText: l10n.enableUpnpTip),
-              ],
-            ),
-            _buildSectionHeader(l10n.filesSection, theme),
-            _buildCard(
-              theme: theme,
-              children: [
-                _buildSwitchSetting(l10n.autoRenameFiles, _autoFileRenaming, (
-                  value,
-                ) {
-                  _updateDraft(() => _autoFileRenaming = value);
-                }),
-                _buildSwitchSetting(l10n.allowOverwrite, _allowOverwrite, (
-                  value,
-                ) {
-                  _updateDraft(() => _allowOverwrite = value);
-                }),
-                _buildTextFieldSetting(
-                  l10n.sessionFilePath,
-                  _sessionPath,
-                  (value) {
-                    _updateDraft(() => _sessionPath = value.trim());
-                  },
-                  helperText: l10n.sessionFilePathTip,
-                  controller: _sessionPathController,
-                ),
-                _buildTextFieldSetting(
-                  l10n.logFilePath,
-                  _logPath,
-                  (value) {
-                    _updateDraft(() => _logPath = value.trim());
-                  },
-                  helperText: l10n.logFilePathTip,
-                  controller: _logPathController,
-                ),
-                _buildTextFieldSetting(l10n.userAgent, _userAgent, (value) {
-                  _updateDraft(() => _userAgent = value);
-                }, controller: _userAgentController),
-                _buildDangerActionSetting(
-                  title: l10n.resetSessionRecord,
-                  description: l10n.resetSessionRecordTip,
-                  actionLabel: l10n.reset,
-                  icon: Icons.restart_alt,
-                  onPressed: _isBusy ? null : _resetSessionRecord,
-                ),
-              ],
+            _buildTextFieldSetting(
+              l10n.rpcSecret,
+              _rpcSecret,
+              (value) {
+                _updateDraft(() => _rpcSecret = value);
+              },
+              obscureText: true,
+              helperText: l10n.leaveEmptyToDisableSecretAuth,
+              controller: _rpcSecretController,
             ),
           ],
         ),
       ),
-    );
+      _BuiltinSettingsSection(
+        title: l10n.transferSection,
+        child: _buildCard(
+          theme: theme,
+          children: [
+            _buildNumberSetting(
+              l10n.maxConcurrentDownloads,
+              _maxConcurrentDownloads,
+              (value) {
+                _updateDraft(() => _maxConcurrentDownloads = value);
+              },
+              min: 1,
+              max: 16,
+            ),
+            _buildNumberSetting(
+              l10n.maxConnectionPerServer,
+              _maxConnectionPerServer,
+              (value) {
+                _updateDraft(() => _maxConnectionPerServer = value);
+              },
+              min: 1,
+              max: 128,
+            ),
+            _buildNumberSetting(
+              l10n.splitCount,
+              _split,
+              (value) {
+                _updateDraft(() => _split = value);
+              },
+              min: 1,
+              max: 128,
+            ),
+            _buildSwitchSetting(
+              l10n.continueUnfinishedDownloads,
+              _continueDownloads,
+              (value) {
+                _updateDraft(() => _continueDownloads = value);
+              },
+            ),
+            _buildDirectorySetting(l10n.defaultDownloadDir, _downloadDir),
+          ],
+        ),
+      ),
+      _BuiltinSettingsSection(
+        title: l10n.speedLimits,
+        child: _buildCard(
+          theme: theme,
+          children: [
+            _buildNumberSetting(
+              l10n.maxOverallDownloadLimit,
+              _maxOverallDownloadLimit,
+              (value) {
+                _updateDraft(() => _maxOverallDownloadLimit = value);
+              },
+              min: 0,
+              max: 65535,
+              suffix: l10n.downloadLimitTip,
+            ),
+            _buildNumberSetting(
+              l10n.maxOverallUploadLimit,
+              _maxOverallUploadLimit,
+              (value) {
+                _updateDraft(() => _maxOverallUploadLimit = value);
+              },
+              min: 0,
+              max: 65535,
+              suffix: l10n.uploadLimitTip,
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  List<_BuiltinSettingsSection> _buildBtAndNetworkSections() {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return [
+      _BuiltinSettingsSection(
+        title: l10n.btPtSection,
+        child: _buildCard(
+          theme: theme,
+          children: [
+            _buildSwitchSetting(l10n.saveBtMetadata, _btSaveMetadata, (value) {
+              _updateDraft(() => _btSaveMetadata = value);
+            }),
+            _buildSwitchSetting(
+              l10n.loadSavedBtMetadata,
+              _btLoadSavedMetadata,
+              (value) {
+                _updateDraft(() => _btLoadSavedMetadata = value);
+              },
+            ),
+            _buildSwitchSetting(l10n.forceBtEncryption, _btForceEncryption, (
+              value,
+            ) {
+              _updateDraft(() => _btForceEncryption = value);
+            }),
+            _buildSwitchSetting(l10n.keepSeedingAfterCompletion, _keepSeeding, (
+              value,
+            ) {
+              _updateDraft(() => _keepSeeding = value);
+            }),
+            if (!_keepSeeding) ...[
+              _buildNumberSetting(
+                l10n.seedRatio,
+                _seedRatio.toInt(),
+                (value) {
+                  _updateDraft(() => _seedRatio = value.toDouble());
+                },
+                min: 0,
+                max: 100,
+                suffix: l10n.seedingRatioTip,
+              ),
+              _buildNumberSetting(
+                l10n.seedTimeMinutes,
+                _seedTime,
+                (value) {
+                  _updateDraft(() => _seedTime = value);
+                },
+                min: 0,
+                max: 10080,
+                suffix: l10n.seedingTimeTip,
+              ),
+            ],
+            _buildTextFieldSetting(
+              l10n.btListenPort,
+              _btListenPort,
+              (value) {
+                _updateDraft(() => _btListenPort = value.trim());
+              },
+              helperText: l10n.btListenPortTip,
+              controller: _btListenPortController,
+            ),
+            _buildTrackerSourceSetting(theme),
+            _buildSwitchSetting(l10n.autoSyncTracker, _autoSyncTracker, (
+              value,
+            ) {
+              _updateDraft(() => _autoSyncTracker = value);
+            }),
+            _buildTextFieldSetting(
+              l10n.btTrackerServers,
+              _btTracker,
+              (value) {
+                _updateDraft(() => _btTracker = value.trim());
+              },
+              helperText: l10n.btTrackerServersTip,
+              maxLines: 4,
+              controller: _trackerServersController,
+            ),
+            _buildTextFieldSetting(
+              l10n.excludedTrackers,
+              _btExcludeTracker,
+              (value) {
+                _updateDraft(() => _btExcludeTracker = value);
+              },
+              helperText: l10n.trackersTip,
+              maxLines: 2,
+              controller: _excludedTrackersController,
+            ),
+          ],
+        ),
+      ),
+      _BuiltinSettingsSection(
+        title: l10n.networkSection,
+        child: _buildCard(
+          theme: theme,
+          children: [
+            _buildSwitchSetting(l10n.enableProxy, _proxyEnabled, (value) {
+              _updateDraft(() => _proxyEnabled = value);
+            }, helperText: l10n.enableProxyTip),
+            _buildTextFieldSetting(
+              l10n.globalProxy,
+              _allProxy,
+              (value) {
+                _updateDraft(() => _allProxy = value);
+              },
+              helperText: l10n.exampleProxy,
+              controller: _allProxyController,
+              enabled: _proxyEnabled,
+            ),
+            _buildTextFieldSetting(
+              l10n.noProxyHosts,
+              _noProxy,
+              (value) {
+                _updateDraft(() => _noProxy = value);
+              },
+              helperText: l10n.multipleHostsComma,
+              controller: _noProxyController,
+              enabled: _proxyEnabled,
+            ),
+            _buildNumberSetting(
+              l10n.dhtListenPort,
+              _dhtListenPort,
+              (value) {
+                _updateDraft(() => _dhtListenPort = value);
+              },
+              min: 1024,
+              max: 65535,
+            ),
+            _buildSwitchSetting(l10n.enableDht6, _enableDht6, (value) {
+              _updateDraft(() => _enableDht6 = value);
+            }),
+            _buildSwitchSetting(l10n.enableUpnp, _enableUpnp, (value) {
+              _updateDraft(() => _enableUpnp = value);
+            }, helperText: l10n.enableUpnpTip),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  List<_BuiltinSettingsSection> _buildFilesAndMaintenanceSections() {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return [
+      _BuiltinSettingsSection(
+        title: l10n.filesSection,
+        child: _buildCard(
+          theme: theme,
+          children: [
+            _buildSwitchSetting(l10n.autoRenameFiles, _autoFileRenaming, (
+              value,
+            ) {
+              _updateDraft(() => _autoFileRenaming = value);
+            }),
+            _buildSwitchSetting(l10n.allowOverwrite, _allowOverwrite, (value) {
+              _updateDraft(() => _allowOverwrite = value);
+            }),
+            _buildTextFieldSetting(
+              l10n.sessionFilePath,
+              _sessionPath,
+              (value) {
+                _updateDraft(() => _sessionPath = value.trim());
+              },
+              helperText: l10n.sessionFilePathTip,
+              controller: _sessionPathController,
+            ),
+            _buildTextFieldSetting(
+              l10n.logFilePath,
+              _logPath,
+              (value) {
+                _updateDraft(() => _logPath = value.trim());
+              },
+              helperText: l10n.logFilePathTip,
+              controller: _logPathController,
+            ),
+            _buildTextFieldSetting(l10n.userAgent, _userAgent, (value) {
+              _updateDraft(() => _userAgent = value);
+            }, controller: _userAgentController),
+          ],
+        ),
+      ),
+      _BuiltinSettingsSection(
+        title: l10n.maintenance,
+        child: _buildCard(
+          theme: theme,
+          children: [
+            _buildDangerActionSetting(
+              title: l10n.resetSessionRecord,
+              description: l10n.resetSessionRecordTip,
+              actionLabel: l10n.reset,
+              icon: Icons.restart_alt,
+              onPressed: _isBusy ? null : _resetSessionRecord,
+            ),
+          ],
+        ),
+      ),
+    ];
   }
 
   void _updateDraft(VoidCallback update) {
@@ -609,50 +752,33 @@ class _BuiltinInstanceSettingsPageState
     );
   }
 
-  Widget _buildSectionHeader(String title, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 16, 0, 8),
-      child: Text(
-        title,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-          letterSpacing: -0.2,
-        ),
-      ),
-    );
-  }
-
   Widget _buildCard({
     required List<Widget> children,
     required ThemeData theme,
   }) {
-    final colorScheme = theme.colorScheme;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 1,
-      shadowColor: Colors.black.withValues(alpha: 0.1),
-      surfaceTintColor: colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        children: children
-            .asMap()
-            .entries
-            .map(
-              (entry) => Column(
-                children: [
-                  entry.value,
-                  if (entry.key < children.length - 1)
-                    Divider(
-                      height: 1,
-                      indent: 16,
-                      endIndent: 16,
-                      color: colorScheme.outlineVariant,
-                    ),
-                ],
-              ),
-            )
-            .toList(),
-      ),
+    return Column(
+      children: children
+          .map(
+            (child) => Padding(
+              padding: const EdgeInsets.only(bottom: _kSettingCardSpacing),
+              child: fl.CardX(child: child),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  TextStyle? _settingTitleStyle(ThemeData theme) {
+    return theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500);
+  }
+
+  TextStyle? _settingBodyStyle(ThemeData theme) {
+    return theme.textTheme.bodyMedium;
+  }
+
+  TextStyle? _settingHintStyle(ThemeData theme) {
+    return theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
     );
   }
 
@@ -668,19 +794,14 @@ class _BuiltinInstanceSettingsPageState
 
     return ListTile(
       leading: Icon(icon, color: colorScheme.error),
-      title: Text(title, style: theme.textTheme.bodyMedium),
-      subtitle: Text(
-        description,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-        ),
-      ),
+      title: Text(title, style: _settingTitleStyle(theme)),
+      subtitle: Text(description, style: _settingHintStyle(theme)),
       trailing: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(foregroundColor: colorScheme.error),
         child: Text(actionLabel),
       ),
-      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      contentPadding: _kSettingTilePadding,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }
@@ -690,7 +811,7 @@ class _BuiltinInstanceSettingsPageState
     return ListTile(
       title: Text(
         AppLocalizations.of(context)!.trackerSource,
-        style: theme.textTheme.bodyMedium,
+        style: _settingTitleStyle(theme),
       ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -710,7 +831,7 @@ class _BuiltinInstanceSettingsPageState
                 .map(
                   (option) => DropdownMenuItem<String>(
                     value: option.url,
-                    child: Text(option.label),
+                    child: Text(option.label, style: _settingBodyStyle(theme)),
                   ),
                 )
                 .toList(),
@@ -732,7 +853,7 @@ class _BuiltinInstanceSettingsPageState
           ),
         ],
       ),
-      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      contentPadding: _kSettingTilePadding,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }
@@ -745,21 +866,15 @@ class _BuiltinInstanceSettingsPageState
     bool enabled = true,
   }) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     return SwitchListTile(
-      title: Text(title, style: theme.textTheme.bodyMedium),
+      title: Text(title, style: _settingTitleStyle(theme)),
       subtitle: helperText.isNotEmpty
-          ? Text(
-              helperText,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            )
+          ? Text(helperText, style: _settingHintStyle(theme))
           : null,
       value: value,
       onChanged: enabled ? onChanged : null,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      contentPadding: _kSettingTilePadding,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }
@@ -776,16 +891,11 @@ class _BuiltinInstanceSettingsPageState
     final colorScheme = theme.colorScheme;
 
     return ListTile(
-      title: Text(title, style: theme.textTheme.bodyMedium),
+      title: Text(title, style: _settingTitleStyle(theme)),
       subtitle: suffix.isNotEmpty
-          ? Text(
-              suffix,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            )
+          ? Text(suffix, style: _settingHintStyle(theme))
           : null,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      contentPadding: _kSettingTilePadding,
       trailing: SizedBox(
         width: 130,
         child: Row(
@@ -811,9 +921,9 @@ class _BuiltinInstanceSettingsPageState
               child: Text(
                 value.toString(),
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+                style: _settingTitleStyle(
+                  theme,
+                )?.copyWith(fontWeight: FontWeight.w500),
               ),
             ),
             IconButton(
@@ -847,8 +957,8 @@ class _BuiltinInstanceSettingsPageState
     final colorScheme = theme.colorScheme;
 
     return ListTile(
-      title: Text(title, style: theme.textTheme.bodyMedium),
-      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      title: Text(title, style: _settingTitleStyle(theme)),
+      contentPadding: _kSettingTilePadding,
       subtitle: Padding(
         padding: const EdgeInsets.only(right: 0),
         child: TextFormField(
@@ -862,14 +972,12 @@ class _BuiltinInstanceSettingsPageState
           cursorColor: colorScheme.primary,
           decoration: InputDecoration(
             helperText: helperText,
-            helperStyle: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+            helperStyle: _settingHintStyle(theme),
             border: InputBorder.none,
             isDense: true,
             contentPadding: EdgeInsets.zero,
           ),
-          style: theme.textTheme.bodyMedium,
+          style: _settingBodyStyle(theme),
         ),
       ),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
@@ -880,8 +988,8 @@ class _BuiltinInstanceSettingsPageState
     final theme = Theme.of(context);
 
     return ListTile(
-      title: Text(title, style: theme.textTheme.bodyMedium),
-      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      title: Text(title, style: _settingTitleStyle(theme)),
+      contentPadding: _kSettingTilePadding,
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 8),
         child: DirectoryPicker(
