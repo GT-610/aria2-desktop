@@ -98,7 +98,6 @@
   "resetAppSettingsAction": "重置设置",
   "resetAppSettingsSuccess": "应用设置已恢复为默认值。",
   "about": "关于",
-  "aboutProject": "项目",
   "aboutProjectDescription": "Setsuna 是一个 aria2 桌面客户端，提供内建实例与远程实例管理、远程设置与维护能力，以及面向 URI、Torrent、Metalink 的日常下载工作流。",
   "author": "作者",
   "sourceCode": "源代码",

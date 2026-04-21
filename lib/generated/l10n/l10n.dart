@@ -626,12 +626,6 @@ abstract class AppLocalizations {
   /// **'About'**
   String get about;
 
-  /// No description provided for @aboutProject.
-  ///
-  /// In en, this message translates to:
-  /// **'Project'**
-  String get aboutProject;
-
   /// No description provided for @aboutProjectDescription.
   ///
   /// In en, this message translates to:

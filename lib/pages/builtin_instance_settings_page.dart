@@ -1061,7 +1061,12 @@ class _BuiltinInstanceSettingsPageState
       });
 
       _showSettingsSnackBar(l10n.settingsSaved);
-    } catch (_) {
+    } catch (e, stackTrace) {
+      this.e(
+        'Failed to save built-in instance settings',
+        error: e,
+        stackTrace: stackTrace,
+      );
       setState(() {
         _isSaving = false;
       });
@@ -1086,7 +1091,12 @@ class _BuiltinInstanceSettingsPageState
         await _persistDraft(settings);
         _syncNormalizedDraft(settings);
         await _refreshBuiltinInstanceSnapshot();
-      } catch (_) {
+      } catch (e, stackTrace) {
+        this.e(
+          'Failed to persist built-in instance settings before applying',
+          error: e,
+          stackTrace: stackTrace,
+        );
         setState(() {
           _isSaving = false;
         });
