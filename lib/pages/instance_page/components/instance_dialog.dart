@@ -90,8 +90,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
     super.dispose();
   }
 
-  bool get _usesHttpTransport =>
-      _protocol == 'http' || _protocol == 'https';
+  bool get _usesHttpTransport => _protocol == 'http' || _protocol == 'https';
 
   String _nameHint(AppLocalizations l10n) {
     return l10n.instanceNameAutoHint(_fallbackInstanceName());
@@ -176,7 +175,9 @@ class _InstanceDialogState extends State<InstanceDialog> {
         : _name.trim();
 
     return Aria2Instance(
-      id: widget.instance?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id:
+          widget.instance?.id ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
       name: resolvedName,
       type: InstanceType.remote,
       protocol: _protocol,
@@ -253,10 +254,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
     }
   }
 
-  Widget _buildSecretField(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) {
+  Widget _buildSecretField(BuildContext context, AppLocalizations l10n) {
     return TextField(
       controller: _secretController,
       obscureText: !_showSecret,
@@ -300,9 +298,9 @@ class _InstanceDialogState extends State<InstanceDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.all(_dialogPadding).copyWith(
-                bottom: _fieldSpacing,
-              ),
+              padding: const EdgeInsets.all(
+                _dialogPadding,
+              ).copyWith(bottom: _fieldSpacing),
               child: Text(
                 widget.instance == null ? l10n.addInstance : l10n.editInstance,
                 style: theme.textTheme.headlineMedium,
@@ -357,10 +355,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                           const SizedBox(height: 12),
                           SegmentedButton<String>(
                             segments: const [
-                              ButtonSegment(
-                                value: 'http',
-                                label: Text('HTTP'),
-                              ),
+                              ButtonSegment(value: 'http', label: Text('HTTP')),
                               ButtonSegment(
                                 value: 'https',
                                 label: Text('HTTPS'),
@@ -490,7 +485,9 @@ class _InstanceDialogState extends State<InstanceDialog> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       OutlinedButton.icon(
-                        onPressed: _isTestingConnection ? null : _testConnection,
+                        onPressed: _isTestingConnection
+                            ? null
+                            : _testConnection,
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 40),
                           padding: const EdgeInsets.symmetric(horizontal: 16),

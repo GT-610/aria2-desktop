@@ -86,12 +86,18 @@ class DownloadTask {
       uploadLengthBytes: json['uploadLengthBytes'] ?? 0,
       downloadSpeedBytes: json['downloadSpeedBytes'] ?? 0,
       uploadSpeedBytes: json['uploadSpeedBytes'] ?? 0,
-      files: json['files'] != null ? List<Map<String, dynamic>>.from(json['files']) : null,
+      files: json['files'] != null
+          ? List<Map<String, dynamic>>.from(json['files'])
+          : null,
       bittorrentInfo: json['bittorrentInfo'],
-      trackers: json['trackers'] != null ? List<String>.from(json['trackers']) : null,
+      trackers: json['trackers'] != null
+          ? List<String>.from(json['trackers'])
+          : null,
       uris: json['uris'] != null ? List<String>.from(json['uris']) : null,
       errorMessage: json['errorMessage'],
-      startTime: json['startTime'] != null ? DateTime.tryParse(json['startTime']) : null,
+      startTime: json['startTime'] != null
+          ? DateTime.tryParse(json['startTime'])
+          : null,
       bitfield: json['bitfield'],
       infoHash: json['infoHash'],
       pieceLength: json['pieceLength'],
