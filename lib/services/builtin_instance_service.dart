@@ -502,8 +502,9 @@ class BuiltinInstanceService with Loggable {
   void dispose() {
     if (_aria2Process != null) {
       stopInstance();
+    } else {
+      unawaited(_upnpService.shutdown());
     }
-    unawaited(_upnpService.shutdown());
     clearPendingApply();
     _instance = null;
   }
