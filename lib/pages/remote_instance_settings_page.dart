@@ -432,15 +432,18 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
                 : Text(l10n.save),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          dividerHeight: 0,
-          tabAlignment: TabAlignment.center,
-          isScrollable: true,
-          tabs: _RemoteSettingsTab.values
-              .map((tab) => Tab(text: _tabTitle(tab, l10n)))
-              .toList(growable: false),
-        ),
+        bottom:
+            widget.instance.status == ConnectionStatus.connected && _hasLoaded
+            ? TabBar(
+                controller: _tabController,
+                dividerHeight: 0,
+                tabAlignment: TabAlignment.center,
+                isScrollable: true,
+                tabs: _RemoteSettingsTab.values
+                    .map((tab) => Tab(text: _tabTitle(tab, l10n)))
+                    .toList(growable: false),
+              )
+            : null,
       ),
       body: _buildBody(theme, l10n),
     );
