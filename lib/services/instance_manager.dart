@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -510,5 +511,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
     _instances[builtinIndex] = refreshed;
     await _saveInstances();
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _builtinInstanceService.dispose();
+    super.dispose();
   }
 }
