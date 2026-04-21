@@ -317,23 +317,38 @@ class _BuiltinInstanceSettingsPageState
             ? 2
             : 1;
         const gap = 16.0;
-        final itemWidth = columns == 1
-            ? width
-            : (width - (gap * (columns - 1))) / columns;
+        final distributedSections = List.generate(
+          columns,
+          (_) => <_BuiltinSettingsSection>[],
+        );
+
+        for (var index = 0; index < sections.length; index++) {
+          distributedSections[index % columns].add(sections[index]);
+        }
 
         return SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-          child: Wrap(
-            spacing: gap,
-            runSpacing: gap,
-            children: sections
-                .map(
-                  (section) => SizedBox(
-                    width: itemWidth,
-                    child: _buildSectionBlock(section),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < distributedSections.length; i++) ...[
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: distributedSections[i]
+                        .map(
+                          (section) => Padding(
+                            padding: const EdgeInsets.only(bottom: gap),
+                            child: _buildSectionBlock(section),
+                          ),
+                        )
+                        .toList(growable: false),
                   ),
-                )
-                .toList(growable: false),
+                ),
+                if (i < distributedSections.length - 1)
+                  const SizedBox(width: gap),
+              ],
+            ],
           ),
         );
       },
