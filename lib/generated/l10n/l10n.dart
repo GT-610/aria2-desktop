@@ -2545,6 +2545,24 @@ abstract class AppLocalizations {
   /// **'Files'**
   String get filesSection;
 
+  /// No description provided for @connectionTransferTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection & Transfer'**
+  String get connectionTransferTab;
+
+  /// No description provided for @btNetworkTab.
+  ///
+  /// In en, this message translates to:
+  /// **'BT / Network'**
+  String get btNetworkTab;
+
+  /// No description provided for @filesMaintenanceTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Files & Maintenance'**
+  String get filesMaintenanceTab;
+
   /// No description provided for @leaveEmptyToDisableSecretAuth.
   ///
   /// In en, this message translates to:

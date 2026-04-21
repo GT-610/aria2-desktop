@@ -1410,6 +1410,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filesSection => 'Files';
 
   @override
+  String get connectionTransferTab => 'Connection & Transfer';
+
+  @override
+  String get btNetworkTab => 'BT / Network';
+
+  @override
+  String get filesMaintenanceTab => 'Files & Maintenance';
+
+  @override
   String get leaveEmptyToDisableSecretAuth =>
       'Leave empty to disable secret auth';
 
