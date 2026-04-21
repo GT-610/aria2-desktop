@@ -524,9 +524,7 @@ class _SettingsPageState extends State<SettingsPage>
           fl.CardX(
             child: Padding(
               padding: const EdgeInsets.all(13),
-              child: fl.SimpleMarkdown(
-                data: _buildAboutMarkdown(l10n),
-              ),
+              child: fl.SimpleMarkdown(data: _buildAboutMarkdown(l10n)),
             ),
           ),
         ],
