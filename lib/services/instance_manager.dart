@@ -515,7 +515,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
   @override
   void dispose() {
-    unawaited(_builtinInstanceService.stopInstance());
     _builtinInstanceService.dispose();
     super.dispose();
   }
