@@ -1,5 +1,5 @@
-import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
+import 'package:fl_lib/fl_lib.dart' as fl;
 
 import '../generated/l10n/l10n.dart';
 import '../models/aria2_instance.dart';
@@ -15,11 +15,31 @@ class RemoteInstanceSettingsPage extends StatefulWidget {
       _RemoteInstanceSettingsPageState();
 }
 
-class _RemoteInstanceSettingsPageState
-    extends State<RemoteInstanceSettingsPage> {
+enum _RemoteSettingsTab {
+  connectionAndTransfer,
+  btAndNetwork,
+  filesAndMaintenance,
+}
+
+class _RemoteSettingsSection {
+  const _RemoteSettingsSection({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+}
+
+class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
+    with SingleTickerProviderStateMixin {
+  static const _kSettingCardSpacing = 10.0;
+  static const _kSettingTilePadding = EdgeInsets.fromLTRB(16, 6, 16, 6);
+
   bool _isLoading = true;
   bool _isSaving = false;
   bool _hasLoaded = false;
+  late final TabController _tabController = TabController(
+    length: _RemoteSettingsTab.values.length,
+    vsync: this,
+  );
 
   late final TextEditingController _downloadDirController;
   late final TextEditingController _btListenPortController;
@@ -63,6 +83,7 @@ class _RemoteInstanceSettingsPageState
 
   @override
   void dispose() {
+    _tabController.dispose();
     _downloadDirController.dispose();
     _btListenPortController.dispose();
     _dhtListenPortController.dispose();
@@ -389,10 +410,14 @@ class _RemoteInstanceSettingsPageState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.remoteAria2Settings),
+        backgroundColor: colorScheme.surface,
+        elevation: 0,
+        shadowColor: Colors.transparent,
         actions: [
           TextButton(
             onPressed: _isLoading || _isSaving || !_hasLoaded
@@ -407,9 +432,29 @@ class _RemoteInstanceSettingsPageState
                 : Text(l10n.save),
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          dividerHeight: 0,
+          tabAlignment: TabAlignment.center,
+          isScrollable: true,
+          tabs: _RemoteSettingsTab.values
+              .map((tab) => Tab(text: _tabTitle(tab, l10n)))
+              .toList(growable: false),
+        ),
       ),
       body: _buildBody(theme, l10n),
     );
+  }
+
+  String _tabTitle(_RemoteSettingsTab tab, AppLocalizations l10n) {
+    switch (tab) {
+      case _RemoteSettingsTab.connectionAndTransfer:
+        return l10n.connectionTransferTab;
+      case _RemoteSettingsTab.btAndNetwork:
+        return l10n.btNetworkTab;
+      case _RemoteSettingsTab.filesAndMaintenance:
+        return l10n.filesMaintenanceTab;
+    }
   }
 
   Widget _buildBody(ThemeData theme, AppLocalizations l10n) {
@@ -458,164 +503,275 @@ class _RemoteInstanceSettingsPageState
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildInfoCard(theme, l10n),
-          _buildSectionHeader(l10n.transferSection, theme),
-          _buildCard(
-            theme: theme,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: _buildInfoCard(theme, l10n),
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
             children: [
-              _buildTextFieldSetting(
-                l10n.defaultDownloadDir,
-                controller: _downloadDirController,
-                helperText: l10n.remoteDownloadDirHint,
+              _buildSettingsTabView(
+                _buildConnectionAndTransferSections(theme, l10n),
               ),
-              _buildNumberSetting(
-                l10n.maxConcurrentDownloads,
-                _maxConcurrentDownloads,
-                (value) => setState(() => _maxConcurrentDownloads = value),
-                min: 1,
-                max: 64,
-              ),
-              _buildNumberSetting(
-                l10n.maxConnectionPerServer,
-                _maxConnectionPerServer,
-                (value) => setState(() => _maxConnectionPerServer = value),
-                min: 1,
-                max: 64,
-              ),
-              _buildNumberSetting(
-                l10n.splitCount,
-                _split,
-                (value) => setState(() => _split = value),
-                min: 1,
-                max: 128,
-              ),
-              _buildSwitchSetting(
-                l10n.continueUnfinishedDownloads,
-                _continueDownloads,
-                (value) => setState(() => _continueDownloads = value),
+              _buildSettingsTabView(_buildBtAndNetworkSections(theme, l10n)),
+              _buildSettingsTabView(
+                _buildFilesAndMaintenanceSections(theme, l10n),
               ),
             ],
           ),
-          _buildSectionHeader(l10n.speedLimits, theme),
-          _buildCard(
-            theme: theme,
-            children: [
-              _buildNumberSetting(
-                l10n.maxOverallDownloadLimit,
-                _maxOverallDownloadLimit,
-                (value) => setState(() => _maxOverallDownloadLimit = value),
-                min: 0,
-                max: 1024 * 1024,
-                suffix: l10n.downloadLimitTip,
-              ),
-              _buildNumberSetting(
-                l10n.maxOverallUploadLimit,
-                _maxOverallUploadLimit,
-                (value) => setState(() => _maxOverallUploadLimit = value),
-                min: 0,
-                max: 1024 * 1024,
-                suffix: l10n.uploadLimitTip,
-              ),
-            ],
-          ),
-          _buildSectionHeader(l10n.btPtSection, theme),
-          _buildCard(
-            theme: theme,
-            children: [
-              _buildSwitchSetting(
-                l10n.saveBtMetadata,
-                _btSaveMetadata,
-                (value) => setState(() => _btSaveMetadata = value),
-              ),
-              _buildSwitchSetting(
-                l10n.loadSavedBtMetadata,
-                _btLoadSavedMetadata,
-                (value) => setState(() => _btLoadSavedMetadata = value),
-              ),
-              _buildSwitchSetting(
-                l10n.forceBtEncryption,
-                _btRequireCrypto,
-                (value) => setState(() => _btRequireCrypto = value),
-              ),
-              _buildNumberSetting(
-                l10n.seedTimeMinutes,
-                _seedTime,
-                (value) => setState(() => _seedTime = value),
-                min: 0,
-                max: 525600,
-                suffix: l10n.seedingTimeTip,
-              ),
-              _buildTextFieldSetting(
-                l10n.seedRatio,
-                controller: _seedRatioController,
-                helperText: l10n.seedingRatioTip,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-              ),
-              _buildTextFieldSetting(
-                l10n.btListenPort,
-                controller: _btListenPortController,
-                helperText: l10n.btListenPortTip,
-              ),
-              _buildTextFieldSetting(
-                l10n.dhtListenPort,
-                controller: _dhtListenPortController,
-              ),
-              _buildSwitchSetting(
-                l10n.enableDht6,
-                _enableDht6,
-                (value) => setState(() => _enableDht6 = value),
-              ),
-              _buildTextFieldSetting(
-                l10n.btTrackerServers,
-                controller: _trackerController,
-                helperText: l10n.btTrackerServersTip,
-                maxLines: 4,
-              ),
-              _buildTextFieldSetting(
-                l10n.excludedTrackers,
-                controller: _excludedTrackerController,
-                helperText: l10n.trackersTip,
-                maxLines: 2,
-              ),
-            ],
-          ),
-          _buildSectionHeader(l10n.networkSection, theme),
-          _buildCard(
-            theme: theme,
-            children: [
-              _buildTextFieldSetting(
-                l10n.globalProxy,
-                controller: _allProxyController,
-                helperText: l10n.exampleProxy,
-              ),
-              _buildTextFieldSetting(
-                l10n.noProxyHosts,
-                controller: _noProxyController,
-                helperText: l10n.multipleHostsComma,
-              ),
-              _buildTextFieldSetting(
-                l10n.userAgent,
-                controller: _userAgentController,
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
+  }
+
+  Widget _buildSettingsTabView(List<_RemoteSettingsSection> sections) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final columns = width >= 1440
+            ? 3
+            : width >= 900
+            ? 2
+            : 1;
+        const gap = 16.0;
+        final distributedSections = List.generate(
+          columns,
+          (_) => <_RemoteSettingsSection>[],
+        );
+
+        for (var index = 0; index < sections.length; index++) {
+          distributedSections[index % columns].add(sections[index]);
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < distributedSections.length; i++) ...[
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: distributedSections[i]
+                        .map(
+                          (section) => Padding(
+                            padding: const EdgeInsets.only(bottom: gap),
+                            child: _buildSectionBlock(section),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                ),
+                if (i < distributedSections.length - 1)
+                  const SizedBox(width: gap),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionBlock(_RemoteSettingsSection section) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        fl.CenterGreyTitle(section.title),
+        const SizedBox(height: 4),
+        section.child,
+      ],
+    );
+  }
+
+  List<_RemoteSettingsSection> _buildConnectionAndTransferSections(
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    return [
+      _RemoteSettingsSection(
+        title: l10n.transferSection,
+        child: _buildCard(
+          theme: theme,
+          children: [
+            _buildTextFieldSetting(
+              l10n.defaultDownloadDir,
+              controller: _downloadDirController,
+              helperText: l10n.remoteDownloadDirHint,
+            ),
+            _buildNumberSetting(
+              l10n.maxConcurrentDownloads,
+              _maxConcurrentDownloads,
+              (value) => setState(() => _maxConcurrentDownloads = value),
+              min: 1,
+              max: 64,
+            ),
+            _buildNumberSetting(
+              l10n.maxConnectionPerServer,
+              _maxConnectionPerServer,
+              (value) => setState(() => _maxConnectionPerServer = value),
+              min: 1,
+              max: 64,
+            ),
+            _buildNumberSetting(
+              l10n.splitCount,
+              _split,
+              (value) => setState(() => _split = value),
+              min: 1,
+              max: 128,
+            ),
+            _buildSwitchSetting(
+              l10n.continueUnfinishedDownloads,
+              _continueDownloads,
+              (value) => setState(() => _continueDownloads = value),
+            ),
+          ],
+        ),
+      ),
+      _RemoteSettingsSection(
+        title: l10n.speedLimits,
+        child: _buildCard(
+          theme: theme,
+          children: [
+            _buildNumberSetting(
+              l10n.maxOverallDownloadLimit,
+              _maxOverallDownloadLimit,
+              (value) => setState(() => _maxOverallDownloadLimit = value),
+              min: 0,
+              max: 1024 * 1024,
+              suffix: l10n.downloadLimitTip,
+            ),
+            _buildNumberSetting(
+              l10n.maxOverallUploadLimit,
+              _maxOverallUploadLimit,
+              (value) => setState(() => _maxOverallUploadLimit = value),
+              min: 0,
+              max: 1024 * 1024,
+              suffix: l10n.uploadLimitTip,
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  List<_RemoteSettingsSection> _buildBtAndNetworkSections(
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    return [
+      _RemoteSettingsSection(
+        title: l10n.btPtSection,
+        child: _buildCard(
+          theme: theme,
+          children: [
+            _buildSwitchSetting(
+              l10n.saveBtMetadata,
+              _btSaveMetadata,
+              (value) => setState(() => _btSaveMetadata = value),
+            ),
+            _buildSwitchSetting(
+              l10n.loadSavedBtMetadata,
+              _btLoadSavedMetadata,
+              (value) => setState(() => _btLoadSavedMetadata = value),
+            ),
+            _buildSwitchSetting(
+              l10n.forceBtEncryption,
+              _btRequireCrypto,
+              (value) => setState(() => _btRequireCrypto = value),
+            ),
+            _buildNumberSetting(
+              l10n.seedTimeMinutes,
+              _seedTime,
+              (value) => setState(() => _seedTime = value),
+              min: 0,
+              max: 525600,
+              suffix: l10n.seedingTimeTip,
+            ),
+            _buildTextFieldSetting(
+              l10n.seedRatio,
+              controller: _seedRatioController,
+              helperText: l10n.seedingRatioTip,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+            ),
+            _buildTextFieldSetting(
+              l10n.btListenPort,
+              controller: _btListenPortController,
+              helperText: l10n.btListenPortTip,
+            ),
+            _buildTextFieldSetting(
+              l10n.dhtListenPort,
+              controller: _dhtListenPortController,
+            ),
+            _buildSwitchSetting(
+              l10n.enableDht6,
+              _enableDht6,
+              (value) => setState(() => _enableDht6 = value),
+            ),
+            _buildTextFieldSetting(
+              l10n.btTrackerServers,
+              controller: _trackerController,
+              helperText: l10n.btTrackerServersTip,
+              maxLines: 4,
+            ),
+            _buildTextFieldSetting(
+              l10n.excludedTrackers,
+              controller: _excludedTrackerController,
+              helperText: l10n.trackersTip,
+              maxLines: 2,
+            ),
+          ],
+        ),
+      ),
+      _RemoteSettingsSection(
+        title: l10n.networkSection,
+        child: _buildCard(
+          theme: theme,
+          children: [
+            _buildTextFieldSetting(
+              l10n.globalProxy,
+              controller: _allProxyController,
+              helperText: l10n.exampleProxy,
+            ),
+            _buildTextFieldSetting(
+              l10n.noProxyHosts,
+              controller: _noProxyController,
+              helperText: l10n.multipleHostsComma,
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  List<_RemoteSettingsSection> _buildFilesAndMaintenanceSections(
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    return [
+      _RemoteSettingsSection(
+        title: l10n.filesSection,
+        child: _buildCard(
+          theme: theme,
+          children: [
+            _buildTextFieldSetting(
+              l10n.userAgent,
+              controller: _userAgentController,
+            ),
+          ],
+        ),
+      ),
+    ];
   }
 
   Widget _buildInfoCard(ThemeData theme, AppLocalizations l10n) {
     final colorScheme = theme.colorScheme;
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colorScheme.secondaryContainer,
@@ -649,50 +805,33 @@ class _RemoteInstanceSettingsPageState
     );
   }
 
-  Widget _buildSectionHeader(String title, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 16, 0, 8),
-      child: Text(
-        title,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-          letterSpacing: -0.2,
-        ),
-      ),
-    );
-  }
-
   Widget _buildCard({
     required ThemeData theme,
     required List<Widget> children,
   }) {
-    final colorScheme = theme.colorScheme;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 1,
-      shadowColor: Colors.black.withValues(alpha: 0.1),
-      surfaceTintColor: colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        children: children
-            .asMap()
-            .entries
-            .map(
-              (entry) => Column(
-                children: [
-                  entry.value,
-                  if (entry.key < children.length - 1)
-                    Divider(
-                      height: 1,
-                      indent: 16,
-                      endIndent: 16,
-                      color: colorScheme.outlineVariant,
-                    ),
-                ],
-              ),
-            )
-            .toList(),
-      ),
+    return Column(
+      children: children
+          .map(
+            (child) => Padding(
+              padding: const EdgeInsets.only(bottom: _kSettingCardSpacing),
+              child: fl.CardX(child: child),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  TextStyle? _settingTitleStyle(ThemeData theme) {
+    return theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500);
+  }
+
+  TextStyle? _settingBodyStyle(ThemeData theme) {
+    return theme.textTheme.bodyMedium;
+  }
+
+  TextStyle? _settingHintStyle(ThemeData theme) {
+    return theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
     );
   }
 
@@ -703,10 +842,10 @@ class _RemoteInstanceSettingsPageState
   ) {
     final theme = Theme.of(context);
     return SwitchListTile(
-      title: Text(title, style: theme.textTheme.bodyMedium),
+      title: Text(title, style: _settingTitleStyle(theme)),
       value: value,
       onChanged: _isSaving ? null : onChanged,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      contentPadding: _kSettingTilePadding,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }
@@ -723,16 +862,11 @@ class _RemoteInstanceSettingsPageState
     final colorScheme = theme.colorScheme;
 
     return ListTile(
-      title: Text(title, style: theme.textTheme.bodyMedium),
+      title: Text(title, style: _settingTitleStyle(theme)),
       subtitle: suffix.isNotEmpty
-          ? Text(
-              suffix,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            )
+          ? Text(suffix, style: _settingHintStyle(theme))
           : null,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      contentPadding: _kSettingTilePadding,
       trailing: SizedBox(
         width: 130,
         child: Row(
@@ -760,9 +894,9 @@ class _RemoteInstanceSettingsPageState
               child: Text(
                 value.toString(),
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+                style: _settingTitleStyle(
+                  theme,
+                )?.copyWith(fontWeight: FontWeight.w500),
               ),
             ),
             IconButton(
@@ -794,8 +928,8 @@ class _RemoteInstanceSettingsPageState
     final colorScheme = theme.colorScheme;
 
     return ListTile(
-      title: Text(title, style: theme.textTheme.bodyMedium),
-      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      title: Text(title, style: _settingTitleStyle(theme)),
+      contentPadding: _kSettingTilePadding,
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
         child: TextFormField(
@@ -806,14 +940,12 @@ class _RemoteInstanceSettingsPageState
           cursorColor: colorScheme.primary,
           decoration: InputDecoration(
             helperText: helperText,
-            helperStyle: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+            helperStyle: _settingHintStyle(theme),
             border: InputBorder.none,
             isDense: true,
             contentPadding: EdgeInsets.zero,
           ),
-          style: theme.textTheme.bodyMedium,
+          style: _settingBodyStyle(theme),
         ),
       ),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
