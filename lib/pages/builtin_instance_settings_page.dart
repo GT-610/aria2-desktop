@@ -9,6 +9,7 @@ import '../services/builtin_instance_service.dart';
 import '../services/instance_manager.dart';
 import '../services/settings_service.dart';
 import '../services/tracker_sync_service.dart';
+import '../utils/logging.dart';
 import 'components/builtin_settings_apply_hint_card.dart';
 import 'download_page/components/directory_picker.dart';
 
@@ -22,6 +23,7 @@ class BuiltinInstanceSettingsPage extends StatefulWidget {
 
 class _BuiltinInstanceSettingsPageState
     extends State<BuiltinInstanceSettingsPage> {
+  final _logger = taggedLogger('BuiltinInstanceSettingsPage');
   bool _hasChanges = false;
   bool _isSaving = false;
   bool _isResettingSession = false;
@@ -1062,7 +1064,7 @@ class _BuiltinInstanceSettingsPageState
 
       _showSettingsSnackBar(l10n.settingsSaved);
     } catch (e, stackTrace) {
-      this.e(
+      _logger.e(
         'Failed to save built-in instance settings',
         error: e,
         stackTrace: stackTrace,
@@ -1092,7 +1094,7 @@ class _BuiltinInstanceSettingsPageState
         _syncNormalizedDraft(settings);
         await _refreshBuiltinInstanceSnapshot();
       } catch (e, stackTrace) {
-        this.e(
+        _logger.e(
           'Failed to persist built-in instance settings before applying',
           error: e,
           stackTrace: stackTrace,
