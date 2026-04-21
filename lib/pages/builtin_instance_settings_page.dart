@@ -750,32 +750,21 @@ class _BuiltinInstanceSettingsPageState
     required ThemeData theme,
   }) {
     final colorScheme = theme.colorScheme;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 1,
-      shadowColor: Colors.black.withValues(alpha: 0.1),
-      surfaceTintColor: colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        children: children
-            .asMap()
-            .entries
-            .map(
-              (entry) => Column(
-                children: [
-                  entry.value,
-                  if (entry.key < children.length - 1)
-                    Divider(
-                      height: 1,
-                      indent: 16,
-                      endIndent: 16,
-                      color: colorScheme.outlineVariant,
-                    ),
-                ],
+    return Column(
+      children: children
+          .map(
+            (child) => Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              elevation: 1,
+              shadowColor: Colors.black.withValues(alpha: 0.1),
+              surfaceTintColor: colorScheme.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-            )
-            .toList(),
-      ),
+              child: child,
+            ),
+          )
+          .toList(growable: false),
     );
   }
 
