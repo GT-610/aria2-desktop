@@ -37,6 +37,9 @@ class _BuiltinSettingsSection {
 class _BuiltinInstanceSettingsPageState
     extends State<BuiltinInstanceSettingsPage>
     with SingleTickerProviderStateMixin {
+  static const _kSettingCardSpacing = 10.0;
+  static const _kSettingTilePadding = EdgeInsets.fromLTRB(16, 6, 16, 6);
+
   final _logger = taggedLogger('BuiltinInstanceSettingsPage');
   bool _hasChanges = false;
   bool _isSaving = false;
@@ -358,7 +361,11 @@ class _BuiltinInstanceSettingsPageState
   Widget _buildSectionBlock(_BuiltinSettingsSection section) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [fl.CenterGreyTitle(section.title), section.child],
+      children: [
+        fl.CenterGreyTitle(section.title),
+        const SizedBox(height: 4),
+        section.child,
+      ],
     );
   }
 
@@ -749,22 +756,29 @@ class _BuiltinInstanceSettingsPageState
     required List<Widget> children,
     required ThemeData theme,
   }) {
-    final colorScheme = theme.colorScheme;
     return Column(
       children: children
           .map(
-            (child) => Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              elevation: 1,
-              shadowColor: Colors.black.withValues(alpha: 0.1),
-              surfaceTintColor: colorScheme.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: child,
+            (child) => Padding(
+              padding: const EdgeInsets.only(bottom: _kSettingCardSpacing),
+              child: fl.CardX(child: child),
             ),
           )
           .toList(growable: false),
+    );
+  }
+
+  TextStyle? _settingTitleStyle(ThemeData theme) {
+    return theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500);
+  }
+
+  TextStyle? _settingBodyStyle(ThemeData theme) {
+    return theme.textTheme.bodyMedium;
+  }
+
+  TextStyle? _settingHintStyle(ThemeData theme) {
+    return theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
     );
   }
 
@@ -780,19 +794,14 @@ class _BuiltinInstanceSettingsPageState
 
     return ListTile(
       leading: Icon(icon, color: colorScheme.error),
-      title: Text(title, style: theme.textTheme.bodyMedium),
-      subtitle: Text(
-        description,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-        ),
-      ),
+      title: Text(title, style: _settingTitleStyle(theme)),
+      subtitle: Text(description, style: _settingHintStyle(theme)),
       trailing: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(foregroundColor: colorScheme.error),
         child: Text(actionLabel),
       ),
-      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      contentPadding: _kSettingTilePadding,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }
@@ -802,7 +811,7 @@ class _BuiltinInstanceSettingsPageState
     return ListTile(
       title: Text(
         AppLocalizations.of(context)!.trackerSource,
-        style: theme.textTheme.bodyMedium,
+        style: _settingTitleStyle(theme),
       ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -822,7 +831,7 @@ class _BuiltinInstanceSettingsPageState
                 .map(
                   (option) => DropdownMenuItem<String>(
                     value: option.url,
-                    child: Text(option.label),
+                    child: Text(option.label, style: _settingBodyStyle(theme)),
                   ),
                 )
                 .toList(),
@@ -844,7 +853,7 @@ class _BuiltinInstanceSettingsPageState
           ),
         ],
       ),
-      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      contentPadding: _kSettingTilePadding,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }
@@ -857,21 +866,15 @@ class _BuiltinInstanceSettingsPageState
     bool enabled = true,
   }) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     return SwitchListTile(
-      title: Text(title, style: theme.textTheme.bodyMedium),
+      title: Text(title, style: _settingTitleStyle(theme)),
       subtitle: helperText.isNotEmpty
-          ? Text(
-              helperText,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            )
+          ? Text(helperText, style: _settingHintStyle(theme))
           : null,
       value: value,
       onChanged: enabled ? onChanged : null,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      contentPadding: _kSettingTilePadding,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }
@@ -888,16 +891,11 @@ class _BuiltinInstanceSettingsPageState
     final colorScheme = theme.colorScheme;
 
     return ListTile(
-      title: Text(title, style: theme.textTheme.bodyMedium),
+      title: Text(title, style: _settingTitleStyle(theme)),
       subtitle: suffix.isNotEmpty
-          ? Text(
-              suffix,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            )
+          ? Text(suffix, style: _settingHintStyle(theme))
           : null,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      contentPadding: _kSettingTilePadding,
       trailing: SizedBox(
         width: 130,
         child: Row(
@@ -923,9 +921,9 @@ class _BuiltinInstanceSettingsPageState
               child: Text(
                 value.toString(),
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+                style: _settingTitleStyle(
+                  theme,
+                )?.copyWith(fontWeight: FontWeight.w500),
               ),
             ),
             IconButton(
@@ -959,8 +957,8 @@ class _BuiltinInstanceSettingsPageState
     final colorScheme = theme.colorScheme;
 
     return ListTile(
-      title: Text(title, style: theme.textTheme.bodyMedium),
-      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      title: Text(title, style: _settingTitleStyle(theme)),
+      contentPadding: _kSettingTilePadding,
       subtitle: Padding(
         padding: const EdgeInsets.only(right: 0),
         child: TextFormField(
@@ -974,14 +972,12 @@ class _BuiltinInstanceSettingsPageState
           cursorColor: colorScheme.primary,
           decoration: InputDecoration(
             helperText: helperText,
-            helperStyle: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+            helperStyle: _settingHintStyle(theme),
             border: InputBorder.none,
             isDense: true,
             contentPadding: EdgeInsets.zero,
           ),
-          style: theme.textTheme.bodyMedium,
+          style: _settingBodyStyle(theme),
         ),
       ),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
@@ -992,8 +988,8 @@ class _BuiltinInstanceSettingsPageState
     final theme = Theme.of(context);
 
     return ListTile(
-      title: Text(title, style: theme.textTheme.bodyMedium),
-      contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      title: Text(title, style: _settingTitleStyle(theme)),
+      contentPadding: _kSettingTilePadding,
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 8),
         child: DirectoryPicker(
