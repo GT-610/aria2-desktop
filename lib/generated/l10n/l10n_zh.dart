@@ -292,9 +292,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get about => '关于';
 
   @override
-  String get aboutProject => '项目';
-
-  @override
   String get aboutProjectDescription =>
       'Setsuna 是一个 aria2 桌面客户端，提供内建实例与远程实例管理、远程设置与维护能力，以及面向 URI、Torrent、Metalink 的日常下载工作流。';
 
