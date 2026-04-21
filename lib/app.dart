@@ -328,6 +328,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   Settings? _settings;
   Timer? _pendingAutoHideTimer;
   bool _isWindowBlurred = false;
+  bool _isQuitting = false;
   int _shellSettingsGeneration = 0;
 
   @override
@@ -409,10 +410,37 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     systemTrayService.setOnAddTask(_openAddTaskFromTray);
     systemTrayService.setOnToggleWindow(_toggleWindowFromTray);
     systemTrayService.setOnQuitApp(() async {
-      await windowManager.close();
+      await _quitApplication();
     });
     systemTrayService.setOnPauseAll(_pauseAllTasksFromTray);
     systemTrayService.setOnResumeAll(_resumeAllTasksFromTray);
+  }
+
+  Future<void> _quitApplication() async {
+    if (_isQuitting) {
+      return;
+    }
+
+    _isQuitting = true;
+    final instanceManager =
+        _instanceManager ??
+        Provider.of<InstanceManager>(context, listen: false);
+
+    try {
+      final builtinInstance = instanceManager.getBuiltinInstance();
+      if (builtinInstance != null) {
+        await instanceManager.disconnectInstance(builtinInstance);
+      }
+    } catch (e, stackTrace) {
+      this.e(
+        'Failed to stop built-in aria2 during application shutdown',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+
+    SystemTrayService().destroy();
+    await windowManager.destroy();
   }
 
   Future<void> _applyShellSettings() async {
@@ -741,11 +769,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   @override
   void onWindowClose() async {
     final settings = Provider.of<Settings>(context, listen: false);
-    if (settings.runMode == AppRunMode.tray) {
+    if (!_isQuitting && settings.runMode == AppRunMode.tray) {
       await windowManager.hide();
     } else {
-      await windowManager.destroy();
-      SystemTrayService().destroy();
+      await _quitApplication();
     }
   }
 
