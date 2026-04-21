@@ -323,7 +323,6 @@ class _SettingsPageState extends State<SettingsPage>
           title: l10n.runAtStartup,
           subtitle: l10n.runAtStartupTip,
           value: settings.autoStart,
-          logSuccess: false,
           onChanged: (value) => _setRunAtStartupPreference(value, settings),
         ),
         fl.CardX(
@@ -367,8 +366,6 @@ class _SettingsPageState extends State<SettingsPage>
                         await _runSettingAction(
                           () => settings.setRunMode(selection.first),
                           l10n.saveSettingsFailed,
-                          successLog:
-                              'Run mode setting changed to: ${selection.first.name}',
                         );
                       },
                     ),
@@ -414,7 +411,6 @@ class _SettingsPageState extends State<SettingsPage>
               title: l10n.handleMagnetLinks,
               subtitle: l10n.handleMagnetLinksTip,
               value: settings.protocolMagnetEnabled,
-              logSuccess: false,
               onChanged: (value) => _setProtocolPreference(
                 scheme: 'magnet',
                 protocolLabel: 'magnet://',
@@ -426,7 +422,6 @@ class _SettingsPageState extends State<SettingsPage>
               title: l10n.handleThunderLinks,
               subtitle: l10n.handleThunderLinksTip,
               value: settings.protocolThunderEnabled,
-              logSuccess: false,
               onChanged: (value) => _setProtocolPreference(
                 scheme: 'thunder',
                 protocolLabel: 'thunder://',
@@ -618,7 +613,6 @@ class _SettingsPageState extends State<SettingsPage>
     required bool value,
     required Future<void> Function(bool value) onChanged,
     bool enabled = true,
-    bool logSuccess = true,
   }) {
     return fl.CardX(
       child: ListTile(
@@ -633,7 +627,6 @@ class _SettingsPageState extends State<SettingsPage>
               : (next) => _runSettingAction(
                   () => onChanged(next),
                   AppLocalizations.of(context)!.saveSettingsFailed,
-                  successLog: logSuccess ? '$title changed to: $next' : null,
                 ),
         ),
       ),
@@ -642,9 +635,8 @@ class _SettingsPageState extends State<SettingsPage>
 
   Future<void> _runSettingAction(
     Future<void> Function() action,
-    String errorMessage, {
-    String? successLog,
-  }) async {
+    String errorMessage,
+  ) async {
     try {
       await action();
     } catch (e, stackTrace) {
