@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../utils/logging.dart';
+import '../utils/app_data_dir.dart';
 import 'dart:convert' show jsonDecode, jsonEncode;
 
 enum AppRunMode { standard, tray, hideTray }
@@ -87,24 +88,12 @@ class Settings extends ChangeNotifier with Loggable {
 
   /// Get program data directory
   Directory _getDataDirectory() {
-    // Get the executable path
-    String executablePath = Platform.resolvedExecutable;
-    Directory executableDir = Directory(executablePath).parent;
-
-    // Data directory: data/config relative to executable
-    String dataDirPath = '${executableDir.path}/data';
-    Directory dataDir = Directory(dataDirPath);
-    if (!dataDir.existsSync()) {
-      dataDir.createSync(recursive: true);
-    }
-
-    return dataDir;
+    return getAppDataDirectory();
   }
 
   String _defaultBuiltinLogFilePath() {
-    final executablePath = Platform.resolvedExecutable;
-    final executableDir = Directory(executablePath).parent;
-    return '${executableDir.path}/data/core/aria2.log';
+    final dataDir = getAppDataDirectory();
+    return '${dataDir.path}/core/aria2.log';
   }
 
   void _assignDefaultSettings() {

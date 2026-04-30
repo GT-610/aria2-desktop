@@ -150,29 +150,8 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
       listen: false,
     );
     await instanceManager.initialize();
-    final downloadDataService = Provider.of<DownloadDataService>(
-      context,
-      listen: false,
-    );
 
     unawaited(_syncBuiltinTrackersIfNeeded(settings, instanceManager));
-
-    if (settings.resumeAllOnLaunch) {
-      await _resumePausedTasksOnLaunch(instanceManager, downloadDataService);
-    }
-
-    // Check if built-in instance failed to connect
-    final builtinInstance = instanceManager.getInstanceById('builtin');
-    if (builtinInstance == null) {
-      throw Exception('Built-in instance not found');
-    }
-
-    if (builtinInstance.status == ConnectionStatus.failed) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _showBuiltinConnectionFailedDialog(context);
-      });
-    }
 
     setState(() {
       _isInitialized = true;
@@ -226,80 +205,6 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
     }
   }
 
-  Future<void> _resumePausedTasksOnLaunch(
-    InstanceManager instanceManager,
-    DownloadDataService downloadDataService,
-  ) async {
-    final connectedInstances = instanceManager.getConnectedInstances();
-    if (connectedInstances.isEmpty) {
-      return;
-    }
-
-    await downloadDataService.refreshTasks(connectedInstances);
-
-    final pausedTasks = downloadDataService.tasks
-        .where(
-          (task) =>
-              task.status == DownloadStatus.waiting &&
-              task.taskStatus == 'paused',
-        )
-        .toList();
-    if (pausedTasks.isEmpty) {
-      return;
-    }
-
-    final tasksByInstance = <String, List<DownloadTask>>{};
-    for (final task in pausedTasks) {
-      tasksByInstance.putIfAbsent(task.instanceId, () => []).add(task);
-    }
-
-    var successCount = 0;
-    var failCount = 0;
-    for (final instance in connectedInstances) {
-      final instanceTasks = tasksByInstance[instance.id];
-      if (instanceTasks == null || instanceTasks.isEmpty) {
-        continue;
-      }
-
-      final client = Aria2RpcClient(instance);
-      try {
-        for (final task in instanceTasks) {
-          try {
-            await client.unpauseTask(task.id);
-            successCount++;
-          } catch (e, stackTrace) {
-            failCount++;
-            this.e(
-              'Failed to resume task ${task.id} on launch for instance ${instance.name}',
-              error: e,
-              stackTrace: stackTrace,
-            );
-          }
-        }
-      } finally {
-        client.close();
-      }
-    }
-
-    await downloadDataService.refreshTasks(connectedInstances);
-    i('Resume-on-launch finished: $successCount resumed, $failCount failed');
-  }
-
-  void _showBuiltinConnectionFailedDialog(BuildContext ctx) {
-    final l10n = AppLocalizations.of(ctx)!;
-    showDialog(
-      context: ctx,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.builtinInstanceConnectFailed),
-        content: Text(l10n.builtinInstanceConnectFailedTip),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.ok)),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
@@ -330,6 +235,8 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   bool _isWindowBlurred = false;
   bool _isQuitting = false;
   int _shellSettingsGeneration = 0;
+  bool _hasShownBuiltinFailureDialog = false;
+  bool _hasResumedTasks = false;
 
   @override
   void initState() {
@@ -397,8 +304,117 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     unawaited(_applyShellSettings());
   }
 
+  void _showBuiltinConnectionFailedDialog(BuildContext ctx) {
+    final l10n = AppLocalizations.of(ctx)!;
+    showDialog(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.builtinInstanceConnectFailed),
+        content: Text(l10n.builtinInstanceConnectFailedTip),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.ok)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _resumePausedTasksOnLaunch(
+    InstanceManager instanceManager,
+    DownloadDataService downloadDataService,
+  ) async {
+    final connectedInstances = instanceManager.getConnectedInstances();
+    if (connectedInstances.isEmpty) {
+      return;
+    }
+
+    await downloadDataService.refreshTasks(connectedInstances);
+
+    final pausedTasks = downloadDataService.tasks
+        .where(
+          (task) =>
+              task.status == DownloadStatus.waiting &&
+              task.taskStatus == 'paused',
+        )
+        .toList();
+    if (pausedTasks.isEmpty) {
+      return;
+    }
+
+    final tasksByInstance = <String, List<DownloadTask>>{};
+    for (final task in pausedTasks) {
+      tasksByInstance.putIfAbsent(task.instanceId, () => []).add(task);
+    }
+
+    var successCount = 0;
+    var failCount = 0;
+    for (final instance in connectedInstances) {
+      final instanceTasks = tasksByInstance[instance.id];
+      if (instanceTasks == null || instanceTasks.isEmpty) {
+        continue;
+      }
+
+      final client = Aria2RpcClient(instance);
+      try {
+        for (final task in instanceTasks) {
+          try {
+            await client.unpauseTask(task.id);
+            successCount++;
+          } catch (e, stackTrace) {
+            failCount++;
+            this.e(
+              'Failed to resume task ${task.id} on launch for instance ${instance.name}',
+              error: e,
+              stackTrace: stackTrace,
+            );
+          }
+        }
+      } finally {
+        client.close();
+      }
+    }
+
+    await downloadDataService.refreshTasks(connectedInstances);
+    i('Resume-on-launch finished: $successCount resumed, $failCount failed');
+  }
+
   void _handleInstanceManagerChanged() {
     unawaited(_handleTrayStateChanged());
+
+    final instanceManager =
+        _instanceManager ??
+        Provider.of<InstanceManager>(context, listen: false);
+
+    // Resume paused tasks on launch when builtin first connects
+    if (!_hasResumedTasks) {
+      final builtinInstance = instanceManager.getInstanceById('builtin');
+      if (builtinInstance != null &&
+          builtinInstance.status == ConnectionStatus.connected) {
+        _hasResumedTasks = true;
+        final settings =
+            _settings ?? Provider.of<Settings>(context, listen: false);
+        if (settings.resumeAllOnLaunch) {
+          final downloadDataService =
+              _downloadDataService ??
+              Provider.of<DownloadDataService>(context, listen: false);
+          unawaited(
+            _resumePausedTasksOnLaunch(instanceManager, downloadDataService),
+          );
+        }
+      }
+    }
+
+    // Show failure dialog once when builtin fails
+    if (_hasShownBuiltinFailureDialog) return;
+    final builtinInstance = instanceManager.getInstanceById('builtin');
+    if (builtinInstance != null &&
+        builtinInstance.status == ConnectionStatus.failed) {
+      _hasShownBuiltinFailureDialog = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _showBuiltinConnectionFailedDialog(context);
+      });
+    }
   }
 
   Future<void> _initSystemTrayCallbacks() async {
