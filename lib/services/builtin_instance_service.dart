@@ -44,7 +44,7 @@ class BuiltinInstanceService with Loggable {
       coreDir.createSync(recursive: true);
     }
 
-    _aria2cPath = '$coreDirPath/aria2c';
+    _aria2cPath = '$coreDirPath/aria2c${Platform.isWindows ? '.exe' : ''}';
     _aria2ConfPath = '$coreDirPath/aria2.conf';
     _sessionPath = '$coreDirPath/aria2.session';
     _logPath = '$coreDirPath/aria2.log';
