@@ -352,9 +352,8 @@ class Aria2RpcClient with Loggable {
     } on ConnectionFailedException catch (e) {
       w('Connection test failed: $e');
       return false;
-    } on UnauthorizedException catch (e) {
-      w('Connection test failed - unauthorized: $e');
-      return false;
+  } on UnauthorizedException {
+    rethrow;
   } catch (err, stackTrace) {
     e(
       'Unexpected error during connection test',
