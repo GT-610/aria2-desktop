@@ -24,26 +24,23 @@ dependencies:
   provider: ^6.1.2
   
   # Network requests
-  dio: ^5.6.0
   http: ^1.5.0
   logging: ^1.2.0
   port_forwarder: ^1.0.0
   
   # WebSocket connections
-  web_socket_channel: ^3.0.3
-  
+  # Removed web_socket_channel - using dart:io WebSocket directly
+
   # Storage
   path: ^1.9.1
-  path_provider: ^2.1.5
-  shared_preferences: ^2.5.4
-  
+
   # File handling
   file_picker: ^10.3.8
   desktop_drop: ^0.6.0
   
   # Process management
-  process_run: ^1.2.4
-  
+  # Removed process_run - using dart:io Process.start directly
+
   # App information
   package_info_plus: ^9.0.0
 
@@ -74,7 +71,7 @@ flutter:
 
   assets:
     - assets/logo/
-    - assets/core/
+    # Removed assets/core/ - aria2.conf is loaded from runtime path, not asset bundle
 
   # Enable localization
   generate: true

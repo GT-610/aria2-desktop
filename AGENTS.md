@@ -1,5 +1,13 @@
 # AGENTS.md - Guidelines for Agentic Coding in Aria2 Desktop
 
+## Project Overview
+
+Setsuna is a cross-platform (Windows / macOS / Linux) desktop download manager built with Flutter, providing a user-friendly interface to manage local (built-in) and remote Aria2 instances.
+
+- **Published platforms**: Windows (officially released)
+- **Unpublished platforms**: macOS, Linux (not yet released)
+- **When making changes**: Ensure compatibility across all three platforms, with special attention to Windows compatibility since it is the currently published target.
+
 ## Build, Lint, and Test Commands
 
 For Codex: All these commands need to be executed outside sandbox, or it will get stuck.
@@ -132,3 +140,5 @@ try {
 ## Additional Notes
 
 - Prefer repository-tracked code and public upstream documentation as the source of truth.
+- `assets/logo/app.svg` is not referenced in Dart code but must be preserved (used by external tooling or packaging scripts).
+- When considering compatibility, only Windows compatibility matters currently (only Windows is officially published).

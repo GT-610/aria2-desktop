@@ -37,7 +37,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   String? _lastError;
   final List<DownloadTaskNotification> _pendingNotifications = [];
 
-  int _refreshInterval = 1000;
+  final int _refreshInterval = 1000;
 
   final Map<String, Aria2RpcClient> _clientCache = {};
   List<Aria2Instance> Function()? _connectedInstancesProvider;

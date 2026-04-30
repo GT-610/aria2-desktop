@@ -13,6 +13,7 @@ import 'pages/download_page/download_page.dart';
 import 'pages/download_page/enums.dart';
 import 'pages/download_page/models/download_task.dart';
 import 'pages/instance_page/instance_page.dart';
+import 'utils/format_utils.dart';
 import 'pages/settings_page/settings_page.dart';
 import 'services/download_data_service.dart';
 import 'services/instance_manager.dart';
@@ -70,18 +71,12 @@ class _ThemeProviderState extends State<_ThemeProvider> {
           seedColor: settings.primaryColor,
           brightness: Brightness.light,
         ),
-        buttonTheme: ButtonThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
       ).fixWindowsFont,
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: settings.primaryColor,
           brightness: Brightness.dark,
-        ),
-        buttonTheme: ButtonThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ).fixWindowsFont,
       themeMode: settings.themeMode,
@@ -581,7 +576,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
           ? l10n.notConnected
           : '${l10n.connected}: $connectedCount',
       if (settings.showTraySpeed)
-        l10n.totalSpeed(_formatSpeed(totalDownloadSpeed)),
+        l10n.totalSpeed(formatSpeed(totalDownloadSpeed)),
       l10n.activeTasks(activeCount.toString()),
       l10n.waitingTasks(waitingCount.toString()),
     ];
@@ -954,7 +949,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
               children: [
                 Chip(
                   label: Text(
-                    l10n.totalSpeed(_formatSpeed(totalDownloadSpeed)),
+                    l10n.totalSpeed(formatSpeed(totalDownloadSpeed)),
                   ),
                   avatar: const Icon(Icons.speed, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
@@ -987,15 +982,5 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         ],
       ),
     );
-  }
-
-  String _formatSpeed(int bytesPerSecond) {
-    if (bytesPerSecond < 1024) {
-      return '$bytesPerSecond B/s';
-    } else if (bytesPerSecond < 1024 * 1024) {
-      return '${(bytesPerSecond / 1024).toStringAsFixed(2)} KB/s';
-    } else {
-      return '${(bytesPerSecond / (1024 * 1024)).toStringAsFixed(2)} MB/s';
-    }
   }
 }
