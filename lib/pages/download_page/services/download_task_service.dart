@@ -9,7 +9,6 @@ import '../../../models/aria2_instance.dart';
 import '../../../models/settings.dart';
 import '../../../services/aria2_rpc_client.dart';
 import '../../../services/instance_manager.dart';
-import '../../../utils/format_utils.dart';
 import '../../../utils/logging.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
@@ -29,10 +28,6 @@ class DeleteTaskResult {
 }
 
 class DownloadTaskService with Loggable {
-  static final DownloadTaskService _instance = DownloadTaskService._();
-  DownloadTaskService._();
-  static DownloadTaskService get instance => _instance;
-
   static Future<bool?> promptDeleteDownloadedFiles(
     BuildContext context,
     List<DownloadTask> tasks,
@@ -113,105 +108,6 @@ class DownloadTaskService with Loggable {
     return DeleteTaskResult(
       removedFromAria2: true,
       fileDeletionErrors: fileDeletionErrors,
-    );
-  }
-
-  static DownloadTask parseTask(
-    Map<String, dynamic> taskData,
-    String instanceId,
-  ) {
-    final gid = taskData['gid'] ?? '';
-    final status = taskData['status'] ?? '';
-    var taskStatus = taskData['bittorrent']?['info']?['name'] != null
-        ? 'complete'
-        : 'active';
-
-    DownloadStatus downloadStatus;
-    switch (status) {
-      case 'active':
-        downloadStatus = DownloadStatus.active;
-        break;
-      case 'waiting':
-        downloadStatus = DownloadStatus.waiting;
-        break;
-      case 'paused':
-        downloadStatus = DownloadStatus.waiting;
-        taskStatus = 'paused';
-        break;
-      case 'complete':
-        downloadStatus = DownloadStatus.stopped;
-        taskStatus = 'complete';
-        break;
-      case 'error':
-        downloadStatus = DownloadStatus.stopped;
-        taskStatus = 'error';
-        break;
-      case 'removed':
-        downloadStatus = DownloadStatus.stopped;
-        taskStatus = 'removed';
-        break;
-      default:
-        downloadStatus = DownloadStatus.waiting;
-    }
-
-    final totalLength =
-        taskData['totalLength'] != null && taskData['totalLength'] != ''
-        ? int.tryParse(taskData['totalLength']) ?? 0
-        : 0;
-    final completedLength =
-        taskData['completedLength'] != null && taskData['completedLength'] != ''
-        ? int.tryParse(taskData['completedLength']) ?? 0
-        : 0;
-    final uploadLength =
-        taskData['uploadLength'] != null && taskData['uploadLength'] != ''
-        ? int.tryParse(taskData['uploadLength']) ?? 0
-        : 0;
-    final progress = totalLength > 0 ? completedLength / totalLength : 0.0;
-
-    var name = '';
-    if (taskData['bittorrent']?['info']?['name'] != null) {
-      name = taskData['bittorrent']['info']['name'];
-    } else if (taskData['files'] is List && taskData['files'].isNotEmpty) {
-      final path = taskData['files'][0]['path'] ?? '';
-      if (path.contains('/')) {
-        name = path.split('/').last;
-      } else if (path.contains('\\')) {
-        name = path.split('\\').last;
-      } else {
-        name = path;
-      }
-    }
-
-    final dir = taskData['dir'] ?? '';
-    final infoHash = taskData['infoHash']?.toString();
-    final pieceLength = int.tryParse(taskData['pieceLength']?.toString() ?? '');
-    final numPieces = int.tryParse(taskData['numPieces']?.toString() ?? '');
-    final numSeeders = int.tryParse(taskData['numSeeders']?.toString() ?? '');
-    final isSeeder = taskData['seeder']?.toString() == 'true';
-
-    return DownloadTask(
-      id: gid,
-      name: name,
-      status: downloadStatus,
-      taskStatus: taskStatus,
-      progress: progress,
-      size: formatBytes(totalLength),
-      completedSize: formatBytes(completedLength),
-      downloadSpeed: _formatSpeed(taskData['downloadSpeed'] ?? 0),
-      uploadSpeed: _formatSpeed(taskData['uploadSpeed'] ?? 0),
-      dir: dir,
-      instanceId: instanceId,
-      isLocal: false,
-      totalLengthBytes: totalLength,
-      completedLengthBytes: completedLength,
-      uploadLengthBytes: uploadLength,
-      numSeeders: numSeeders,
-      downloadSpeedBytes: taskData['downloadSpeed'] ?? 0,
-      uploadSpeedBytes: taskData['uploadSpeed'] ?? 0,
-      infoHash: infoHash,
-      pieceLength: pieceLength,
-      numPieces: numPieces,
-      isSeeder: isSeeder,
     );
   }
 
@@ -648,24 +544,6 @@ class DownloadTaskService with Loggable {
     }
   }
 
-  static void openDirectory(DownloadTask task) {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      if (task.dir != null) {
-        final directory = Directory(task.dir!);
-        if (directory.existsSync()) {
-          Process.start(
-            Platform.isWindows
-                ? 'explorer.exe'
-                : Platform.isLinux
-                ? 'xdg-open'
-                : 'open',
-            [task.dir!],
-          );
-        }
-      }
-    }
-  }
-
   static void _scheduleFollowUpRefresh(VoidCallback onTaskUpdated) {
     Future<void>.delayed(const Duration(milliseconds: 600), onTaskUpdated);
   }
@@ -798,39 +676,4 @@ class DownloadTaskService with Loggable {
   static Future<List<String>> deleteDownloadedFilesForTesting(
     DownloadTask task,
   ) => _deleteDownloadedFiles(task);
-
-  static List<DownloadTask> filterTasks(
-    List<DownloadTask> tasks,
-    String filter,
-  ) {
-    switch (filter) {
-      case 'all':
-        return tasks;
-      case 'active':
-        return tasks.where(matchesActiveFilter).toList();
-      case 'waiting':
-        return tasks.where(matchesWaitingFilter).toList();
-      case 'stopped':
-        return tasks
-            .where((task) => task.status == DownloadStatus.stopped)
-            .toList();
-      default:
-        return tasks;
-    }
-  }
-
-  static String _formatSpeed(int bytesPerSecond) {
-    if (bytesPerSecond <= 0) return '0 B/s';
-
-    const suffixes = ['B/s', 'KB/s', 'MB/s', 'GB/s', 'TB/s'];
-    var i = 0;
-    var value = bytesPerSecond.toDouble();
-
-    while (value >= 1024 && i < suffixes.length - 1) {
-      value /= 1024;
-      i++;
-    }
-
-    return '${value.toStringAsFixed(2)} ${suffixes[i]}';
-  }
 }

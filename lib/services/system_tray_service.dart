@@ -38,9 +38,6 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
 
   SystemTrayService._internal();
 
-  bool get isInitialized => _isInitialized;
-  bool get notificationsInitialized => _notificationsInitialized;
-
   void setOnShowWindow(VoidCallback? callback) {
     _onShowWindow = callback;
   }
@@ -354,7 +351,7 @@ class WindowManagerService with Loggable {
     return _instance!;
   }
 
-  WindowManagerService._internal() {}
+  WindowManagerService._internal();
 
   Future<void> initialize({bool hideTitleBar = false}) async {
     await windowManager.ensureInitialized();
@@ -379,30 +376,5 @@ class WindowManagerService with Loggable {
     await windowManager.setTitleBarStyle(
       hideTitleBar ? TitleBarStyle.hidden : TitleBarStyle.normal,
     );
-  }
-
-  Future<void> showWindow() async {
-    await windowManager.show();
-    await windowManager.focus();
-  }
-
-  Future<void> hideWindow() async {
-    await windowManager.hide();
-  }
-
-  Future<void> minimizeToTray() async {
-    await windowManager.hide();
-  }
-
-  Future<void> close() async {
-    await windowManager.close();
-  }
-
-  Future<bool> isVisible() async {
-    return await windowManager.isVisible();
-  }
-
-  Future<void> setPreventClose(bool prevent) async {
-    await windowManager.setPreventClose(prevent);
   }
 }

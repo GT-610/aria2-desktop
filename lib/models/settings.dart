@@ -91,11 +91,6 @@ class Settings extends ChangeNotifier with Loggable {
     return getAppDataDirectory();
   }
 
-  String _defaultBuiltinLogFilePath() {
-    final dataDir = getAppDataDirectory();
-    return '${dataDir.path}/core/aria2.log';
-  }
-
   void _assignDefaultSettings() {
     _autoStart = false;
     _minimizeToTray = true;
@@ -181,7 +176,6 @@ class Settings extends ChangeNotifier with Loggable {
 
   // Getters
   bool get autoStart => _autoStart;
-  bool get minimizeToTray => _minimizeToTray;
   AppRunMode get runMode => _runMode;
   bool get autoHideWindow => _autoHideWindow;
   bool get showTraySpeed => _showTraySpeed;
@@ -241,13 +235,6 @@ class Settings extends ChangeNotifier with Loggable {
   bool get autoFileRenaming => _autoFileRenaming;
   bool get allowOverwrite => _allowOverwrite;
   String get userAgent => _userAgent;
-  String get dataDirectoryPath => _getDataDirectory().path;
-  String get effectiveBuiltinLogFilePath {
-    final configuredPath = _logPath.trim();
-    return configuredPath.isNotEmpty
-        ? configuredPath
-        : _defaultBuiltinLogFilePath();
-  }
 
   // Load all settings from JSON file
   Future<void> loadSettings() async {
@@ -459,11 +446,6 @@ class Settings extends ChangeNotifier with Loggable {
     } catch (e) {
       this.e('Failed to save settings', error: e);
     }
-  }
-
-  /// Public method to save all settings
-  Future<void> saveAllSettings() async {
-    await _saveAllSettings();
   }
 
   Future<void> resetToDefaults() async {

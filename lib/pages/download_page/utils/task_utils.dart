@@ -78,12 +78,4 @@ class TaskUtils {
       }
     }
   }
-
-  // Get instance name display
-  static String getInstanceName(
-    Map<String, String> instanceNames,
-    String instanceId,
-  ) {
-    return instanceNames[instanceId] ?? 'Unknown instance';
-  }
 }
