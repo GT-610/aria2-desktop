@@ -195,10 +195,6 @@ class BuiltinInstanceService with Loggable {
     return null;
   }
 
-  bool checkBuiltinFiles() {
-    return validateBuiltinFiles() == null;
-  }
-
   String getEffectiveSessionPath() {
     final settings = _readSettingsSnapshot();
     return _resolveEffectiveSessionPath(settings);
@@ -451,8 +447,6 @@ class BuiltinInstanceService with Loggable {
   bool isRunning() {
     return _aria2Process != null;
   }
-
-  int? get pid => _aria2Process?.pid;
 
   void _monitorProcessOutput() {
     if (_aria2Process == null) return;

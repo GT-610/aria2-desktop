@@ -59,14 +59,6 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     _clientCache.clear();
   }
 
-  void setRefreshInterval(int milliseconds) {
-    if (_refreshInterval == milliseconds) {
-      return;
-    }
-    _refreshInterval = milliseconds;
-    _restartTimer();
-  }
-
   Timer? startPeriodicRefresh(
     List<Aria2Instance> Function() connectedInstancesProvider,
   ) {
@@ -289,27 +281,6 @@ class DownloadDataService extends ChangeNotifier with Loggable {
           ),
         );
       }
-    }
-  }
-
-  List<DownloadTask> filterTasks({
-    DownloadStatus? status,
-    String? instanceId,
-    bool? isLocal,
-  }) {
-    return _tasks.where((task) {
-      if (status != null && task.status != status) return false;
-      if (instanceId != null && task.instanceId != instanceId) return false;
-      if (isLocal != null && task.isLocal != isLocal) return false;
-      return true;
-    }).toList();
-  }
-
-  DownloadTask? getTaskById(String taskId) {
-    try {
-      return _tasks.firstWhere((task) => task.id == taskId);
-    } catch (e) {
-      return null;
     }
   }
 

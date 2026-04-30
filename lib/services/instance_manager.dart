@@ -443,11 +443,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
     notifyListeners();
   }
 
-  /// Check if instance is online
-  Future<bool> checkInstanceOnline(Aria2Instance instance) async {
-    return await checkConnection(instance);
-  }
-
   /// Update instance status in instance list
   void updateInstanceInList(
     String instanceId,
