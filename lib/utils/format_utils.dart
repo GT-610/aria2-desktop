@@ -63,13 +63,13 @@ List<int> parseHexBitfield(String bitfield) {
 }
 
 String formatSpeed(int bytesPerSecond) {
-  if (bytesPerSecond < 1024) {
-    return '$bytesPerSecond B/s';
-  } else if (bytesPerSecond < 1024 * 1024) {
-    return '${(bytesPerSecond / 1024).toStringAsFixed(2)} KB/s';
-  } else {
-    return '${(bytesPerSecond / (1024 * 1024)).toStringAsFixed(2)} MB/s';
-  }
+  if (bytesPerSecond <= 0) return '0 B/s';
+
+  const suffixes = ['B/s', 'KB/s', 'MB/s', 'GB/s', 'TB/s'];
+  var i = (log(bytesPerSecond) / log(1024)).floor();
+  i = i.clamp(0, suffixes.length - 1);
+
+  return '${(bytesPerSecond / pow(1024, i)).toStringAsFixed(2)} ${suffixes[i]}';
 }
 
 String formatSpeedLimitOption(int value) {

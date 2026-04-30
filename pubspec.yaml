@@ -71,7 +71,8 @@ flutter:
 
   assets:
     - assets/logo/
-    # Removed assets/core/ - aria2.conf is loaded from runtime path, not asset bundle
+    - assets/core/
+    # aria2.conf is bundled as asset; copied to runtime path on first launch
 
   # Enable localization
   generate: true

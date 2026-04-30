@@ -141,4 +141,4 @@ try {
 
 - Prefer repository-tracked code and public upstream documentation as the source of truth.
 - `assets/logo/app.svg` is not referenced in Dart code but must be preserved (used by external tooling or packaging scripts).
-- When considering compatibility, only Windows compatibility matters currently (only Windows is officially published).
+- When making changes, ensure compatibility across all three platforms (Windows, macOS, Linux), with special attention to Windows compatibility since it is the currently published target.

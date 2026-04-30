@@ -64,9 +64,9 @@ class Aria2RpcClient with Loggable {
       final requestId = _nextRequestId();
       final requestBody = _buildRequestBody(method, params, requestId);
 
-        final response = await _httpClient!
-            .post(
-              Uri.parse(_buildRpcUrl()),
+      final response = await _httpClient!
+          .post(
+            Uri.parse(_buildRpcUrl()),
             headers: _buildHttpHeaders(),
             body: jsonEncode(requestBody),
           )
@@ -346,8 +346,23 @@ class Aria2RpcClient with Loggable {
 
   /// Test connection
   Future<bool> testConnection() async {
-    await getVersion();
-    return true;
+    try {
+      await getVersion();
+      return true;
+    } on ConnectionFailedException catch (e) {
+      w('Connection test failed: $e');
+      return false;
+    } on UnauthorizedException catch (e) {
+      w('Connection test failed - unauthorized: $e');
+      return false;
+  } catch (err, stackTrace) {
+    e(
+      'Unexpected error during connection test',
+      error: err,
+      stackTrace: stackTrace,
+    );
+    rethrow;
+  }
   }
 
   /// Pause a download task
