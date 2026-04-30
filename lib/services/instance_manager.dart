@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import '../models/aria2_instance.dart';
+import '../utils/app_data_dir.dart';
 import 'aria2_rpc_client.dart';
 import '../utils/logging.dart';
 import 'builtin_instance_service.dart';
@@ -61,18 +62,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
   /// Get program data directory
   Directory _getDataDirectory() {
-    // Get the executable path
-    String executablePath = Platform.resolvedExecutable;
-    Directory executableDir = Directory(executablePath).parent;
-
-    // Data directory: data/config relative to executable
-    String dataDirPath = '${executableDir.path}/data';
-    Directory dataDir = Directory(dataDirPath);
-    if (!dataDir.existsSync()) {
-      dataDir.createSync(recursive: true);
-    }
-
-    return dataDir;
+    return getAppDataDirectory();
   }
 
   /// Initialize instance manager
@@ -117,11 +107,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
       await refreshBuiltinInstanceConfig();
 
-      // Automatically connect to built-in instance on startup
+      // Automatically connect to built-in instance on startup (non-blocking)
       final builtinInstance = _instances.firstWhere(
         (instance) => instance.id == 'builtin',
       );
-      await connectInstance(builtinInstance);
+      unawaited(connectInstance(builtinInstance));
 
       this.i(
         'Instance manager initialization completed, loaded ${_instances.length} instances',

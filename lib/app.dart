@@ -161,19 +161,6 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
       await _resumePausedTasksOnLaunch(instanceManager, downloadDataService);
     }
 
-    // Check if built-in instance failed to connect
-    final builtinInstance = instanceManager.getInstanceById('builtin');
-    if (builtinInstance == null) {
-      throw Exception('Built-in instance not found');
-    }
-
-    if (builtinInstance.status == ConnectionStatus.failed) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _showBuiltinConnectionFailedDialog(context);
-      });
-    }
-
     setState(() {
       _isInitialized = true;
     });
@@ -285,21 +272,6 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
     i('Resume-on-launch finished: $successCount resumed, $failCount failed');
   }
 
-  void _showBuiltinConnectionFailedDialog(BuildContext ctx) {
-    final l10n = AppLocalizations.of(ctx)!;
-    showDialog(
-      context: ctx,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.builtinInstanceConnectFailed),
-        content: Text(l10n.builtinInstanceConnectFailedTip),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.ok)),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
@@ -330,6 +302,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   bool _isWindowBlurred = false;
   bool _isQuitting = false;
   int _shellSettingsGeneration = 0;
+  bool _hasShownBuiltinFailureDialog = false;
 
   @override
   void initState() {
@@ -397,8 +370,37 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     unawaited(_applyShellSettings());
   }
 
+  void _showBuiltinConnectionFailedDialog(BuildContext ctx) {
+    final l10n = AppLocalizations.of(ctx)!;
+    showDialog(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.builtinInstanceConnectFailed),
+        content: Text(l10n.builtinInstanceConnectFailedTip),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.ok)),
+        ],
+      ),
+    );
+  }
+
   void _handleInstanceManagerChanged() {
     unawaited(_handleTrayStateChanged());
+
+    if (_hasShownBuiltinFailureDialog) return;
+    final instanceManager =
+        _instanceManager ??
+        Provider.of<InstanceManager>(context, listen: false);
+    final builtinInstance = instanceManager.getInstanceById('builtin');
+    if (builtinInstance != null &&
+        builtinInstance.status == ConnectionStatus.failed) {
+      _hasShownBuiltinFailureDialog = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _showBuiltinConnectionFailedDialog(context);
+      });
+    }
   }
 
   Future<void> _initSystemTrayCallbacks() async {

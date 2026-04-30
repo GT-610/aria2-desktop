@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../models/aria2_instance.dart';
+import '../utils/app_data_dir.dart';
 import 'builtin_upnp_service.dart';
 import '../utils/logging.dart';
 
@@ -34,9 +35,8 @@ class BuiltinInstanceService with Loggable {
   }
 
   void _initializePaths() {
-    final executablePath = Platform.resolvedExecutable;
-    final executableDir = Directory(executablePath).parent;
-    final coreDirPath = '${executableDir.path}/data/core';
+    final dataDir = getAppDataDirectory();
+    final coreDirPath = '${dataDir.path}/core';
     final coreDir = Directory(coreDirPath);
 
     if (!coreDir.existsSync()) {
@@ -44,16 +44,15 @@ class BuiltinInstanceService with Loggable {
       coreDir.createSync(recursive: true);
     }
 
-    _aria2cPath = '$coreDirPath/aria2c.exe';
+    _aria2cPath = '$coreDirPath/aria2c';
     _aria2ConfPath = '$coreDirPath/aria2.conf';
     _sessionPath = '$coreDirPath/aria2.session';
     _logPath = '$coreDirPath/aria2.log';
   }
 
   String _getSettingsFilePath() {
-    final executablePath = Platform.resolvedExecutable;
-    final executableDir = Directory(executablePath).parent;
-    final configDir = Directory('${executableDir.path}/data/config');
+    final dataDir = getAppDataDirectory();
+    final configDir = Directory('${dataDir.path}/config');
     if (!configDir.existsSync()) {
       configDir.createSync(recursive: true);
     }
@@ -102,9 +101,8 @@ class BuiltinInstanceService with Loggable {
   }
 
   String _defaultDownloadDir() {
-    final executablePath = Platform.resolvedExecutable;
-    final executableDir = Directory(executablePath).parent;
-    return '${executableDir.path}/data/downloads';
+    final dataDir = getAppDataDirectory();
+    return '${dataDir.path}/downloads';
   }
 
   String _resolveEffectiveBtListenPort(Map<String, dynamic> settings) {
