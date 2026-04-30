@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/settings.dart';
+import '../utils/format_utils.dart';
 import '../utils/logging.dart';
 import 'aria2_rpc_client.dart';
 import 'builtin_instance_service.dart';
@@ -11,10 +12,6 @@ class SettingsService extends ChangeNotifier with Loggable {
 
   void initialize(Settings settings) {
     _settings = settings;
-  }
-
-  String _formatSpeedLimitOption(int value) {
-    return value > 0 ? '${value}K' : '0';
   }
 
   Map<String, dynamic> _convertSettingsToRuntimeAria2Options() {
@@ -31,10 +28,10 @@ class SettingsService extends ChangeNotifier with Loggable {
       'max-connection-per-server': settings.maxConnectionPerServer.toString(),
       'split': settings.split.toString(),
       'continue': settings.continueDownloads.toString(),
-      'max-overall-download-limit': _formatSpeedLimitOption(
+      'max-overall-download-limit': formatSpeedLimitOption(
         settings.maxOverallDownloadLimit,
       ),
-      'max-overall-upload-limit': _formatSpeedLimitOption(
+      'max-overall-upload-limit': formatSpeedLimitOption(
         settings.maxOverallUploadLimit,
       ),
       'bt-save-metadata': settings.btSaveMetadata.toString(),
@@ -109,10 +106,10 @@ class SettingsService extends ChangeNotifier with Loggable {
 
     try {
       final options = <String, dynamic>{
-        'max-overall-download-limit': _formatSpeedLimitOption(
+        'max-overall-download-limit': formatSpeedLimitOption(
           _settings!.maxOverallDownloadLimit,
         ),
-        'max-overall-upload-limit': _formatSpeedLimitOption(
+        'max-overall-upload-limit': formatSpeedLimitOption(
           _settings!.maxOverallUploadLimit,
         ),
       };

@@ -4,6 +4,7 @@ import 'package:fl_lib/fl_lib.dart' as fl;
 import '../generated/l10n/l10n.dart';
 import '../models/aria2_instance.dart';
 import '../services/aria2_rpc_client.dart';
+import '../utils/format_utils.dart';
 
 class RemoteInstanceSettingsPage extends StatefulWidget {
   final Aria2Instance instance;
@@ -151,10 +152,10 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
         raw['continue'],
         fallback: true,
       )).toString(),
-      'max-overall-download-limit': _formatSpeedLimitOption(
+      'max-overall-download-limit': formatSpeedLimitOption(
         _parseSpeedLimitToKbps(raw['max-overall-download-limit']),
       ),
-      'max-overall-upload-limit': _formatSpeedLimitOption(
+      'max-overall-upload-limit': formatSpeedLimitOption(
         _parseSpeedLimitToKbps(raw['max-overall-upload-limit']),
       ),
       'bt-save-metadata': (_parseBoolOption(
@@ -270,10 +271,6 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
     return (bytes / 1024).ceil();
   }
 
-  String _formatSpeedLimitOption(int value) {
-    return value > 0 ? '${value}K' : '0';
-  }
-
   Map<String, String> _buildCurrentOptions() {
     return {
       'dir': _downloadDirController.text.trim(),
@@ -281,10 +278,10 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
       'max-connection-per-server': _maxConnectionPerServer.toString(),
       'split': _split.toString(),
       'continue': _continueDownloads.toString(),
-      'max-overall-download-limit': _formatSpeedLimitOption(
+      'max-overall-download-limit': formatSpeedLimitOption(
         _maxOverallDownloadLimit,
       ),
-      'max-overall-upload-limit': _formatSpeedLimitOption(
+      'max-overall-upload-limit': formatSpeedLimitOption(
         _maxOverallUploadLimit,
       ),
       'bt-save-metadata': _btSaveMetadata.toString(),
@@ -928,7 +925,6 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
     int maxLines = 1,
   }) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     return ListTile(
       title: Text(title, style: _settingTitleStyle(theme)),
@@ -940,7 +936,6 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
           enabled: !_isSaving,
           keyboardType: keyboardType,
           maxLines: maxLines,
-          cursorColor: colorScheme.primary,
           decoration: InputDecoration(
             helperText: helperText,
             helperStyle: _settingHintStyle(theme),

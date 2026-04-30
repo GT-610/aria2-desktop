@@ -16,23 +16,6 @@ class UnauthorizedException implements Exception {
   String toString() => '认证未通过';
 }
 
-// Aria2 event types
-enum Aria2Event {
-  onDownloadStart,
-  onDownloadPause,
-  onDownloadStop,
-  onDownloadComplete,
-  onDownloadError,
-  onBtDownloadComplete,
-  onDownloadMetadata,
-  onDownloadPrepare,
-  onBtAnnounce,
-  onBtScrape,
-}
-
-// Event callback typedef
-typedef Aria2EventCallback = void Function(String gid);
-
 /// Aria2 RPC client service
 class Aria2RpcClient with Loggable {
   static int _requestSequence = 0;
@@ -42,9 +25,6 @@ class Aria2RpcClient with Loggable {
   Future<void>? _webSocketInitFuture;
   final Map<String, Completer<Map<String, dynamic>>> _pendingRequests = {};
   bool _isWebSocket = false;
-
-  // Event callbacks
-  final Map<Aria2Event, List<Aria2EventCallback>> _eventCallbacks = {};
 
   /// Factory method to create appropriate client based on protocol
   factory Aria2RpcClient(Aria2Instance instance) {
@@ -58,11 +38,6 @@ class Aria2RpcClient with Loggable {
   Aria2RpcClient._(this.instance, {required bool isWebSocket})
     : _isWebSocket = isWebSocket,
       _httpClient = isWebSocket ? null : http.Client() {
-    // Initialize event callbacks map
-    for (var event in Aria2Event.values) {
-      _eventCallbacks[event] = [];
-    }
-
     if (_isWebSocket) {
       _initWebSocket();
     }
@@ -91,7 +66,7 @@ class Aria2RpcClient with Loggable {
 
       final response = await _httpClient!
           .post(
-            Uri.parse(buildRpcUrl()),
+            Uri.parse(_buildRpcUrl()),
             headers: _buildHttpHeaders(),
             body: jsonEncode(requestBody),
           )
@@ -223,7 +198,7 @@ class Aria2RpcClient with Loggable {
 
     try {
       _webSocket = await WebSocket.connect(
-        buildRpcUrl(),
+        _buildRpcUrl(),
       ).timeout(const Duration(seconds: 10));
       _webSocket!.listen(
         _handleWebSocketMessage,
@@ -257,8 +232,6 @@ class Aria2RpcClient with Loggable {
         } else {
           completer.complete(data);
         }
-      } else if (data.containsKey('method')) {
-        _handleNotification(data);
       }
     } catch (err, stackTrace) {
       e(
@@ -266,89 +239,6 @@ class Aria2RpcClient with Loggable {
         error: err,
         stackTrace: stackTrace,
       );
-    }
-  }
-
-  /// Handle Aria2 notifications
-  void _handleNotification(Map<String, dynamic> notification) {
-    final method = notification['method'] as String;
-    final params = notification['params'] as List<dynamic>;
-
-    String gid = '';
-    if (params.isNotEmpty) {
-      final firstParam = params[0] as Map<String, dynamic>;
-      gid = firstParam['gid'] as String;
-    }
-
-    Aria2Event? event;
-    switch (method) {
-      case 'aria2.onDownloadStart':
-        event = Aria2Event.onDownloadStart;
-        break;
-      case 'aria2.onDownloadPause':
-        event = Aria2Event.onDownloadPause;
-        break;
-      case 'aria2.onDownloadStop':
-        event = Aria2Event.onDownloadStop;
-        break;
-      case 'aria2.onDownloadComplete':
-        event = Aria2Event.onDownloadComplete;
-        break;
-      case 'aria2.onDownloadError':
-        event = Aria2Event.onDownloadError;
-        break;
-      case 'aria2.onBtDownloadComplete':
-        event = Aria2Event.onBtDownloadComplete;
-        break;
-      case 'aria2.onDownloadMetadata':
-        event = Aria2Event.onDownloadMetadata;
-        break;
-      case 'aria2.onDownloadPrepare':
-        event = Aria2Event.onDownloadPrepare;
-        break;
-      case 'aria2.onBtAnnounce':
-        event = Aria2Event.onBtAnnounce;
-        break;
-      case 'aria2.onBtScrape':
-        event = Aria2Event.onBtScrape;
-        break;
-    }
-
-    if (event != null) {
-      _triggerEvent(event, gid);
-    }
-  }
-
-  /// Trigger event callbacks
-  void _triggerEvent(Aria2Event event, String gid) {
-    final callbacks = _eventCallbacks[event] ?? [];
-    for (final callback in callbacks) {
-      try {
-        callback(gid);
-      } catch (err, stackTrace) {
-        e(
-          'Error in Aria2 event callback for ${instance.name}',
-          error: err,
-          stackTrace: stackTrace,
-        );
-      }
-    }
-  }
-
-  /// Subscribe to Aria2 event
-  void on(Aria2Event event, Aria2EventCallback callback) {
-    _eventCallbacks[event]?.add(callback);
-  }
-
-  /// Unsubscribe from Aria2 event
-  void off(Aria2Event event, Aria2EventCallback callback) {
-    _eventCallbacks[event]?.remove(callback);
-  }
-
-  /// Clear all event callbacks
-  void clearEventCallbacks() {
-    for (var event in Aria2Event.values) {
-      _eventCallbacks[event]?.clear();
     }
   }
 
@@ -459,9 +349,19 @@ class Aria2RpcClient with Loggable {
     try {
       await getVersion();
       return true;
-    } catch (e) {
-      rethrow;
-    }
+    } on ConnectionFailedException catch (e) {
+      w('Connection test failed: $e');
+      return false;
+  } on UnauthorizedException {
+    rethrow;
+  } catch (err, stackTrace) {
+    e(
+      'Unexpected error during connection test',
+      error: err,
+      stackTrace: stackTrace,
+    );
+    rethrow;
+  }
   }
 
   /// Pause a download task
@@ -673,8 +573,6 @@ class Aria2RpcClient with Loggable {
       _httpClient?.close();
       _httpClient = null;
     }
-
-    clearEventCallbacks();
   }
 
   /// Build request body
@@ -710,7 +608,7 @@ class Aria2RpcClient with Loggable {
   }
 
   /// Build RPC URL
-  String buildRpcUrl() {
+  String _buildRpcUrl() {
     return instance.rpcUrl;
   }
 

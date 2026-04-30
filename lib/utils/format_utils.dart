@@ -61,3 +61,12 @@ List<int> parseHexBitfield(String bitfield) {
 
   return pieces;
 }
+
+String formatSpeed(int bytesPerSecond) {
+  if (bytesPerSecond <= 0) return '0 B/s';
+  return '${formatBytes(bytesPerSecond)}/s';
+}
+
+String formatSpeedLimitOption(int value) {
+  return value > 0 ? '${value}K' : '0';
+}

@@ -954,7 +954,6 @@ class _BuiltinInstanceSettingsPageState
     bool enabled = true,
   }) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     return ListTile(
       title: Text(title, style: _settingTitleStyle(theme)),
@@ -969,7 +968,6 @@ class _BuiltinInstanceSettingsPageState
           keyboardType: keyboardType,
           obscureText: obscureText,
           maxLines: maxLines,
-          cursorColor: colorScheme.primary,
           decoration: InputDecoration(
             helperText: helperText,
             helperStyle: _settingHintStyle(theme),
