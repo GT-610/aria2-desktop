@@ -101,8 +101,15 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       final newTasks = taskGroups.expand((tasks) => tasks).toList()
         ..sort(_compareTasks);
 
-      _collectTaskNotifications(previousTasks, newTasks);
+      final terminalTransitionInstanceIds = _collectTaskNotifications(
+        previousTasks,
+        newTasks,
+      );
       _tasks = newTasks;
+      _saveSessionsForTerminalTransitions(
+        connectedInstances,
+        terminalTransitionInstanceIds,
+      );
       notifyListeners();
     } catch (e, stackTrace) {
       _lastError = e.toString();
@@ -236,12 +243,13 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     }
   }
 
-  void _collectTaskNotifications(
+  Set<String> _collectTaskNotifications(
     List<DownloadTask> previousTasks,
     List<DownloadTask> newTasks,
   ) {
+    final terminalTransitionInstanceIds = <String>{};
     if (previousTasks.isEmpty || newTasks.isEmpty) {
-      return;
+      return terminalTransitionInstanceIds;
     }
 
     final previousByKey = {
@@ -262,6 +270,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       }
 
       if (task.taskStatus == 'complete') {
+        terminalTransitionInstanceIds.add(task.instanceId);
         _pendingNotifications.add(
           DownloadTaskNotification(
             taskId: task.id,
@@ -271,6 +280,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
           ),
         );
       } else if (task.taskStatus == 'error') {
+        terminalTransitionInstanceIds.add(task.instanceId);
         _pendingNotifications.add(
           DownloadTaskNotification(
             taskId: task.id,
@@ -281,6 +291,35 @@ class DownloadDataService extends ChangeNotifier with Loggable {
           ),
         );
       }
+    }
+
+    return terminalTransitionInstanceIds;
+  }
+
+  void _saveSessionsForTerminalTransitions(
+    List<Aria2Instance> instances,
+    Set<String> instanceIds,
+  ) {
+    if (instanceIds.isEmpty) {
+      return;
+    }
+
+    for (final instance in instances) {
+      if (!instanceIds.contains(instance.id)) {
+        continue;
+      }
+
+      final client = _getClient(instance);
+      unawaited(
+        client.saveSession().catchError((Object error, StackTrace stackTrace) {
+          this.w(
+            'Failed to save session after terminal task transition for ${instance.name}',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          return false;
+        }),
+      );
     }
   }
 

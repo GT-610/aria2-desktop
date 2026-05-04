@@ -1,9 +1,13 @@
+import 'dart:convert' show jsonDecode, jsonEncode;
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import '../utils/logging.dart';
+import 'package:path/path.dart' as p;
+
 import '../utils/app_data_dir.dart';
-import 'dart:convert' show jsonDecode, jsonEncode;
+import '../utils/default_download_directory.dart';
+import '../utils/logging.dart';
 
 enum AppRunMode { standard, tray, hideTray }
 
@@ -90,7 +94,11 @@ class Settings extends ChangeNotifier with Loggable {
     return getAppDataDirectory();
   }
 
-  void _assignDefaultSettings() {
+  Future<String> _defaultDownloadDirectory() async {
+    return getDefaultDownloadDirectory();
+  }
+
+  void _assignDefaultSettings({required String defaultDownloadDir}) {
     _autoStart = false;
     _minimizeToTray = true;
     _runMode = AppRunMode.tray;
@@ -119,7 +127,7 @@ class Settings extends ChangeNotifier with Loggable {
     _maxConnectionPerServer = 16;
     _split = 16;
     _continueDownloads = true;
-    _downloadDir = '';
+    _downloadDir = defaultDownloadDir;
 
     // Speed settings
     _maxOverallDownloadLimit = 0;
@@ -158,11 +166,11 @@ class Settings extends ChangeNotifier with Loggable {
   /// Get settings file path
   String _getSettingsFilePath() {
     final dataDir = _getDataDirectory();
-    final configDir = Directory('${dataDir.path}/config');
+    final configDir = Directory(p.join(dataDir.path, 'config'));
     if (!configDir.existsSync()) {
       configDir.createSync(recursive: true);
     }
-    return '${configDir.path}/$_settingsFileName';
+    return p.join(configDir.path, _settingsFileName);
   }
 
   String _normalizeBtTracker(String trackers) {
@@ -244,6 +252,7 @@ class Settings extends ChangeNotifier with Loggable {
       if (file.existsSync()) {
         final jsonString = await file.readAsString();
         final settingsMap = jsonDecode(jsonString);
+        var needsSave = false;
 
         // Global settings
         _autoStart = settingsMap['autoStart'] ?? false;
@@ -306,7 +315,14 @@ class Settings extends ChangeNotifier with Loggable {
         _maxConnectionPerServer = settingsMap['maxConnectionPerServer'] ?? 16;
         _split = settingsMap['split'] ?? 16;
         _continueDownloads = settingsMap['continueDownloads'] ?? true;
-        _downloadDir = settingsMap['downloadDir'] ?? '';
+        final configuredDownloadDir =
+            (settingsMap['downloadDir'] as String? ?? '').trim();
+        if (configuredDownloadDir.isEmpty) {
+          _downloadDir = await _defaultDownloadDirectory();
+          needsSave = true;
+        } else {
+          _downloadDir = p.normalize(configuredDownloadDir);
+        }
 
         // Speed settings
         _maxOverallDownloadLimit = settingsMap['maxOverallDownloadLimit'] ?? 0;
@@ -344,8 +360,12 @@ class Settings extends ChangeNotifier with Loggable {
         _userAgent =
             settingsMap['userAgent'] ??
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+        if (needsSave) {
+          await _saveAllSettings();
+        }
       } else {
-        _applyDefaultSettings();
+        await _applyDefaultSettings(save: true);
       }
 
       _isLoaded = true;
@@ -357,14 +377,19 @@ class Settings extends ChangeNotifier with Loggable {
     } catch (e) {
       this.e('Failed to load settings', error: e);
       // Apply default settings
-      _applyDefaultSettings();
+      await _applyDefaultSettings(save: true);
       _isLoaded = true;
     }
   }
 
   // Apply default settings
-  void _applyDefaultSettings() {
-    _assignDefaultSettings();
+  Future<void> _applyDefaultSettings({bool save = false}) async {
+    _assignDefaultSettings(
+      defaultDownloadDir: await _defaultDownloadDirectory(),
+    );
+    if (save) {
+      await _saveAllSettings();
+    }
     // Schedule notifyListeners to run after the current frame is built
     SchedulerBinding.instance.addPostFrameCallback((_) {
       notifyListeners();
@@ -448,7 +473,9 @@ class Settings extends ChangeNotifier with Loggable {
   }
 
   Future<void> resetToDefaults() async {
-    _assignDefaultSettings();
+    _assignDefaultSettings(
+      defaultDownloadDir: await _defaultDownloadDirectory(),
+    );
     _isLoaded = true;
     notifyListeners();
     await _saveAllSettings();

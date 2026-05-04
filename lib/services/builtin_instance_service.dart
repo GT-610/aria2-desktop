@@ -3,16 +3,21 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 
 import '../models/aria2_instance.dart';
 import '../utils/app_data_dir.dart';
-import 'builtin_upnp_service.dart';
+import '../utils/default_download_directory.dart';
 import '../utils/logging.dart';
+import 'aria2_rpc_client.dart';
+import 'builtin_upnp_service.dart';
 
 enum BuiltinInstanceApplyMode { none, liveApply, restartRequired }
 
 /// Service class for managing the built-in Aria2 instance
 class BuiltinInstanceService with Loggable {
+  static const Duration _rpcShutdownTimeout = Duration(seconds: 5);
+
   static BuiltinInstanceService? _instance;
   Process? _aria2Process;
   String? _aria2cPath;
@@ -36,7 +41,7 @@ class BuiltinInstanceService with Loggable {
 
   void _initializePaths() {
     final dataDir = getAppDataDirectory();
-    final coreDirPath = '${dataDir.path}/core';
+    final coreDirPath = p.join(dataDir.path, 'core');
     final coreDir = Directory(coreDirPath);
 
     if (!coreDir.existsSync()) {
@@ -44,19 +49,22 @@ class BuiltinInstanceService with Loggable {
       coreDir.createSync(recursive: true);
     }
 
-    _aria2cPath = '$coreDirPath/aria2c${Platform.isWindows ? '.exe' : ''}';
-    _aria2ConfPath = '$coreDirPath/aria2.conf';
-    _sessionPath = '$coreDirPath/aria2.session';
-    _logPath = '$coreDirPath/aria2.log';
+    _aria2cPath = p.join(
+      coreDirPath,
+      'aria2c${Platform.isWindows ? '.exe' : ''}',
+    );
+    _aria2ConfPath = p.join(coreDirPath, 'aria2.conf');
+    _sessionPath = p.join(coreDirPath, 'aria2.session');
+    _logPath = p.join(coreDirPath, 'aria2.log');
   }
 
   String _getSettingsFilePath() {
     final dataDir = getAppDataDirectory();
-    final configDir = Directory('${dataDir.path}/config');
+    final configDir = Directory(p.join(dataDir.path, 'config'));
     if (!configDir.existsSync()) {
       configDir.createSync(recursive: true);
     }
-    return '${configDir.path}/settings.json';
+    return p.join(configDir.path, 'settings.json');
   }
 
   Map<String, dynamic> _readSettingsSnapshot() {
@@ -101,8 +109,7 @@ class BuiltinInstanceService with Loggable {
   }
 
   String _defaultDownloadDir() {
-    final dataDir = getAppDataDirectory();
-    return '${dataDir.path}/downloads';
+    return getDefaultDownloadDirectorySync();
   }
 
   String _resolveEffectiveBtListenPort(Map<String, dynamic> settings) {
@@ -328,6 +335,8 @@ class BuiltinInstanceService with Loggable {
       '--enable-dht6=${settings['enableDht6'] ?? true}',
       '--conf-path=$_aria2ConfPath',
       '--save-session=$sessionPath',
+      '--save-session-interval=30',
+      '--force-save=false',
       '--log-level=info',
       '--log=$logPath',
     ];
@@ -427,8 +436,26 @@ class BuiltinInstanceService with Loggable {
       await _stdoutSubscription?.cancel();
       await _stderrSubscription?.cancel();
 
-      _aria2Process!.kill();
-      await _aria2Process!.exitCode.timeout(const Duration(seconds: 5));
+      try {
+        await _shutdownThroughRpcIfPossible().timeout(_rpcShutdownTimeout);
+      } on TimeoutException {
+        this.w(
+          'Timed out waiting for built-in Aria2 RPC shutdown, terminating process',
+        );
+        _aria2Process?.kill();
+      }
+
+      if (_aria2Process != null) {
+        try {
+          await _aria2Process!.exitCode.timeout(const Duration(seconds: 5));
+        } on TimeoutException {
+          this.w(
+            'Built-in Aria2 did not exit after RPC shutdown, terminating process',
+          );
+          _aria2Process!.kill();
+          await _aria2Process!.exitCode.timeout(const Duration(seconds: 5));
+        }
+      }
 
       _aria2Process = null;
       _isConnected = false;
@@ -446,6 +473,30 @@ class BuiltinInstanceService with Loggable {
 
   bool isRunning() {
     return _aria2Process != null;
+  }
+
+  int? get pid => _aria2Process?.pid;
+
+  Future<void> _shutdownThroughRpcIfPossible() async {
+    final client = Aria2RpcClient(getBuiltinInstanceConfig());
+    try {
+      await client.saveSession().timeout(_rpcShutdownTimeout);
+      await client.shutdown(force: true).timeout(_rpcShutdownTimeout);
+    } on TimeoutException {
+      this.w(
+        'Timed out during built-in Aria2 RPC shutdown; falling back to process termination',
+      );
+      _aria2Process?.kill();
+    } catch (e, stackTrace) {
+      this.w(
+        'Failed to stop built-in Aria2 through RPC; falling back to process termination',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      _aria2Process?.kill();
+    } finally {
+      client.close();
+    }
   }
 
   void _monitorProcessOutput() {
