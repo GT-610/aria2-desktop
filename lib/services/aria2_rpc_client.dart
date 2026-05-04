@@ -352,16 +352,16 @@ class Aria2RpcClient with Loggable {
     } on ConnectionFailedException catch (e) {
       w('Connection test failed: $e');
       return false;
-  } on UnauthorizedException {
-    rethrow;
-  } catch (err, stackTrace) {
-    e(
-      'Unexpected error during connection test',
-      error: err,
-      stackTrace: stackTrace,
-    );
-    rethrow;
-  }
+    } on UnauthorizedException {
+      rethrow;
+    } catch (err, stackTrace) {
+      e(
+        'Unexpected error during connection test',
+        error: err,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
   }
 
   /// Pause a download task
@@ -540,6 +540,24 @@ class Aria2RpcClient with Loggable {
     } catch (e, stackTrace) {
       this.e(
         'Failed to save session for ${instance.name}',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  /// Shut down aria2 through RPC so it can flush its session state.
+  Future<bool> shutdown({bool force = false}) async {
+    try {
+      final response = await callRpc(
+        force ? 'aria2.forceShutdown' : 'aria2.shutdown',
+        [],
+      );
+      return response['result'] == 'OK';
+    } catch (e, stackTrace) {
+      this.e(
+        'Failed to shut down ${instance.name} through RPC',
         error: e,
         stackTrace: stackTrace,
       );
