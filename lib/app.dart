@@ -948,9 +948,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Chip(
-                  label: Text(
-                    l10n.totalSpeed(formatSpeed(totalDownloadSpeed)),
-                  ),
+                  label: Text(l10n.totalSpeed(formatSpeed(totalDownloadSpeed))),
                   avatar: const Icon(Icons.speed, size: 16),
                   backgroundColor: colorScheme.surfaceContainerHighest,
                   padding: const EdgeInsets.symmetric(

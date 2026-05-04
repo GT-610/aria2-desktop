@@ -16,6 +16,8 @@ enum BuiltinInstanceApplyMode { none, liveApply, restartRequired }
 
 /// Service class for managing the built-in Aria2 instance
 class BuiltinInstanceService with Loggable {
+  static const Duration _rpcShutdownTimeout = Duration(seconds: 5);
+
   static BuiltinInstanceService? _instance;
   Process? _aria2Process;
   String? _aria2cPath;
@@ -434,7 +436,14 @@ class BuiltinInstanceService with Loggable {
       await _stdoutSubscription?.cancel();
       await _stderrSubscription?.cancel();
 
-      await _shutdownThroughRpcIfPossible();
+      try {
+        await _shutdownThroughRpcIfPossible().timeout(_rpcShutdownTimeout);
+      } on TimeoutException {
+        this.w(
+          'Timed out waiting for built-in Aria2 RPC shutdown, terminating process',
+        );
+        _aria2Process?.kill();
+      }
 
       if (_aria2Process != null) {
         try {
@@ -471,8 +480,13 @@ class BuiltinInstanceService with Loggable {
   Future<void> _shutdownThroughRpcIfPossible() async {
     final client = Aria2RpcClient(getBuiltinInstanceConfig());
     try {
-      await client.saveSession();
-      await client.shutdown(force: true);
+      await client.saveSession().timeout(_rpcShutdownTimeout);
+      await client.shutdown(force: true).timeout(_rpcShutdownTimeout);
+    } on TimeoutException {
+      this.w(
+        'Timed out during built-in Aria2 RPC shutdown; falling back to process termination',
+      );
+      _aria2Process?.kill();
     } catch (e, stackTrace) {
       this.w(
         'Failed to stop built-in Aria2 through RPC; falling back to process termination',
