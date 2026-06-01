@@ -94,8 +94,8 @@ class Settings extends ChangeNotifier with Loggable {
     return getAppDataDirectory();
   }
 
-  Future<String> _defaultDownloadDirectory() async {
-    return getDefaultDownloadDirectorySync();
+  Future<String> _defaultDownloadDirectory() {
+    return Future.value(getDefaultDownloadDirectorySync());
   }
 
   void _assignDefaultSettings({required String defaultDownloadDir}) {

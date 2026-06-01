@@ -162,7 +162,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     _instances = [
       Aria2Instance(
         id: 'builtin',
-        name: '内建实例',
+        name: 'Built-in',
         type: InstanceType.builtin,
         protocol: 'ws',
         host: '127.0.0.1',

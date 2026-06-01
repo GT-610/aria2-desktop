@@ -57,11 +57,12 @@ mixin SettingsPageHelpers<T extends StatefulWidget> on State<T> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final columns = width >= 1440
+        final maxColumns = width >= 1440
             ? 3
             : width >= 900
                 ? 2
                 : 1;
+        final columns = sections.isEmpty ? 1 : maxColumns.clamp(1, sections.length);
         const gap = 16.0;
         final distributedSections = List.generate(
           columns,

@@ -49,7 +49,7 @@ class DownloadPageState extends State<DownloadPage>
   bool _isDropTargetHighlighted = false;
 
   List<DownloadTask>? _cachedFilteredTasks;
-  List<DownloadTask>? _cachedTasksRef;
+  int? _cachedTasksVersion;
   FilterOption? _cachedFilter;
   CategoryType? _cachedCategory;
   String? _cachedSelectedInstanceId;
@@ -330,8 +330,9 @@ class DownloadPageState extends State<DownloadPage>
     if (downloadDataService == null) return [];
 
     final tasksRef = downloadDataService!.tasks;
+    final tasksVersion = downloadDataService!.tasksVersion;
     if (_cachedFilteredTasks != null &&
-        identical(_cachedTasksRef, tasksRef) &&
+        _cachedTasksVersion == tasksVersion &&
         _cachedFilter == _selectedFilter &&
         _cachedCategory == _currentCategoryType &&
         _cachedSelectedInstanceId == _selectedInstanceId &&
@@ -422,7 +423,7 @@ class DownloadPageState extends State<DownloadPage>
       });
     }
 
-    _cachedTasksRef = tasksRef;
+    _cachedTasksVersion = tasksVersion;
     _cachedFilteredTasks = tasks;
     _cachedFilter = _selectedFilter;
     _cachedCategory = _currentCategoryType;

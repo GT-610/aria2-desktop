@@ -537,27 +537,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         Provider.of<DownloadDataService>(context, listen: false);
     final connectedCount = instanceManager.getConnectedInstances().length;
     final tasks = downloadDataService.tasks;
-    var activeCount = 0;
-    var waitingCount = 0;
-    var resumableCount = 0;
-    var pausableCount = 0;
-    var totalDownloadSpeed = 0;
-    for (final task in tasks) {
-      if (task.status == DownloadStatus.active) {
-        activeCount++;
-        totalDownloadSpeed += task.downloadSpeedBytes;
-      } else if (task.status == DownloadStatus.waiting) {
-        waitingCount++;
-      }
-      if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
-        resumableCount++;
-      }
-      if ((task.status == DownloadStatus.active ||
-              task.status == DownloadStatus.waiting) &&
-          task.taskStatus != 'paused') {
-        pausableCount++;
-      }
-    }
+    final summary = _computeTaskSummary(tasks);
     final settings = _settings ?? Provider.of<Settings>(context, listen: false);
     if (settings.runMode == AppRunMode.hideTray) {
       return;
@@ -573,9 +553,9 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
           ? l10n.notConnected
           : '${l10n.connected}: $connectedCount',
       if (settings.showTraySpeed)
-        l10n.totalSpeed(formatSpeed(totalDownloadSpeed)),
-      l10n.activeTasks(activeCount.toString()),
-      l10n.waitingTasks(waitingCount.toString()),
+        l10n.totalSpeed(formatSpeed(summary.speed)),
+      l10n.activeTasks(summary.active.toString()),
+      l10n.waitingTasks(summary.waiting.toString()),
     ];
     final trayService = SystemTrayService();
     unawaited(trayService.updateTooltip(tooltipLines.join('\n')));
@@ -588,11 +568,11 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         toggleWindowLabel: isWindowVisible
             ? l10n.hideMainWindow
             : l10n.showMainWindow,
-        resumeAllLabel: '${l10n.resumeTasks} ($resumableCount)',
-        pauseAllLabel: '${l10n.pauseTasks} ($pausableCount)',
+        resumeAllLabel: '${l10n.resumeTasks} (${summary.resumable})',
+        pauseAllLabel: '${l10n.pauseTasks} (${summary.pausable})',
         quitLabel: l10n.quitApp,
-        resumeAllDisabled: resumableCount == 0,
-        pauseAllDisabled: pausableCount == 0,
+        resumeAllDisabled: summary.resumable == 0,
+        pauseAllDisabled: summary.pausable == 0,
       ),
     );
   }
@@ -921,6 +901,38 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   }
 }
 
+({int active, int waiting, int resumable, int pausable, int speed})
+    _computeTaskSummary(List<DownloadTask> tasks) {
+  var active = 0;
+  var waiting = 0;
+  var resumable = 0;
+  var pausable = 0;
+  var speed = 0;
+  for (final task in tasks) {
+    if (task.status == DownloadStatus.active) {
+      active++;
+      speed += task.downloadSpeedBytes;
+    } else if (task.status == DownloadStatus.waiting) {
+      waiting++;
+    }
+    if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
+      resumable++;
+    }
+    if ((task.status == DownloadStatus.active ||
+            task.status == DownloadStatus.waiting) &&
+        task.taskStatus != 'paused') {
+      pausable++;
+    }
+  }
+  return (
+    active: active,
+    waiting: waiting,
+    resumable: resumable,
+    pausable: pausable,
+    speed: speed,
+  );
+}
+
 class _StatusBar extends StatelessWidget {
   const _StatusBar();
 
@@ -928,19 +940,8 @@ class _StatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
-    final counts = context.select<DownloadDataService, ({int active, int waiting, int speed})>((service) {
-      var active = 0;
-      var waiting = 0;
-      var speed = 0;
-      for (final task in service.tasks) {
-        if (task.status == DownloadStatus.active) {
-          active++;
-          speed += task.downloadSpeedBytes;
-        } else if (task.status == DownloadStatus.waiting) {
-          waiting++;
-        }
-      }
-      return (active: active, waiting: waiting, speed: speed);
+    final summary = context.select<DownloadDataService, ({int active, int waiting, int resumable, int pausable, int speed})>((service) {
+      return _computeTaskSummary(service.tasks);
     });
 
     return Container(
@@ -963,7 +964,7 @@ class _StatusBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Chip(
-            label: Text(l10n.totalSpeed(formatSpeed(counts.speed))),
+            label: Text(l10n.totalSpeed(formatSpeed(summary.speed))),
             avatar: const Icon(Icons.speed, size: 16),
             backgroundColor: colorScheme.surfaceContainerHighest,
             padding: const EdgeInsets.symmetric(
@@ -972,7 +973,7 @@ class _StatusBar extends StatelessWidget {
             ),
           ),
           Chip(
-            label: Text(l10n.activeTasks(counts.active.toString())),
+            label: Text(l10n.activeTasks(summary.active.toString())),
             avatar: const Icon(Icons.task_alt, size: 16),
             backgroundColor: colorScheme.surfaceContainerHighest,
             padding: const EdgeInsets.symmetric(
@@ -981,7 +982,7 @@ class _StatusBar extends StatelessWidget {
             ),
           ),
           Chip(
-            label: Text(l10n.waitingTasks(counts.waiting.toString())),
+            label: Text(l10n.waitingTasks(summary.waiting.toString())),
             avatar: const Icon(Icons.pending, size: 16),
             backgroundColor: colorScheme.surfaceContainerHighest,
             padding: const EdgeInsets.symmetric(
