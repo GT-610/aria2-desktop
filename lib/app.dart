@@ -53,33 +53,33 @@ class _ThemeProviderState extends State<_ThemeProvider> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<Settings>(context);
+    final display = context.select<Settings, ({Locale? locale, bool hideTitleBar, Color primaryColor, ThemeMode themeMode})>((s) => (locale: s.locale, hideTitleBar: s.hideTitleBar, primaryColor: s.primaryColor, themeMode: s.themeMode));
 
     return MaterialApp(
       title: kAppName,
-      locale: settings.locale,
+      locale: display.locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) => fl.VirtualWindowFrame(
         title: kAppName,
-        showCaption: settings.hideTitleBar,
+        showCaption: display.hideTitleBar,
         child: ClipRect(child: child ?? const SizedBox.shrink()),
       ),
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: settings.primaryColor,
+          seedColor: display.primaryColor,
           brightness: Brightness.light,
         ),
       ).fixWindowsFont,
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: settings.primaryColor,
+          seedColor: display.primaryColor,
           brightness: Brightness.dark,
         ),
       ).fixWindowsFont,
-      themeMode: settings.themeMode,
+      themeMode: display.themeMode,
       home: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => InstanceManager()),

@@ -391,34 +391,36 @@ class DownloadPageState extends State<DownloadPage>
       }).toList();
     }
 
-    tasks.sort((left, right) {
-      int result;
-      switch (_sortOption) {
-        case TaskSortOption.name:
-          result = left.name.toLowerCase().compareTo(right.name.toLowerCase());
-          break;
-        case TaskSortOption.progress:
-          result = left.progress.compareTo(right.progress);
-          break;
-        case TaskSortOption.size:
-          result = left.totalLengthBytes.compareTo(right.totalLengthBytes);
-          break;
-        case TaskSortOption.speed:
-          result = left.downloadSpeedBytes.compareTo(right.downloadSpeedBytes);
-          break;
-        case TaskSortOption.instance:
-          final leftName = _instanceNames[left.instanceId] ?? left.instanceId;
-          final rightName =
-              _instanceNames[right.instanceId] ?? right.instanceId;
-          result = leftName.toLowerCase().compareTo(rightName.toLowerCase());
-          break;
+    if (_sortOption == TaskSortOption.name ||
+        _sortOption == TaskSortOption.instance) {
+      final sortKeys = <String, String>{};
+      for (final task in tasks) {
+        final key = '${task.instanceId}::${task.id}';
+        sortKeys[key] = _sortOption == TaskSortOption.name
+            ? task.name.toLowerCase()
+            : (_instanceNames[task.instanceId] ?? task.instanceId).toLowerCase();
       }
-
-      if (result == 0) {
-        result = left.id.compareTo(right.id);
-      }
-      return _sortDescending ? -result : result;
-    });
+      tasks.sort((left, right) {
+        final leftKey = sortKeys['${left.instanceId}::${left.id}'] ?? '';
+        final rightKey = sortKeys['${right.instanceId}::${right.id}'] ?? '';
+        final result = leftKey.compareTo(rightKey);
+        if (result != 0) return _sortDescending ? -result : result;
+        final idResult = left.id.compareTo(right.id);
+        return _sortDescending ? -idResult : idResult;
+      });
+    } else {
+      tasks.sort((left, right) {
+        final result = switch (_sortOption) {
+          TaskSortOption.progress => left.progress.compareTo(right.progress),
+          TaskSortOption.size => left.totalLengthBytes.compareTo(right.totalLengthBytes),
+          TaskSortOption.speed => left.downloadSpeedBytes.compareTo(right.downloadSpeedBytes),
+          _ => 0,
+        };
+        if (result != 0) return _sortDescending ? -result : result;
+        final idResult = left.id.compareTo(right.id);
+        return _sortDescending ? -idResult : idResult;
+      });
+    }
 
     _cachedTasksRef = tasksRef;
     _cachedFilteredTasks = tasks;

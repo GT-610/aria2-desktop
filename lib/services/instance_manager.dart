@@ -15,14 +15,19 @@ class InstanceManager extends ChangeNotifier with Loggable {
   final String _fileName = 'aria2_instances.json';
   final BuiltinInstanceService _builtinInstanceService =
       BuiltinInstanceService();
+  List<Aria2Instance>? _cachedConnectedInstances;
 
   List<Aria2Instance> get instances => _instances;
 
+  void _invalidateConnectedCache() {
+    _cachedConnectedInstances = null;
+  }
+
   /// Get all connected instances
   List<Aria2Instance> getConnectedInstances() {
-    return _instances
+    return _cachedConnectedInstances ??= _instances
         .where((instance) => instance.status == ConnectionStatus.connected)
-        .toList();
+        .toList(growable: false);
   }
 
   /// Get the built-in instance if it exists
@@ -76,6 +81,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
             status: ConnectionStatus.disconnected,
           ),
         );
+        _invalidateConnectedCache();
         await _saveInstances();
         this.i('Added missing built-in instance record');
       }
@@ -88,6 +94,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         _instances[builtinIndex] = _instances[builtinIndex].copyWith(
           protocol: 'ws',
         );
+        _invalidateConnectedCache();
         await _saveInstances();
         this.i('Migrated built-in instance protocol from http to ws');
       }
@@ -138,6 +145,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
                   instance.copyWith(status: ConnectionStatus.disconnected),
             )
             .toList();
+        _invalidateConnectedCache();
 
         this.i('Loaded ${_instances.length} instance records');
       } else {
@@ -163,6 +171,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         status: ConnectionStatus.disconnected,
       ),
     ];
+    _invalidateConnectedCache();
     await _saveInstances();
     this.i('Created default built-in instance record');
   }
@@ -214,10 +223,9 @@ class InstanceManager extends ChangeNotifier with Loggable {
       );
 
       _instances.add(newInstance);
+      _invalidateConnectedCache();
       await _saveInstances();
       this.i('Added instance ${newInstance.name}');
-
-      // Notify listeners
       notifyListeners();
     } catch (e, stackTrace) {
       this.e('Failed to add instance', error: e, stackTrace: stackTrace);
@@ -236,6 +244,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
       final index = _instances.indexWhere((i) => i.id == updatedInstance.id);
       if (index != -1) {
         _instances[index] = updatedInstance;
+        _invalidateConnectedCache();
 
         await _saveInstances();
         this.i('Updated instance ${updatedInstance.name}');
@@ -265,6 +274,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     }
 
     _instances.removeWhere((i) => i.id == instanceId);
+    _invalidateConnectedCache();
     await _saveInstances();
     notifyListeners();
   }
@@ -444,6 +454,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         version: version,
         errorMessage: errorMessage,
       );
+      _invalidateConnectedCache();
       // Schedule notifyListeners to run after the current frame is built
       SchedulerBinding.instance.addPostFrameCallback((_) {
         notifyListeners();
@@ -481,6 +492,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         );
 
     _instances[builtinIndex] = refreshed;
+    _invalidateConnectedCache();
     await _saveInstances();
     notifyListeners();
   }
