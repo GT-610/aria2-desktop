@@ -537,30 +537,27 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         Provider.of<DownloadDataService>(context, listen: false);
     final connectedCount = instanceManager.getConnectedInstances().length;
     final tasks = downloadDataService.tasks;
-    final activeCount = tasks
-        .where((task) => task.status == DownloadStatus.active)
-        .length;
-    final waitingCount = tasks
-        .where((task) => task.status == DownloadStatus.waiting)
-        .length;
-    final resumableCount = tasks
-        .where(
-          (task) =>
-              task.status == DownloadStatus.waiting &&
-              task.taskStatus == 'paused',
-        )
-        .length;
-    final pausableCount = tasks
-        .where(
-          (task) =>
-              (task.status == DownloadStatus.active ||
-                  task.status == DownloadStatus.waiting) &&
-              task.taskStatus != 'paused',
-        )
-        .length;
-    final totalDownloadSpeed = tasks
-        .where((task) => task.status == DownloadStatus.active)
-        .fold<int>(0, (sum, task) => sum + task.downloadSpeedBytes);
+    var activeCount = 0;
+    var waitingCount = 0;
+    var resumableCount = 0;
+    var pausableCount = 0;
+    var totalDownloadSpeed = 0;
+    for (final task in tasks) {
+      if (task.status == DownloadStatus.active) {
+        activeCount++;
+        totalDownloadSpeed += task.downloadSpeedBytes;
+      } else if (task.status == DownloadStatus.waiting) {
+        waitingCount++;
+      }
+      if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
+        resumableCount++;
+      }
+      if ((task.status == DownloadStatus.active ||
+              task.status == DownloadStatus.waiting) &&
+          task.taskStatus != 'paused') {
+        pausableCount++;
+      }
+    }
     final settings = _settings ?? Provider.of<Settings>(context, listen: false);
     if (settings.runMode == AppRunMode.hideTray) {
       return;
@@ -853,17 +850,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       const InstancePage(),
       const SettingsPage(),
     ];
-    final tasks = context.watch<DownloadDataService>().tasks;
-    final activeTasks = tasks
-        .where((task) => task.status == DownloadStatus.active)
-        .toList();
-    final waitingTasks = tasks
-        .where((task) => task.status == DownloadStatus.waiting)
-        .length;
-    final totalDownloadSpeed = activeTasks.fold<int>(
-      0,
-      (sum, task) => sum + task.downloadSpeedBytes,
-    );
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -928,53 +914,79 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
             ),
           ),
           // Bottom status bar - Material You style
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainer,
-              border: Border(
-                top: BorderSide(color: colorScheme.surfaceContainerHighest),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: colorScheme.shadow,
-                  offset: const Offset(0, -1),
-                  blurRadius: 3,
-                  spreadRadius: 0,
-                ),
-              ],
+          const _StatusBar(),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBar extends StatelessWidget {
+  const _StatusBar();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final counts = context.select<DownloadDataService, ({int active, int waiting, int speed})>((service) {
+      var active = 0;
+      var waiting = 0;
+      var speed = 0;
+      for (final task in service.tasks) {
+        if (task.status == DownloadStatus.active) {
+          active++;
+          speed += task.downloadSpeedBytes;
+        } else if (task.status == DownloadStatus.waiting) {
+          waiting++;
+        }
+      }
+      return (active: active, waiting: waiting, speed: speed);
+    });
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        border: Border(
+          top: BorderSide(color: colorScheme.surfaceContainerHighest),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow,
+            offset: const Offset(0, -1),
+            blurRadius: 3,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Chip(
+            label: Text(l10n.totalSpeed(formatSpeed(counts.speed))),
+            avatar: const Icon(Icons.speed, size: 16),
+            backgroundColor: colorScheme.surfaceContainerHighest,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 6,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Chip(
-                  label: Text(l10n.totalSpeed(formatSpeed(totalDownloadSpeed))),
-                  avatar: const Icon(Icons.speed, size: 16),
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                ),
-                Chip(
-                  label: Text(l10n.activeTasks(activeTasks.length.toString())),
-                  avatar: const Icon(Icons.task_alt, size: 16),
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                ),
-                Chip(
-                  label: Text(l10n.waitingTasks(waitingTasks.toString())),
-                  avatar: const Icon(Icons.pending, size: 16),
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                ),
-              ],
+          ),
+          Chip(
+            label: Text(l10n.activeTasks(counts.active.toString())),
+            avatar: const Icon(Icons.task_alt, size: 16),
+            backgroundColor: colorScheme.surfaceContainerHighest,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 6,
+            ),
+          ),
+          Chip(
+            label: Text(l10n.waitingTasks(counts.waiting.toString())),
+            avatar: const Icon(Icons.pending, size: 16),
+            backgroundColor: colorScheme.surfaceContainerHighest,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 6,
             ),
           ),
         ],
