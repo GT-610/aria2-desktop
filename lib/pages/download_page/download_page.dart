@@ -48,6 +48,16 @@ class DownloadPageState extends State<DownloadPage>
   bool _isHandlingPendingProtocolLink = false;
   bool _isDropTargetHighlighted = false;
 
+  List<DownloadTask>? _cachedFilteredTasks;
+  int? _cachedTasksVersion;
+  FilterOption? _cachedFilter;
+  CategoryType? _cachedCategory;
+  String? _cachedSelectedInstanceId;
+  String? _cachedSearchQuery;
+  TaskSortOption? _cachedSortOption;
+  bool? _cachedSortDescending;
+  Map<String, String>? _cachedInstanceNames;
+
   @override
   void initState() {
     super.initState();
@@ -108,7 +118,6 @@ class DownloadPageState extends State<DownloadPage>
       _loadInstanceNames(instanceManager!);
     }
     _schedulePendingProtocolLinkHandling();
-    setState(() {});
   }
 
   void _handleDownloadDataChanges() {
@@ -282,11 +291,28 @@ class DownloadPageState extends State<DownloadPage>
         .toList();
   }
 
-  int _countActionableTasks(
+  Map<TaskActionType, int> _countAllActionableTasks(
     List<DownloadTask> tasks,
-    TaskActionType actionType,
   ) {
-    return TaskActionDialogs.actionableTasks(tasks, actionType).length;
+    var pauseable = 0;
+    var resumable = 0;
+    var deletable = 0;
+    for (final task in tasks) {
+      if (TaskActionDialogs.canPerformAction(task, TaskActionType.pause)) {
+        pauseable++;
+      }
+      if (TaskActionDialogs.canPerformAction(task, TaskActionType.resume)) {
+        resumable++;
+      }
+      if (TaskActionDialogs.canPerformAction(task, TaskActionType.delete)) {
+        deletable++;
+      }
+    }
+    return {
+      TaskActionType.pause: pauseable,
+      TaskActionType.resume: resumable,
+      TaskActionType.delete: deletable,
+    };
   }
 
   void _pruneSelection() {
@@ -303,7 +329,21 @@ class DownloadPageState extends State<DownloadPage>
   List<DownloadTask> _filterTasks() {
     if (downloadDataService == null) return [];
 
-    var tasks = List<DownloadTask>.from(downloadDataService!.tasks);
+    final tasksRef = downloadDataService!.tasks;
+    final tasksVersion = downloadDataService!.tasksVersion;
+    if (_cachedFilteredTasks != null &&
+        _cachedTasksVersion == tasksVersion &&
+        _cachedFilter == _selectedFilter &&
+        _cachedCategory == _currentCategoryType &&
+        _cachedSelectedInstanceId == _selectedInstanceId &&
+        _cachedSearchQuery == _searchQuery &&
+        _cachedSortOption == _sortOption &&
+        _cachedSortDescending == _sortDescending &&
+        identical(_cachedInstanceNames, _instanceNames)) {
+      return _cachedFilteredTasks!;
+    }
+
+    var tasks = List<DownloadTask>.from(tasksRef);
 
     if (_currentCategoryType == CategoryType.byInstance &&
         _selectedInstanceId != null) {
@@ -352,35 +392,46 @@ class DownloadPageState extends State<DownloadPage>
       }).toList();
     }
 
-    tasks.sort((left, right) {
-      int result;
-      switch (_sortOption) {
-        case TaskSortOption.name:
-          result = left.name.toLowerCase().compareTo(right.name.toLowerCase());
-          break;
-        case TaskSortOption.progress:
-          result = left.progress.compareTo(right.progress);
-          break;
-        case TaskSortOption.size:
-          result = left.totalLengthBytes.compareTo(right.totalLengthBytes);
-          break;
-        case TaskSortOption.speed:
-          result = left.downloadSpeedBytes.compareTo(right.downloadSpeedBytes);
-          break;
-        case TaskSortOption.instance:
-          final leftName = _instanceNames[left.instanceId] ?? left.instanceId;
-          final rightName =
-              _instanceNames[right.instanceId] ?? right.instanceId;
-          result = leftName.toLowerCase().compareTo(rightName.toLowerCase());
-          break;
+    if (_sortOption == TaskSortOption.name ||
+        _sortOption == TaskSortOption.instance) {
+      final sortKeys = <String, String>{};
+      for (final task in tasks) {
+        final key = '${task.instanceId}::${task.id}';
+        sortKeys[key] = _sortOption == TaskSortOption.name
+            ? task.name.toLowerCase()
+            : (_instanceNames[task.instanceId] ?? task.instanceId).toLowerCase();
       }
+      tasks.sort((left, right) {
+        final leftKey = sortKeys['${left.instanceId}::${left.id}'] ?? '';
+        final rightKey = sortKeys['${right.instanceId}::${right.id}'] ?? '';
+        final result = leftKey.compareTo(rightKey);
+        if (result != 0) return _sortDescending ? -result : result;
+        final idResult = left.id.compareTo(right.id);
+        return _sortDescending ? -idResult : idResult;
+      });
+    } else {
+      tasks.sort((left, right) {
+        final result = switch (_sortOption) {
+          TaskSortOption.progress => left.progress.compareTo(right.progress),
+          TaskSortOption.size => left.totalLengthBytes.compareTo(right.totalLengthBytes),
+          TaskSortOption.speed => left.downloadSpeedBytes.compareTo(right.downloadSpeedBytes),
+          _ => 0,
+        };
+        if (result != 0) return _sortDescending ? -result : result;
+        final idResult = left.id.compareTo(right.id);
+        return _sortDescending ? -idResult : idResult;
+      });
+    }
 
-      if (result == 0) {
-        result = left.id.compareTo(right.id);
-      }
-      return _sortDescending ? -result : result;
-    });
-
+    _cachedTasksVersion = tasksVersion;
+    _cachedFilteredTasks = tasks;
+    _cachedFilter = _selectedFilter;
+    _cachedCategory = _currentCategoryType;
+    _cachedSelectedInstanceId = _selectedInstanceId;
+    _cachedSearchQuery = _searchQuery;
+    _cachedSortOption = _sortOption;
+    _cachedSortDescending = _sortDescending;
+    _cachedInstanceNames = _instanceNames;
     return tasks;
   }
 
@@ -537,30 +588,14 @@ class DownloadPageState extends State<DownloadPage>
         _currentCategoryType != CategoryType.all ||
         _selectedFilter != FilterOption.all ||
         _selectedInstanceId != null;
-    final pauseableVisibleCount = _countActionableTasks(
-      filteredTasks,
-      TaskActionType.pause,
-    );
-    final resumableVisibleCount = _countActionableTasks(
-      filteredTasks,
-      TaskActionType.resume,
-    );
-    final deletableVisibleCount = _countActionableTasks(
-      filteredTasks,
-      TaskActionType.delete,
-    );
-    final pauseableSelectedCount = _countActionableTasks(
-      selectedTasks,
-      TaskActionType.pause,
-    );
-    final resumableSelectedCount = _countActionableTasks(
-      selectedTasks,
-      TaskActionType.resume,
-    );
-    final deletableSelectedCount = _countActionableTasks(
-      selectedTasks,
-      TaskActionType.delete,
-    );
+    final visibleCounts = _countAllActionableTasks(filteredTasks);
+    final selectedCounts = _countAllActionableTasks(selectedTasks);
+    final pauseableVisibleCount = visibleCounts[TaskActionType.pause]!;
+    final resumableVisibleCount = visibleCounts[TaskActionType.resume]!;
+    final deletableVisibleCount = visibleCounts[TaskActionType.delete]!;
+    final pauseableSelectedCount = selectedCounts[TaskActionType.pause]!;
+    final resumableSelectedCount = selectedCounts[TaskActionType.resume]!;
+    final deletableSelectedCount = selectedCounts[TaskActionType.delete]!;
 
     return DropTarget(
       onDragEntered: (_) {

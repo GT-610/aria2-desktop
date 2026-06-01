@@ -5,6 +5,7 @@ import '../generated/l10n/l10n.dart';
 import '../models/aria2_instance.dart';
 import '../services/aria2_rpc_client.dart';
 import '../utils/format_utils.dart';
+import 'components/settings_helpers.dart';
 
 class RemoteInstanceSettingsPage extends StatefulWidget {
   final Aria2Instance instance;
@@ -22,18 +23,17 @@ enum _RemoteSettingsTab {
   filesAndMaintenance,
 }
 
-class _RemoteSettingsSection {
+class _RemoteSettingsSection implements SettingsSection {
   const _RemoteSettingsSection({required this.title, required this.child});
 
+  @override
   final String title;
+  @override
   final Widget child;
 }
 
 class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
-    with SingleTickerProviderStateMixin {
-  static const _kSettingCardSpacing = 10.0;
-  static const _kSettingTilePadding = EdgeInsets.fromLTRB(16, 6, 16, 6);
-
+    with SingleTickerProviderStateMixin, SettingsPageHelpers {
   bool _isLoading = true;
   bool _isSaving = false;
   bool _hasLoaded = false;
@@ -528,62 +528,7 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
   }
 
   Widget _buildSettingsTabView(List<_RemoteSettingsSection> sections) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final columns = width >= 1440
-            ? 3
-            : width >= 900
-            ? 2
-            : 1;
-        const gap = 16.0;
-        final distributedSections = List.generate(
-          columns,
-          (_) => <_RemoteSettingsSection>[],
-        );
-
-        for (var index = 0; index < sections.length; index++) {
-          distributedSections[index % columns].add(sections[index]);
-        }
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var i = 0; i < distributedSections.length; i++) ...[
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: distributedSections[i]
-                        .map(
-                          (section) => Padding(
-                            padding: const EdgeInsets.only(bottom: gap),
-                            child: _buildSectionBlock(section),
-                          ),
-                        )
-                        .toList(growable: false),
-                  ),
-                ),
-                if (i < distributedSections.length - 1)
-                  const SizedBox(width: gap),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSectionBlock(_RemoteSettingsSection section) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        fl.CenterGreyTitle(section.title),
-        const SizedBox(height: 4),
-        section.child,
-      ],
-    );
+    return buildSettingsTabView(sections);
   }
 
   List<_RemoteSettingsSection> _buildConnectionAndTransferSections(
@@ -809,30 +754,19 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
     required ThemeData theme,
     required List<Widget> children,
   }) {
-    return Column(
-      children: children
-          .map(
-            (child) => Padding(
-              padding: const EdgeInsets.only(bottom: _kSettingCardSpacing),
-              child: fl.CardX(child: child),
-            ),
-          )
-          .toList(growable: false),
-    );
+    return buildSettingsCard(children: children, theme: theme);
   }
 
   TextStyle? _settingTitleStyle(ThemeData theme) {
-    return theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500);
+    return settingTitleStyle(theme);
   }
 
   TextStyle? _settingBodyStyle(ThemeData theme) {
-    return theme.textTheme.bodyMedium;
+    return settingBodyStyle(theme);
   }
 
   TextStyle? _settingHintStyle(ThemeData theme) {
-    return theme.textTheme.bodyMedium?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
+    return settingHintStyle(theme);
   }
 
   Widget _buildSwitchSetting(
@@ -845,7 +779,7 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
       title: Text(title, style: _settingTitleStyle(theme)),
       value: value,
       onChanged: _isSaving ? null : onChanged,
-      contentPadding: _kSettingTilePadding,
+      contentPadding: SettingsPageHelpers.kSettingTilePadding,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }
@@ -866,7 +800,7 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
       subtitle: suffix.isNotEmpty
           ? Text(suffix, style: _settingHintStyle(theme))
           : null,
-      contentPadding: _kSettingTilePadding,
+      contentPadding: SettingsPageHelpers.kSettingTilePadding,
       trailing: SizedBox(
         width: 130,
         child: Row(
@@ -928,7 +862,7 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
 
     return ListTile(
       title: Text(title, style: _settingTitleStyle(theme)),
-      contentPadding: _kSettingTilePadding,
+      contentPadding: SettingsPageHelpers.kSettingTilePadding,
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
         child: TextFormField(

@@ -15,27 +15,19 @@ class InstanceManager extends ChangeNotifier with Loggable {
   final String _fileName = 'aria2_instances.json';
   final BuiltinInstanceService _builtinInstanceService =
       BuiltinInstanceService();
-
-  InstanceManager() {}
+  List<Aria2Instance>? _cachedConnectedInstances;
 
   List<Aria2Instance> get instances => _instances;
 
-  /// Get the first connected instance
-  Aria2Instance? getConnectedInstance() {
-    try {
-      return _instances.firstWhere(
-        (instance) => instance.status == ConnectionStatus.connected,
-      );
-    } catch (e) {
-      return null;
-    }
+  void _invalidateConnectedCache() {
+    _cachedConnectedInstances = null;
   }
 
   /// Get all connected instances
   List<Aria2Instance> getConnectedInstances() {
-    return _instances
+    return _cachedConnectedInstances ??= _instances
         .where((instance) => instance.status == ConnectionStatus.connected)
-        .toList();
+        .toList(growable: false);
   }
 
   /// Get the built-in instance if it exists
@@ -80,7 +72,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
           0,
           Aria2Instance(
             id: 'builtin',
-            name: '内建实例',
+            name: 'Built-in',
             type: InstanceType.builtin,
             protocol: 'ws',
             host: '127.0.0.1',
@@ -89,6 +81,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
             status: ConnectionStatus.disconnected,
           ),
         );
+        _invalidateConnectedCache();
         await _saveInstances();
         this.i('Added missing built-in instance record');
       }
@@ -101,6 +94,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         _instances[builtinIndex] = _instances[builtinIndex].copyWith(
           protocol: 'ws',
         );
+        _invalidateConnectedCache();
         await _saveInstances();
         this.i('Migrated built-in instance protocol from http to ws');
       }
@@ -151,6 +145,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
                   instance.copyWith(status: ConnectionStatus.disconnected),
             )
             .toList();
+        _invalidateConnectedCache();
 
         this.i('Loaded ${_instances.length} instance records');
       } else {
@@ -167,7 +162,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     _instances = [
       Aria2Instance(
         id: 'builtin',
-        name: '内建实例',
+        name: 'Built-in',
         type: InstanceType.builtin,
         protocol: 'ws',
         host: '127.0.0.1',
@@ -176,6 +171,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         status: ConnectionStatus.disconnected,
       ),
     ];
+    _invalidateConnectedCache();
     await _saveInstances();
     this.i('Created default built-in instance record');
   }
@@ -211,7 +207,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     try {
       // Only allow adding remote instances
       if (instance.type != InstanceType.remote) {
-        throw Exception('只能添加远程实例');
+        throw Exception('Only remote instances can be added');
       }
 
       // Ensure ID is unique
@@ -227,10 +223,9 @@ class InstanceManager extends ChangeNotifier with Loggable {
       );
 
       _instances.add(newInstance);
+      _invalidateConnectedCache();
       await _saveInstances();
       this.i('Added instance ${newInstance.name}');
-
-      // Notify listeners
       notifyListeners();
     } catch (e, stackTrace) {
       this.e('Failed to add instance', error: e, stackTrace: stackTrace);
@@ -243,12 +238,13 @@ class InstanceManager extends ChangeNotifier with Loggable {
     try {
       // Can't update built-in instance
       if (updatedInstance.id == 'builtin') {
-        throw Exception('不能编辑内建实例');
+        throw Exception('Cannot edit the built-in instance');
       }
 
       final index = _instances.indexWhere((i) => i.id == updatedInstance.id);
       if (index != -1) {
         _instances[index] = updatedInstance;
+        _invalidateConnectedCache();
 
         await _saveInstances();
         this.i('Updated instance ${updatedInstance.name}');
@@ -269,7 +265,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
   Future<void> deleteInstance(String instanceId) async {
     // Can't delete built-in instance
     if (instanceId == 'builtin') {
-      throw Exception('不能删除内建实例');
+      throw Exception('Cannot delete the built-in instance');
     }
 
     // Can't delete the last instance
@@ -278,6 +274,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     }
 
     _instances.removeWhere((i) => i.id == instanceId);
+    _invalidateConnectedCache();
     await _saveInstances();
     notifyListeners();
   }
@@ -457,6 +454,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         version: version,
         errorMessage: errorMessage,
       );
+      _invalidateConnectedCache();
       // Schedule notifyListeners to run after the current frame is built
       SchedulerBinding.instance.addPostFrameCallback((_) {
         notifyListeners();
@@ -494,6 +492,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         );
 
     _instances[builtinIndex] = refreshed;
+    _invalidateConnectedCache();
     await _saveInstances();
     notifyListeners();
   }

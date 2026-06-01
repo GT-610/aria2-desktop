@@ -53,33 +53,33 @@ class _ThemeProviderState extends State<_ThemeProvider> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<Settings>(context);
+    final display = context.select<Settings, ({Locale? locale, bool hideTitleBar, Color primaryColor, ThemeMode themeMode})>((s) => (locale: s.locale, hideTitleBar: s.hideTitleBar, primaryColor: s.primaryColor, themeMode: s.themeMode));
 
     return MaterialApp(
       title: kAppName,
-      locale: settings.locale,
+      locale: display.locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) => fl.VirtualWindowFrame(
         title: kAppName,
-        showCaption: settings.hideTitleBar,
+        showCaption: display.hideTitleBar,
         child: ClipRect(child: child ?? const SizedBox.shrink()),
       ),
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: settings.primaryColor,
+          seedColor: display.primaryColor,
           brightness: Brightness.light,
         ),
       ).fixWindowsFont,
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: settings.primaryColor,
+          seedColor: display.primaryColor,
           brightness: Brightness.dark,
         ),
       ).fixWindowsFont,
-      themeMode: settings.themeMode,
+      themeMode: display.themeMode,
       home: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => InstanceManager()),
@@ -537,30 +537,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         Provider.of<DownloadDataService>(context, listen: false);
     final connectedCount = instanceManager.getConnectedInstances().length;
     final tasks = downloadDataService.tasks;
-    final activeCount = tasks
-        .where((task) => task.status == DownloadStatus.active)
-        .length;
-    final waitingCount = tasks
-        .where((task) => task.status == DownloadStatus.waiting)
-        .length;
-    final resumableCount = tasks
-        .where(
-          (task) =>
-              task.status == DownloadStatus.waiting &&
-              task.taskStatus == 'paused',
-        )
-        .length;
-    final pausableCount = tasks
-        .where(
-          (task) =>
-              (task.status == DownloadStatus.active ||
-                  task.status == DownloadStatus.waiting) &&
-              task.taskStatus != 'paused',
-        )
-        .length;
-    final totalDownloadSpeed = tasks
-        .where((task) => task.status == DownloadStatus.active)
-        .fold<int>(0, (sum, task) => sum + task.downloadSpeedBytes);
+    final summary = _computeTaskSummary(tasks);
     final settings = _settings ?? Provider.of<Settings>(context, listen: false);
     if (settings.runMode == AppRunMode.hideTray) {
       return;
@@ -576,9 +553,9 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
           ? l10n.notConnected
           : '${l10n.connected}: $connectedCount',
       if (settings.showTraySpeed)
-        l10n.totalSpeed(formatSpeed(totalDownloadSpeed)),
-      l10n.activeTasks(activeCount.toString()),
-      l10n.waitingTasks(waitingCount.toString()),
+        l10n.totalSpeed(formatSpeed(summary.speed)),
+      l10n.activeTasks(summary.active.toString()),
+      l10n.waitingTasks(summary.waiting.toString()),
     ];
     final trayService = SystemTrayService();
     unawaited(trayService.updateTooltip(tooltipLines.join('\n')));
@@ -591,11 +568,11 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         toggleWindowLabel: isWindowVisible
             ? l10n.hideMainWindow
             : l10n.showMainWindow,
-        resumeAllLabel: '${l10n.resumeTasks} ($resumableCount)',
-        pauseAllLabel: '${l10n.pauseTasks} ($pausableCount)',
+        resumeAllLabel: '${l10n.resumeTasks} (${summary.resumable})',
+        pauseAllLabel: '${l10n.pauseTasks} (${summary.pausable})',
         quitLabel: l10n.quitApp,
-        resumeAllDisabled: resumableCount == 0,
-        pauseAllDisabled: pausableCount == 0,
+        resumeAllDisabled: summary.resumable == 0,
+        pauseAllDisabled: summary.pausable == 0,
       ),
     );
   }
@@ -853,17 +830,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       const InstancePage(),
       const SettingsPage(),
     ];
-    final tasks = context.watch<DownloadDataService>().tasks;
-    final activeTasks = tasks
-        .where((task) => task.status == DownloadStatus.active)
-        .toList();
-    final waitingTasks = tasks
-        .where((task) => task.status == DownloadStatus.waiting)
-        .length;
-    final totalDownloadSpeed = activeTasks.fold<int>(
-      0,
-      (sum, task) => sum + task.downloadSpeedBytes,
-    );
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -928,53 +894,100 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
             ),
           ),
           // Bottom status bar - Material You style
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainer,
-              border: Border(
-                top: BorderSide(color: colorScheme.surfaceContainerHighest),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: colorScheme.shadow,
-                  offset: const Offset(0, -1),
-                  blurRadius: 3,
-                  spreadRadius: 0,
-                ),
-              ],
+          const _StatusBar(),
+        ],
+      ),
+    );
+  }
+}
+
+({int active, int waiting, int resumable, int pausable, int speed})
+    _computeTaskSummary(List<DownloadTask> tasks) {
+  var active = 0;
+  var waiting = 0;
+  var resumable = 0;
+  var pausable = 0;
+  var speed = 0;
+  for (final task in tasks) {
+    if (task.status == DownloadStatus.active) {
+      active++;
+      speed += task.downloadSpeedBytes;
+    } else if (task.status == DownloadStatus.waiting) {
+      waiting++;
+    }
+    if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
+      resumable++;
+    }
+    if ((task.status == DownloadStatus.active ||
+            task.status == DownloadStatus.waiting) &&
+        task.taskStatus != 'paused') {
+      pausable++;
+    }
+  }
+  return (
+    active: active,
+    waiting: waiting,
+    resumable: resumable,
+    pausable: pausable,
+    speed: speed,
+  );
+}
+
+class _StatusBar extends StatelessWidget {
+  const _StatusBar();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+    final summary = context.select<DownloadDataService, ({int active, int waiting, int resumable, int pausable, int speed})>((service) {
+      return _computeTaskSummary(service.tasks);
+    });
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        border: Border(
+          top: BorderSide(color: colorScheme.surfaceContainerHighest),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow,
+            offset: const Offset(0, -1),
+            blurRadius: 3,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Chip(
+            label: Text(l10n.totalSpeed(formatSpeed(summary.speed))),
+            avatar: const Icon(Icons.speed, size: 16),
+            backgroundColor: colorScheme.surfaceContainerHighest,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 6,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Chip(
-                  label: Text(l10n.totalSpeed(formatSpeed(totalDownloadSpeed))),
-                  avatar: const Icon(Icons.speed, size: 16),
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                ),
-                Chip(
-                  label: Text(l10n.activeTasks(activeTasks.length.toString())),
-                  avatar: const Icon(Icons.task_alt, size: 16),
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                ),
-                Chip(
-                  label: Text(l10n.waitingTasks(waitingTasks.toString())),
-                  avatar: const Icon(Icons.pending, size: 16),
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                ),
-              ],
+          ),
+          Chip(
+            label: Text(l10n.activeTasks(summary.active.toString())),
+            avatar: const Icon(Icons.task_alt, size: 16),
+            backgroundColor: colorScheme.surfaceContainerHighest,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 6,
+            ),
+          ),
+          Chip(
+            label: Text(l10n.waitingTasks(summary.waiting.toString())),
+            avatar: const Icon(Icons.pending, size: 16),
+            backgroundColor: colorScheme.surfaceContainerHighest,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 6,
             ),
           ),
         ],

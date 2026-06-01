@@ -11,6 +11,7 @@ import '../services/settings_service.dart';
 import '../services/tracker_sync_service.dart';
 import '../utils/logging.dart';
 import 'components/builtin_settings_apply_hint_card.dart';
+import 'components/settings_helpers.dart';
 import 'download_page/components/directory_picker.dart';
 
 class BuiltinInstanceSettingsPage extends StatefulWidget {
@@ -27,19 +28,18 @@ enum _BuiltinSettingsTab {
   filesAndMaintenance,
 }
 
-class _BuiltinSettingsSection {
+class _BuiltinSettingsSection implements SettingsSection {
   const _BuiltinSettingsSection({required this.title, required this.child});
 
+  @override
   final String title;
+  @override
   final Widget child;
 }
 
 class _BuiltinInstanceSettingsPageState
     extends State<BuiltinInstanceSettingsPage>
-    with SingleTickerProviderStateMixin {
-  static const _kSettingCardSpacing = 10.0;
-  static const _kSettingTilePadding = EdgeInsets.fromLTRB(16, 6, 16, 6);
-
+    with SingleTickerProviderStateMixin, SettingsPageHelpers {
   final _logger = taggedLogger('BuiltinInstanceSettingsPage');
   bool _hasChanges = false;
   bool _isSaving = false;
@@ -311,62 +311,7 @@ class _BuiltinInstanceSettingsPageState
   }
 
   Widget _buildSettingsTabView(List<_BuiltinSettingsSection> sections) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final columns = width >= 1440
-            ? 3
-            : width >= 900
-            ? 2
-            : 1;
-        const gap = 16.0;
-        final distributedSections = List.generate(
-          columns,
-          (_) => <_BuiltinSettingsSection>[],
-        );
-
-        for (var index = 0; index < sections.length; index++) {
-          distributedSections[index % columns].add(sections[index]);
-        }
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var i = 0; i < distributedSections.length; i++) ...[
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: distributedSections[i]
-                        .map(
-                          (section) => Padding(
-                            padding: const EdgeInsets.only(bottom: gap),
-                            child: _buildSectionBlock(section),
-                          ),
-                        )
-                        .toList(growable: false),
-                  ),
-                ),
-                if (i < distributedSections.length - 1)
-                  const SizedBox(width: gap),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSectionBlock(_BuiltinSettingsSection section) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        fl.CenterGreyTitle(section.title),
-        const SizedBox(height: 4),
-        section.child,
-      ],
-    );
+    return buildSettingsTabView(sections);
   }
 
   List<_BuiltinSettingsSection> _buildConnectionAndTransferSections() {
@@ -756,30 +701,19 @@ class _BuiltinInstanceSettingsPageState
     required List<Widget> children,
     required ThemeData theme,
   }) {
-    return Column(
-      children: children
-          .map(
-            (child) => Padding(
-              padding: const EdgeInsets.only(bottom: _kSettingCardSpacing),
-              child: fl.CardX(child: child),
-            ),
-          )
-          .toList(growable: false),
-    );
+    return buildSettingsCard(children: children, theme: theme);
   }
 
   TextStyle? _settingTitleStyle(ThemeData theme) {
-    return theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500);
+    return settingTitleStyle(theme);
   }
 
   TextStyle? _settingBodyStyle(ThemeData theme) {
-    return theme.textTheme.bodyMedium;
+    return settingBodyStyle(theme);
   }
 
   TextStyle? _settingHintStyle(ThemeData theme) {
-    return theme.textTheme.bodyMedium?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
+    return settingHintStyle(theme);
   }
 
   Widget _buildDangerActionSetting({
@@ -801,7 +735,7 @@ class _BuiltinInstanceSettingsPageState
         style: OutlinedButton.styleFrom(foregroundColor: colorScheme.error),
         child: Text(actionLabel),
       ),
-      contentPadding: _kSettingTilePadding,
+      contentPadding: SettingsPageHelpers.kSettingTilePadding,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }
@@ -853,7 +787,7 @@ class _BuiltinInstanceSettingsPageState
           ),
         ],
       ),
-      contentPadding: _kSettingTilePadding,
+      contentPadding: SettingsPageHelpers.kSettingTilePadding,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }
@@ -874,7 +808,7 @@ class _BuiltinInstanceSettingsPageState
           : null,
       value: value,
       onChanged: enabled ? onChanged : null,
-      contentPadding: _kSettingTilePadding,
+      contentPadding: SettingsPageHelpers.kSettingTilePadding,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
     );
   }
@@ -895,7 +829,7 @@ class _BuiltinInstanceSettingsPageState
       subtitle: suffix.isNotEmpty
           ? Text(suffix, style: _settingHintStyle(theme))
           : null,
-      contentPadding: _kSettingTilePadding,
+      contentPadding: SettingsPageHelpers.kSettingTilePadding,
       trailing: SizedBox(
         width: 130,
         child: Row(
@@ -957,7 +891,7 @@ class _BuiltinInstanceSettingsPageState
 
     return ListTile(
       title: Text(title, style: _settingTitleStyle(theme)),
-      contentPadding: _kSettingTilePadding,
+      contentPadding: SettingsPageHelpers.kSettingTilePadding,
       subtitle: Padding(
         padding: const EdgeInsets.only(right: 0),
         child: TextFormField(
@@ -987,7 +921,7 @@ class _BuiltinInstanceSettingsPageState
 
     return ListTile(
       title: Text(title, style: _settingTitleStyle(theme)),
-      contentPadding: _kSettingTilePadding,
+      contentPadding: SettingsPageHelpers.kSettingTilePadding,
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 8),
         child: DirectoryPicker(
