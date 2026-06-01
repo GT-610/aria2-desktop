@@ -475,8 +475,6 @@ class BuiltinInstanceService with Loggable {
     return _aria2Process != null;
   }
 
-  int? get pid => _aria2Process?.pid;
-
   Future<void> _shutdownThroughRpcIfPossible() async {
     final client = Aria2RpcClient(getBuiltinInstanceConfig());
     try {

@@ -16,20 +16,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
   final BuiltinInstanceService _builtinInstanceService =
       BuiltinInstanceService();
 
-  InstanceManager() {}
-
   List<Aria2Instance> get instances => _instances;
-
-  /// Get the first connected instance
-  Aria2Instance? getConnectedInstance() {
-    try {
-      return _instances.firstWhere(
-        (instance) => instance.status == ConnectionStatus.connected,
-      );
-    } catch (e) {
-      return null;
-    }
-  }
 
   /// Get all connected instances
   List<Aria2Instance> getConnectedInstances() {
