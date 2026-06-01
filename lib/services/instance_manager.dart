@@ -72,7 +72,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
           0,
           Aria2Instance(
             id: 'builtin',
-            name: '内建实例',
+            name: 'Built-in',
             type: InstanceType.builtin,
             protocol: 'ws',
             host: '127.0.0.1',
@@ -207,7 +207,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     try {
       // Only allow adding remote instances
       if (instance.type != InstanceType.remote) {
-        throw Exception('只能添加远程实例');
+        throw Exception('Only remote instances can be added');
       }
 
       // Ensure ID is unique
@@ -238,7 +238,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     try {
       // Can't update built-in instance
       if (updatedInstance.id == 'builtin') {
-        throw Exception('不能编辑内建实例');
+        throw Exception('Cannot edit the built-in instance');
       }
 
       final index = _instances.indexWhere((i) => i.id == updatedInstance.id);
@@ -265,7 +265,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
   Future<void> deleteInstance(String instanceId) async {
     // Can't delete built-in instance
     if (instanceId == 'builtin') {
-      throw Exception('不能删除内建实例');
+      throw Exception('Cannot delete the built-in instance');
     }
 
     // Can't delete the last instance

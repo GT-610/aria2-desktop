@@ -8,12 +8,12 @@ import '../utils/logging.dart';
 // Custom exception classes
 class ConnectionFailedException implements Exception {
   @override
-  String toString() => '连接实例失败';
+  String toString() => 'Failed to connect to instance';
 }
 
 class UnauthorizedException implements Exception {
   @override
-  String toString() => '认证未通过';
+  String toString() => 'Authentication failed';
 }
 
 /// Aria2 RPC client service
@@ -381,9 +381,6 @@ class Aria2RpcClient with Loggable {
     final response = await callRpc('aria2.unpause', [gid]);
     return response['result'] as String; // Returns the GID of the resumed task
   }
-
-  // tellStatus method removed as main loop already gets complete task data
-  // through tellActive, tellWaiting and tellStopped calls in getTasksMulticall
 
   /// Remove a download task
   Future<String> removeTask(String gid) async {

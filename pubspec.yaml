@@ -51,7 +51,7 @@ dependencies:
   window_manager: ^0.5.1
 
   # Internationalization
-  intl: any
+  intl: ^0.20.2
 
   # Local packages
   fl_lib:

@@ -21,7 +21,3 @@ String getDefaultDownloadDirectorySync() {
 
   return p.normalize(p.join(getAppDataDirectory().path, 'downloads'));
 }
-
-Future<String> getDefaultDownloadDirectory() async {
-  return getDefaultDownloadDirectorySync();
-}

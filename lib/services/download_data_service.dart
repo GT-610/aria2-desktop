@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import '../pages/download_page/models/download_task.dart';
 import '../pages/download_page/enums.dart';
@@ -42,7 +43,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   final Map<String, Aria2RpcClient> _clientCache = {};
   List<Aria2Instance> Function()? _connectedInstancesProvider;
 
-  List<DownloadTask> get tasks => _tasks;
+  List<DownloadTask> get tasks => UnmodifiableListView(_tasks);
   bool get isRefreshing => _isRefreshing;
   String? get lastError => _lastError;
 
