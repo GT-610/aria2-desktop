@@ -38,12 +38,8 @@ enum Pfs {
   }();
 }
 
-final isAndroid = Pfs.type == Pfs.android;
-final isIOS = Pfs.type == Pfs.ios;
 final isLinux = Pfs.type == Pfs.linux;
 final isMacOS = Pfs.type == Pfs.macos;
 final isWindows = Pfs.type == Pfs.windows;
-final isWeb = Pfs.type == Pfs.web;
-final isMobile = Pfs.type == Pfs.ios || Pfs.type == Pfs.android;
 final isDesktop =
     Pfs.type == Pfs.linux || Pfs.type == Pfs.macos || Pfs.type == Pfs.windows;

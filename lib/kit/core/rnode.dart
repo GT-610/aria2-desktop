@@ -50,12 +50,6 @@ class RNode implements ChangeNotifier {
   }
 }
 
-extension RNodeX on RNode {
-  ListenBuilder listen(Widget Function() builder) {
-    return ListenBuilder(listenable: this, builder: builder);
-  }
-}
-
 class VNode<T> extends RNode implements ValueNotifier<T> {
   T _value;
 
@@ -73,46 +67,4 @@ class VNode<T> extends RNode implements ValueNotifier<T> {
 
   @override
   String toString() => 'VNode($value)';
-}
-
-extension ValueListenableX<T> on ValueListenable<T> {
-  ValBuilder<T> listenVal(Widget Function(T) builder) {
-    return ValBuilder<T>(listenable: this, builder: builder);
-  }
-}
-
-final class ValBuilder<T> extends ValueListenableBuilder<T> {
-  final ValueListenable<T> listenable;
-
-  ValBuilder({
-    super.key,
-    required this.listenable,
-    required Widget Function(T) builder,
-  }) : super(valueListenable: listenable, builder: (_, val, _) => builder(val));
-}
-
-final class ListenBuilder extends ListenableBuilder {
-  ListenBuilder({
-    super.key,
-    required super.listenable,
-    required Widget Function() builder,
-  }) : super(builder: (_, _) => builder());
-}
-
-final class EmptyListenable<T> implements ValueListenable<T?> {
-  @override
-  void addListener(VoidCallback listener) {}
-
-  @override
-  void removeListener(VoidCallback listener) {}
-
-  @override
-  T? get value => null;
-
-  const EmptyListenable();
-}
-
-abstract final class RNodes {
-  static final app = RNode();
-  static final dark = VNode<bool>(false);
 }
