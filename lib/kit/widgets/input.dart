@@ -58,9 +58,9 @@ class Input extends StatefulWidget {
     this.maxLength,
     this.enabled,
   }) : assert(
-          !(obscureText && suffix != null),
-          'suffix != null && obscureText',
-        );
+         !(obscureText && suffix != null),
+         'suffix != null && obscureText',
+       );
 
   @override
   State<StatefulWidget> createState() => _InputState();
@@ -71,8 +71,9 @@ class _InputState extends State<Input> {
 
   @override
   Widget build(BuildContext context) {
-    final icon =
-        widget.icon != null ? Icon(widget.icon!).paddingOnly(left: 5) : null;
+    final icon = widget.icon != null
+        ? Icon(widget.icon!).paddingOnly(left: 5)
+        : null;
     final child = _buildField(icon);
 
     if (widget.noWrap) return child;
@@ -112,11 +113,11 @@ class _InputState extends State<Input> {
       onTapOutside: widget.onTapOutside,
       maxLength: widget.maxLength,
       enabled: widget.enabled,
-      contextMenuBuilder: widget.contextMenuBuilder ??
-          (context, state) =>
-              AdaptiveTextSelectionToolbar.editableText(
-                editableTextState: state,
-              ),
+      contextMenuBuilder:
+          widget.contextMenuBuilder ??
+          (context, state) => AdaptiveTextSelectionToolbar.editableText(
+            editableTextState: state,
+          ),
     );
   }
 
@@ -125,9 +126,7 @@ class _InputState extends State<Input> {
     if (!widget.obscureText) return null;
 
     return IconButton(
-      icon: Icon(
-        _obscureText ? Icons.visibility : Icons.visibility_off,
-      ),
+      icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off),
       onPressed: () {
         setState(() {
           _obscureText = !_obscureText;

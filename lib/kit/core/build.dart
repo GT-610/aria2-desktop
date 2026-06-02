@@ -1,8 +1,7 @@
 enum BuildMode {
   release,
   debug,
-  profile,
-  ;
+  profile;
 
   static final isDebug = _buildMode == BuildMode.debug;
   static final isProfile = _buildMode == BuildMode.profile;

@@ -9,7 +9,7 @@ abstract final class Fns {
     FutureOr<T> Function() func, {
     String id = _defaultThrottleId,
     int duration = _defaultDurationTime,
-    Function? continueClick,
+    void Function()? continueClick,
   }) async {
     final currentTime = DateTime.now().millisecondsSinceEpoch;
     if (currentTime - (startTimeMap[id] ?? 0) > duration) {

@@ -1,12 +1,13 @@
 import 'dart:async';
 
-import 'kit/kit.dart' as kit;
-import 'kit/kit.dart' show ChineseThemeData;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
+
 import 'constants/app_branding.dart';
 import 'generated/l10n/l10n.dart';
+import 'kit/kit.dart' as kit;
+import 'kit/kit.dart' show ChineseThemeData;
 import 'models/aria2_instance.dart';
 import 'models/settings.dart';
 import 'pages/download_page/download_page.dart';
@@ -53,7 +54,23 @@ class _ThemeProviderState extends State<_ThemeProvider> {
 
   @override
   Widget build(BuildContext context) {
-    final display = context.select<Settings, ({Locale? locale, bool hideTitleBar, Color primaryColor, ThemeMode themeMode})>((s) => (locale: s.locale, hideTitleBar: s.hideTitleBar, primaryColor: s.primaryColor, themeMode: s.themeMode));
+    final display = context
+        .select<
+          Settings,
+          ({
+            Locale? locale,
+            bool hideTitleBar,
+            Color primaryColor,
+            ThemeMode themeMode,
+          })
+        >(
+          (s) => (
+            locale: s.locale,
+            hideTitleBar: s.hideTitleBar,
+            primaryColor: s.primaryColor,
+            themeMode: s.themeMode,
+          ),
+        );
 
     return MaterialApp(
       title: kAppName,
@@ -552,8 +569,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       connectedCount == 0
           ? l10n.notConnected
           : '${l10n.connected}: $connectedCount',
-      if (settings.showTraySpeed)
-        l10n.totalSpeed(formatSpeed(summary.speed)),
+      if (settings.showTraySpeed) l10n.totalSpeed(formatSpeed(summary.speed)),
       l10n.activeTasks(summary.active.toString()),
       l10n.waitingTasks(summary.waiting.toString()),
     ];
@@ -902,7 +918,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
 }
 
 ({int active, int waiting, int resumable, int pausable, int speed})
-    _computeTaskSummary(List<DownloadTask> tasks) {
+_computeTaskSummary(List<DownloadTask> tasks) {
   var active = 0;
   var waiting = 0;
   var resumable = 0;
@@ -940,9 +956,13 @@ class _StatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
-    final summary = context.select<DownloadDataService, ({int active, int waiting, int resumable, int pausable, int speed})>((service) {
-      return _computeTaskSummary(service.tasks);
-    });
+    final summary = context
+        .select<
+          DownloadDataService,
+          ({int active, int waiting, int resumable, int pausable, int speed})
+        >((service) {
+          return _computeTaskSummary(service.tasks);
+        });
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -967,28 +987,19 @@ class _StatusBar extends StatelessWidget {
             label: Text(l10n.totalSpeed(formatSpeed(summary.speed))),
             avatar: const Icon(Icons.speed, size: 16),
             backgroundColor: colorScheme.surfaceContainerHighest,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 6,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           ),
           Chip(
             label: Text(l10n.activeTasks(summary.active.toString())),
             avatar: const Icon(Icons.task_alt, size: 16),
             backgroundColor: colorScheme.surfaceContainerHighest,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 6,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           ),
           Chip(
             label: Text(l10n.waitingTasks(summary.waiting.toString())),
             avatar: const Icon(Icons.pending, size: 16),
             backgroundColor: colorScheme.surfaceContainerHighest,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 6,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           ),
         ],
       ),

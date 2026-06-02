@@ -7,7 +7,7 @@ final class SizedLoading extends StatelessWidget {
   final double padding;
   final Animation<Color>? valueColor;
   final Widget Function(BuildContext context, Animation<Color>? valueColor)
-      builder;
+  builder;
 
   const SizedLoading(
     this.size, {
@@ -22,7 +22,8 @@ final class SizedLoading extends StatelessWidget {
     Animation<Color>? valueColor,
   ) {
     return LinearProgressIndicator(
-      valueColor: valueColor ??
+      valueColor:
+          valueColor ??
           AlwaysStoppedAnimation(Theme.of(context).colorScheme.primary),
     );
   }

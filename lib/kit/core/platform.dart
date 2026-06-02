@@ -25,7 +25,7 @@ enum Pfs {
     };
   }();
 
-  static final String seperator = isWindows ? '\\' : '/';
+  static final String separator = isWindows ? '\\' : '/';
 
   static final String? homeDir = () {
     final envVars = Platform.environment;

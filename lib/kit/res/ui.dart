@@ -37,13 +37,13 @@ abstract final class UIs {
   static const width13 = SizedBox(width: 13);
 
   static Widget dot({Color? color, double? size}) => Container(
-        width: size ?? 7,
-        height: size ?? 7,
-        decoration: BoxDecoration(
-          color: color ?? primaryColor,
-          shape: BoxShape.circle,
-        ),
-      );
+    width: size ?? 7,
+    height: size ?? 7,
+    decoration: BoxDecoration(
+      color: color ?? primaryColor,
+      shape: BoxShape.circle,
+    ),
+  );
 
   static const centerLoading = Padding(
     padding: EdgeInsets.symmetric(vertical: 7),

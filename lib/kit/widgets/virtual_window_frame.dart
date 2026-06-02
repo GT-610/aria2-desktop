@@ -31,11 +31,11 @@ class VirtualWindowFrame extends StatelessWidget {
     final content = switch (CustomAppBar.sysStatusBarHeight) {
       0.0 => child,
       _ when showCaption && WindowFrameConfig.showCaption => Column(
-          children: [
-            _WindowCaption(title: title),
-            Expanded(child: child),
-          ],
-        ),
+        children: [
+          _WindowCaption(title: title),
+          Expanded(child: child),
+        ],
+      ),
       _ => child,
     };
     return wm.VirtualWindowFrame(child: content);
@@ -73,7 +73,7 @@ class _WindowCaption extends StatelessWidget {
             wm.WindowCaption(
               backgroundColor: Colors.transparent,
               brightness: theme.brightness,
-            )
+            ),
         ],
       ),
     );

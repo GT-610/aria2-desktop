@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import '../../kit/kit.dart' as kit;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../constants/app_branding.dart';
 import '../../constants/github_id.dart';
 import '../../generated/l10n/l10n.dart';
+import '../../kit/kit.dart' as kit;
 import '../../models/settings.dart';
 import '../../services/protocol_integration_service.dart';
 import '../../services/startup_integration_service.dart';
@@ -537,11 +537,8 @@ class _SettingsPageState extends State<SettingsPage>
 
     Widget linkText(String text, String url) {
       return GestureDetector(
-        onTap: () => launchUrl(Uri.parse(url)),
-        child: Text(
-          text,
-          style: TextStyle(color: linkColor, fontSize: 14),
-        ),
+        onTap: () => _launchExternalUri(Uri.parse(url)),
+        child: Text(text, style: TextStyle(color: linkColor, fontSize: 14)),
       );
     }
 
@@ -572,16 +569,12 @@ class _SettingsPageState extends State<SettingsPage>
         if (GithubIds.contributors.isNotEmpty)
           section(
             l10n.contributors,
-            GithubIds.contributors
-                .map((id) => linkText(id, id.url))
-                .toList(),
+            GithubIds.contributors.map((id) => linkText(id, id.url)).toList(),
           ),
         if (GithubIds.participants.isNotEmpty)
           section(
             l10n.participants,
-            GithubIds.participants
-                .map((id) => linkText(id, id.url))
-                .toList(),
+            GithubIds.participants.map((id) => linkText(id, id.url)).toList(),
           ),
       ],
     );

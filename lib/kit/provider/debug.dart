@@ -9,7 +9,7 @@ import '../res/ui.dart';
 const _level2Color = {
   'INFO': Colors.cyan,
   'WARNING': Colors.yellow,
-  'ERROR': Color(0xffbb2d6f),
+  'SEVERE': Color(0xffbb2d6f),
 };
 
 final class DebugProvider {
@@ -25,24 +25,36 @@ final class DebugProvider {
         ? '\n${record.message}'
         : '\n${record.message}: ${record.error}';
     lines.add('$title$level$message');
-    widgets.value.add(Text.rich(TextSpan(
-      children: [
-        TextSpan(text: title, style: TextStyle(color: color)),
-        TextSpan(text: level, style: TextStyle(color: color)),
+    widgets.value.add(
+      Text.rich(
         TextSpan(
-          text: message,
-          style: const TextStyle(color: Colors.white),
+          children: [
+            TextSpan(
+              text: title,
+              style: TextStyle(color: color),
+            ),
+            TextSpan(
+              text: level,
+              style: TextStyle(color: color),
+            ),
+            TextSpan(
+              text: message,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ],
         ),
-      ],
-    )));
+      ),
+    );
     if (record.stackTrace != null) {
-      widgets.value.add(SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Text(
-          '${record.stackTrace}',
-          style: const TextStyle(color: Colors.white),
+      widgets.value.add(
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Text(
+            '${record.stackTrace}',
+            style: const TextStyle(color: Colors.white),
+          ),
         ),
-      ));
+      );
     }
     widgets.value.add(UIs.height13);
     if (widgets.value.length > maxLines) {
@@ -61,5 +73,6 @@ final class DebugProvider {
     widgets.notify();
   }
 
-  static void copy() => Clipboard.setData(ClipboardData(text: lines.join('\n')));
+  static void copy() =>
+      Clipboard.setData(ClipboardData(text: lines.join('\n')));
 }

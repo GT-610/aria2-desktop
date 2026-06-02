@@ -22,9 +22,7 @@ class CardX extends StatelessWidget {
       key: key,
       clipBehavior: clipBehavior,
       color: color,
-      shape: RoundedRectangleBorder(
-        borderRadius: radius ?? borderRadius,
-      ),
+      shape: RoundedRectangleBorder(borderRadius: radius ?? borderRadius),
       elevation: 0,
       child: child,
     );

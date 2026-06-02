@@ -24,10 +24,7 @@ class DebugPage extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back),
         ),
-        title: Text(
-          args?.title ?? 'Log',
-          style: const TextStyle(fontSize: 17),
-        ),
+        title: Text(args?.title ?? 'Log', style: const TextStyle(fontSize: 17)),
         actions: [
           const Btn.icon(
             icon: Icon(Icons.copy, size: 23),

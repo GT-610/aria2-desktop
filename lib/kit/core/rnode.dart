@@ -21,10 +21,14 @@ class RNode implements ChangeNotifier {
 
   Future<void> notify({bool delay = false}) async {
     if (delay) await Future.delayed(const Duration(milliseconds: 277));
-    for (final listener in _listeners) {
+    for (final listener in List.of(_listeners)) {
       try {
         listener();
-      } catch (_) {}
+      } catch (error, stack) {
+        FlutterError.reportError(
+          FlutterErrorDetails(exception: error, stack: stack),
+        );
+      }
     }
   }
 
@@ -58,6 +62,7 @@ class VNode<T> extends RNode implements ValueNotifier<T> {
 
   @override
   set value(T newVal) {
+    if (_value == newVal) return;
     _value = newVal;
     notify();
   }
@@ -79,10 +84,7 @@ final class ValBuilder<T> extends ValueListenableBuilder<T> {
     super.key,
     required this.listenable,
     required Widget Function(T) builder,
-  }) : super(
-          valueListenable: listenable,
-          builder: (_, val, _) => builder(val),
-        );
+  }) : super(valueListenable: listenable, builder: (_, val, _) => builder(val));
 }
 
 final class ListenBuilder extends ListenableBuilder {

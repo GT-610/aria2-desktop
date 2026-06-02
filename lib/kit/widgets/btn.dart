@@ -2,13 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../res/ui.dart';
 
-enum BtnType {
-  row,
-  text,
-  icon,
-  column,
-  elevated,
-}
+enum BtnType { row, text, icon, column, elevated }
 
 Null _defaultOnTap() => null;
 
@@ -38,13 +32,13 @@ final class Btn extends StatelessWidget {
     this.textStyle,
     this.padding,
     this.onLongTap,
-  })  : type = BtnType.text,
-        gap = null,
-        mainAxisAlignment = null,
-        mainAxisSize = null,
-        borderRadius = null,
-        popVal = null,
-        icon = null;
+  }) : type = BtnType.text,
+       gap = null,
+       mainAxisAlignment = null,
+       mainAxisSize = null,
+       borderRadius = null,
+       popVal = null,
+       icon = null;
 
   const Btn.icon({
     super.key,
@@ -53,13 +47,13 @@ final class Btn extends StatelessWidget {
     this.onTap = _defaultOnTap,
     this.padding = _kPadding,
     this.onLongTap,
-  })  : type = BtnType.icon,
-        gap = null,
-        mainAxisAlignment = null,
-        mainAxisSize = null,
-        borderRadius = null,
-        popVal = null,
-        textStyle = null;
+  }) : type = BtnType.icon,
+       gap = null,
+       mainAxisAlignment = null,
+       mainAxisSize = null,
+       borderRadius = null,
+       popVal = null,
+       textStyle = null;
 
   const Btn.column({
     super.key,
@@ -73,8 +67,8 @@ final class Btn extends StatelessWidget {
     this.mainAxisSize,
     this.borderRadius = _kBorderRadius,
     this.onLongTap,
-  })  : type = BtnType.column,
-        popVal = null;
+  }) : type = BtnType.column,
+       popVal = null;
 
   const Btn.row({
     super.key,
@@ -88,8 +82,8 @@ final class Btn extends StatelessWidget {
     this.mainAxisSize,
     this.borderRadius = _kBorderRadius,
     this.onLongTap,
-  })  : type = BtnType.row,
-        popVal = null;
+  }) : type = BtnType.row,
+       popVal = null;
 
   const Btn.tile({
     super.key,
@@ -97,17 +91,14 @@ final class Btn extends StatelessWidget {
     required this.icon,
     this.onTap = _defaultOnTap,
     this.gap = 20,
-    this.textStyle = const TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w400,
-    ),
+    this.textStyle = const TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
     this.padding = const EdgeInsets.symmetric(vertical: 13, horizontal: 20),
     this.mainAxisAlignment,
     this.mainAxisSize,
     this.borderRadius = const BorderRadius.all(Radius.circular(13)),
     this.onLongTap,
-  })  : type = BtnType.row,
-        popVal = null;
+  }) : type = BtnType.row,
+       popVal = null;
 
   const Btn.elevated({
     super.key,
@@ -121,8 +112,8 @@ final class Btn extends StatelessWidget {
     this.mainAxisSize,
     this.borderRadius = const BorderRadius.all(Radius.circular(13)),
     this.onLongTap,
-  })  : type = BtnType.elevated,
-        popVal = null;
+  }) : type = BtnType.elevated,
+       popVal = null;
 
   const Btn.ok({
     super.key,
@@ -130,41 +121,41 @@ final class Btn extends StatelessWidget {
     bool red = false,
     this.onLongTap,
     String? text,
-  })  : this.text = text ?? 'OK',
-        icon = null,
-        type = BtnType.text,
-        gap = null,
-        padding = null,
-        mainAxisAlignment = null,
-        mainAxisSize = null,
-        borderRadius = null,
-        popVal = true,
-        textStyle = red ? UIs.textRed : null;
+  }) : this.text = text ?? 'OK',
+       icon = null,
+       type = BtnType.text,
+       gap = null,
+       padding = null,
+       mainAxisAlignment = null,
+       mainAxisSize = null,
+       borderRadius = null,
+       popVal = true,
+       textStyle = red ? UIs.textRed : null;
 
   const Btn.cancel({
     super.key,
     this.onTap = _defaultOnTap,
     this.onLongTap,
     String? text,
-  })  : this.text = text ?? 'Cancel',
-        icon = null,
-        type = BtnType.text,
-        gap = null,
-        padding = null,
-        mainAxisAlignment = null,
-        mainAxisSize = null,
-        borderRadius = null,
-        popVal = false,
-        textStyle = null;
+  }) : this.text = text ?? 'Cancel',
+       icon = null,
+       type = BtnType.text,
+       gap = null,
+       padding = null,
+       mainAxisAlignment = null,
+       mainAxisSize = null,
+       borderRadius = null,
+       popVal = false,
+       textStyle = null;
 
   @override
   Widget build(BuildContext context) => switch (type) {
-        BtnType.text => _text(context),
-        BtnType.icon => _icon(context),
-        BtnType.column => _column(context),
-        BtnType.row => _row(context),
-        BtnType.elevated => _elevated(context),
-      };
+    BtnType.text => _text(context),
+    BtnType.icon => _icon(context),
+    BtnType.column => _column(context),
+    BtnType.row => _row(context),
+    BtnType.elevated => _elevated(context),
+  };
 
   VoidCallback? _resolveOnTap(BuildContext c) {
     if (onTap == _defaultOnTap) {
@@ -186,10 +177,7 @@ final class Btn extends StatelessWidget {
   }
 
   Widget _icon(BuildContext context) {
-    Widget child = Tooltip(
-      message: text,
-      child: icon ?? _kPlaceholderIcon,
-    );
+    Widget child = Tooltip(message: text, child: icon ?? _kPlaceholderIcon);
     if (padding != null) child = Padding(padding: padding!, child: child);
     return InkWell(
       borderRadius: borderRadius ?? _kBorderRadius,
