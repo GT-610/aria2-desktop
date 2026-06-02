@@ -95,34 +95,4 @@ class SettingsService extends ChangeNotifier with Loggable {
       client.close();
     }
   }
-
-  Future<bool> applySpeedSettingsToBuiltin() async {
-    if (_settings == null) {
-      return false;
-    }
-
-    final builtinInstance = BuiltinInstanceService().getBuiltinInstanceConfig();
-    final client = Aria2RpcClient(builtinInstance);
-
-    try {
-      final options = <String, dynamic>{
-        'max-overall-download-limit': formatSpeedLimitOption(
-          _settings!.maxOverallDownloadLimit,
-        ),
-        'max-overall-upload-limit': formatSpeedLimitOption(
-          _settings!.maxOverallUploadLimit,
-        ),
-      };
-      return await client.setGlobalOption(options);
-    } catch (err, stackTrace) {
-      this.e(
-        'Failed to apply speed settings to built-in Aria2',
-        error: err,
-        stackTrace: stackTrace,
-      );
-      return false;
-    } finally {
-      client.close();
-    }
-  }
 }

@@ -604,7 +604,6 @@ class TaskDetailsDialog {
                                                                       ),
                                                             },
                                                           );
-                                                          client.close();
 
                                                           onTaskUpdated?.call();
 
