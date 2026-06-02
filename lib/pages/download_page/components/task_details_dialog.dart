@@ -222,14 +222,15 @@ class TaskDetailsDialog {
                           peersClientKey = nextClientKey;
                         }
                         peers = await peersClient!.getPeers(currentTask.id);
-                        peersError = null;
+                        setState(() {
+                          peersError = null;
+                          isLoadingPeers = false;
+                        });
                       } catch (error) {
-                        peersError = '$error';
-                      } finally {
-                        isLoadingPeers = false;
-                        if (context.mounted) {
-                          setState(() {});
-                        }
+                        setState(() {
+                          peersError = '$error';
+                          isLoadingPeers = false;
+                        });
                       }
                     }
 
@@ -242,14 +243,13 @@ class TaskDetailsDialog {
                       activeTabController = tabController;
                       activeTabListener = () {
                         if (!tabController.indexIsChanging) {
-                          currentTabIndex = tabController.index;
+                          setState(() {
+                            currentTabIndex = tabController.index;
+                          });
                           unawaited(
                             requestPeersIfNeeded?.call(force: true) ??
                                 Future.value(),
                           );
-                          if (context.mounted) {
-                            setState(() {});
-                          }
                         }
                       };
                       activeTabController!.addListener(activeTabListener!);

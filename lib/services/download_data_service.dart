@@ -211,14 +211,15 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     }
   }
 
+  static const _statusOrder = {
+    DownloadStatus.active: 0,
+    DownloadStatus.waiting: 1,
+    DownloadStatus.stopped: 2,
+  };
+
   int _compareTasks(DownloadTask left, DownloadTask right) {
-    final statusOrder = {
-      DownloadStatus.active: 0,
-      DownloadStatus.waiting: 1,
-      DownloadStatus.stopped: 2,
-    };
-    final leftOrder = statusOrder[left.status] ?? 99;
-    final rightOrder = statusOrder[right.status] ?? 99;
+    final leftOrder = _statusOrder[left.status] ?? 99;
+    final rightOrder = _statusOrder[right.status] ?? 99;
     if (leftOrder != rightOrder) {
       return leftOrder.compareTo(rightOrder);
     }
@@ -227,7 +228,13 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       return left.instanceId.compareTo(right.instanceId);
     }
 
-    return left.name.toLowerCase().compareTo(right.name.toLowerCase());
+    return _compareIgnoreCase(left.name, right.name);
+  }
+
+  static int _compareIgnoreCase(String a, String b) {
+    final aLower = a.toLowerCase();
+    final bLower = b.toLowerCase();
+    return aLower.compareTo(bLower);
   }
 
   void _restartTimer() {

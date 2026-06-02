@@ -388,8 +388,6 @@ class _InstanceDialogState extends State<InstanceDialog> {
                                       setState(() {
                                         _hostError = null;
                                       });
-                                    } else {
-                                      setState(() {});
                                     }
                                   },
                                   decoration: InputDecoration(
@@ -410,8 +408,6 @@ class _InstanceDialogState extends State<InstanceDialog> {
                                       setState(() {
                                         _portError = null;
                                       });
-                                    } else {
-                                      setState(() {});
                                     }
                                     final port = int.tryParse(value);
                                     if (port != null) {

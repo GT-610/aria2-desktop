@@ -317,11 +317,9 @@ class DownloadPageState extends State<DownloadPage>
     if (downloadDataService == null || _selectedTaskKeys.isEmpty) return;
 
     final validKeys = downloadDataService!.tasks.map(_taskKey).toSet();
-    final before = _selectedTaskKeys.length;
-    _selectedTaskKeys.removeWhere((key) => !validKeys.contains(key));
-    if (before != _selectedTaskKeys.length && mounted) {
-      setState(() {});
-    }
+    setState(() {
+      _selectedTaskKeys.removeWhere((key) => !validKeys.contains(key));
+    });
   }
 
   List<DownloadTask> _filterTasks() {
