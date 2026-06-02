@@ -16,6 +16,7 @@ final class DebugProvider {
   static const int maxLines = 100;
   static final widgets = <Widget>[].vn;
   static final lines = <String>[];
+  static final _widgetCounts = <int>[];
 
   static void addLog(LogRecord record) {
     final color = _level2Color[record.level.name] ?? Colors.blue;
@@ -25,6 +26,8 @@ final class DebugProvider {
         ? '\n${record.message}'
         : '\n${record.message}: ${record.error}';
     lines.add('$title$level$message');
+
+    var widgetCount = 1;
     widgets.value.add(
       Text.rich(
         TextSpan(
@@ -46,6 +49,7 @@ final class DebugProvider {
       ),
     );
     if (record.stackTrace != null) {
+      widgetCount++;
       widgets.value.add(
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -56,20 +60,24 @@ final class DebugProvider {
         ),
       );
     }
+    widgetCount++;
     widgets.value.add(UIs.height13);
-    if (widgets.value.length > maxLines) {
-      widgets.value.removeRange(0, widgets.value.length - maxLines);
+    _widgetCounts.add(widgetCount);
+
+    while (lines.length > maxLines) {
+      final removed = _widgetCounts.removeAt(0);
+      lines.removeAt(0);
+      if (widgets.value.length >= removed) {
+        widgets.value.removeRange(0, removed);
+      }
     }
     widgets.notify();
-
-    if (lines.length > maxLines) {
-      lines.removeRange(0, lines.length - maxLines);
-    }
   }
 
   static void clear() {
     widgets.value.clear();
     lines.clear();
+    _widgetCounts.clear();
     widgets.notify();
   }
 

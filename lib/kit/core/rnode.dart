@@ -19,8 +19,7 @@ class RNode implements ChangeNotifier {
     _listeners.remove(listener);
   }
 
-  Future<void> notify({bool delay = false}) async {
-    if (delay) await Future.delayed(const Duration(milliseconds: 277));
+  void _notifySync() {
     for (final listener in List.of(_listeners)) {
       try {
         listener();
@@ -30,6 +29,11 @@ class RNode implements ChangeNotifier {
         );
       }
     }
+  }
+
+  Future<void> notify({bool delay = false}) async {
+    if (delay) await Future.delayed(const Duration(milliseconds: 277));
+    _notifySync();
   }
 
   @override
@@ -42,7 +46,7 @@ class RNode implements ChangeNotifier {
 
   @override
   void notifyListeners() {
-    notify();
+    _notifySync();
   }
 }
 
