@@ -1,4 +1,4 @@
-import 'package:fl_lib/fl_lib.dart' as fl;
+import '../kit/kit.dart' as kit;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -229,7 +229,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: fl.SizedLoading.small,
+                    child: kit.SizedLoading.small,
                   )
                 : const Icon(Icons.refresh),
             tooltip: l10n.refresh,
@@ -248,7 +248,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
     Aria2Instance instance,
   ) {
     if (_isLoading && _snapshot == null) {
-      return const Center(child: fl.SizedLoading.large);
+      return const Center(child: kit.SizedLoading.large);
     }
 
     if (_loadError != null && _snapshot == null) {
@@ -451,7 +451,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: fl.SizedLoading.small,
+                      child: kit.SizedLoading.small,
                     )
                   : const Icon(Icons.save_outlined),
               label: Text(l10n.saveSession),
@@ -470,7 +470,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: fl.SizedLoading.small,
+                      child: kit.SizedLoading.small,
                     )
                   : const Icon(Icons.delete_sweep_outlined),
               label: Text(l10n.purgeDownloadResults),

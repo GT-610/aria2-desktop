@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fl_lib/fl_lib.dart' as fl;
+import '../kit/kit.dart' as kit;
 
 import '../generated/l10n/l10n.dart';
 import '../models/aria2_instance.dart';
@@ -424,7 +424,7 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: fl.SizedLoading.small,
+                    child: kit.SizedLoading.small,
                   )
                 : Text(l10n.save),
           ),
@@ -471,7 +471,7 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
     }
 
     if (_isLoading) {
-      return const Center(child: fl.SizedLoading.medium);
+      return const Center(child: kit.SizedLoading.medium);
     }
 
     if (_loadError != null) {

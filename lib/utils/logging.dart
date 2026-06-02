@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:fl_lib/fl_lib.dart';
+import '../kit/provider/debug.dart';
+import '../kit/core/logger.dart';
 import 'package:logging/logging.dart';
 
 Level get defaultLogLevel => Level.INFO;

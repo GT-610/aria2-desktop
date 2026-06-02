@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:fl_lib/fl_lib.dart' as fl;
-import 'package:fl_lib/fl_lib.dart' show ChineseThemeData;
+import 'kit/kit.dart' as kit;
+import 'kit/kit.dart' show ChineseThemeData;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
@@ -60,7 +60,7 @@ class _ThemeProviderState extends State<_ThemeProvider> {
       locale: display.locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      builder: (context, child) => fl.VirtualWindowFrame(
+      builder: (context, child) => kit.VirtualWindowFrame(
         title: kAppName,
         showCaption: display.hideTitleBar,
         child: ClipRect(child: child ?? const SizedBox.shrink()),
@@ -203,7 +203,7 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
-      return Scaffold(body: Center(child: fl.SizedLoading.medium));
+      return Scaffold(body: Center(child: kit.SizedLoading.medium));
     }
     return const MainWindow();
   }
