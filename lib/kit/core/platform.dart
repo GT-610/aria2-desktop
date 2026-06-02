@@ -24,7 +24,6 @@ enum Pfs {
       _ => unknown,
     };
   }();
-
 }
 
 final isLinux = Pfs.type == Pfs.linux;
