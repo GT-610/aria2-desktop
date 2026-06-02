@@ -203,6 +203,8 @@ class TaskDetailsDialog {
 
                       isLoadingPeers = true;
                       lastPeersFetchTime = now;
+                      List<Map<String, dynamic>>? peersResult;
+                      String? peersErrorLocal;
                       try {
                         final instanceManager = outerContext
                             .read<InstanceManager>();
@@ -210,27 +212,31 @@ class TaskDetailsDialog {
                           currentTask.instanceId,
                         );
                         if (instance == null) {
-                          peersError = l10n.targetInstanceNotConnected;
-                          return;
+                          peersErrorLocal = l10n.targetInstanceNotConnected;
+                        } else {
+                          final nextClientKey =
+                              '${instance.id}_${instance.protocol}_${instance.host}_${instance.port}_${instance.secret}';
+                          if (peersClientKey != nextClientKey ||
+                              peersClient == null) {
+                            peersClient?.close();
+                            peersClient = Aria2RpcClient(instance);
+                            peersClientKey = nextClientKey;
+                          }
+                          peersResult =
+                              await peersClient!.getPeers(currentTask.id);
                         }
-                        final nextClientKey =
-                            '${instance.id}_${instance.protocol}_${instance.host}_${instance.port}_${instance.secret}';
-                        if (peersClientKey != nextClientKey ||
-                            peersClient == null) {
-                          peersClient?.close();
-                          peersClient = Aria2RpcClient(instance);
-                          peersClientKey = nextClientKey;
-                        }
-                        peers = await peersClient!.getPeers(currentTask.id);
-                        setState(() {
-                          peersError = null;
-                          isLoadingPeers = false;
-                        });
                       } catch (error) {
-                        setState(() {
-                          peersError = '$error';
-                          isLoadingPeers = false;
-                        });
+                        peersErrorLocal = '$error';
+                      } finally {
+                        if (context.mounted) {
+                          setState(() {
+                            peersError = peersErrorLocal;
+                            isLoadingPeers = false;
+                            if (peersResult != null) {
+                              peers = peersResult;
+                            }
+                          });
+                        }
                       }
                     }
 
