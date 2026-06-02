@@ -222,8 +222,9 @@ class TaskDetailsDialog {
                             peersClient = Aria2RpcClient(instance);
                             peersClientKey = nextClientKey;
                           }
-                          peersResult =
-                              await peersClient!.getPeers(currentTask.id);
+                          peersResult = await peersClient!.getPeers(
+                            currentTask.id,
+                          );
                         }
                       } catch (error) {
                         peersErrorLocal = '$error';
