@@ -7,6 +7,9 @@ import '../../../utils/format_utils.dart';
 import '../models/download_task.dart';
 
 class TaskDetailsBtHelpers {
+  static final _azureusPattern = RegExp(r'^-([A-Za-z~]{2})(.{4})-');
+  static final _digitPattern = RegExp(r'[0-9]');
+  static final _letterPattern = RegExp(r'[A-Za-z]');
   static Widget buildBitfieldVisualization(
     BuildContext context,
     DownloadTask task,
@@ -327,7 +330,7 @@ class TaskDetailsBtHelpers {
       return 'unknown';
     }
 
-    final azureusMatch = RegExp(r'^-([A-Za-z~]{2})(.{4})-').firstMatch(decoded);
+    final azureusMatch = _azureusPattern.firstMatch(decoded);
     if (azureusMatch != null) {
       final clientCode = azureusMatch.group(1)!;
       final versionRaw = azureusMatch.group(2)!;
@@ -370,9 +373,9 @@ class TaskDetailsBtHelpers {
   static String _formatPeerVersion(String rawVersion) {
     final segments = <String>[];
     for (final char in rawVersion.split('')) {
-      if (RegExp(r'[0-9]').hasMatch(char)) {
+      if (_digitPattern.hasMatch(char)) {
         segments.add(char);
-      } else if (RegExp(r'[A-Za-z]').hasMatch(char)) {
+      } else if (_letterPattern.hasMatch(char)) {
         segments.add(char.toLowerCase());
       }
     }

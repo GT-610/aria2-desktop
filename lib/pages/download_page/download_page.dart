@@ -377,9 +377,12 @@ class DownloadPageState extends State<DownloadPage>
 
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
+      final lowerInstanceNames = <String, String>{
+        for (final entry in _instanceNames.entries)
+          entry.key: entry.value.toLowerCase(),
+      };
       tasks = tasks.where((task) {
-        final instanceName = (_instanceNames[task.instanceId] ?? '')
-            .toLowerCase();
+        final instanceName = lowerInstanceNames[task.instanceId] ?? '';
         final taskDir = (task.dir ?? '').toLowerCase();
         final taskName = task.name.toLowerCase();
         return taskName.contains(query) ||
