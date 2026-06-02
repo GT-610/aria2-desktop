@@ -34,6 +34,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   Timer? _refreshTimer;
 
   List<DownloadTask> _tasks = [];
+  List<DownloadTask> _tasksView = const [];
   bool _isRefreshing = false;
   String? _lastError;
   final List<DownloadTaskNotification> _pendingNotifications = [];
@@ -44,7 +45,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   final Map<String, Aria2RpcClient> _clientCache = {};
   List<Aria2Instance> Function()? _connectedInstancesProvider;
 
-  List<DownloadTask> get tasks => UnmodifiableListView(_tasks);
+  List<DownloadTask> get tasks => _tasksView;
   int get tasksVersion => _tasksVersion;
   bool get isRefreshing => _isRefreshing;
   String? get lastError => _lastError;
@@ -86,6 +87,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       final hadTasks = _tasks.isNotEmpty;
       final hadError = _lastError != null;
       _tasks = [];
+      _tasksView = UnmodifiableListView(_tasks);
       _tasksVersion++;
       _lastError = null;
       if (hadTasks || hadError) {
@@ -102,14 +104,18 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       final taskGroups = await Future.wait(
         connectedInstances.map(_fetchTasksForInstance),
       );
-      final newTasks = taskGroups.expand((tasks) => tasks).toList()
-        ..sort(_compareTasks);
+      final newTasks = taskGroups.expand((tasks) => tasks).toList();
+      final lowerCaseNames = <String, String>{
+        for (final t in newTasks) t.name: t.name.toLowerCase(),
+      };
+      newTasks.sort((a, b) => _compareTasks(a, b, lowerCaseNames));
 
       final terminalTransitionInstanceIds = _collectTaskNotifications(
         previousTasks,
         newTasks,
       );
       _tasks = newTasks;
+      _tasksView = UnmodifiableListView(_tasks);
       _tasksVersion++;
       _saveSessionsForTerminalTransitions(
         connectedInstances,
@@ -217,7 +223,11 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     DownloadStatus.stopped: 2,
   };
 
-  int _compareTasks(DownloadTask left, DownloadTask right) {
+  int _compareTasks(
+    DownloadTask left,
+    DownloadTask right,
+    Map<String, String> lowerCaseNames,
+  ) {
     final leftOrder = _statusOrder[left.status] ?? 99;
     final rightOrder = _statusOrder[right.status] ?? 99;
     if (leftOrder != rightOrder) {
@@ -228,12 +238,8 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       return left.instanceId.compareTo(right.instanceId);
     }
 
-    return _compareIgnoreCase(left.name, right.name);
-  }
-
-  static int _compareIgnoreCase(String a, String b) {
-    final aLower = a.toLowerCase();
-    final bLower = b.toLowerCase();
+    final aLower = lowerCaseNames[left.name] ?? left.name.toLowerCase();
+    final bLower = lowerCaseNames[right.name] ?? right.name.toLowerCase();
     return aLower.compareTo(bLower);
   }
 

@@ -24,18 +24,6 @@ enum Pfs {
       _ => unknown,
     };
   }();
-
-  static final String separator = isWindows ? '\\' : '/';
-
-  static final String? homeDir = () {
-    final envVars = Platform.environment;
-    if (isMacOS || isLinux) {
-      return envVars['HOME'];
-    } else if (isWindows) {
-      return envVars['UserProfile'];
-    }
-    return null;
-  }();
 }
 
 final isLinux = Pfs.type == Pfs.linux;

@@ -32,13 +32,10 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
   /// Get the built-in instance if it exists
   Aria2Instance? getBuiltinInstance() {
-    try {
-      return _instances.firstWhere(
-        (instance) => instance.type == InstanceType.builtin,
-      );
-    } catch (e) {
-      return null;
+    for (final instance in _instances) {
+      if (instance.type == InstanceType.builtin) return instance;
     }
+    return null;
   }
 
   /// Prefer the connected built-in instance, otherwise use the first connected instance.
@@ -102,10 +99,10 @@ class InstanceManager extends ChangeNotifier with Loggable {
       await refreshBuiltinInstanceConfig();
 
       // Automatically connect to built-in instance on startup (non-blocking)
-      final builtinInstance = _instances.firstWhere(
-        (instance) => instance.id == 'builtin',
-      );
-      unawaited(connectInstance(builtinInstance));
+      final builtinInstance = getBuiltinInstance();
+      if (builtinInstance != null) {
+        unawaited(connectInstance(builtinInstance));
+      }
 
       this.i(
         'Instance manager initialization completed, loaded ${_instances.length} instances',
@@ -464,11 +461,10 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
   /// Get instance by ID
   Aria2Instance? getInstanceById(String instanceId) {
-    try {
-      return _instances.firstWhere((instance) => instance.id == instanceId);
-    } catch (e) {
-      return null;
+    for (final instance in _instances) {
+      if (instance.id == instanceId) return instance;
     }
+    return null;
   }
 
   Future<void> refreshBuiltinInstanceConfig({
