@@ -5,13 +5,7 @@ import '../core/platform.dart';
 import 'appbar.dart';
 
 abstract final class WindowFrameConfig {
-  static bool _showCaption = true;
-
-  static bool get showCaption => _showCaption && isDesktop;
-
-  static void setShowCaption(bool value) {
-    _showCaption = value;
-  }
+  static bool get showCaption => isDesktop;
 }
 
 class VirtualWindowFrame extends StatelessWidget {

@@ -1,11 +1,8 @@
 library;
 
-export 'core/build.dart';
 export 'core/ext/datetime.dart';
 export 'core/ext/obj.dart';
-export 'core/ext/string.dart';
 export 'core/ext/widget.dart';
-export 'core/func.dart';
 export 'core/logger.dart';
 export 'core/platform.dart';
 export 'core/rnode.dart';

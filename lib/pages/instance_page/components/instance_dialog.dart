@@ -7,9 +7,8 @@ import '../../../services/aria2_rpc_client.dart';
 
 class InstanceDialog extends StatefulWidget {
   final Aria2Instance? instance;
-  final void Function(Aria2Instance instance)? onSave;
 
-  const InstanceDialog({super.key, this.instance, this.onSave});
+  const InstanceDialog({super.key, this.instance});
 
   @override
   State<InstanceDialog> createState() => _InstanceDialogState();
@@ -240,16 +239,9 @@ class _InstanceDialogState extends State<InstanceDialog> {
 
   void _submit() {
     final instance = _buildDraftInstance(requireName: true);
-    if (instance == null) {
-      return;
-    }
+    if (instance == null) return;
 
-    if (widget.onSave != null) {
-      widget.onSave!(instance);
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-    } else if (mounted) {
+    if (mounted) {
       Navigator.of(context).pop(instance);
     }
   }
@@ -396,8 +388,6 @@ class _InstanceDialogState extends State<InstanceDialog> {
                                       setState(() {
                                         _hostError = null;
                                       });
-                                    } else {
-                                      setState(() {});
                                     }
                                   },
                                   decoration: InputDecoration(
@@ -418,8 +408,6 @@ class _InstanceDialogState extends State<InstanceDialog> {
                                       setState(() {
                                         _portError = null;
                                       });
-                                    } else {
-                                      setState(() {});
                                     }
                                     final port = int.tryParse(value);
                                     if (port != null) {
