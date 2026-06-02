@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:fl_lib/fl_lib.dart' as fl;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../constants/app_branding.dart';
 import '../../constants/github_id.dart';
 import '../../generated/l10n/l10n.dart';
+import '../../kit/kit.dart' as kit;
 import '../../models/settings.dart';
 import '../../services/protocol_integration_service.dart';
 import '../../services/startup_integration_service.dart';
@@ -105,7 +105,7 @@ class _SettingsPageState extends State<SettingsPage>
   Widget build(BuildContext context) {
     super.build(context);
     if (_isLoading) {
-      return Scaffold(body: Center(child: fl.SizedLoading.medium));
+      return Scaffold(body: Center(child: kit.SizedLoading.medium));
     }
 
     final settings = Provider.of<Settings>(context);
@@ -185,7 +185,7 @@ class _SettingsPageState extends State<SettingsPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        fl.CenterGreyTitle(section.title),
+                        kit.CenterGreyTitle(section.title),
                         section.child,
                       ],
                     ),
@@ -325,7 +325,7 @@ class _SettingsPageState extends State<SettingsPage>
           value: settings.autoStart,
           onChanged: (value) => _setRunAtStartupPreference(value, settings),
         ),
-        fl.CardX(
+        kit.CardX(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -335,7 +335,7 @@ class _SettingsPageState extends State<SettingsPage>
                   title: Text(l10n.runMode, style: theme.textTheme.bodyLarge),
                   subtitle: Text(
                     _runModeDescription(settings.runMode, l10n),
-                    style: fl.UIs.textGrey,
+                    style: kit.UIs.textGrey,
                   ),
                   contentPadding: EdgeInsets.zero,
                 ),
@@ -404,7 +404,7 @@ class _SettingsPageState extends State<SettingsPage>
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-            child: Text(l10n.setAsDefaultClientTip, style: fl.UIs.textGrey),
+            child: Text(l10n.setAsDefaultClientTip, style: kit.UIs.textGrey),
           ),
           _buildSettingsGroup([
             _buildSwitchTile(
@@ -487,7 +487,7 @@ class _SettingsPageState extends State<SettingsPage>
             '$kAppName\n'
             '${_versionLabel.isEmpty ? l10n.versionLoading : _versionLabel}',
             textAlign: TextAlign.center,
-            style: fl.UIs.text15,
+            style: kit.UIs.text15,
           ),
           const SizedBox(height: 13),
           SizedBox(
@@ -521,10 +521,10 @@ class _SettingsPageState extends State<SettingsPage>
             ),
           ),
           const SizedBox(height: 13),
-          fl.CardX(
+          kit.CardX(
             child: Padding(
               padding: const EdgeInsets.all(13),
-              child: fl.SimpleMarkdown(data: _buildAboutMarkdown(l10n)),
+              child: _buildAboutRichText(context, l10n),
             ),
           ),
         ],
@@ -532,22 +532,52 @@ class _SettingsPageState extends State<SettingsPage>
     );
   }
 
-  String _buildAboutMarkdown(AppLocalizations l10n) {
-    final buffer = StringBuffer()
-      ..writeln(l10n.aboutProjectDescription)
-      ..writeln()
-      ..writeln('#### ${l10n.author}')
-      ..writeln(GithubIds.author.markdownLink)
-      ..writeln()
-      ..writeln()
-      ..writeln('#### ${l10n.contributors}')
-      ..writeln(GithubIds.contributors.map((id) => id.markdownLink).join(' '))
-      ..writeln()
-      ..writeln()
-      ..writeln('#### ${l10n.participants}')
-      ..writeln(GithubIds.participants.map((id) => id.markdownLink).join(' '));
+  Widget _buildAboutRichText(BuildContext context, AppLocalizations l10n) {
+    final linkColor = Theme.of(context).colorScheme.primary;
 
-    return buffer.toString().trim();
+    Widget linkText(String text, String url) {
+      return GestureDetector(
+        onTap: () => _launchExternalUri(Uri.parse(url)),
+        child: Text(text, style: TextStyle(color: linkColor, fontSize: 14)),
+      );
+    }
+
+    Widget section(String title, List<Widget> children) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          Wrap(spacing: 12, children: children),
+          const SizedBox(height: 16),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.aboutProjectDescription),
+        const SizedBox(height: 16),
+        if (GithubIds.author.isNotEmpty)
+          section(l10n.author, [
+            linkText(GithubIds.author, GithubIds.author.url),
+          ]),
+        if (GithubIds.contributors.isNotEmpty)
+          section(
+            l10n.contributors,
+            GithubIds.contributors.map((id) => linkText(id, id.url)).toList(),
+          ),
+        if (GithubIds.participants.isNotEmpty)
+          section(
+            l10n.participants,
+            GithubIds.participants.map((id) => linkText(id, id.url)).toList(),
+          ),
+      ],
+    );
   }
 
   Widget _buildAboutActionButton({
@@ -576,7 +606,7 @@ class _SettingsPageState extends State<SettingsPage>
     Widget? trailing,
     VoidCallback? onTap,
   }) {
-    return fl.CardX(
+    return kit.CardX(
       child: ListTile(
         title: DefaultTextStyle.merge(
           style: Theme.of(context).textTheme.bodyLarge,
@@ -584,7 +614,7 @@ class _SettingsPageState extends State<SettingsPage>
         ),
         subtitle: subtitle == null
             ? null
-            : DefaultTextStyle.merge(style: fl.UIs.textGrey, child: subtitle),
+            : DefaultTextStyle.merge(style: kit.UIs.textGrey, child: subtitle),
         trailing: trailing,
         onTap: onTap,
       ),
@@ -612,12 +642,12 @@ class _SettingsPageState extends State<SettingsPage>
     required Future<void> Function(bool value) onChanged,
     bool enabled = true,
   }) {
-    return fl.CardX(
+    return kit.CardX(
       child: ListTile(
         title: Text(title),
         subtitle: subtitle == null
             ? null
-            : Text(subtitle, style: fl.UIs.textGrey),
+            : Text(subtitle, style: kit.UIs.textGrey),
         trailing: Switch.adaptive(
           value: value,
           onChanged: !enabled
@@ -786,7 +816,7 @@ class _SettingsPageState extends State<SettingsPage>
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) =>
-            fl.DebugPage(args: fl.DebugPageArgs(title: l10n.viewLogs)),
+            kit.DebugPage(args: kit.DebugPageArgs(title: l10n.viewLogs)),
       ),
     );
   }

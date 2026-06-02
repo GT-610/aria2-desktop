@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fl_lib/fl_lib.dart' as fl;
+import '../kit/kit.dart' as kit;
 import 'package:provider/provider.dart';
 
 import '../generated/l10n/l10n.dart';
@@ -252,7 +252,7 @@ class _BuiltinInstanceSettingsPageState
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: fl.SizedLoading.small,
+                    child: kit.SizedLoading.small,
                   )
                 : Text(
                     l10n.saveAndApply,
@@ -1365,7 +1365,7 @@ class _BuiltinInstanceSettingsPageState
       builder: (dialogContext) => AlertDialog(
         content: Row(
           children: [
-            fl.SizedLoading.medium,
+            kit.SizedLoading.medium,
             const SizedBox(width: 16),
             Expanded(child: Text(message)),
           ],

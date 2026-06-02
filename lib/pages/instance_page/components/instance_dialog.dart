@@ -1,4 +1,4 @@
-import 'package:fl_lib/fl_lib.dart' as fl;
+import '../../../kit/kit.dart' as kit;
 import 'package:flutter/material.dart';
 
 import '../../../generated/l10n/l10n.dart';
@@ -317,7 +317,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    fl.Input(
+                    kit.Input(
                       controller: _nameController,
                       label: l10n.instanceName,
                       hint: _nameHint(l10n),
@@ -436,7 +436,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                             ],
                           ),
                           const SizedBox(height: _fieldSpacing),
-                          fl.Input(
+                          kit.Input(
                             controller: _rpcPathController,
                             label: l10n.rpcPath,
                             hint: l10n.rpcPathTip,
@@ -466,7 +466,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                       ),
                     ],
                     const SizedBox(height: _sectionSpacing),
-                    fl.Input(
+                    kit.Input(
                       controller: _downloadDirController,
                       label: l10n.defaultDownloadDir,
                       hint: l10n.remoteDownloadDirHint,
@@ -496,7 +496,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: fl.SizedLoading.small,
+                                child: kit.SizedLoading.small,
                               )
                             : const Icon(Icons.wifi_find_outlined),
                         label: Text(
@@ -511,9 +511,9 @@ class _InstanceDialogState extends State<InstanceDialog> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      fl.Btn.cancel(onTap: () => Navigator.of(context).pop()),
+                      kit.Btn.cancel(onTap: () => Navigator.of(context).pop()),
                       const SizedBox(width: 8),
-                      fl.Btn.elevated(
+                      kit.Btn.elevated(
                         text: widget.instance == null ? l10n.add : l10n.save,
                         onTap: _submit,
                       ),

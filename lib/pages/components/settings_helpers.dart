@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fl_lib/fl_lib.dart' as fl;
+import '../../kit/kit.dart' as kit;
 
 abstract class SettingsSection {
   String get title;
@@ -33,7 +33,7 @@ mixin SettingsPageHelpers<T extends StatefulWidget> on State<T> {
           .map(
             (child) => Padding(
               padding: const EdgeInsets.only(bottom: kSettingCardSpacing),
-              child: fl.CardX(child: child),
+              child: kit.CardX(child: child),
             ),
           )
           .toList(growable: false),
@@ -44,30 +44,27 @@ mixin SettingsPageHelpers<T extends StatefulWidget> on State<T> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        fl.CenterGreyTitle(section.title),
+        kit.CenterGreyTitle(section.title),
         const SizedBox(height: 4),
         section.child,
       ],
     );
   }
 
-  Widget buildSettingsTabView<S extends SettingsSection>(
-    List<S> sections,
-  ) {
+  Widget buildSettingsTabView<S extends SettingsSection>(List<S> sections) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final maxColumns = width >= 1440
             ? 3
             : width >= 900
-                ? 2
-                : 1;
-        final columns = sections.isEmpty ? 1 : maxColumns.clamp(1, sections.length);
+            ? 2
+            : 1;
+        final columns = sections.isEmpty
+            ? 1
+            : maxColumns.clamp(1, sections.length);
         const gap = 16.0;
-        final distributedSections = List.generate(
-          columns,
-          (_) => <S>[],
-        );
+        final distributedSections = List.generate(columns, (_) => <S>[]);
 
         for (var index = 0; index < sections.length; index++) {
           distributedSections[index % columns].add(sections[index]);

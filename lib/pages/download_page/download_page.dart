@@ -291,9 +291,7 @@ class DownloadPageState extends State<DownloadPage>
         .toList();
   }
 
-  Map<TaskActionType, int> _countAllActionableTasks(
-    List<DownloadTask> tasks,
-  ) {
+  Map<TaskActionType, int> _countAllActionableTasks(List<DownloadTask> tasks) {
     var pauseable = 0;
     var resumable = 0;
     var deletable = 0;
@@ -399,7 +397,8 @@ class DownloadPageState extends State<DownloadPage>
         final key = '${task.instanceId}::${task.id}';
         sortKeys[key] = _sortOption == TaskSortOption.name
             ? task.name.toLowerCase()
-            : (_instanceNames[task.instanceId] ?? task.instanceId).toLowerCase();
+            : (_instanceNames[task.instanceId] ?? task.instanceId)
+                  .toLowerCase();
       }
       tasks.sort((left, right) {
         final leftKey = sortKeys['${left.instanceId}::${left.id}'] ?? '';
@@ -413,8 +412,12 @@ class DownloadPageState extends State<DownloadPage>
       tasks.sort((left, right) {
         final result = switch (_sortOption) {
           TaskSortOption.progress => left.progress.compareTo(right.progress),
-          TaskSortOption.size => left.totalLengthBytes.compareTo(right.totalLengthBytes),
-          TaskSortOption.speed => left.downloadSpeedBytes.compareTo(right.downloadSpeedBytes),
+          TaskSortOption.size => left.totalLengthBytes.compareTo(
+            right.totalLengthBytes,
+          ),
+          TaskSortOption.speed => left.downloadSpeedBytes.compareTo(
+            right.downloadSpeedBytes,
+          ),
           _ => 0,
         };
         if (result != 0) return _sortDescending ? -result : result;
