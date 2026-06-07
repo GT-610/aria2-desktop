@@ -92,13 +92,11 @@ class _SettingsPageState extends State<SettingsPage>
     required String version,
     required String buildNumber,
   }) {
-    final segments = version.split('.');
-    final displayVersion = segments.isNotEmpty ? segments.last : version;
     final normalizedBuildNumber = buildNumber.trim();
     if (normalizedBuildNumber.isEmpty) {
-      return 'v$displayVersion';
+      return 'v$version';
     }
-    return 'v$displayVersion (rev $normalizedBuildNumber)';
+    return 'v$version (rev $normalizedBuildNumber)';
   }
 
   @override
