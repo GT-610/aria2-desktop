@@ -22,7 +22,8 @@ class VirtualWindowFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = (CustomAppBar.sysStatusBarHeight != 0.0 &&
+    final content =
+        (CustomAppBar.sysStatusBarHeight != 0.0 &&
             showCaption &&
             WindowFrameConfig.showCaption)
         ? Column(

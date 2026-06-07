@@ -325,9 +325,9 @@ class DownloadTaskService with Loggable {
         stackTrace: stackTrace,
       );
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.failedToStopSeeding('$e'))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.failedToStopSeeding('$e'))));
       }
     } finally {
       client?.close();

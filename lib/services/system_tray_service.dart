@@ -98,11 +98,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
     try {
       await trayManager.setContextMenu(_buildMenu());
     } catch (e, stackTrace) {
-      w(
-        'Failed to update tray context menu',
-        error: e,
-        stackTrace: stackTrace,
-      );
+      w('Failed to update tray context menu', error: e, stackTrace: stackTrace);
     }
   }
 

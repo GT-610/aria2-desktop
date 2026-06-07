@@ -427,12 +427,16 @@ class TaskDetailsBtHelpers {
   static Widget _buildPiecesGrid(List<int> pieces) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        if (pieces.isEmpty) return const SizedBox.shrink();
         final maxWidth = constraints.maxWidth;
         final pieceSize = pieces.length > 1000
             ? 4.0
             : (pieces.length > 500 ? 6.0 : 8.0);
         final spacing = 1.0;
-        final cols = (maxWidth / (pieceSize + spacing)).floor().clamp(1, pieces.length);
+        final cols = (maxWidth / (pieceSize + spacing)).floor().clamp(
+          1,
+          pieces.length,
+        );
         final rows = (pieces.length / cols).ceil();
         final gridHeight = rows * (pieceSize + spacing);
 

@@ -273,10 +273,21 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                             (_selectedColor.b * 255.0).round() & 0xff,
                             1.0,
                           );
-                          await widget.settings.setPrimaryColor(
-                            newColor,
-                            isCustom: true,
-                          );
+                          try {
+                            await widget.settings.setPrimaryColor(
+                              newColor,
+                              isCustom: true,
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  l10n.failedToSetCustomThemeColor('$e'),
+                                ),
+                              ),
+                            );
+                          }
                         },
                         activeColor: Colors.green,
                       ),
@@ -302,10 +313,21 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                             value.toInt(),
                             1.0,
                           );
-                          await widget.settings.setPrimaryColor(
-                            newColor,
-                            isCustom: true,
-                          );
+                          try {
+                            await widget.settings.setPrimaryColor(
+                              newColor,
+                              isCustom: true,
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  l10n.failedToSetCustomThemeColor('$e'),
+                                ),
+                              ),
+                            );
+                          }
                         },
                         activeColor: Colors.blue,
                       ),

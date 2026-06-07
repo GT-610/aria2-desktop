@@ -81,13 +81,17 @@ class Aria2RpcClient with Loggable {
 
         // Check for Unauthorized error in structured response
         if (data.containsKey('error') &&
+            data['error'] is Map &&
             data['error']['message'] == 'Unauthorized') {
           throw UnauthorizedException();
         }
 
         if (response.statusCode == 200) {
           if (data.containsKey('error')) {
-            throw Exception('RPC Error: ${data['error']['message']}');
+            final errorMsg = data['error'] is Map
+                ? data['error']['message']
+                : data['error'];
+            throw Exception('RPC Error: $errorMsg');
           }
           return data;
         } else {
@@ -228,12 +232,14 @@ class Aria2RpcClient with Loggable {
         _pendingRequests.remove(requestId);
 
         if (data.containsKey('error')) {
-          if (data['error']['message'] == 'Unauthorized') {
+          if (data['error'] is Map &&
+              data['error']['message'] == 'Unauthorized') {
             completer.completeError(UnauthorizedException());
           } else {
-            completer.completeError(
-              Exception('RPC Error: ${data['error']['message']}'),
-            );
+            final errorMsg = data['error'] is Map
+                ? data['error']['message']
+                : data['error'];
+            completer.completeError(Exception('RPC Error: $errorMsg'));
           }
         } else {
           completer.complete(data);

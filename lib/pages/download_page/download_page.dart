@@ -349,8 +349,9 @@ class DownloadPageState extends State<DownloadPage>
         return switch (_selectedFilter) {
           FilterOption.all || FilterOption.instance => true,
           FilterOption.active => DownloadTaskService.matchesActiveFilter(task),
-          FilterOption.waiting =>
-            DownloadTaskService.matchesWaitingFilter(task),
+          FilterOption.waiting => DownloadTaskService.matchesWaitingFilter(
+            task,
+          ),
           FilterOption.stopped => task.status == DownloadStatus.stopped,
           FilterOption.local => task.isLocal,
           FilterOption.remote => !task.isLocal,
