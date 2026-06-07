@@ -19,7 +19,6 @@ class CardX extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      key: key,
       clipBehavior: clipBehavior,
       color: color,
       shape: RoundedRectangleBorder(borderRadius: radius ?? borderRadius),

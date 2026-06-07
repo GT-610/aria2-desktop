@@ -206,7 +206,7 @@ class _SettingsPageState extends State<SettingsPage>
   }
 
   Widget _buildSettingsGroup(List<Widget> children) {
-    return Column(children: children.map((child) => child).toList());
+    return Column(children: children);
   }
 
   _SettingsSection _buildBehaviorSection(
