@@ -119,15 +119,6 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
       }
     }
 
-    if (_isInitialized) {
-      return;
-    }
-
-    if (_initializingTray != null) {
-      await _initializingTray;
-      return;
-    }
-
     final generation = ++_trayLifecycleGeneration;
     final initialization = _initializeTray(generation);
     _initializingTray = initialization;

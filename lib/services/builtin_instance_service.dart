@@ -88,16 +88,14 @@ class BuiltinInstanceService with Loggable {
     return {};
   }
 
-  int _getConfiguredRpcPort() {
-    final settings = _readSettingsSnapshot();
-    return settings['rpcListenPort'] is int
-        ? settings['rpcListenPort'] as int
-        : 16800;
+  int _getConfiguredRpcPort([Map<String, dynamic>? settings]) {
+    final s = settings ?? _readSettingsSnapshot();
+    return s['rpcListenPort'] is int ? s['rpcListenPort'] as int : 16800;
   }
 
-  String _getConfiguredRpcSecret() {
-    final settings = _readSettingsSnapshot();
-    return settings['rpcSecret'] as String? ?? '';
+  String _getConfiguredRpcSecret([Map<String, dynamic>? settings]) {
+    final s = settings ?? _readSettingsSnapshot();
+    return s['rpcSecret'] as String? ?? '';
   }
 
   String _defaultSessionPath() {
@@ -277,8 +275,8 @@ class BuiltinInstanceService with Loggable {
 
   List<String> _buildArgs() {
     final settings = _readSettingsSnapshot();
-    final rpcPort = _getConfiguredRpcPort();
-    final rpcSecret = _getConfiguredRpcSecret();
+    final rpcPort = _getConfiguredRpcPort(settings);
+    final rpcSecret = _getConfiguredRpcSecret(settings);
     final keepSeeding = settings['keepSeeding'] == true;
     final seedTime = _effectiveSeedTime(keepSeeding, settings['seedTime']);
     final seedRatio = _effectiveSeedRatio(keepSeeding, settings['seedRatio']);
@@ -530,8 +528,8 @@ class BuiltinInstanceService with Loggable {
       type: InstanceType.builtin,
       protocol: 'ws',
       host: '127.0.0.1',
-      port: _getConfiguredRpcPort(),
-      secret: _getConfiguredRpcSecret(),
+      port: _getConfiguredRpcPort(settings),
+      secret: _getConfiguredRpcSecret(settings),
       downloadDir: _resolveConfiguredFilePath(
         settings['downloadDir'],
         _defaultDownloadDir(),
