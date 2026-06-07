@@ -92,15 +92,16 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                 ButtonSegment(value: 'system', label: Text(l10n.system)),
               ],
               selected: {_selectedThemeMode},
-              onSelectionChanged: (newSelection) {
+              onSelectionChanged: (newSelection) async {
                 if (newSelection.isNotEmpty) {
                   setState(() {
                     _selectedThemeMode = newSelection.first;
                   });
                   final themeMode = _getThemeModeFromString(newSelection.first);
                   try {
-                    widget.settings.setThemeMode(themeMode);
+                    await widget.settings.setThemeMode(themeMode);
                   } catch (e) {
+                    if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(l10n.failedToSetThemeMode('$e'))),
                     );
@@ -141,13 +142,17 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                       widget.settings.customColorCode == null;
 
                   return GestureDetector(
-                    onTap: () {
+                    onTap: () async {
                       setState(() {
                         _selectedColor = color;
                       });
                       try {
-                        widget.settings.setPrimaryColor(color, isCustom: false);
+                        await widget.settings.setPrimaryColor(
+                          color,
+                          isCustom: false,
+                        );
                       } catch (e) {
+                        if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(l10n.failedToSetThemeColor('$e')),
@@ -221,7 +226,7 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                             _selectedColor = newColor;
                           });
                         },
-                        onChangeEnd: (value) {
+                        onChangeEnd: (value) async {
                           final newColor = Color.fromRGBO(
                             value.toInt(),
                             (_selectedColor.g * 255.0).round() & 0xff,
@@ -229,11 +234,12 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                             1.0,
                           );
                           try {
-                            widget.settings.setPrimaryColor(
+                            await widget.settings.setPrimaryColor(
                               newColor,
                               isCustom: true,
                             );
                           } catch (e) {
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -260,14 +266,14 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                             _selectedColor = newColor;
                           });
                         },
-                        onChangeEnd: (value) {
+                        onChangeEnd: (value) async {
                           final newColor = Color.fromRGBO(
                             (_selectedColor.r * 255.0).round() & 0xff,
                             value.toInt(),
                             (_selectedColor.b * 255.0).round() & 0xff,
                             1.0,
                           );
-                          widget.settings.setPrimaryColor(
+                          await widget.settings.setPrimaryColor(
                             newColor,
                             isCustom: true,
                           );
@@ -289,14 +295,14 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                             _selectedColor = newColor;
                           });
                         },
-                        onChangeEnd: (value) {
+                        onChangeEnd: (value) async {
                           final newColor = Color.fromRGBO(
                             (_selectedColor.r * 255.0).round() & 0xff,
                             (_selectedColor.g * 255.0).round() & 0xff,
                             value.toInt(),
                             1.0,
                           );
-                          widget.settings.setPrimaryColor(
+                          await widget.settings.setPrimaryColor(
                             newColor,
                             isCustom: true,
                           );

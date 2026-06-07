@@ -46,13 +46,6 @@ class _ThemeProvider extends StatefulWidget {
 
 class _ThemeProviderState extends State<_ThemeProvider> {
   @override
-  void initState() {
-    super.initState();
-    // Load settings
-    Provider.of<Settings>(context, listen: false).loadSettings();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final display = context
         .select<

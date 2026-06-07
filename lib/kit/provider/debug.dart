@@ -28,7 +28,7 @@ final class DebugProvider {
     lines.add('$title$level$message');
 
     var widgetCount = 1;
-    widgets.value.add(
+    final newWidgets = <Widget>[
       Text.rich(
         TextSpan(
           children: [
@@ -47,10 +47,10 @@ final class DebugProvider {
           ],
         ),
       ),
-    );
+    ];
     if (record.stackTrace != null) {
       widgetCount++;
-      widgets.value.add(
+      newWidgets.add(
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Text(
@@ -61,24 +61,21 @@ final class DebugProvider {
       );
     }
     widgetCount++;
-    widgets.value.add(UIs.height13);
+    newWidgets.add(UIs.height13);
     _widgetCounts.add(widgetCount);
 
     while (lines.length > maxLines) {
-      final removed = _widgetCounts.removeAt(0);
+      _widgetCounts.removeAt(0);
       lines.removeAt(0);
-      if (widgets.value.length >= removed) {
-        widgets.value.removeRange(0, removed);
-      }
     }
-    widgets.notify();
+
+    widgets.value = [...widgets.value, ...newWidgets];
   }
 
   static void clear() {
-    widgets.value.clear();
+    widgets.value = [];
     lines.clear();
     _widgetCounts.clear();
-    widgets.notify();
   }
 
   static void copy() =>

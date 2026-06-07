@@ -725,8 +725,9 @@ class _SettingsPageState extends State<SettingsPage>
                 trailing: settings.locale == null
                     ? const Icon(Icons.check, color: Colors.green)
                     : null,
-                onTap: () {
-                  settings.setLocale(null);
+                onTap: () async {
+                  await settings.setLocale(null);
+                  if (!context.mounted) return;
                   Navigator.pop(context);
                 },
               ),
@@ -735,8 +736,9 @@ class _SettingsPageState extends State<SettingsPage>
                 trailing: settings.locale?.languageCode == 'en'
                     ? const Icon(Icons.check, color: Colors.green)
                     : null,
-                onTap: () {
-                  settings.setLocale(const Locale('en'));
+                onTap: () async {
+                  await settings.setLocale(const Locale('en'));
+                  if (!context.mounted) return;
                   Navigator.pop(context);
                 },
               ),
@@ -745,8 +747,9 @@ class _SettingsPageState extends State<SettingsPage>
                 trailing: settings.locale?.languageCode == 'zh'
                     ? const Icon(Icons.check, color: Colors.green)
                     : null,
-                onTap: () {
-                  settings.setLocale(const Locale('zh'));
+                onTap: () async {
+                  await settings.setLocale(const Locale('zh'));
+                  if (!context.mounted) return;
                   Navigator.pop(context);
                 },
               ),
