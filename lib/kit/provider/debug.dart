@@ -65,8 +65,11 @@ final class DebugProvider {
     _widgetCounts.add(widgetCount);
 
     while (lines.length > maxLines) {
-      _widgetCounts.removeAt(0);
+      final removeCount = _widgetCounts.removeAt(0);
       lines.removeAt(0);
+      if (widgets.value.length >= removeCount) {
+        widgets.value = widgets.value.sublist(removeCount);
+      }
     }
 
     widgets.value = [...widgets.value, ...newWidgets];

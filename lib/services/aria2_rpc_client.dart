@@ -22,6 +22,7 @@ class Aria2RpcClient with Loggable {
   final Aria2Instance instance;
   http.Client? _httpClient;
   WebSocket? _webSocket;
+  StreamSubscription? _webSocketSubscription;
   Future<void>? _webSocketInitFuture;
   final Map<String, Completer<Map<String, dynamic>>> _pendingRequests = {};
   bool _isWebSocket = false;
@@ -64,7 +65,9 @@ class Aria2RpcClient with Loggable {
       final requestId = _nextRequestId();
       final requestBody = _buildRequestBody(method, params, requestId);
 
-      final response = await _httpClient!
+      final client = _httpClient;
+      if (client == null) throw ConnectionFailedException();
+      final response = await client
           .post(
             Uri.parse(_buildRpcUrl()),
             headers: _buildHttpHeaders(),
@@ -193,6 +196,8 @@ class Aria2RpcClient with Loggable {
       return;
     }
 
+    _webSocketSubscription?.cancel();
+    _webSocketSubscription = null;
     _webSocket?.close();
     _webSocket = null;
 
@@ -200,7 +205,8 @@ class Aria2RpcClient with Loggable {
       _webSocket = await WebSocket.connect(
         _buildRpcUrl(),
       ).timeout(const Duration(seconds: 10));
-      _webSocket!.listen(
+      _webSocketSubscription?.cancel();
+      _webSocketSubscription = _webSocket!.listen(
         _handleWebSocketMessage,
         onError: _handleWebSocketError,
         onDone: _handleWebSocketDone,
@@ -215,6 +221,7 @@ class Aria2RpcClient with Loggable {
   void _handleWebSocketMessage(dynamic message) {
     try {
       final data = jsonDecode(message);
+      if (data is! Map<String, dynamic>) return;
       final requestId = data['id']?.toString();
 
       if (requestId != null && _pendingRequests.containsKey(requestId)) {
@@ -581,6 +588,8 @@ class Aria2RpcClient with Loggable {
   void close() {
     if (_isWebSocket) {
       _webSocketInitFuture = null;
+      _webSocketSubscription?.cancel();
+      _webSocketSubscription = null;
       _webSocket?.close();
       _webSocket = null;
       _pendingRequests.clear();
