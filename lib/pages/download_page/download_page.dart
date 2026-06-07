@@ -339,71 +339,61 @@ class DownloadPageState extends State<DownloadPage>
       return _cachedFilteredTasks!;
     }
 
-    var tasks = List<DownloadTask>.from(tasksRef);
+    final tasks = List<DownloadTask>.from(tasksRef);
 
-    if (_currentCategoryType == CategoryType.byInstance &&
-        _selectedInstanceId != null) {
-      tasks = tasks
-          .where((task) => task.instanceId == _selectedInstanceId)
-          .toList();
-    } else if (_currentCategoryType == CategoryType.byStatus ||
-        _currentCategoryType == CategoryType.byType) {
-      switch (_selectedFilter) {
-        case FilterOption.all:
-          break;
-        case FilterOption.active:
-          tasks = tasks.where(DownloadTaskService.matchesActiveFilter).toList();
-          break;
-        case FilterOption.waiting:
-          tasks = tasks
-              .where(DownloadTaskService.matchesWaitingFilter)
-              .toList();
-          break;
-        case FilterOption.stopped:
-          tasks = tasks
-              .where((task) => task.status == DownloadStatus.stopped)
-              .toList();
-          break;
-        case FilterOption.local:
-          tasks = tasks.where((task) => task.isLocal).toList();
-          break;
-        case FilterOption.remote:
-          tasks = tasks.where((task) => !task.isLocal).toList();
-          break;
-        case FilterOption.instance:
-          break;
+    bool matchesCategory(DownloadTask task) {
+      if (_currentCategoryType == CategoryType.byInstance &&
+          _selectedInstanceId != null) {
+        return task.instanceId == _selectedInstanceId;
       }
+      if (_currentCategoryType == CategoryType.byStatus ||
+          _currentCategoryType == CategoryType.byType) {
+        return switch (_selectedFilter) {
+          FilterOption.all || FilterOption.instance => true,
+          FilterOption.active => DownloadTaskService.matchesActiveFilter(task),
+          FilterOption.waiting =>
+            DownloadTaskService.matchesWaitingFilter(task),
+          FilterOption.stopped => task.status == DownloadStatus.stopped,
+          FilterOption.local => task.isLocal,
+          FilterOption.remote => !task.isLocal,
+        };
+      }
+      return true;
     }
 
+    String? query;
+    Map<String, String>? lowerInstanceNames;
     if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-      final lowerInstanceNames = <String, String>{
+      query = _searchQuery.toLowerCase();
+      lowerInstanceNames = {
         for (final entry in _instanceNames.entries)
           entry.key: entry.value.toLowerCase(),
       };
-      tasks = tasks.where((task) {
-        final instanceName = lowerInstanceNames[task.instanceId] ?? '';
-        final taskDir = (task.dir ?? '').toLowerCase();
-        final taskName = task.name.toLowerCase();
-        return taskName.contains(query) ||
-            taskDir.contains(query) ||
-            instanceName.contains(query);
-      }).toList();
     }
+
+    bool matchesSearch(DownloadTask task) {
+      if (query == null) return true;
+      final instanceName = lowerInstanceNames![task.instanceId] ?? '';
+      final taskDir = (task.dir ?? '').toLowerCase();
+      final taskName = task.name.toLowerCase();
+      return taskName.contains(query) ||
+          taskDir.contains(query) ||
+          instanceName.contains(query);
+    }
+
+    tasks.retainWhere((task) => matchesCategory(task) && matchesSearch(task));
 
     if (_sortOption == TaskSortOption.name ||
         _sortOption == TaskSortOption.instance) {
-      final sortKeys = <String, String>{};
-      for (final task in tasks) {
-        final key = '${task.instanceId}::${task.id}';
-        sortKeys[key] = _sortOption == TaskSortOption.name
-            ? task.name.toLowerCase()
-            : (_instanceNames[task.instanceId] ?? task.instanceId)
-                  .toLowerCase();
-      }
       tasks.sort((left, right) {
-        final leftKey = sortKeys['${left.instanceId}::${left.id}'] ?? '';
-        final rightKey = sortKeys['${right.instanceId}::${right.id}'] ?? '';
+        final leftKey = _sortOption == TaskSortOption.name
+            ? left.name.toLowerCase()
+            : (_instanceNames[left.instanceId] ?? left.instanceId)
+                  .toLowerCase();
+        final rightKey = _sortOption == TaskSortOption.name
+            ? right.name.toLowerCase()
+            : (_instanceNames[right.instanceId] ?? right.instanceId)
+                  .toLowerCase();
         final result = leftKey.compareTo(rightKey);
         if (result != 0) return _sortDescending ? -result : result;
         final idResult = left.id.compareTo(right.id);
