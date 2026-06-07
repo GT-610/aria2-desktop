@@ -79,10 +79,9 @@ class Aria2RpcClient with Loggable {
       try {
         final data = jsonDecode(response.body);
 
-        // Check for Unauthorized error, whether in error field or elsewhere
-        if ((data.containsKey('error') &&
-                data['error']['message'] == 'Unauthorized') ||
-            response.body.contains('Unauthorized')) {
+        // Check for Unauthorized error in structured response
+        if (data.containsKey('error') &&
+            data['error']['message'] == 'Unauthorized') {
           throw UnauthorizedException();
         }
 
@@ -252,9 +251,9 @@ class Aria2RpcClient with Loggable {
   /// Handle WebSocket errors
   void _handleWebSocketError(dynamic error) {
     // Complete all pending requests with error
-    final errorToThrow = error is TimeoutException || error is SocketException
-        ? ConnectionFailedException()
-        : error;
+    final errorToThrow = error is ConnectionFailedException
+        ? error
+        : ConnectionFailedException();
 
     for (final Completer<Map<String, dynamic>> completer
         in _pendingRequests.values) {
@@ -271,10 +270,10 @@ class Aria2RpcClient with Loggable {
     _webSocket = null;
   }
 
-  /// Get version information
+  /// Get version string
   Future<String> getVersion() async {
-    final response = await callRpc('aria2.getVersion', []);
-    return response['result']['version'];
+    final info = await getVersionInfo();
+    return info['version'] as String;
   }
 
   /// Get detailed version information, including enabled features.

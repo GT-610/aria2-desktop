@@ -34,8 +34,6 @@ class TaskListView extends StatelessWidget {
     this.onClearViewFilters,
   });
 
-  String _taskKey(DownloadTask task) => '${task.instanceId}::${task.id}';
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -126,7 +124,7 @@ class TaskListView extends StatelessWidget {
             }
           },
           onLongPress: () => onTaskLongPress(task),
-          isSelected: selectedTaskKeys.contains(_taskKey(task)),
+          isSelected: selectedTaskKeys.contains(task.key),
           showSelectionControl: selectedTaskKeys.isNotEmpty,
           showProgressBar: showProgressBar,
           onTaskUpdated: onTaskUpdated,

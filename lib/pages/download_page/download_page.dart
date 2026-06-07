@@ -281,13 +281,11 @@ class DownloadPageState extends State<DownloadPage>
     _pruneSelection();
   }
 
-  String _taskKey(DownloadTask task) => '${task.instanceId}::${task.id}';
-
   bool get _isSelectionMode => _selectedTaskKeys.isNotEmpty;
 
   List<DownloadTask> _selectedTasksFrom(List<DownloadTask> visibleTasks) {
     return visibleTasks
-        .where((task) => _selectedTaskKeys.contains(_taskKey(task)))
+        .where((task) => _selectedTaskKeys.contains(task.key))
         .toList();
   }
 
@@ -316,7 +314,7 @@ class DownloadPageState extends State<DownloadPage>
   void _pruneSelection() {
     if (downloadDataService == null || _selectedTaskKeys.isEmpty) return;
 
-    final validKeys = downloadDataService!.tasks.map(_taskKey).toSet();
+    final validKeys = downloadDataService!.tasks.map((t) => t.key).toSet();
     final before = _selectedTaskKeys.length;
     _selectedTaskKeys.removeWhere((key) => !validKeys.contains(key));
     if (_selectedTaskKeys.length != before) setState(() {});
@@ -501,7 +499,7 @@ class DownloadPageState extends State<DownloadPage>
   }
 
   void _toggleTaskSelection(DownloadTask task) {
-    final key = _taskKey(task);
+    final key = task.key;
     setState(() {
       if (_selectedTaskKeys.contains(key)) {
         _selectedTaskKeys.remove(key);
@@ -512,7 +510,7 @@ class DownloadPageState extends State<DownloadPage>
   }
 
   void _startTaskSelection(DownloadTask task) {
-    final key = _taskKey(task);
+    final key = task.key;
     setState(() {
       _selectedTaskKeys.add(key);
     });
@@ -548,7 +546,7 @@ class DownloadPageState extends State<DownloadPage>
 
   void _selectAllVisibleTasks(List<DownloadTask> tasks) {
     setState(() {
-      final visibleKeys = tasks.map(_taskKey).toSet();
+      final visibleKeys = tasks.map((t) => t.key).toSet();
       final allVisibleSelected =
           visibleKeys.isNotEmpty &&
           visibleKeys.every(_selectedTaskKeys.contains);
@@ -564,7 +562,7 @@ class DownloadPageState extends State<DownloadPage>
   }
 
   void _pruneSelectionToVisible() {
-    final visibleKeys = _filterTasks().map(_taskKey).toSet();
+    final visibleKeys = _filterTasks().map((t) => t.key).toSet();
     _selectedTaskKeys.removeWhere((key) => !visibleKeys.contains(key));
   }
 

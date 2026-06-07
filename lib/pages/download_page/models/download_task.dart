@@ -12,6 +12,8 @@ class DownloadTask {
   final String completedSize;
   final bool isLocal;
   final String instanceId;
+
+  String get key => '$instanceId::$id';
   final int? connections;
   final int? numSeeders;
   final String? dir;
