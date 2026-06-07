@@ -185,17 +185,6 @@ class DownloadTaskService with Loggable {
         task.isSeeder;
   }
 
-  static String _stoppingSeedingTip(BuildContext context) {
-    return AppLocalizations.of(context)!.stoppingSeedingTip;
-  }
-
-  static String _failedToStopSeedingMessage(
-    BuildContext context,
-    String error,
-  ) {
-    return AppLocalizations.of(context)!.failedToStopSeeding(error);
-  }
-
   static Future<void> pauseTask(
     BuildContext context,
     DownloadTask task,
@@ -319,7 +308,7 @@ class DownloadTaskService with Loggable {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(_stoppingSeedingTip(context)),
+              content: Text(l10n.stoppingSeedingTip),
               duration: const Duration(seconds: 8),
             ),
           );
@@ -337,7 +326,7 @@ class DownloadTaskService with Loggable {
       );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_failedToStopSeedingMessage(context, '$e'))),
+          SnackBar(content: Text(l10n.failedToStopSeeding('$e'))),
         );
       }
     } finally {

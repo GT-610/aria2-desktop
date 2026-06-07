@@ -193,6 +193,7 @@ class TaskDetailsBtHelpers {
             : null,
       );
     } catch (_) {
+      // Best-effort parsing: return empty metadata if torrent data is malformed
       return const TaskDetailsTorrentOverviewMetadata();
     }
   }

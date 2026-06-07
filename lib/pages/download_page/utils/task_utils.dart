@@ -53,7 +53,7 @@ class TaskUtils {
         await Process.run('explorer.exe', [directoryPath]);
       } else {
         // Non-Windows platforms use file:// protocol
-        Uri uri = Uri.parse('file://$directoryPath');
+        Uri uri = Uri.file(directoryPath);
 
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
