@@ -1,5 +1,3 @@
-import 'dart:async';
-
 class AutoHideWindowService {
   static final AutoHideWindowService _instance =
       AutoHideWindowService._internal();

@@ -22,16 +22,17 @@ class VirtualWindowFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = switch (CustomAppBar.sysStatusBarHeight) {
-      0.0 => child,
-      _ when showCaption && WindowFrameConfig.showCaption => Column(
-        children: [
-          _WindowCaption(title: title),
-          Expanded(child: child),
-        ],
-      ),
-      _ => child,
-    };
+    final content =
+        (CustomAppBar.sysStatusBarHeight != 0.0 &&
+            showCaption &&
+            WindowFrameConfig.showCaption)
+        ? Column(
+            children: [
+              _WindowCaption(title: title),
+              Expanded(child: child),
+            ],
+          )
+        : child;
     return wm.VirtualWindowFrame(child: content);
   }
 }

@@ -88,7 +88,7 @@ class FilterSelector extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          ..._getInstanceFilterOptions().map((instanceId) {
+                          ...instanceIds.map((instanceId) {
                             final isSelected = selectedInstanceId == instanceId;
                             final instanceColor = colorScheme.tertiary;
                             final instanceName =
@@ -218,10 +218,6 @@ class FilterSelector extends StatelessWidget {
       case CategoryType.byInstance:
         return l10n.byInstance;
     }
-  }
-
-  List<String> _getInstanceFilterOptions() {
-    return instanceIds;
   }
 
   List<FilterOption> _getFilterOptionsForCurrentCategory() {

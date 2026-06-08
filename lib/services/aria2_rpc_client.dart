@@ -22,6 +22,7 @@ class Aria2RpcClient with Loggable {
   final Aria2Instance instance;
   http.Client? _httpClient;
   WebSocket? _webSocket;
+  StreamSubscription? _webSocketSubscription;
   Future<void>? _webSocketInitFuture;
   final Map<String, Completer<Map<String, dynamic>>> _pendingRequests = {};
   bool _isWebSocket = false;
@@ -64,7 +65,9 @@ class Aria2RpcClient with Loggable {
       final requestId = _nextRequestId();
       final requestBody = _buildRequestBody(method, params, requestId);
 
-      final response = await _httpClient!
+      final client = _httpClient;
+      if (client == null) throw ConnectionFailedException();
+      final response = await client
           .post(
             Uri.parse(_buildRpcUrl()),
             headers: _buildHttpHeaders(),
@@ -76,16 +79,19 @@ class Aria2RpcClient with Loggable {
       try {
         final data = jsonDecode(response.body);
 
-        // Check for Unauthorized error, whether in error field or elsewhere
-        if ((data.containsKey('error') &&
-                data['error']['message'] == 'Unauthorized') ||
-            response.body.contains('Unauthorized')) {
+        // Check for Unauthorized error in structured response
+        if (data.containsKey('error') &&
+            data['error'] is Map &&
+            data['error']['message'] == 'Unauthorized') {
           throw UnauthorizedException();
         }
 
         if (response.statusCode == 200) {
           if (data.containsKey('error')) {
-            throw Exception('RPC Error: ${data['error']['message']}');
+            final errorMsg = data['error'] is Map
+                ? data['error']['message']
+                : data['error'];
+            throw Exception('RPC Error: $errorMsg');
           }
           return data;
         } else {
@@ -193,6 +199,8 @@ class Aria2RpcClient with Loggable {
       return;
     }
 
+    _webSocketSubscription?.cancel();
+    _webSocketSubscription = null;
     _webSocket?.close();
     _webSocket = null;
 
@@ -200,7 +208,8 @@ class Aria2RpcClient with Loggable {
       _webSocket = await WebSocket.connect(
         _buildRpcUrl(),
       ).timeout(const Duration(seconds: 10));
-      _webSocket!.listen(
+      _webSocketSubscription?.cancel();
+      _webSocketSubscription = _webSocket!.listen(
         _handleWebSocketMessage,
         onError: _handleWebSocketError,
         onDone: _handleWebSocketDone,
@@ -215,6 +224,7 @@ class Aria2RpcClient with Loggable {
   void _handleWebSocketMessage(dynamic message) {
     try {
       final data = jsonDecode(message);
+      if (data is! Map<String, dynamic>) return;
       final requestId = data['id']?.toString();
 
       if (requestId != null && _pendingRequests.containsKey(requestId)) {
@@ -222,12 +232,14 @@ class Aria2RpcClient with Loggable {
         _pendingRequests.remove(requestId);
 
         if (data.containsKey('error')) {
-          if (data['error']['message'] == 'Unauthorized') {
+          if (data['error'] is Map &&
+              data['error']['message'] == 'Unauthorized') {
             completer.completeError(UnauthorizedException());
           } else {
-            completer.completeError(
-              Exception('RPC Error: ${data['error']['message']}'),
-            );
+            final errorMsg = data['error'] is Map
+                ? data['error']['message']
+                : data['error'];
+            completer.completeError(Exception('RPC Error: $errorMsg'));
           }
         } else {
           completer.complete(data);
@@ -245,9 +257,9 @@ class Aria2RpcClient with Loggable {
   /// Handle WebSocket errors
   void _handleWebSocketError(dynamic error) {
     // Complete all pending requests with error
-    final errorToThrow = error is TimeoutException || error is SocketException
-        ? ConnectionFailedException()
-        : error;
+    final errorToThrow = error is ConnectionFailedException
+        ? error
+        : ConnectionFailedException();
 
     for (final Completer<Map<String, dynamic>> completer
         in _pendingRequests.values) {
@@ -264,10 +276,10 @@ class Aria2RpcClient with Loggable {
     _webSocket = null;
   }
 
-  /// Get version information
+  /// Get version string
   Future<String> getVersion() async {
-    final response = await callRpc('aria2.getVersion', []);
-    return response['result']['version'];
+    final info = await getVersionInfo();
+    return info['version'] as String;
   }
 
   /// Get detailed version information, including enabled features.
@@ -581,6 +593,8 @@ class Aria2RpcClient with Loggable {
   void close() {
     if (_isWebSocket) {
       _webSocketInitFuture = null;
+      _webSocketSubscription?.cancel();
+      _webSocketSubscription = null;
       _webSocket?.close();
       _webSocket = null;
       _pendingRequests.clear();

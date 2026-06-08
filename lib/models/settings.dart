@@ -84,15 +84,10 @@ class Settings extends ChangeNotifier with Loggable {
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // User agent
 
   // Settings file name
-  final String _settingsFileName = 'settings.json';
+  static const String _settingsFileName = 'settings.json';
 
   // Constructor initialization
   Settings();
-
-  /// Get program data directory
-  Directory _getDataDirectory() {
-    return getAppDataDirectory();
-  }
 
   Future<String> _defaultDownloadDirectory() {
     return Future.value(getDefaultDownloadDirectorySync());
@@ -165,7 +160,7 @@ class Settings extends ChangeNotifier with Loggable {
 
   /// Get settings file path
   String _getSettingsFilePath() {
-    final dataDir = _getDataDirectory();
+    final dataDir = getAppDataDirectory();
     final configDir = Directory(p.join(dataDir.path, 'config'));
     if (!configDir.existsSync()) {
       configDir.createSync(recursive: true);

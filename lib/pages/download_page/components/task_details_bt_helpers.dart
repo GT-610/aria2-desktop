@@ -193,6 +193,7 @@ class TaskDetailsBtHelpers {
             : null,
       );
     } catch (_) {
+      // Best-effort parsing: return empty metadata if torrent data is malformed
       return const TaskDetailsTorrentOverviewMetadata();
     }
   }
@@ -424,55 +425,97 @@ class TaskDetailsBtHelpers {
   }
 
   static Widget _buildPiecesGrid(List<int> pieces) {
-    final pieceSize = pieces.length > 1000
-        ? 4.0
-        : (pieces.length > 500 ? 6.0 : 8.0);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (pieces.isEmpty) return const SizedBox.shrink();
+        final maxWidth = constraints.maxWidth;
+        final pieceSize = pieces.length > 1000
+            ? 4.0
+            : (pieces.length > 500 ? 6.0 : 8.0);
+        final spacing = 1.0;
+        final cols = (maxWidth / (pieceSize + spacing)).floor().clamp(
+          1,
+          pieces.length,
+        );
+        final rows = (pieces.length / cols).ceil();
+        final gridHeight = rows * (pieceSize + spacing);
 
-    return Wrap(
-      spacing: 1,
-      runSpacing: 1,
-      children: List.generate(pieces.length, (index) {
-        return Container(
-          width: pieceSize,
-          height: pieceSize,
-          decoration: BoxDecoration(
-            color: _getPieceColor(pieces[index]),
-            border: Border.all(
-              width: 0.5,
-              color: Colors.black.withValues(alpha: 0.1),
+        return SizedBox(
+          width: maxWidth,
+          height: gridHeight,
+          child: CustomPaint(
+            painter: _PiecesGridPainter(
+              pieces: pieces,
+              pieceSize: pieceSize,
+              spacing: spacing,
+              cols: cols,
             ),
           ),
         );
-      }),
+      },
     );
   }
+}
 
-  static Color _getPieceColor(int pieceValue) {
-    switch (pieceValue) {
-      case 0:
-        return Colors.grey;
-      case 1:
-      case 2:
-      case 3:
-        return Colors.orange;
-      case 4:
-      case 5:
-      case 6:
-      case 7:
-        return Colors.yellow;
-      case 8:
-      case 9:
-      case 10:
-      case 11:
-        return Colors.lightGreen;
-      case 12:
-      case 13:
-      case 14:
-      case 15:
-        return Colors.green;
-      default:
-        return Colors.grey;
+class _PiecesGridPainter extends CustomPainter {
+  final List<int> pieces;
+  final double pieceSize;
+  final double spacing;
+  final int cols;
+
+  _PiecesGridPainter({
+    required this.pieces,
+    required this.pieceSize,
+    required this.spacing,
+    required this.cols,
+  });
+
+  static const _pieceColors = {
+    0: Color(0xFF9E9E9E), // grey
+    1: Color(0xFFFF9800), // orange
+    2: Color(0xFFFF9800),
+    3: Color(0xFFFF9800),
+    4: Color(0xFFFFEB3B), // yellow
+    5: Color(0xFFFFEB3B),
+    6: Color(0xFFFFEB3B),
+    7: Color(0xFFFFEB3B),
+    8: Color(0xFF8BC34A), // lightGreen
+    9: Color(0xFF8BC34A),
+    10: Color(0xFF8BC34A),
+    11: Color(0xFF8BC34A),
+    12: Color(0xFF4CAF50), // green
+    13: Color(0xFF4CAF50),
+    14: Color(0xFF4CAF50),
+    15: Color(0xFF4CAF50),
+  };
+  static const _defaultColor = Color(0xFF9E9E9E);
+  static const _borderColor = Color(0x1A000000);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final borderPaint = Paint()
+      ..color = _borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+
+    for (var i = 0; i < pieces.length; i++) {
+      final col = i % cols;
+      final row = i ~/ cols;
+      final x = col * (pieceSize + spacing);
+      final y = row * (pieceSize + spacing);
+      final rect = Rect.fromLTWH(x, y, pieceSize, pieceSize);
+
+      canvas.drawRect(
+        rect,
+        Paint()..color = _pieceColors[pieces[i]] ?? _defaultColor,
+      );
+      canvas.drawRect(rect, borderPaint);
     }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PiecesGridPainter oldDelegate) {
+    return oldDelegate.pieces != pieces;
   }
 }
 

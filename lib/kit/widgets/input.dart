@@ -70,6 +70,14 @@ class _InputState extends State<Input> {
   late bool _obscureText = widget.obscureText;
 
   @override
+  void didUpdateWidget(covariant Input oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.obscureText != oldWidget.obscureText) {
+      _obscureText = widget.obscureText;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final icon = widget.icon != null
         ? Icon(widget.icon!).paddingOnly(left: 5)

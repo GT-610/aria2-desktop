@@ -46,13 +46,6 @@ class _ThemeProvider extends StatefulWidget {
 
 class _ThemeProviderState extends State<_ThemeProvider> {
   @override
-  void initState() {
-    super.initState();
-    // Load settings
-    Provider.of<Settings>(context, listen: false).loadSettings();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final display = context
         .select<
@@ -279,36 +272,43 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final nextDownloadDataService = Provider.of<DownloadDataService>(
-      context,
-      listen: false,
+    _downloadDataService = _swapListener(
+      Provider.of<DownloadDataService>(context, listen: false),
+      _downloadDataService,
+      (l) => l?.removeListener(_handleDownloadNotifications),
+      (l) => l?.addListener(_handleDownloadNotifications),
     );
-    if (_downloadDataService != nextDownloadDataService) {
-      _downloadDataService?.removeListener(_handleDownloadNotifications);
-      _downloadDataService = nextDownloadDataService;
-      _downloadDataService?.addListener(_handleDownloadNotifications);
-    }
 
-    final nextInstanceManager = Provider.of<InstanceManager>(
-      context,
-      listen: false,
+    _instanceManager = _swapListener(
+      Provider.of<InstanceManager>(context, listen: false),
+      _instanceManager,
+      (l) => l?.removeListener(_handleInstanceManagerChanged),
+      (l) => l?.addListener(_handleInstanceManagerChanged),
     );
-    if (_instanceManager != nextInstanceManager) {
-      _instanceManager?.removeListener(_handleInstanceManagerChanged);
-      _instanceManager = nextInstanceManager;
-      _instanceManager?.addListener(_handleInstanceManagerChanged);
-    }
 
-    final nextSettings = Provider.of<Settings>(context, listen: false);
-    if (_settings != nextSettings) {
-      _settings?.removeListener(_handleSettingsChanged);
-      _settings = nextSettings;
-      _settings?.addListener(_handleSettingsChanged);
-    }
+    _settings = _swapListener(
+      Provider.of<Settings>(context, listen: false),
+      _settings,
+      (l) => l?.removeListener(_handleSettingsChanged),
+      (l) => l?.addListener(_handleSettingsChanged),
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_applyShellSettings());
     });
+  }
+
+  T _swapListener<T>(
+    T next,
+    T? current,
+    void Function(T? l) remove,
+    void Function(T l) add,
+  ) {
+    if (current != next) {
+      remove(current);
+      add(next);
+    }
+    return next;
   }
 
   void _handleSettingsChanged() {

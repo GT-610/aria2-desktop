@@ -1,30 +1,13 @@
 // Enum definitions for download page functionality
 
 /// Define download task status enum
-enum DownloadStatus {
-  active, // Active
-  waiting, // Waiting
-  stopped, // Stopped
-}
+enum DownloadStatus { active, waiting, stopped }
 
 /// Define category type enum
-enum CategoryType {
-  all, // All
-  byStatus, // By status
-  byType, // By type
-  byInstance, // By instance
-}
+enum CategoryType { all, byStatus, byType, byInstance }
 
 /// Define filter option enum
-enum FilterOption {
-  all, // All items
-  active, // Active status
-  waiting, // Waiting status
-  stopped, // Stopped status
-  local, // Local type
-  remote, // Remote type
-  instance, // Instance filter (dynamic)
-}
+enum FilterOption { all, active, waiting, stopped, local, remote, instance }
 
 /// Define task sort option enum
 enum TaskSortOption { name, progress, size, speed, instance }

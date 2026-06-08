@@ -30,7 +30,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      key: key,
       title: title,
       actions: actions,
       centerTitle: centerTitle,

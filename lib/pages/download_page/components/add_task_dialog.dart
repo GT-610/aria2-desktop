@@ -559,18 +559,6 @@ class _AddTaskDialogState extends State<AddTaskDialog>
     return LayoutBuilder(
       builder: (context, constraints) {
         final useTwoColumns = constraints.maxWidth >= 480;
-        final splitField = _buildSplitStepper(l10n);
-        final outputField = Expanded(
-          flex: 3,
-          child: TextField(
-            controller: outputFileNameController,
-            enabled: !_isSubmitting,
-            decoration: InputDecoration(
-              labelText: l10n.renameOutput,
-              hintText: l10n.renameOutputPlaceholder,
-            ),
-          ),
-        );
 
         if (!useTwoColumns) {
           return Column(
@@ -588,6 +576,19 @@ class _AddTaskDialogState extends State<AddTaskDialog>
             ],
           );
         }
+
+        final splitField = _buildSplitStepper(l10n);
+        final outputField = Expanded(
+          flex: 3,
+          child: TextField(
+            controller: outputFileNameController,
+            enabled: !_isSubmitting,
+            decoration: InputDecoration(
+              labelText: l10n.renameOutput,
+              hintText: l10n.renameOutputPlaceholder,
+            ),
+          ),
+        );
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
