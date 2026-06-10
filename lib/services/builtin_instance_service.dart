@@ -329,7 +329,7 @@ class BuiltinInstanceService with Loggable {
       '--bt-load-saved-metadata=${settings['btLoadSavedMetadata'] ?? true}',
       '--bt-seed-unverified=${settings['keepSeeding'] ?? false}',
       '--listen-port=$btListenPort',
-      '--dht-listen-port=${settings['dhtListenPort'] ?? 26701}',
+      '--dht-listen-port=${_resolveEffectiveDhtListenPort(settings)}',
       '--enable-dht6=${settings['enableDht6'] ?? true}',
       '--conf-path=$_aria2ConfPath',
       '--save-session=$sessionPath',

@@ -206,6 +206,7 @@ class TaskDetailsDialog {
                       List<Map<String, dynamic>>? peersResult;
                       String? peersErrorLocal;
                       try {
+                        if (!outerContext.mounted) return;
                         final instanceManager = outerContext
                             .read<InstanceManager>();
                         final instance = instanceManager.getInstanceById(

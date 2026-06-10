@@ -597,6 +597,11 @@ class Aria2RpcClient with Loggable {
       _webSocketSubscription = null;
       _webSocket?.close();
       _webSocket = null;
+      for (final completer in _pendingRequests.values) {
+        if (!completer.isCompleted) {
+          completer.completeError(ConnectionFailedException());
+        }
+      }
       _pendingRequests.clear();
     } else {
       _httpClient?.close();

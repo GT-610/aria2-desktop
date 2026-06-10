@@ -363,7 +363,7 @@ class TaskActionDialogs {
         error: e,
         stackTrace: stackTrace,
       );
-      failCount += tasks.length;
+      failCount += tasks.length - successCount - skippedCount;
     } finally {
       client?.close();
     }
