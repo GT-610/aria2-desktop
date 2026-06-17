@@ -19,7 +19,7 @@ class TaskDetailsDialog {
     DownloadTask initialTask,
     List<DownloadTask> Function() getAllTasks,
     Map<String, String> instanceNames,
-    (String, Color) Function(BuildContext, DownloadTask, ColorScheme)
+    (String, Color, IconData) Function(BuildContext, DownloadTask, ColorScheme)
     getStatusInfo, {
     VoidCallback? onTaskUpdated,
   }) async {

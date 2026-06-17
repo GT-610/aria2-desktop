@@ -71,7 +71,7 @@ class TaskListItem extends StatelessWidget {
     final isSeeding = DownloadTaskService.isSeedingTask(task);
     final isBtTask =
         task.bittorrentInfo != null && task.bittorrentInfo!.isNotEmpty;
-    final (statusText, statusColor) = DownloadTaskService.getStatusInfo(
+    final (statusText, statusColor, statusIcon) = DownloadTaskService.getStatusInfo(
       context,
       task,
       colorScheme,
@@ -113,7 +113,7 @@ class TaskListItem extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                   ],
-                  DownloadTaskService.getStatusIcon(task, statusColor),
+                  Icon(statusIcon, color: statusColor),
                   const SizedBox(width: 12),
                   if (task.progress > 0)
                     Container(

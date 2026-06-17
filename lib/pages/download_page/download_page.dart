@@ -652,13 +652,25 @@ class DownloadPageState extends State<DownloadPage>
                 TaskToolbar(
                   onAddTask: () => _showAddTaskDialog(context),
                   onPauseAll: pauseableVisibleCount > 0
-                      ? () => _showPauseDialog(context, tasks: filteredTasks)
+                      ? () => _showActionDialog(
+                            context,
+                            TaskActionType.pause,
+                            tasks: filteredTasks,
+                          )
                       : null,
                   onResumeAll: resumableVisibleCount > 0
-                      ? () => _showResumeDialog(context, tasks: filteredTasks)
+                      ? () => _showActionDialog(
+                            context,
+                            TaskActionType.resume,
+                            tasks: filteredTasks,
+                          )
                       : null,
                   onDeleteAll: deletableVisibleCount > 0
-                      ? () => _showDeleteDialog(context, tasks: filteredTasks)
+                      ? () => _showActionDialog(
+                            context,
+                            TaskActionType.delete,
+                            tasks: filteredTasks,
+                          )
                       : null,
                   searchController: _searchController,
                   onSearchChanged: _handleSearchChanged,
@@ -678,11 +690,11 @@ class DownloadPageState extends State<DownloadPage>
                     onClearSelection: _clearSelection,
                     onSelectAll: () => _selectAllVisibleTasks(filteredTasks),
                     onPauseSelected: () =>
-                        _showPauseDialog(context, tasks: selectedTasks),
+                        _showActionDialog(context, TaskActionType.pause, tasks: selectedTasks),
                     onResumeSelected: () =>
-                        _showResumeDialog(context, tasks: selectedTasks),
+                        _showActionDialog(context, TaskActionType.resume, tasks: selectedTasks),
                     onDeleteSelected: () =>
-                        _showDeleteDialog(context, tasks: selectedTasks),
+                        _showActionDialog(context, TaskActionType.delete, tasks: selectedTasks),
                   ),
                 FilterSelector(
                   currentCategoryType: _currentCategoryType,
@@ -756,34 +768,14 @@ class DownloadPageState extends State<DownloadPage>
     );
   }
 
-  void _showResumeDialog(BuildContext context, {List<DownloadTask>? tasks}) {
+  void _showActionDialog(
+    BuildContext context,
+    TaskActionType type, {
+    List<DownloadTask>? tasks,
+  }) {
     TaskActionDialogs.showTaskActionDialog(
       context,
-      TaskActionType.resume,
-      tasks: tasks,
-      onActionCompleted: () {
-        _clearSelection();
-        _refreshTasksAndRestartTimer();
-      },
-    );
-  }
-
-  void _showPauseDialog(BuildContext context, {List<DownloadTask>? tasks}) {
-    TaskActionDialogs.showTaskActionDialog(
-      context,
-      TaskActionType.pause,
-      tasks: tasks,
-      onActionCompleted: () {
-        _clearSelection();
-        _refreshTasksAndRestartTimer();
-      },
-    );
-  }
-
-  void _showDeleteDialog(BuildContext context, {List<DownloadTask>? tasks}) {
-    TaskActionDialogs.showTaskActionDialog(
-      context,
-      TaskActionType.delete,
+      type,
       tasks: tasks,
       onActionCompleted: () {
         _clearSelection();
