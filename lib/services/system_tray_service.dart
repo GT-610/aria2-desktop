@@ -354,10 +354,10 @@ class WindowManagerService with Loggable {
     await windowManager.ensureInitialized();
 
     final windowOptions = WindowOptions(
-      size: Size(1200, 800),
-      minimumSize: Size(800, 600),
+      size: const Size(1200, 800),
+      minimumSize: const Size(800, 600),
       center: true,
-      backgroundColor: Color(0x00000000),
+      backgroundColor: const Color(0x00000000),
       skipTaskbar: false,
       titleBarStyle: hideTitleBar ? TitleBarStyle.hidden : TitleBarStyle.normal,
       title: kAppName,
