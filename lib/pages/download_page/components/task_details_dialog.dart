@@ -269,7 +269,7 @@ class TaskDetailsDialog {
 
                     return ValueListenableBuilder<int>(
                       valueListenable: tickNotifier,
-                      builder: (context, _, __) {
+                      builder: (context, _, _) {
                         final l10n = AppLocalizations.of(context)!;
                         final currentTask = getLatestTaskData();
                         return AlertDialog(
