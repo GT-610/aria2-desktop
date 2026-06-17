@@ -29,6 +29,7 @@ void main() {
             ],
           },
         },
+        DownloadStatus.active,
         'instance-1',
         true,
       );
@@ -50,6 +51,7 @@ void main() {
           'uploadSpeed': '0',
           'completedAt': '1710000000',
         },
+        DownloadStatus.stopped,
         'instance-1',
         false,
       );
