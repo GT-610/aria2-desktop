@@ -260,10 +260,10 @@ class TaskParser {
       case 'active':
         return DownloadStatus.active;
       case 'waiting':
-      case 'paused':
+      case aria2StatusPaused:
         return DownloadStatus.waiting;
-      case 'complete':
-      case 'error':
+      case aria2StatusComplete:
+      case aria2StatusError:
       case 'removed':
         return DownloadStatus.stopped;
       default:

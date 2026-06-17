@@ -111,61 +111,39 @@ class DownloadTaskService with Loggable {
     );
   }
 
-  static (String, Color) getStatusInfo(
+  static (String text, Color color, IconData icon) getStatusInfo(
     BuildContext context,
     DownloadTask task,
     ColorScheme colorScheme,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
-      return (l10n.paused, colorScheme.tertiary);
+    if (task.status == DownloadStatus.waiting &&
+        task.taskStatus == aria2StatusPaused) {
+      return (l10n.paused, colorScheme.tertiary, Icons.pause);
     }
 
     if (isSeedingTask(task)) {
-      return (l10n.seeding, const Color(0xFF4CAF50));
+      return (l10n.seeding, const Color(0xFF4CAF50), Icons.upload);
     }
 
     if (task.status == DownloadStatus.stopped &&
-        task.taskStatus == 'complete') {
-      return (l10n.completed, colorScheme.primaryContainer);
+        task.taskStatus == aria2StatusComplete) {
+      return (l10n.completed, colorScheme.primaryContainer, Icons.check_circle);
     }
 
     switch (task.status) {
       case DownloadStatus.active:
-        return (l10n.downloading, colorScheme.primary);
+        return (l10n.downloading, colorScheme.primary, Icons.file_download);
       case DownloadStatus.waiting:
-        return (l10n.waiting, colorScheme.secondary);
+        return (l10n.waiting, colorScheme.secondary, Icons.schedule);
       case DownloadStatus.stopped:
-        return (l10n.stopped, colorScheme.errorContainer);
-    }
-  }
-
-  static Icon getStatusIcon(DownloadTask task, Color color) {
-    if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
-      return Icon(Icons.pause, color: color);
-    }
-
-    if (isSeedingTask(task)) {
-      return Icon(Icons.upload, color: color);
-    }
-
-    if (task.status == DownloadStatus.stopped &&
-        task.taskStatus == 'complete') {
-      return Icon(Icons.check_circle, color: color);
-    }
-
-    switch (task.status) {
-      case DownloadStatus.active:
-        return Icon(Icons.file_download, color: color);
-      case DownloadStatus.waiting:
-        return Icon(Icons.schedule, color: color);
-      case DownloadStatus.stopped:
-        return Icon(Icons.pause_circle, color: color);
+        return (l10n.stopped, colorScheme.errorContainer, Icons.pause_circle);
     }
   }
 
   static bool isPausedTask(DownloadTask task) {
-    return task.status == DownloadStatus.waiting && task.taskStatus == 'paused';
+    return task.status == DownloadStatus.waiting &&
+        task.taskStatus == aria2StatusPaused;
   }
 
   static bool matchesActiveFilter(DownloadTask task) {

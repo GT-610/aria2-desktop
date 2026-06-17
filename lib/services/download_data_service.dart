@@ -287,7 +287,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         continue;
       }
 
-      if (task.taskStatus == 'complete') {
+      if (task.taskStatus == aria2StatusComplete) {
         terminalTransitionInstanceIds.add(task.instanceId);
         _pendingNotifications.add(
           DownloadTaskNotification(
@@ -297,7 +297,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
             type: DownloadTaskNotificationType.completed,
           ),
         );
-      } else if (task.taskStatus == 'error') {
+      } else if (task.taskStatus == aria2StatusError) {
         terminalTransitionInstanceIds.add(task.instanceId);
         _pendingNotifications.add(
           DownloadTaskNotification(

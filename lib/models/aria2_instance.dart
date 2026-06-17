@@ -1,6 +1,9 @@
 /// Instance type enum
 enum InstanceType { remote, builtin }
 
+/// The canonical ID for the built-in local Aria2 instance.
+const String builtinInstanceId = 'builtin';
+
 /// Connection status enum
 enum ConnectionStatus {
   disconnected, // Disconnected

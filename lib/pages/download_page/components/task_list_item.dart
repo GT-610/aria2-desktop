@@ -295,7 +295,7 @@ class TaskListItem extends StatelessWidget {
                   backgroundColor: colorScheme.surfaceContainerHighest,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     (task.status == DownloadStatus.waiting &&
-                            task.taskStatus == 'paused')
+                            task.taskStatus == aria2StatusPaused)
                         ? colorScheme.tertiary
                         : (task.status == DownloadStatus.active
                               ? statusColor
@@ -424,7 +424,7 @@ class TaskListItem extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                         ],
-                        if (task.taskStatus == 'complete')
+                        if (task.taskStatus == aria2StatusComplete)
                           Tooltip(
                             message: l10n.delete,
                             child: IconButton(

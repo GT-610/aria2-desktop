@@ -48,11 +48,11 @@ class TaskActionDialogs {
     switch (actionType) {
       case TaskActionType.resume:
         return task.status == DownloadStatus.waiting &&
-            task.taskStatus == 'paused';
+            task.taskStatus == aria2StatusPaused;
       case TaskActionType.pause:
         return (task.status == DownloadStatus.active ||
                 task.status == DownloadStatus.waiting) &&
-            task.taskStatus != 'paused';
+            task.taskStatus != aria2StatusPaused;
       case TaskActionType.delete:
         return true;
     }
@@ -307,7 +307,7 @@ class TaskActionDialogs {
           switch (actionType) {
             case TaskActionType.resume:
               if (task.status == DownloadStatus.waiting &&
-                  task.taskStatus == 'paused') {
+                  task.taskStatus == aria2StatusPaused) {
                 await client.unpauseTask(task.id);
                 successCount++;
               } else {
@@ -317,7 +317,7 @@ class TaskActionDialogs {
             case TaskActionType.pause:
               if ((task.status == DownloadStatus.active ||
                       task.status == DownloadStatus.waiting) &&
-                  task.taskStatus != 'paused') {
+                  task.taskStatus != aria2StatusPaused) {
                 if (task.bittorrentInfo != null &&
                     task.bittorrentInfo!.isNotEmpty) {
                   await client.forcePauseTask(task.id);

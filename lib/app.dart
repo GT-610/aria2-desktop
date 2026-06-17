@@ -346,7 +346,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         .where(
           (task) =>
               task.status == DownloadStatus.waiting &&
-              task.taskStatus == 'paused',
+              task.taskStatus == aria2StatusPaused,
         )
         .toList();
     if (pausedTasks.isEmpty) {
@@ -653,7 +653,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       shouldProcess: (task) =>
           (task.status == DownloadStatus.active ||
               task.status == DownloadStatus.waiting) &&
-          task.taskStatus != 'paused',
+          task.taskStatus != aria2StatusPaused,
       perform: (client, taskId) => client.pauseTask(taskId),
     );
   }
@@ -666,7 +666,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     await _runTrayBulkAction(
       actionLabel: AppLocalizations.of(context)!.resumeTasks,
       shouldProcess: (task) =>
-          task.status == DownloadStatus.waiting && task.taskStatus == 'paused',
+          task.status == DownloadStatus.waiting && task.taskStatus == aria2StatusPaused,
       perform: (client, taskId) => client.unpauseTask(taskId),
     );
   }
@@ -931,12 +931,12 @@ _computeTaskSummary(List<DownloadTask> tasks) {
     } else if (task.status == DownloadStatus.waiting) {
       waiting++;
     }
-    if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
+    if (task.status == DownloadStatus.waiting && task.taskStatus == aria2StatusPaused) {
       resumable++;
     }
     if ((task.status == DownloadStatus.active ||
             task.status == DownloadStatus.waiting) &&
-        task.taskStatus != 'paused') {
+        task.taskStatus != aria2StatusPaused) {
       pausable++;
     }
   }
