@@ -289,26 +289,53 @@ class DownloadPageState extends State<DownloadPage>
         .toList();
   }
 
-  Map<TaskActionType, int> _countAllActionableTasks(List<DownloadTask> tasks) {
-    var pauseable = 0;
-    var resumable = 0;
-    var deletable = 0;
-    for (final task in tasks) {
+  ({
+    Map<TaskActionType, int> visible,
+    Map<TaskActionType, int> selected,
+  }) _countActionableTasks(
+    List<DownloadTask> visibleTasks,
+    List<DownloadTask> selectedTasks,
+  ) {
+    var visiblePauseable = 0;
+    var visibleResumable = 0;
+    var visibleDeletable = 0;
+    var selectedPauseable = 0;
+    var selectedResumable = 0;
+    var selectedDeletable = 0;
+    for (final task in visibleTasks) {
       if (TaskActionDialogs.canPerformAction(task, TaskActionType.pause)) {
-        pauseable++;
+        visiblePauseable++;
       }
       if (TaskActionDialogs.canPerformAction(task, TaskActionType.resume)) {
-        resumable++;
+        visibleResumable++;
       }
       if (TaskActionDialogs.canPerformAction(task, TaskActionType.delete)) {
-        deletable++;
+        visibleDeletable++;
       }
     }
-    return {
-      TaskActionType.pause: pauseable,
-      TaskActionType.resume: resumable,
-      TaskActionType.delete: deletable,
-    };
+    for (final task in selectedTasks) {
+      if (TaskActionDialogs.canPerformAction(task, TaskActionType.pause)) {
+        selectedPauseable++;
+      }
+      if (TaskActionDialogs.canPerformAction(task, TaskActionType.resume)) {
+        selectedResumable++;
+      }
+      if (TaskActionDialogs.canPerformAction(task, TaskActionType.delete)) {
+        selectedDeletable++;
+      }
+    }
+    return (
+      visible: {
+        TaskActionType.pause: visiblePauseable,
+        TaskActionType.resume: visibleResumable,
+        TaskActionType.delete: visibleDeletable,
+      },
+      selected: {
+        TaskActionType.pause: selectedPauseable,
+        TaskActionType.resume: selectedResumable,
+        TaskActionType.delete: selectedDeletable,
+      },
+    );
   }
 
   void _pruneSelection() {
@@ -581,14 +608,13 @@ class DownloadPageState extends State<DownloadPage>
         _currentCategoryType != CategoryType.all ||
         _selectedFilter != FilterOption.all ||
         _selectedInstanceId != null;
-    final visibleCounts = _countAllActionableTasks(filteredTasks);
-    final selectedCounts = _countAllActionableTasks(selectedTasks);
-    final pauseableVisibleCount = visibleCounts[TaskActionType.pause]!;
-    final resumableVisibleCount = visibleCounts[TaskActionType.resume]!;
-    final deletableVisibleCount = visibleCounts[TaskActionType.delete]!;
-    final pauseableSelectedCount = selectedCounts[TaskActionType.pause]!;
-    final resumableSelectedCount = selectedCounts[TaskActionType.resume]!;
-    final deletableSelectedCount = selectedCounts[TaskActionType.delete]!;
+    final counts = _countActionableTasks(filteredTasks, selectedTasks);
+    final pauseableVisibleCount = counts.visible[TaskActionType.pause]!;
+    final resumableVisibleCount = counts.visible[TaskActionType.resume]!;
+    final deletableVisibleCount = counts.visible[TaskActionType.delete]!;
+    final pauseableSelectedCount = counts.selected[TaskActionType.pause]!;
+    final resumableSelectedCount = counts.selected[TaskActionType.resume]!;
+    final deletableSelectedCount = counts.selected[TaskActionType.delete]!;
 
     return DropTarget(
       onDragEntered: (_) {
