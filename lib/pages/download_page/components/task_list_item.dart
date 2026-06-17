@@ -40,7 +40,7 @@ class TaskListItem extends StatelessWidget {
   }
 
   Future<void> _handleStopTask(BuildContext context) async {
-    await DownloadTaskService.stopTask(context, task, onTaskUpdated);
+    await DownloadTaskService.deleteTask(context, task, onTaskUpdated);
   }
 
   Future<void> _handleStopSeedingTask(BuildContext context) async {
@@ -52,11 +52,11 @@ class TaskListItem extends StatelessWidget {
   }
 
   Future<void> _handleRemoveFailedTask(BuildContext context) async {
-    await DownloadTaskService.removeFailedTask(context, task, onTaskUpdated);
+    await DownloadTaskService.deleteTask(context, task, onTaskUpdated);
   }
 
   Future<void> _handleDeleteTask(BuildContext context) async {
-    await DownloadTaskService.stopTask(context, task, onTaskUpdated);
+    await DownloadTaskService.deleteTask(context, task, onTaskUpdated);
   }
 
   Future<void> _handleRetryTask(BuildContext context) async {

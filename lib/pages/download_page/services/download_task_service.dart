@@ -185,11 +185,13 @@ class DownloadTaskService with Loggable {
         task.isSeeder;
   }
 
-  static Future<void> pauseTask(
+  static Future<void> _withTaskClient(
     BuildContext context,
-    DownloadTask task,
-    VoidCallback onTaskUpdated,
-  ) async {
+    DownloadTask task, {
+    required String errorMessage,
+    required String Function(String error) errorSnackBarMessage,
+    required Future<void> Function(Aria2RpcClient client) action,
+  }) async {
     final l10n = AppLocalizations.of(context)!;
     Aria2RpcClient? client;
     try {
@@ -200,52 +202,65 @@ class DownloadTaskService with Loggable {
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
         client = Aria2RpcClient(targetInstance!);
-        if (task.bittorrentInfo != null && task.bittorrentInfo!.isNotEmpty) {
-          await client.forcePauseTask(task.id);
-        } else {
-          await client.pauseTask(task.id);
-        }
-        onTaskUpdated();
+        await action(client);
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.targetInstanceNotConnected)),
         );
       }
     } catch (e, stackTrace) {
-      _logger.e(
-        'Failed to pause task ${task.id}',
-        error: e,
-        stackTrace: stackTrace,
-      );
+      _logger.e(errorMessage, error: e, stackTrace: stackTrace);
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.failedToPauseTask('$e'))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorSnackBarMessage('$e'))),
+        );
       }
     } finally {
       client?.close();
     }
   }
 
-  static Future<void> stopTask(
+  static Future<void> pauseTask(
     BuildContext context,
     DownloadTask task,
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
+    await _withTaskClient(
+      context,
+      task,
+      errorMessage: 'Failed to pause task ${task.id}',
+      errorSnackBarMessage: l10n.failedToPauseTask,
+      action: (client) async {
+        if (task.bittorrentInfo != null && task.bittorrentInfo!.isNotEmpty) {
+          await client.forcePauseTask(task.id);
+        } else {
+          await client.pauseTask(task.id);
+        }
+        onTaskUpdated();
+      },
+    );
+  }
+
+  static Future<void> deleteTask(
+    BuildContext context,
+    DownloadTask task,
+    VoidCallback onTaskUpdated,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final deleteDownloadedFiles = shouldSkipDeleteConfirmation(context)
+        ? false
+        : await promptDeleteDownloadedFiles(context, [task]);
+    if (deleteDownloadedFiles == null) {
+      return;
+    }
+
     Aria2RpcClient? client;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
         listen: false,
       );
-      final deleteDownloadedFiles = shouldSkipDeleteConfirmation(context)
-          ? false
-          : await promptDeleteDownloadedFiles(context, [task]);
-      if (deleteDownloadedFiles == null) {
-        return;
-      }
-
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
         client = Aria2RpcClient(targetInstance!);
@@ -273,14 +288,14 @@ class DownloadTaskService with Loggable {
       }
     } catch (e, stackTrace) {
       _logger.e(
-        'Failed to stop task ${task.id}',
+        'Failed to delete task ${task.id}',
         error: e,
         stackTrace: stackTrace,
       );
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.failedToRemoveTask('$e'))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.failedToRemoveTask('$e'))),
+        );
       }
     } finally {
       client?.close();
@@ -293,18 +308,14 @@ class DownloadTaskService with Loggable {
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    Aria2RpcClient? client;
-    try {
-      final instanceManager = Provider.of<InstanceManager>(
-        context,
-        listen: false,
-      );
-      final targetInstance = instanceManager.getInstanceById(task.instanceId);
-      if (targetInstance?.status == ConnectionStatus.connected) {
-        client = Aria2RpcClient(targetInstance!);
+    await _withTaskClient(
+      context,
+      task,
+      errorMessage: 'Failed to stop seeding task ${task.id}',
+      errorSnackBarMessage: l10n.failedToStopSeeding,
+      action: (client) async {
         await client.changeOption(task.id, {'seed-time': '0'});
         onTaskUpdated();
-
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -313,25 +324,8 @@ class DownloadTaskService with Loggable {
             ),
           );
         }
-      } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.targetInstanceNotConnected)),
-        );
-      }
-    } catch (e, stackTrace) {
-      _logger.e(
-        'Failed to stop seeding task ${task.id}',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.failedToStopSeeding('$e'))));
-      }
-    } finally {
-      client?.close();
-    }
+      },
+    );
   }
 
   static Future<void> resumeTask(
@@ -340,97 +334,16 @@ class DownloadTaskService with Loggable {
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    Aria2RpcClient? client;
-    try {
-      final instanceManager = Provider.of<InstanceManager>(
-        context,
-        listen: false,
-      );
-      final targetInstance = instanceManager.getInstanceById(task.instanceId);
-      if (targetInstance?.status == ConnectionStatus.connected) {
-        client = Aria2RpcClient(targetInstance!);
+    await _withTaskClient(
+      context,
+      task,
+      errorMessage: 'Failed to resume task ${task.id}',
+      errorSnackBarMessage: l10n.failedToResumeTask,
+      action: (client) async {
         await client.unpauseTask(task.id);
         onTaskUpdated();
-      } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.targetInstanceNotConnected)),
-        );
-      }
-    } catch (e, stackTrace) {
-      _logger.e(
-        'Failed to resume task ${task.id}',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.failedToResumeTask('$e'))));
-      }
-    } finally {
-      client?.close();
-    }
-  }
-
-  static Future<void> removeFailedTask(
-    BuildContext context,
-    DownloadTask task,
-    VoidCallback onTaskUpdated,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    Aria2RpcClient? client;
-    try {
-      final instanceManager = Provider.of<InstanceManager>(
-        context,
-        listen: false,
-      );
-      final deleteDownloadedFiles = shouldSkipDeleteConfirmation(context)
-          ? false
-          : await promptDeleteDownloadedFiles(context, [task]);
-      if (deleteDownloadedFiles == null) {
-        return;
-      }
-
-      final targetInstance = instanceManager.getInstanceById(task.instanceId);
-
-      if (targetInstance?.status == ConnectionStatus.connected) {
-        client = Aria2RpcClient(targetInstance!);
-        final result = await deleteTaskWithClient(
-          client,
-          task,
-          deleteDownloadedFiles: deleteDownloadedFiles,
-        );
-        onTaskUpdated();
-        _scheduleFollowUpRefresh(onTaskUpdated);
-        if (result.hasFileDeletionErrors) {
-          _logger.w(
-            'Failed task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
-          );
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.taskRemovedWithFileWarnings)),
-            );
-          }
-        }
-      } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.targetInstanceNotConnected)),
-        );
-      }
-    } catch (e, stackTrace) {
-      _logger.e(
-        'Failed to remove failed task ${task.id}',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.failedToRemoveFailedTask('$e'))),
-        );
-      }
-    } finally {
-      client?.close();
-    }
+      },
+    );
   }
 
   static Future<void> retryTask(
