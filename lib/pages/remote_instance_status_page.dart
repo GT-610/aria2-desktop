@@ -121,7 +121,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
       ),
     );
 
-    if (confirmed != true) {
+    if (confirmed != true || !mounted) {
       return;
     }
 
