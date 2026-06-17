@@ -26,41 +26,13 @@ class TaskParser {
         try {
           // Convert task data format
           final taskDataMap = taskData as Map<String, dynamic>;
-          final parsedTask = parseTask(taskDataMap, instanceId, isLocal);
-          // Create a new task object with the correct status
-          final taskWithStatus = DownloadTask(
-            id: parsedTask.id,
-            name: parsedTask.name,
-            status: status, // Use the status passed to the function
-            taskStatus: parsedTask.taskStatus,
-            progress: parsedTask.progress,
-            downloadSpeed: parsedTask.downloadSpeed,
-            uploadSpeed: parsedTask.uploadSpeed,
-            size: parsedTask.size,
-            completedSize: parsedTask.completedSize,
-            isLocal: parsedTask.isLocal,
-            instanceId: parsedTask.instanceId,
-            connections: parsedTask.connections,
-            numSeeders: parsedTask.numSeeders,
-            dir: parsedTask.dir,
-            totalLengthBytes: parsedTask.totalLengthBytes,
-            completedLengthBytes: parsedTask.completedLengthBytes,
-            uploadLengthBytes: parsedTask.uploadLengthBytes,
-            downloadSpeedBytes: parsedTask.downloadSpeedBytes,
-            uploadSpeedBytes: parsedTask.uploadSpeedBytes,
-            files: parsedTask.files,
-            bittorrentInfo: parsedTask.bittorrentInfo,
-            trackers: parsedTask.trackers,
-            uris: parsedTask.uris,
-            errorMessage: parsedTask.errorMessage,
-            startTime: parsedTask.startTime,
-            bitfield: parsedTask.bitfield,
-            infoHash: parsedTask.infoHash,
-            pieceLength: parsedTask.pieceLength,
-            numPieces: parsedTask.numPieces,
-            isSeeder: parsedTask.isSeeder,
+          final parsedTask = parseTask(
+            taskDataMap,
+            status,
+            instanceId,
+            isLocal,
           );
-          parsedTasks.add(taskWithStatus);
+          parsedTasks.add(parsedTask);
         } catch (e, stackTrace) {
           _logger.e(
             'Failed to parse task payload for instance $instanceId',
@@ -78,6 +50,7 @@ class TaskParser {
   // Parse a single download task data
   static DownloadTask parseTask(
     Map<String, dynamic> taskData,
+    DownloadStatus status,
     String instanceId,
     bool isLocal,
   ) {
@@ -243,9 +216,6 @@ class TaskParser {
     if (name.isEmpty) {
       name = id.length > 8 ? id.substring(0, 8) : id;
     }
-
-    // Get download status from API status
-    DownloadStatus status = getDownloadStatus(taskStatus);
 
     return DownloadTask(
       id: id,
