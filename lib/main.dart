@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'models/settings.dart';
 import 'services/protocol_integration_service.dart';
@@ -11,8 +10,6 @@ void main(List<String> args) async {
   // Ensure all platform initializations are complete
   WidgetsFlutterBinding.ensureInitialized();
   initializeAppLogging();
-  SharedPreferences.setPrefix('');
-  await SharedPreferences.getInstance();
 
   ProtocolIntegrationService().captureInitialArguments(args);
 

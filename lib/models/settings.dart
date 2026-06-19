@@ -168,7 +168,8 @@ class Settings extends ChangeNotifier with Loggable {
     return p.join(configDir.path, _settingsFileName);
   }
 
-  String _normalizeBtTracker(String trackers) {
+  @visibleForTesting
+  String normalizeBtTracker(String trackers) {
     return trackers
         .split(RegExp(r'[\n\r,]+'))
         .map((tracker) => tracker.trim())
@@ -331,7 +332,7 @@ class Settings extends ChangeNotifier with Loggable {
         _seedRatio = settingsMap['seedRatio'] ?? 1.0;
         _seedTime = settingsMap['seedTime'] ?? 60;
         _btListenPort = settingsMap['btListenPort'] ?? '6881-6999';
-        _btTracker = _normalizeBtTracker(settingsMap['btTracker'] ?? '');
+        _btTracker = normalizeBtTracker(settingsMap['btTracker'] ?? '');
         _btExcludeTracker = settingsMap['btExcludeTracker'] ?? '';
 
         // Advanced settings
@@ -574,7 +575,7 @@ class Settings extends ChangeNotifier with Loggable {
 
   // Built-in Aria2 instance setters
   Future<void> setBtTracker(String trackers) async {
-    _btTracker = _normalizeBtTracker(trackers);
+    _btTracker = normalizeBtTracker(trackers);
     notifyListeners();
     await _saveAllSettings();
   }
@@ -635,7 +636,7 @@ class Settings extends ChangeNotifier with Loggable {
     _seedRatio = seedRatio;
     _seedTime = seedTime;
     _btListenPort = btListenPort;
-    _btTracker = _normalizeBtTracker(btTracker);
+    _btTracker = normalizeBtTracker(btTracker);
     _btExcludeTracker = btExcludeTracker;
     _proxyEnabled = proxyEnabled;
     _allProxy = allProxy;

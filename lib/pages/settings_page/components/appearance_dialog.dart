@@ -101,7 +101,7 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                   try {
                     await widget.settings.setThemeMode(themeMode);
                   } catch (e) {
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(l10n.failedToSetThemeMode('$e'))),
                     );
@@ -152,7 +152,7 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                           isCustom: false,
                         );
                       } catch (e) {
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(l10n.failedToSetThemeColor('$e')),
@@ -239,7 +239,7 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                               isCustom: true,
                             );
                           } catch (e) {
-                            if (!mounted) return;
+                            if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -279,7 +279,7 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                               isCustom: true,
                             );
                           } catch (e) {
-                            if (!mounted) return;
+                            if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -319,7 +319,7 @@ class _AppearanceDialogState extends State<AppearanceDialog> {
                               isCustom: true,
                             );
                           } catch (e) {
-                            if (!mounted) return;
+                            if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(

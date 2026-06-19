@@ -110,12 +110,15 @@ class BuiltinInstanceService with Loggable {
     return getDefaultDownloadDirectorySync();
   }
 
-  String _resolveEffectiveBtListenPort(Map<String, dynamic> settings) {
-    final configuredPort = (settings['btListenPort'] as String? ?? '').trim();
+  @visibleForTesting
+  String resolveEffectiveBtListenPort(Map<String, dynamic> settings) {
+    final raw = settings['btListenPort'];
+    final configuredPort = (raw is String ? raw : '').trim();
     return configuredPort.isNotEmpty ? configuredPort : '6881-6999';
   }
 
-  int _resolveEffectiveDhtListenPort(Map<String, dynamic> settings) {
+  @visibleForTesting
+  int resolveEffectiveDhtListenPort(Map<String, dynamic> settings) {
     final rawValue = settings['dhtListenPort'];
     if (rawValue is int && rawValue >= 1 && rawValue <= 65535) {
       return rawValue;
@@ -130,14 +133,15 @@ class BuiltinInstanceService with Loggable {
   }
 
   String _resolveEffectiveSessionPath(Map<String, dynamic> settings) {
-    return _resolveConfiguredFilePath(
+    return resolveConfiguredFilePath(
       settings['sessionPath'],
       _defaultSessionPath(),
     );
   }
 
-  String _resolveConfiguredFilePath(dynamic rawValue, String fallbackPath) {
-    final configuredPath = (rawValue as String? ?? '').trim();
+  @visibleForTesting
+  String resolveConfiguredFilePath(dynamic rawValue, String fallbackPath) {
+    final configuredPath = (rawValue is String ? rawValue : '').trim();
     return configuredPath.isNotEmpty ? configuredPath : fallbackPath;
   }
 
@@ -148,14 +152,16 @@ class BuiltinInstanceService with Loggable {
     }
   }
 
-  String _formatSpeedLimitArg(dynamic rawValue) {
+  @visibleForTesting
+  String formatSpeedLimitArg(dynamic rawValue) {
     final value = rawValue is num
         ? rawValue.toInt()
         : int.tryParse(rawValue?.toString() ?? '') ?? 0;
     return value > 0 ? '${value}K' : '0';
   }
 
-  int _effectiveSeedTime(bool keepSeeding, dynamic rawValue) {
+  @visibleForTesting
+  int effectiveSeedTime(bool keepSeeding, dynamic rawValue) {
     if (keepSeeding) {
       return 525600;
     }
@@ -165,7 +171,8 @@ class BuiltinInstanceService with Loggable {
         : int.tryParse(rawValue?.toString() ?? '') ?? 60;
   }
 
-  double _effectiveSeedRatio(bool keepSeeding, dynamic rawValue) {
+  @visibleForTesting
+  double effectiveSeedRatio(bool keepSeeding, dynamic rawValue) {
     if (keepSeeding) {
       return 0.0;
     }
@@ -268,8 +275,8 @@ class BuiltinInstanceService with Loggable {
     final settings = _readSettingsSnapshot();
     await _upnpService.syncMappings(
       enabled: settings['enableUpnp'] == true,
-      btListenPort: _resolveEffectiveBtListenPort(settings),
-      dhtListenPort: _resolveEffectiveDhtListenPort(settings),
+      btListenPort: resolveEffectiveBtListenPort(settings),
+      dhtListenPort: resolveEffectiveDhtListenPort(settings),
     );
   }
 
@@ -278,15 +285,15 @@ class BuiltinInstanceService with Loggable {
     final rpcPort = _getConfiguredRpcPort(settings);
     final rpcSecret = _getConfiguredRpcSecret(settings);
     final keepSeeding = settings['keepSeeding'] == true;
-    final seedTime = _effectiveSeedTime(keepSeeding, settings['seedTime']);
-    final seedRatio = _effectiveSeedRatio(keepSeeding, settings['seedRatio']);
-    final btListenPort = _resolveEffectiveBtListenPort(settings);
+    final seedTime = effectiveSeedTime(keepSeeding, settings['seedTime']);
+    final seedRatio = effectiveSeedRatio(keepSeeding, settings['seedRatio']);
+    final btListenPort = resolveEffectiveBtListenPort(settings);
     final sessionPath = _resolveEffectiveSessionPath(settings);
-    final logPath = _resolveConfiguredFilePath(
+    final logPath = resolveConfiguredFilePath(
       settings['logPath'],
       _defaultLogPath(),
     );
-    final downloadDir = _resolveConfiguredFilePath(
+    final downloadDir = resolveConfiguredFilePath(
       settings['downloadDir'],
       _defaultDownloadDir(),
     );
@@ -307,8 +314,8 @@ class BuiltinInstanceService with Loggable {
       '--max-connection-per-server=${settings['maxConnectionPerServer'] ?? 16}',
       '--min-split-size=10M',
       '--split=${settings['split'] ?? 16}',
-      '--max-overall-download-limit=${_formatSpeedLimitArg(settings['maxOverallDownloadLimit'])}',
-      '--max-overall-upload-limit=${_formatSpeedLimitArg(settings['maxOverallUploadLimit'])}',
+      '--max-overall-download-limit=${formatSpeedLimitArg(settings['maxOverallDownloadLimit'])}',
+      '--max-overall-upload-limit=${formatSpeedLimitArg(settings['maxOverallUploadLimit'])}',
       '--max-download-limit=0',
       '--max-upload-limit=0',
       '--file-allocation=prealloc',
@@ -329,7 +336,7 @@ class BuiltinInstanceService with Loggable {
       '--bt-load-saved-metadata=${settings['btLoadSavedMetadata'] ?? true}',
       '--bt-seed-unverified=${settings['keepSeeding'] ?? false}',
       '--listen-port=$btListenPort',
-      '--dht-listen-port=${_resolveEffectiveDhtListenPort(settings)}',
+      '--dht-listen-port=${resolveEffectiveDhtListenPort(settings)}',
       '--enable-dht6=${settings['enableDht6'] ?? true}',
       '--conf-path=$_aria2ConfPath',
       '--save-session=$sessionPath',
@@ -530,7 +537,7 @@ class BuiltinInstanceService with Loggable {
       host: '127.0.0.1',
       port: _getConfiguredRpcPort(settings),
       secret: _getConfiguredRpcSecret(settings),
-      downloadDir: _resolveConfiguredFilePath(
+      downloadDir: resolveConfiguredFilePath(
         settings['downloadDir'],
         _defaultDownloadDir(),
       ),

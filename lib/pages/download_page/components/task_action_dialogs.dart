@@ -156,7 +156,7 @@ class TaskActionDialogs {
                             context,
                             actionableAllTasks,
                           );
-                      if (choice == null) {
+                      if (choice == null || !context.mounted) {
                         return;
                       }
                       deleteDownloadedFiles = choice;
@@ -205,12 +205,12 @@ class TaskActionDialogs {
                           }
                         }
                         final outcome = await _performActionForInstance(
-                          context,
                           instance,
                           actionType,
                           instanceTasks,
                           deleteDownloadedFiles: deleteDownloadedFiles,
                         );
+                        if (!context.mounted) return;
                         _showActionOutcome(context, actionType, outcome);
                         onActionCompleted?.call();
                       },
@@ -270,7 +270,6 @@ class TaskActionDialogs {
           .where((task) => task.instanceId == instance.id)
           .toList();
       totalOutcome += await _performActionForInstance(
-        context,
         instance,
         actionType,
         instanceTasks,
@@ -278,11 +277,11 @@ class TaskActionDialogs {
       );
     }
 
+    if (!context.mounted) return;
     _showActionOutcome(context, actionType, totalOutcome);
   }
 
   static Future<_TaskActionOutcome> _performActionForInstance(
-    BuildContext context,
     Aria2Instance instance,
     TaskActionType actionType,
     List<DownloadTask> tasks, {
