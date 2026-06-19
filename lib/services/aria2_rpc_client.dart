@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/aria2_instance.dart';
 import '../utils/logging.dart';
@@ -63,14 +64,14 @@ class Aria2RpcClient with Loggable {
   ) async {
     try {
       final requestId = _nextRequestId();
-      final requestBody = _buildRequestBody(method, params, requestId);
+      final requestBody = buildRequestBody(method, params, requestId);
 
       final client = _httpClient;
       if (client == null) throw ConnectionFailedException();
       final response = await client
           .post(
             Uri.parse(_buildRpcUrl()),
-            headers: _buildHttpHeaders(),
+            headers: buildHttpHeaders(),
             body: jsonEncode(requestBody),
           )
           .timeout(const Duration(seconds: 10));
@@ -130,7 +131,7 @@ class Aria2RpcClient with Loggable {
       try {
         await _initWebSocket();
         requestId = _nextRequestId();
-        final requestBody = _buildRequestBody(method, params, requestId);
+        final requestBody = buildRequestBody(method, params, requestId);
 
         final completer = Completer<Map<String, dynamic>>();
         _pendingRequests[requestId] = completer;
@@ -609,8 +610,8 @@ class Aria2RpcClient with Loggable {
     }
   }
 
-  /// Build request body
-  Map<String, dynamic> _buildRequestBody(
+  @visibleForTesting
+  Map<String, dynamic> buildRequestBody(
     String method,
     List<dynamic> params,
     String requestId,
@@ -646,7 +647,8 @@ class Aria2RpcClient with Loggable {
     return instance.rpcUrl;
   }
 
-  Map<String, String> _buildHttpHeaders() {
+  @visibleForTesting
+  Map<String, String> buildHttpHeaders() {
     final headers = <String, String>{'Content-Type': 'application/json'};
 
     final rawHeaders = instance.rpcRequestHeaders.trim();

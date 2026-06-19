@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/aria2_instance.dart';
@@ -67,7 +68,7 @@ class TrackerSyncService with Loggable {
       }
     }
 
-    return _reduceTrackerString(trackers.join(','));
+    return reduceTrackerString(trackers.join(','));
   }
 
   Future<bool> syncBuiltinTrackers(Settings settings) async {
@@ -117,7 +118,8 @@ class TrackerSyncService with Loggable {
     }
   }
 
-  String _reduceTrackerString(String trackers) {
+  @visibleForTesting
+  String reduceTrackerString(String trackers) {
     if (trackers.length <= _maxBtTrackerLength) {
       return trackers;
     }
