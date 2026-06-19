@@ -24,8 +24,6 @@ linter:
     unnecessary_this: false
     empty_constructor_bodies: false
     curly_braces_in_flow_control_structures: false
-    use_build_context_synchronously: false
-    avoid_print: false
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

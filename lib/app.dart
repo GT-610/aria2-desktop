@@ -144,6 +144,7 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
       );
     }
 
+    if (!mounted) return;
     final settingsService = Provider.of<SettingsService>(
       context,
       listen: false,

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+// ignore_for_file: avoid_print
 abstract final class Loggers {
   static final sourceReg = RegExp(r'\((.+):(\d+):(\d+)\)');
 
