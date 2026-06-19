@@ -247,7 +247,7 @@ void main() {
     });
 
     group('close', () {
-      test('completes pending requests with ConnectionFailedException', () async {
+      test('close does not throw when called on fresh client', () {
         final instance = Aria2Instance(
           id: '1',
           name: 'Test',
@@ -257,12 +257,7 @@ void main() {
           port: 16800,
         );
         final client = Aria2RpcClient(instance);
-
-        // Simulate a pending request by calling callRpc (it will fail to connect,
-        // but we can test close behavior)
-        // This is a unit test for the close() logic, not the full RPC flow
-        client.close();
-        // Should not throw
+        expect(() => client.close(), returnsNormally);
       });
     });
   });

@@ -112,7 +112,8 @@ class BuiltinInstanceService with Loggable {
 
   @visibleForTesting
   String resolveEffectiveBtListenPort(Map<String, dynamic> settings) {
-    final configuredPort = (settings['btListenPort'] as String? ?? '').trim();
+    final raw = settings['btListenPort'];
+    final configuredPort = (raw is String ? raw : '').trim();
     return configuredPort.isNotEmpty ? configuredPort : '6881-6999';
   }
 
@@ -140,7 +141,7 @@ class BuiltinInstanceService with Loggable {
 
   @visibleForTesting
   String resolveConfiguredFilePath(dynamic rawValue, String fallbackPath) {
-    final configuredPath = (rawValue as String? ?? '').trim();
+    final configuredPath = (rawValue is String ? rawValue : '').trim();
     return configuredPath.isNotEmpty ? configuredPath : fallbackPath;
   }
 

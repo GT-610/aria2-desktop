@@ -29,6 +29,7 @@ void main() {
         final result = service.reduceTrackerString(longString);
 
         expect(result.length, lessThanOrEqualTo(6144));
+        expect(result.isNotEmpty, isTrue);
         // Result should not end with a comma (truncated at last comma)
         expect(result.endsWith(','), isFalse);
         // Result should be a prefix of the original
