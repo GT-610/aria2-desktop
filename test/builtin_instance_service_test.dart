@@ -11,7 +11,10 @@ void main() {
 
     group('resolveEffectiveDhtListenPort', () {
       test('returns valid int port', () {
-        expect(service.resolveEffectiveDhtListenPort({'dhtListenPort': 5000}), 5000);
+        expect(
+          service.resolveEffectiveDhtListenPort({'dhtListenPort': 5000}),
+          5000,
+        );
       });
 
       test('returns default for null', () {
@@ -19,15 +22,24 @@ void main() {
       });
 
       test('returns default for zero', () {
-        expect(service.resolveEffectiveDhtListenPort({'dhtListenPort': 0}), 26701);
+        expect(
+          service.resolveEffectiveDhtListenPort({'dhtListenPort': 0}),
+          26701,
+        );
       });
 
       test('returns default for negative', () {
-        expect(service.resolveEffectiveDhtListenPort({'dhtListenPort': -1}), 26701);
+        expect(
+          service.resolveEffectiveDhtListenPort({'dhtListenPort': -1}),
+          26701,
+        );
       });
 
       test('returns default for over 65535', () {
-        expect(service.resolveEffectiveDhtListenPort({'dhtListenPort': 70000}), 26701);
+        expect(
+          service.resolveEffectiveDhtListenPort({'dhtListenPort': 70000}),
+          26701,
+        );
       });
 
       test('accepts boundary value 1', () {
@@ -35,27 +47,45 @@ void main() {
       });
 
       test('accepts boundary value 65535', () {
-        expect(service.resolveEffectiveDhtListenPort({'dhtListenPort': 65535}), 65535);
+        expect(
+          service.resolveEffectiveDhtListenPort({'dhtListenPort': 65535}),
+          65535,
+        );
       });
 
       test('parses valid string port', () {
-        expect(service.resolveEffectiveDhtListenPort({'dhtListenPort': '8080'}), 8080);
+        expect(
+          service.resolveEffectiveDhtListenPort({'dhtListenPort': '8080'}),
+          8080,
+        );
       });
 
       test('parses string port with whitespace', () {
-        expect(service.resolveEffectiveDhtListenPort({'dhtListenPort': '  5000  '}), 5000);
+        expect(
+          service.resolveEffectiveDhtListenPort({'dhtListenPort': '  5000  '}),
+          5000,
+        );
       });
 
       test('returns default for invalid string', () {
-        expect(service.resolveEffectiveDhtListenPort({'dhtListenPort': 'abc'}), 26701);
+        expect(
+          service.resolveEffectiveDhtListenPort({'dhtListenPort': 'abc'}),
+          26701,
+        );
       });
 
       test('returns default for out-of-range string', () {
-        expect(service.resolveEffectiveDhtListenPort({'dhtListenPort': '99999'}), 26701);
+        expect(
+          service.resolveEffectiveDhtListenPort({'dhtListenPort': '99999'}),
+          26701,
+        );
       });
 
       test('returns default for non-int, non-string type', () {
-        expect(service.resolveEffectiveDhtListenPort({'dhtListenPort': 3.14}), 26701);
+        expect(
+          service.resolveEffectiveDhtListenPort({'dhtListenPort': 3.14}),
+          26701,
+        );
       });
     });
 
@@ -75,11 +105,17 @@ void main() {
       });
 
       test('returns default for empty string', () {
-        expect(service.resolveEffectiveBtListenPort({'btListenPort': ''}), '6881-6999');
+        expect(
+          service.resolveEffectiveBtListenPort({'btListenPort': ''}),
+          '6881-6999',
+        );
       });
 
       test('returns default for whitespace-only string', () {
-        expect(service.resolveEffectiveBtListenPort({'btListenPort': '   '}), '6881-6999');
+        expect(
+          service.resolveEffectiveBtListenPort({'btListenPort': '   '}),
+          '6881-6999',
+        );
       });
 
       test('returns default for null', () {
@@ -125,7 +161,10 @@ void main() {
 
       test('trims whitespace from configured path', () {
         expect(
-          service.resolveConfiguredFilePath('  /custom/path  ', '/default/path'),
+          service.resolveConfiguredFilePath(
+            '  /custom/path  ',
+            '/default/path',
+          ),
           '/custom/path',
         );
       });

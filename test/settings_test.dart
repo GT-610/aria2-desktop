@@ -62,7 +62,8 @@ void main() {
       });
 
       test('filters out empty entries after trimming', () {
-        const input = 'udp://t1.example.com:6969/announce, , udp://t2.example.com:6969/announce';
+        const input =
+            'udp://t1.example.com:6969/announce, , udp://t2.example.com:6969/announce';
         expect(
           settings.normalizeBtTracker(input),
           'udp://t1.example.com:6969/announce,udp://t2.example.com:6969/announce',

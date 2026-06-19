@@ -17,7 +17,9 @@ void main() {
         );
         final client = Aria2RpcClient(instance);
 
-        final body = client.buildRequestBody('aria2.addUri', ['http://example.com'], 'req-1');
+        final body = client.buildRequestBody('aria2.addUri', [
+          'http://example.com',
+        ], 'req-1');
 
         expect(body['jsonrpc'], '2.0');
         expect(body['id'], 'req-1');
@@ -60,7 +62,11 @@ void main() {
             'params': ['token:mySecret'],
           },
         ];
-        final body = client.buildRequestBody('system.multicall', multicallParams, 'req-3');
+        final body = client.buildRequestBody(
+          'system.multicall',
+          multicallParams,
+          'req-3',
+        );
 
         expect(body['method'], 'system.multicall');
         // Multicall params should NOT have token prepended
@@ -79,11 +85,10 @@ void main() {
         );
         final client = Aria2RpcClient(instance);
 
-        final body = client.buildRequestBody(
-          'aria2.changeOption',
-          ['gid-123', {'max-download-limit': '100K'}],
-          'req-4',
-        );
+        final body = client.buildRequestBody('aria2.changeOption', [
+          'gid-123',
+          {'max-download-limit': '100K'},
+        ], 'req-4');
 
         expect(body['params'][0], 'token:tok');
         expect(body['params'][1], 'gid-123');

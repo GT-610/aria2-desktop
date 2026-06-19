@@ -11,7 +11,8 @@ void main() {
 
     group('reduceTrackerString', () {
       test('returns input when under max length', () {
-        const short = 'udp://tracker1.example.com:6969,udp://tracker2.example.com:6969';
+        const short =
+            'udp://tracker1.example.com:6969,udp://tracker2.example.com:6969';
         expect(service.reduceTrackerString(short), short);
       });
 
