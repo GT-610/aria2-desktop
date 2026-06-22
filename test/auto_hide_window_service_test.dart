@@ -33,12 +33,20 @@ void main() {
       });
 
       test('restores suppression even when action throws', () async {
+        bool actionRan = false;
+        Exception? caught;
+
         try {
           await service.runWithSuppressedAutoHide(() async {
+            actionRan = true;
             throw Exception('test error');
           });
-        } catch (_) {}
+        } on Exception catch (e) {
+          caught = e;
+        }
 
+        expect(actionRan, isTrue);
+        expect(caught, isNotNull);
         expect(service.isSuppressed, isFalse);
       });
 

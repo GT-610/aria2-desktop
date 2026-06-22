@@ -58,6 +58,7 @@ void main() {
     test('toString includes hash code', () {
       final node = RNode();
       expect(node.toString(), contains('RNode'));
+      expect(node.toString(), contains(node.hashCode.toString()));
     });
   });
 
