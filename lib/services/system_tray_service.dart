@@ -141,7 +141,7 @@ class SystemTrayService extends ChangeNotifier with Loggable, TrayListener {
       _isInitialized = true;
       i('System tray initialized successfully');
     } catch (err, stackTrace) {
-      this.e(
+      e(
         'Failed to initialize system tray',
         error: err,
         stackTrace: stackTrace,

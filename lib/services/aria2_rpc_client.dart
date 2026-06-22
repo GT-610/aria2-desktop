@@ -316,7 +316,7 @@ class Aria2RpcClient with Loggable {
           }
         }).toList();
       }
-      this.e(
+      e(
         'Received invalid multicall response format from ${instance.name}: $response',
       );
       return [];

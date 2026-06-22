@@ -137,7 +137,7 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
       await StartupIntegrationService().reconcileStartupPreference(settings);
     } catch (e, stackTrace) {
       startupPreferenceFailure = true;
-      this.w(
+      w(
         'Failed to reconcile run-at-startup preference',
         error: e,
         stackTrace: stackTrace,
@@ -207,7 +207,7 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
         builtinInstance: builtinInstance,
       );
     } catch (e, stackTrace) {
-      this.w('Automatic tracker sync failed', error: e, stackTrace: stackTrace);
+      w('Automatic tracker sync failed', error: e, stackTrace: stackTrace);
     }
   }
 

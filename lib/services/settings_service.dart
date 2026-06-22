@@ -85,7 +85,7 @@ class SettingsService extends ChangeNotifier with Loggable {
       }
       return result;
     } catch (err, stackTrace) {
-      this.e(
+      e(
         'Failed to apply settings to built-in Aria2',
         error: err,
         stackTrace: stackTrace,

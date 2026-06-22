@@ -147,7 +147,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     Aria2Instance instance,
   ) async {
     if (instance.status != ConnectionStatus.connected) {
-      this.w(
+      w(
         'Skipping task fetch because instance ${instance.name} is not marked connected',
       );
       return [];
@@ -330,7 +330,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       final client = _getClient(instance);
       unawaited(
         client.saveSession().catchError((Object error, StackTrace stackTrace) {
-          this.w(
+          w(
             'Failed to save session after terminal task transition for ${instance.name}',
             error: error,
             stackTrace: stackTrace,

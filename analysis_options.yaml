@@ -21,7 +21,7 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    unnecessary_this: false
+    unnecessary_this: true
     empty_constructor_bodies: false
     curly_braces_in_flow_control_structures: false
 

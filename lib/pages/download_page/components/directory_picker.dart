@@ -72,7 +72,7 @@ class _DirectoryPickerState extends State<DirectoryPicker> with Loggable {
         _updateDirectory(selectedDirectory);
       }
     } catch (err) {
-      this.e('Failed to select directory', error: err);
+      e('Failed to select directory', error: err);
       if (widget.onError != null) {
         widget.onError!(l10n.failedToSelectDirectory('$err'));
       } else if (mounted) {

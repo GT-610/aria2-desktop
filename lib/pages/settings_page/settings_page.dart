@@ -62,7 +62,7 @@ class _SettingsPageState extends State<SettingsPage>
     try {
       await Provider.of<Settings>(context, listen: false).loadSettings();
     } catch (err) {
-      this.e('Failed to load settings', error: err);
+      e('Failed to load settings', error: err);
       if (mounted) {
         _showErrorSnackBar(AppLocalizations.of(context)!.loadSettingsFailed);
       }
@@ -777,7 +777,7 @@ class _SettingsPageState extends State<SettingsPage>
       await ProtocolIntegrationService().setProtocolEnabled(scheme, value);
       i('Protocol preference updated: $scheme enabled=$value');
     } catch (e, stackTrace) {
-      this.w(
+      w(
         'Failed to apply protocol preference for $scheme immediately',
         error: e,
         stackTrace: stackTrace,
@@ -803,7 +803,7 @@ class _SettingsPageState extends State<SettingsPage>
     try {
       await StartupIntegrationService().setEnabled(value);
     } catch (e, stackTrace) {
-      this.w(
+      w(
         'Failed to apply run-at-startup preference immediately',
         error: e,
         stackTrace: stackTrace,
@@ -865,7 +865,7 @@ class _SettingsPageState extends State<SettingsPage>
         await StartupIntegrationService().reconcileStartupPreference(settings);
       } catch (e, stackTrace) {
         startupPreferenceFailed = true;
-        this.w(
+        w(
           'Failed to reconcile run-at-startup preference after reset',
           error: e,
           stackTrace: stackTrace,

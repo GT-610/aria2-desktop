@@ -131,7 +131,7 @@ class BuiltinUpnpService with Loggable {
         onTimeout: () => null,
       );
     } catch (e, stackTrace) {
-      this.w(
+      w(
         'Failed to discover UPnP/NAT-PMP gateway',
         error: e,
         stackTrace: stackTrace,
