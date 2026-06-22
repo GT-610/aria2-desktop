@@ -56,7 +56,7 @@ class ProtocolIntegrationService with Loggable {
         await setProtocolEnabled(entry.key, entry.value);
       } catch (e, stackTrace) {
         failedSchemes.add(entry.key);
-        this.w(
+        w(
           'Failed to reconcile ${entry.key} protocol preference',
           error: e,
           stackTrace: stackTrace,
@@ -135,7 +135,7 @@ class ProtocolIntegrationService with Loggable {
       }
       return normalized;
     } catch (e, stackTrace) {
-      this.w('Failed to decode thunder link', error: e, stackTrace: stackTrace);
+      w('Failed to decode thunder link', error: e, stackTrace: stackTrace);
       return null;
     }
   }

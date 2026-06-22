@@ -288,7 +288,7 @@ class Settings extends ChangeNotifier with Loggable {
           try {
             _primaryColor = Color(int.parse(colorCode));
           } catch (e) {
-            this.w('Invalid color code, using default', error: e);
+            w('Invalid color code, using default', error: e);
             _primaryColor = Colors.blue;
           }
         }

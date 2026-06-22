@@ -45,7 +45,7 @@ class BuiltinInstanceService with Loggable {
     final coreDir = Directory(coreDirPath);
 
     if (!coreDir.existsSync()) {
-      this.w('Core directory does not exist: $coreDirPath, creating it...');
+      w('Core directory does not exist: $coreDirPath, creating it...');
       coreDir.createSync(recursive: true);
     }
 
@@ -384,7 +384,7 @@ class BuiltinInstanceService with Loggable {
 
       final validationError = validateBuiltinFiles();
       if (validationError != null) {
-        this.e(
+        e(
           'Built-in Aria2 files are not ready, cannot start instance: '
           '$validationError',
         );
@@ -392,7 +392,7 @@ class BuiltinInstanceService with Loggable {
       }
 
       if (_aria2Process != null) {
-        this.w(
+        w(
           'Built-in Aria2 process is already running, PID: ${_aria2Process!.pid}',
         );
         unawaited(syncUpnpStateForRunningInstance());
@@ -408,7 +408,7 @@ class BuiltinInstanceService with Loggable {
       );
 
       _aria2Process!.exitCode.then((exitCode) {
-        this.w('Built-in Aria2 process exited with code: $exitCode');
+        w('Built-in Aria2 process exited with code: $exitCode');
         _aria2Process = null;
         _isConnected = false;
         unawaited(_upnpService.shutdown());
@@ -434,7 +434,7 @@ class BuiltinInstanceService with Loggable {
   Future<bool> stopInstance() async {
     try {
       if (_aria2Process == null) {
-        this.w('Built-in Aria2 process is not running');
+        w('Built-in Aria2 process is not running');
         return true;
       }
 
@@ -444,7 +444,7 @@ class BuiltinInstanceService with Loggable {
       try {
         await _shutdownThroughRpcIfPossible().timeout(_rpcShutdownTimeout);
       } on TimeoutException {
-        this.w(
+        w(
           'Timed out waiting for built-in Aria2 RPC shutdown, terminating process',
         );
         _aria2Process?.kill();
@@ -454,7 +454,7 @@ class BuiltinInstanceService with Loggable {
         try {
           await _aria2Process!.exitCode.timeout(const Duration(seconds: 5));
         } on TimeoutException {
-          this.w(
+          w(
             'Built-in Aria2 did not exit after RPC shutdown, terminating process',
           );
           _aria2Process!.kill();
@@ -486,12 +486,12 @@ class BuiltinInstanceService with Loggable {
       await client.saveSession().timeout(_rpcShutdownTimeout);
       await client.shutdown(force: true).timeout(_rpcShutdownTimeout);
     } on TimeoutException {
-      this.w(
+      w(
         'Timed out during built-in Aria2 RPC shutdown; falling back to process termination',
       );
       _aria2Process?.kill();
     } catch (e, stackTrace) {
-      this.w(
+      w(
         'Failed to stop built-in Aria2 through RPC; falling back to process termination',
         error: e,
         stackTrace: stackTrace,
@@ -513,7 +513,7 @@ class BuiltinInstanceService with Loggable {
       data,
     ) {
       if (!_isConnected) {
-        this.e('Aria2 [builtin] stderr: $data');
+        e('Aria2 [builtin] stderr: $data');
       }
     });
   }
