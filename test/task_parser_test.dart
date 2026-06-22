@@ -38,10 +38,7 @@ void main() {
       });
 
       test('returns waiting for unknown status', () {
-        expect(
-          TaskParser.getDownloadStatus('unknown'),
-          DownloadStatus.waiting,
-        );
+        expect(TaskParser.getDownloadStatus('unknown'), DownloadStatus.waiting);
       });
     });
 

@@ -51,10 +51,7 @@ void main() {
       });
 
       test('rejects unknown schemes', () {
-        expect(
-          service.normalizeIncomingUri('unknown://example.com'),
-          isNull,
-        );
+        expect(service.normalizeIncomingUri('unknown://example.com'), isNull);
       });
 
       test('handles scheme case-insensitively', () {
@@ -64,7 +61,10 @@ void main() {
 
       test('trims whitespace from input', () {
         const uri = '  https://example.com/file.zip  ';
-        expect(service.normalizeIncomingUri(uri), 'https://example.com/file.zip');
+        expect(
+          service.normalizeIncomingUri(uri),
+          'https://example.com/file.zip',
+        );
       });
 
       test('decodes thunder links', () {
@@ -97,20 +97,14 @@ void main() {
         ]);
 
         expect(service.hasPendingLaunchUri, isTrue);
-        expect(
-          service.takePendingLaunchUri(),
-          'https://example.com/file.zip',
-        );
+        expect(service.takePendingLaunchUri(), 'https://example.com/file.zip');
       });
 
       test('ignores subsequent calls after first capture', () {
         service.captureInitialArguments(['https://first.com/file.zip']);
         service.captureInitialArguments(['https://second.com/file.zip']);
 
-        expect(
-          service.takePendingLaunchUri(),
-          'https://first.com/file.zip',
-        );
+        expect(service.takePendingLaunchUri(), 'https://first.com/file.zip');
       });
 
       test('returns null for takePendingLaunchUri when nothing captured', () {

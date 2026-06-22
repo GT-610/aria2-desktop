@@ -247,9 +247,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         i('Updated instance ${updatedInstance.name}');
         notifyListeners();
       } else {
-        w(
-          'Cannot update instance because ${updatedInstance.id} was not found',
-        );
+        w('Cannot update instance because ${updatedInstance.id} was not found');
         throw Exception('Cannot find instance to update');
       }
     } catch (e, stackTrace) {
