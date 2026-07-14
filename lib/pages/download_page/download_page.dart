@@ -193,7 +193,7 @@ class DownloadPageState extends State<DownloadPage>
       _instanceNames,
       (context, task, colorScheme) =>
           DownloadTaskService.getStatusInfo(context, task, colorScheme),
-      onTaskUpdated: _refreshTasksAndRestartTimer,
+      onTaskUpdated: _refreshTasks,
     );
   }
 
@@ -244,7 +244,7 @@ class DownloadPageState extends State<DownloadPage>
     return sortedIds;
   }
 
-  void _refreshTasksAndRestartTimer() {
+  void _refreshTasks() {
     if (instanceManager == null || downloadDataService == null) return;
 
     final connectedInstances = instanceManager!.getConnectedInstances();
@@ -655,7 +655,7 @@ class DownloadPageState extends State<DownloadPage>
                     onTaskLongPress: _startTaskSelection,
                     onTaskSelectionToggle: _toggleTaskSelection,
                     selectedTaskKeys: _selectedTaskKeys,
-                    onTaskUpdated: _refreshTasksAndRestartTimer,
+                    onTaskUpdated: _refreshTasks,
                   ),
                 ),
               ],
@@ -711,7 +711,7 @@ class DownloadPageState extends State<DownloadPage>
       tasks: tasks,
       onActionCompleted: () {
         _clearSelection();
-        _refreshTasksAndRestartTimer();
+        _refreshTasks();
       },
     );
   }
@@ -723,7 +723,7 @@ class DownloadPageState extends State<DownloadPage>
       tasks: tasks,
       onActionCompleted: () {
         _clearSelection();
-        _refreshTasksAndRestartTimer();
+        _refreshTasks();
       },
     );
   }
@@ -735,7 +735,7 @@ class DownloadPageState extends State<DownloadPage>
       tasks: tasks,
       onActionCompleted: () {
         _clearSelection();
-        _refreshTasksAndRestartTimer();
+        _refreshTasks();
       },
     );
   }
@@ -896,7 +896,7 @@ class DownloadPageState extends State<DownloadPage>
                       break;
                   }
 
-                  _refreshTasksAndRestartTimer();
+                  _refreshTasks();
                   if (showDownloadsAfterAdd && mounted) {
                     _focusDownloadingView();
                   }

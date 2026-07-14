@@ -25,7 +25,10 @@ String _redactSensitiveText(String value) {
     'token:[REDACTED]',
   );
   redacted = redacted.replaceAllMapped(
-    RegExp(r'(--rpc-secret=)([^\s]+)', caseSensitive: false),
+    RegExp(
+      r'(--(?:rpc-secret|rpc-user|rpc-passwd)=)([^\s]+)',
+      caseSensitive: false,
+    ),
     (match) => '${match.group(1)}[REDACTED]',
   );
   redacted = redacted.replaceAllMapped(
@@ -33,7 +36,10 @@ String _redactSensitiveText(String value) {
     (match) => '${match.group(1)}[REDACTED]',
   );
   redacted = redacted.replaceAllMapped(
-    RegExp(r'("(?:secret|rpcSecret)"\s*:\s*")([^"]*)(")', caseSensitive: false),
+    RegExp(
+      r'("(?:secret|rpcSecret|password)"\s*:\s*")([^"]*)(")',
+      caseSensitive: false,
+    ),
     (match) => '${match.group(1)}[REDACTED]${match.group(3)}',
   );
   return redacted;

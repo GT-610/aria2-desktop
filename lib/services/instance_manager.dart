@@ -237,30 +237,37 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
   /// Delete instance
   Future<void> deleteInstance(String instanceId) async {
-    // Can't delete built-in instance
-    if (instanceId == 'builtin') {
-      throw Exception('Cannot delete the built-in instance');
-    }
+    try {
+      // Can't delete built-in instance
+      if (instanceId == 'builtin') {
+        throw Exception('Cannot delete the built-in instance');
+      }
 
-    // Can't delete the last instance
-    if (_instances.length <= 1) {
-      throw Exception('Cannot delete the only instance');
-    }
+      // Can't delete the last instance
+      if (_instances.length <= 1) {
+        throw Exception('Cannot delete the only instance');
+      }
 
-    _instances.removeWhere((i) => i.id == instanceId);
-    _invalidateConnectedCache();
-    await _saveInstances();
-    await _repository.deleteCredentials(instanceId);
-    notifyListeners();
+      _instances.removeWhere((i) => i.id == instanceId);
+      _invalidateConnectedCache();
+      await _saveInstances();
+      await _repository.deleteCredentials(instanceId);
+      notifyListeners();
+    } catch (e, stackTrace) {
+      this.e(
+        'Failed to delete instance $instanceId',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
   }
 
   /// Check instance connection status
   Future<bool> checkConnection(Aria2Instance instance) async {
+    final client = Aria2RpcClient(instance);
     try {
-      final client = Aria2RpcClient(instance);
-      final isConnected = await client.testConnection();
-      await client.close();
-      return isConnected;
+      return await client.testConnection();
     } catch (e, stackTrace) {
       w(
         'Connection test failed for instance ${instance.name}',
@@ -268,6 +275,8 @@ class InstanceManager extends ChangeNotifier with Loggable {
         stackTrace: stackTrace,
       );
       return false;
+    } finally {
+      await client.close();
     }
   }
 

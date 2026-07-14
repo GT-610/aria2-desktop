@@ -79,10 +79,13 @@ jobs:
 
       - name: Build Windows release
         shell: powershell
+        env:
+          BUILD_NAME: ${{ steps.version.outputs.version_name }}
+          BUILD_NUMBER: ${{ steps.version.outputs.revision }}
         run: |
           $ErrorActionPreference = 'Stop'
           Remove-Item -LiteralPath "${{ github.workspace }}\build\windows" -Recurse -Force -ErrorAction SilentlyContinue
-          flutter build windows --release --build-name=${{ steps.version.outputs.version_name }} --build-number=${{ steps.version.outputs.revision }}
+          flutter build windows --release --build-name=$env:BUILD_NAME --build-number=$env:BUILD_NUMBER
 
       - name: Bundle built-in aria2 core
         shell: powershell

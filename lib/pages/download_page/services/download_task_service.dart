@@ -585,9 +585,12 @@ class DownloadTaskService with Loggable {
         );
         switch (entityType) {
           case FileSystemEntityType.file:
-          case FileSystemEntityType.link:
             await File(target).delete();
             parentDirectories.add(_normalizePath(File(target).parent.path));
+            break;
+          case FileSystemEntityType.link:
+            await Link(target).delete();
+            parentDirectories.add(_normalizePath(Link(target).parent.path));
             break;
           case FileSystemEntityType.directory:
             if (target == baseDir) {

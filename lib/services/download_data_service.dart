@@ -198,7 +198,8 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         final failures =
             (previousState?.consecutiveFailures ?? 0) +
             (result.attempted ? 1 : 0);
-        final retryDelaySeconds = 1 << (failures - 1).clamp(0, 4);
+        final backoffExponent = (failures - 1).clamp(0, 4).toInt();
+        final retryDelaySeconds = 1 << backoffExponent;
         _instanceStates[result.instanceId] = InstanceRefreshState(
           isLoading: false,
           isStale: true,

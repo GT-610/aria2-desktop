@@ -42,10 +42,12 @@ class DataMigrationService with Loggable {
       await _copyIfTargetMissing(
         File(p.join(legacy.path, 'config', 'settings.json')),
         File(p.join(staging.path, 'config', 'settings.json')),
+        stagingRoot: staging,
       );
       await _copyIfTargetMissing(
         File(p.join(legacy.path, 'config', 'aria2_instances.json')),
         File(p.join(staging.path, 'config', 'aria2_instances.json')),
+        stagingRoot: staging,
       );
       for (final name in const <String>[
         'aria2.conf',
@@ -55,6 +57,7 @@ class DataMigrationService with Loggable {
         await _copyIfTargetMissing(
           File(p.join(legacy.path, 'core', name)),
           File(p.join(staging.path, 'core', name)),
+          stagingRoot: staging,
         );
       }
 
@@ -78,11 +81,15 @@ class DataMigrationService with Loggable {
     }
   }
 
-  Future<void> _copyIfTargetMissing(File source, File stagingTarget) async {
+  Future<void> _copyIfTargetMissing(
+    File source,
+    File stagingTarget, {
+    required Directory stagingRoot,
+  }) async {
     final finalTarget = File(
       p.join(
         _paths.supportDirectory.path,
-        p.relative(stagingTarget.path, from: stagingTarget.parent.parent.path),
+        p.relative(stagingTarget.path, from: stagingRoot.path),
       ),
     );
     if (!await source.exists() || await finalTarget.exists()) {

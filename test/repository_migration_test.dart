@@ -4,11 +4,13 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:setsuna/models/aria2_instance.dart';
+import 'package:setsuna/models/settings.dart';
 import 'package:setsuna/repositories/instance_repository.dart';
 import 'package:setsuna/repositories/settings_repository.dart';
 import 'package:setsuna/services/credential_store.dart';
 import 'package:setsuna/services/data_migration_service.dart';
 import 'package:setsuna/utils/app_paths.dart';
+import 'package:setsuna/utils/atomic_file.dart';
 
 class _MemoryCredentialStore implements CredentialStore {
   final Map<String, String> values = <String, String>{};
@@ -36,6 +38,8 @@ class _MemoryCredentialStore implements CredentialStore {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late Directory root;
   late Directory support;
   late Directory legacy;
@@ -208,5 +212,68 @@ void main() {
     expect(persisted, isNot(contains('failed')));
     expect(persisted, isNot(contains('offline')));
     expect(persisted, isNot(contains('version')));
+  });
+
+  test('instance repository skips only malformed records', () async {
+    final file = File(
+      p.join(paths.configDirectory.path, 'aria2_instances.json'),
+    );
+    await file.writeAsString(
+      jsonEncode(<Map<String, Object>>[
+        <String, Object>{
+          'id': 'valid',
+          'name': 'Valid',
+          'type': 'remote',
+          'protocol': 'http',
+          'host': 'localhost',
+          'port': 6800,
+        },
+        <String, Object>{
+          'id': 'malformed',
+          'name': 'Malformed',
+          'type': 'remote',
+          'protocol': 'http',
+          'host': 'localhost',
+          'port': 'not-a-port',
+        },
+      ]),
+    );
+
+    final result = await InstanceRepository(
+      paths: paths,
+      credentialStore: _MemoryCredentialStore(),
+    ).load();
+
+    expect(result.instances.map((instance) => instance.id), <String>['valid']);
+    expect(await file.readAsString(), isNot(contains('malformed')));
+  });
+
+  test(
+    'atomic writes serialize concurrent updates for the same path',
+    () async {
+      final file = File(p.join(paths.configDirectory.path, 'concurrent.json'));
+
+      final first = AtomicFile.writeString(file, 'first');
+      final second = AtomicFile.writeString(file, 'second');
+      await Future.wait(<Future<void>>[first, second]);
+
+      expect(await file.readAsString(), 'second');
+      expect(await File('${file.path}.bak').exists(), isFalse);
+    },
+  );
+
+  test('settings load continues when fallback persistence fails', () async {
+    final credentials = _MemoryCredentialStore()..failWrites = true;
+    final settings = Settings(
+      repository: SettingsRepository(
+        paths: paths,
+        credentialStore: credentials,
+      ),
+    );
+
+    await settings.loadSettings();
+
+    expect(settings.isLoaded, isTrue);
+    expect(settings.maxConcurrentDownloads, 5);
   });
 }

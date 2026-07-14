@@ -18,10 +18,18 @@ void main(List<String> args) async {
   final logger = taggedLogger('Main');
   try {
     await DataMigrationService().migrateLegacyPortableData();
-    await CoreProvisioningService().ensureDefaultConfiguration();
   } catch (e, stackTrace) {
     logger.e(
       'Failed to migrate legacy application data',
+      error: e,
+      stackTrace: stackTrace,
+    );
+  }
+  try {
+    await CoreProvisioningService().ensureDefaultConfiguration();
+  } catch (e, stackTrace) {
+    logger.e(
+      'Failed to provision the built-in aria2 configuration',
       error: e,
       stackTrace: stackTrace,
     );

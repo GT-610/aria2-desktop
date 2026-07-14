@@ -62,69 +62,79 @@ class InstanceRepository with Loggable {
         if (raw is! Map) {
           continue;
         }
-        final map = Map<String, dynamic>.from(raw);
-        needsRewrite =
-            needsRewrite ||
-            map.containsKey('secret') ||
-            map.containsKey('rpcRequestHeaders') ||
-            map.containsKey('status') ||
-            map.containsKey('version') ||
-            map.containsKey('errorMessage');
-        final id = map['id']?.toString() ?? '';
-        if (id.isEmpty) {
-          continue;
-        }
-
-        final legacySecret = map['secret']?.toString() ?? '';
-        final legacyHeaders = map['rpcRequestHeaders']?.toString() ?? '';
-        String secret = legacySecret;
-        String headers = legacyHeaders;
+        var id = '<unknown>';
         try {
-          if (id == 'builtin') {
-            instances.add(
-              Aria2Instance.fromJson({
-                ...map,
-                'secret': '',
-                'rpcRequestHeaders': '',
-                'status': ConnectionStatus.disconnected.name,
-              }),
-            );
+          final map = Map<String, dynamic>.from(raw);
+          needsRewrite =
+              needsRewrite ||
+              map.containsKey('secret') ||
+              map.containsKey('rpcRequestHeaders') ||
+              map.containsKey('status') ||
+              map.containsKey('version') ||
+              map.containsKey('errorMessage');
+          id = map['id']?.toString() ?? '';
+          if (id.isEmpty) {
             continue;
           }
-          final secretKey = SecureCredentialStore.instanceSecretKey(id);
-          final headersKey = SecureCredentialStore.instanceHeadersKey(id);
-          final storedSecret = await _credentialStore.read(secretKey);
-          final storedHeaders = await _credentialStore.read(headersKey);
 
-          if (storedSecret == null && legacySecret.isNotEmpty) {
-            await _credentialStore.writeVerified(secretKey, legacySecret);
-            needsRewrite = true;
-          } else if (storedSecret != null) {
-            secret = storedSecret;
+          final legacySecret = map['secret']?.toString() ?? '';
+          final legacyHeaders = map['rpcRequestHeaders']?.toString() ?? '';
+          String secret = legacySecret;
+          String headers = legacyHeaders;
+          try {
+            if (id == 'builtin') {
+              instances.add(
+                Aria2Instance.fromJson({
+                  ...map,
+                  'secret': '',
+                  'rpcRequestHeaders': '',
+                  'status': ConnectionStatus.disconnected.name,
+                }),
+              );
+              continue;
+            }
+            final secretKey = SecureCredentialStore.instanceSecretKey(id);
+            final headersKey = SecureCredentialStore.instanceHeadersKey(id);
+            final storedSecret = await _credentialStore.read(secretKey);
+            final storedHeaders = await _credentialStore.read(headersKey);
+
+            if (storedSecret == null && legacySecret.isNotEmpty) {
+              await _credentialStore.writeVerified(secretKey, legacySecret);
+              needsRewrite = true;
+            } else if (storedSecret != null) {
+              secret = storedSecret;
+            }
+            if (storedHeaders == null && legacyHeaders.isNotEmpty) {
+              await _credentialStore.writeVerified(headersKey, legacyHeaders);
+              needsRewrite = true;
+            } else if (storedHeaders != null) {
+              headers = storedHeaders;
+            }
+          } catch (error, stackTrace) {
+            credentialsBlocked = true;
+            w(
+              'Secure credential migration failed for instance $id',
+              error: error,
+              stackTrace: stackTrace,
+            );
           }
-          if (storedHeaders == null && legacyHeaders.isNotEmpty) {
-            await _credentialStore.writeVerified(headersKey, legacyHeaders);
-            needsRewrite = true;
-          } else if (storedHeaders != null) {
-            headers = storedHeaders;
-          }
+
+          instances.add(
+            Aria2Instance.fromJson({
+              ...map,
+              'secret': secret,
+              'rpcRequestHeaders': headers,
+              'status': ConnectionStatus.disconnected.name,
+            }),
+          );
         } catch (error, stackTrace) {
-          credentialsBlocked = true;
+          needsRewrite = true;
           w(
-            'Secure credential migration failed for instance $id',
+            'Skipping malformed instance record $id',
             error: error,
             stackTrace: stackTrace,
           );
         }
-
-        instances.add(
-          Aria2Instance.fromJson({
-            ...map,
-            'secret': secret,
-            'rpcRequestHeaders': headers,
-            'status': ConnectionStatus.disconnected.name,
-          }),
-        );
       }
 
       if (needsRewrite && !credentialsBlocked) {

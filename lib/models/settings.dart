@@ -356,10 +356,21 @@ class Settings extends ChangeNotifier with Loggable {
       SchedulerBinding.instance.addPostFrameCallback((_) {
         notifyListeners();
       });
-    } catch (e) {
-      this.e('Failed to load settings', error: e);
+    } catch (e, stackTrace) {
+      this.e('Failed to load settings', error: e, stackTrace: stackTrace);
       // Apply default settings
-      await _applyDefaultSettings(save: true);
+      try {
+        await _applyDefaultSettings(save: true);
+      } catch (fallbackError, fallbackStackTrace) {
+        this.e(
+          'Failed to persist fallback settings; continuing with in-memory defaults',
+          error: fallbackError,
+          stackTrace: fallbackStackTrace,
+        );
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          notifyListeners();
+        });
+      }
       _isLoaded = true;
     }
   }
