@@ -66,6 +66,53 @@ flutter test
 flutter build windows --release
 ```
 
+### Reproducible Windows release
+
+Use the checked-in PowerShell build helper instead of reusing an existing
+`build/` directory:
+
+```powershell
+.\tool\build_windows_release.ps1 -BuildName 1.0.0 -BuildNumber 0
+```
+
+The script downloads the pinned aria2 1.37.0 Windows binary, verifies its
+SHA-256 checksum, performs a clean Windows build, and injects only `aria2c.exe`
+and `aria2.conf`. Runtime settings, logs, and session files are rejected from
+release artifacts.
+
+### Application data and credentials
+
+- Configuration, session state, and logs use the platform application support
+  directory rather than the executable directory.
+- Existing portable `data/` directories are copied on first launch. The source
+  directory is retained as a recovery backup and migration is safe to retry.
+- RPC secrets and custom RPC headers are stored with
+  `flutter_secure_storage` (Windows Credential protection, macOS Keychain, and
+  Linux Secret Service). They are removed from JSON after verified migration.
+- If secure storage is unavailable, Setsuna keeps legacy data intact and
+  refuses to rewrite credentials as plaintext.
+
+Linux development requires `libsecret-1-dev`; packaged applications require
+`libsecret-1-0` and an available Secret Service provider such as GNOME Keyring
+or KWallet.
+
+```bash
+sudo apt-get install libsecret-1-dev libsecret-1-0 gnome-keyring
+```
+
+The built-in aria2 binary is currently bundled only by the Windows release
+pipeline. macOS and Linux builds continue to support remote aria2 instances
+and report a clear remote-only message when no platform core is packaged.
+
+### Runtime architecture
+
+- Repository classes own schema-versioned, atomic JSON persistence.
+- RPC clients connect lazily, apply custom headers to HTTP and WebSocket
+  transports, and never automatically replay a non-idempotent request after it
+  may have been sent.
+- Download polling is application-scoped. A failed instance retains its last
+  successful task snapshot as stale data without clearing healthy instances.
+
 ### Project structure
 
 ```text
