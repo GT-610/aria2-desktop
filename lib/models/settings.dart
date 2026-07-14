@@ -1,17 +1,20 @@
-import 'dart:convert' show jsonDecode, jsonEncode;
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:path/path.dart' as p;
 
-import '../utils/app_data_dir.dart';
 import '../utils/default_download_directory.dart';
 import '../utils/logging.dart';
+import '../repositories/settings_repository.dart';
 
 enum AppRunMode { standard, tray, hideTray }
 
 class Settings extends ChangeNotifier with Loggable {
+  Settings({SettingsRepository? repository})
+    : _repository = repository ?? SettingsRepository();
+
+  final SettingsRepository _repository;
+  bool _credentialsBlocked = false;
+
   // Global settings
   bool _autoStart = false; // Auto-run on system startup
   bool _minimizeToTray = true; // Legacy migration field
@@ -83,12 +86,6 @@ class Settings extends ChangeNotifier with Loggable {
   String _userAgent =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // User agent
 
-  // Settings file name
-  static const String _settingsFileName = 'settings.json';
-
-  // Constructor initialization
-  Settings();
-
   Future<String> _defaultDownloadDirectory() {
     return Future.value(getDefaultDownloadDirectorySync());
   }
@@ -156,16 +153,6 @@ class Settings extends ChangeNotifier with Loggable {
     _allowOverwrite = false;
     _userAgent =
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-  }
-
-  /// Get settings file path
-  String _getSettingsFilePath() {
-    final dataDir = getAppDataDirectory();
-    final configDir = Directory(p.join(dataDir.path, 'config'));
-    if (!configDir.existsSync()) {
-      configDir.createSync(recursive: true);
-    }
-    return p.join(configDir.path, _settingsFileName);
   }
 
   @visibleForTesting
@@ -242,12 +229,11 @@ class Settings extends ChangeNotifier with Loggable {
   // Load all settings from JSON file
   Future<void> loadSettings() async {
     try {
-      final filePath = _getSettingsFilePath();
-      final file = File(filePath);
+      final loadResult = await _repository.load();
+      _credentialsBlocked = loadResult.credentialsBlocked;
+      final settingsMap = loadResult.values;
 
-      if (file.existsSync()) {
-        final jsonString = await file.readAsString();
-        final settingsMap = jsonDecode(jsonString);
+      if (settingsMap != null) {
         var needsSave = false;
 
         // Global settings
@@ -357,7 +343,7 @@ class Settings extends ChangeNotifier with Loggable {
             settingsMap['userAgent'] ??
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-        if (needsSave) {
+        if (needsSave && !_credentialsBlocked) {
           await _saveAllSettings();
         }
       } else {
@@ -395,9 +381,6 @@ class Settings extends ChangeNotifier with Loggable {
   // Save all settings to JSON file
   Future<void> _saveAllSettings() async {
     try {
-      final filePath = _getSettingsFilePath();
-      final file = File(filePath);
-
       final settingsMap = {
         'autoStart': _autoStart,
         'minimizeToTray': _minimizeToTray,
@@ -461,10 +444,13 @@ class Settings extends ChangeNotifier with Loggable {
         'userAgent': _userAgent,
       };
 
-      final jsonString = jsonEncode(settingsMap);
-      await file.writeAsString(jsonString);
+      await _repository.save(
+        settingsMap,
+        credentialsBlocked: _credentialsBlocked,
+      );
     } catch (e) {
       this.e('Failed to save settings', error: e);
+      rethrow;
     }
   }
 

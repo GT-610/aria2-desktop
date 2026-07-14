@@ -130,7 +130,7 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
         _loadError = '$error';
       });
     } finally {
-      client.close();
+      await client.close();
     }
   }
 
@@ -384,7 +384,7 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
         );
       }
     } finally {
-      client.close();
+      await client.close();
       if (mounted) {
         setState(() {
           _isSaving = false;

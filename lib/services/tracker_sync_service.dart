@@ -114,7 +114,7 @@ class TrackerSyncService with Loggable {
       await client.setGlobalOption({'bt-tracker': settings.btTracker});
       return true;
     } finally {
-      client.close();
+      await client.close();
     }
   }
 

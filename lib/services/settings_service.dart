@@ -92,7 +92,7 @@ class SettingsService extends ChangeNotifier with Loggable {
       );
       return false;
     } finally {
-      client.close();
+      await client.close();
     }
   }
 }

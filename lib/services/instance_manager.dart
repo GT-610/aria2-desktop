@@ -1,21 +1,26 @@
 import 'dart:async';
-import 'dart:convert' show jsonDecode, jsonEncode;
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:uuid/uuid.dart';
 import '../models/aria2_instance.dart';
-import '../utils/app_data_dir.dart';
+import '../repositories/instance_repository.dart';
 import 'aria2_rpc_client.dart';
 import '../utils/logging.dart';
 import 'builtin_instance_service.dart';
 
 /// Unified instance management service class, combining the functionality of InstanceManager and NotifiableInstanceManager
 class InstanceManager extends ChangeNotifier with Loggable {
+  InstanceManager({InstanceRepository? repository})
+    : _repository = repository ?? InstanceRepository();
+
   List<Aria2Instance> _instances = [];
-  final String _fileName = 'aria2_instances.json';
+  final InstanceRepository _repository;
+  final Uuid _uuid = const Uuid();
   final BuiltinInstanceService _builtinInstanceService =
       BuiltinInstanceService();
   List<Aria2Instance>? _cachedConnectedInstances;
+  bool _credentialsBlocked = false;
+  final Map<String, Future<bool>> _connectionOperations = {};
 
   List<Aria2Instance> get instances => _instances;
 
@@ -27,6 +32,16 @@ class InstanceManager extends ChangeNotifier with Loggable {
   List<Aria2Instance> getConnectedInstances() {
     return _cachedConnectedInstances ??= _instances
         .where((instance) => instance.status == ConnectionStatus.connected)
+        .toList(growable: false);
+  }
+
+  List<Aria2Instance> getRefreshableInstances() {
+    return _instances
+        .where(
+          (instance) =>
+              instance.status == ConnectionStatus.connected ||
+              instance.status == ConnectionStatus.reconnecting,
+        )
         .toList(growable: false);
   }
 
@@ -47,11 +62,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
       }
     }
     return connectedInstances.isNotEmpty ? connectedInstances.first : null;
-  }
-
-  /// Get program data directory
-  Directory _getDataDirectory() {
-    return getAppDataDirectory();
   }
 
   /// Initialize instance manager
@@ -123,27 +133,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
   /// Load instance data
   Future<void> _loadInstances() async {
     try {
-      final dataDir = _getDataDirectory();
-      final configDir = Directory('${dataDir.path}/config');
-      if (!configDir.existsSync()) {
-        configDir.createSync(recursive: true);
-      }
-      final filePath = '${configDir.path}/$_fileName';
-      final file = File(filePath);
-
-      if (file.existsSync()) {
-        final jsonString = await file.readAsString();
-        final List<dynamic> jsonList = jsonDecode(jsonString);
-        // Load instances and set all instance statuses to disconnected
-        _instances = jsonList
-            .map((e) => Aria2Instance.fromJson(e))
-            .map(
-              (instance) =>
-                  instance.copyWith(status: ConnectionStatus.disconnected),
-            )
-            .toList();
+      final result = await _repository.load();
+      _credentialsBlocked = result.credentialsBlocked;
+      if (result.instances.isNotEmpty) {
+        _instances = result.instances;
         _invalidateConnectedCache();
-
         i('Loaded ${_instances.length} instance records');
       } else {
         await _createDefaultInstance();
@@ -176,26 +170,13 @@ class InstanceManager extends ChangeNotifier with Loggable {
   /// Save instance data to file
   Future<void> _saveInstances() async {
     try {
-      final dataDir = _getDataDirectory();
-      final configDir = Directory('${dataDir.path}/config');
-      if (!configDir.existsSync()) {
-        await configDir.create(recursive: true);
-      }
-      final filePath = '${configDir.path}/$_fileName';
-      final file = File(filePath);
-
-      final jsonList = _instances.map((instance) => instance.toJson()).toList();
-      final jsonString = jsonEncode(jsonList);
-
-      await file.writeAsString(jsonString);
-      // Verify file was successfully written
-      if (!file.existsSync()) {
-        w(
-          'Instance data file write verification failed because the file does not exist after save',
-        );
-      }
+      await _repository.save(
+        _instances,
+        credentialsBlocked: _credentialsBlocked,
+      );
     } catch (e, stackTrace) {
       this.e('Failed to save instance data', error: e, stackTrace: stackTrace);
+      rethrow;
     }
   }
 
@@ -208,10 +189,8 @@ class InstanceManager extends ChangeNotifier with Loggable {
       }
 
       // Ensure ID is unique
-      if (_instances.any((i) => i.id == instance.id)) {
-        instance = instance.copyWith(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-        );
+      if (instance.id.isEmpty || _instances.any((i) => i.id == instance.id)) {
+        instance = instance.copyWith(id: _uuid.v4());
       }
 
       // Ensure instance status is disconnected
@@ -271,6 +250,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     _instances.removeWhere((i) => i.id == instanceId);
     _invalidateConnectedCache();
     await _saveInstances();
+    await _repository.deleteCredentials(instanceId);
     notifyListeners();
   }
 
@@ -279,7 +259,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
     try {
       final client = Aria2RpcClient(instance);
       final isConnected = await client.testConnection();
-      client.close();
+      await client.close();
       return isConnected;
     } catch (e, stackTrace) {
       w(
@@ -293,6 +273,22 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
   /// Connect to instance
   Future<bool> connectInstance(Aria2Instance instance) async {
+    final existing = _connectionOperations[instance.id];
+    if (existing != null) {
+      return existing;
+    }
+    final operation = _connectInstance(instance);
+    _connectionOperations[instance.id] = operation;
+    try {
+      return await operation;
+    } finally {
+      if (identical(_connectionOperations[instance.id], operation)) {
+        _connectionOperations.remove(instance.id);
+      }
+    }
+  }
+
+  Future<bool> _connectInstance(Aria2Instance instance) async {
     try {
       var resolvedInstance = instance;
       updateInstanceInList(
@@ -333,13 +329,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
           );
           return false;
         }
-
-        // Give some time for the process to start
-        await Future.delayed(const Duration(seconds: 1));
       }
 
-      // Test connection
-      final canConnect = await checkConnection(resolvedInstance);
+      final canConnect = instance.type == InstanceType.builtin
+          ? await _waitForConnection(resolvedInstance)
+          : await checkConnection(resolvedInstance);
       if (!canConnect) {
         w(
           'Connection test failed, so instance ${resolvedInstance.name} was not connected',
@@ -375,7 +369,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
           stackTrace: stackTrace,
         );
       } finally {
-        client.close();
+        await client.close();
       }
 
       // Update status in instance list
@@ -390,7 +384,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
         _builtinInstanceService.onConnected();
       }
 
-      await _saveInstances();
       i('Connected to instance ${resolvedInstance.name}');
       notifyListeners();
 
@@ -414,8 +407,26 @@ class InstanceManager extends ChangeNotifier with Loggable {
     }
   }
 
+  Future<bool> _waitForConnection(Aria2Instance instance) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 10));
+    var delay = const Duration(milliseconds: 150);
+    while (DateTime.now().isBefore(deadline)) {
+      if (await checkConnection(instance)) {
+        return true;
+      }
+      await Future<void>.delayed(delay);
+      final nextMilliseconds = (delay.inMilliseconds * 1.6).round();
+      delay = Duration(milliseconds: nextMilliseconds.clamp(150, 1000));
+    }
+    return false;
+  }
+
   /// Disconnect instance
   Future<void> disconnectInstance(Aria2Instance instance) async {
+    final connectionOperation = _connectionOperations[instance.id];
+    if (connectionOperation != null) {
+      await connectionOperation;
+    }
     // For built-in instances, stop the Aria2 process
     if (instance.type == InstanceType.builtin) {
       i(
@@ -457,6 +468,37 @@ class InstanceManager extends ChangeNotifier with Loggable {
     }
   }
 
+  void updateConnectionHealth(
+    String instanceId, {
+    required bool isStale,
+    required int consecutiveFailures,
+    String? errorMessage,
+  }) {
+    final instance = getInstanceById(instanceId);
+    if (instance == null) {
+      return;
+    }
+    if (isStale &&
+        consecutiveFailures >= 2 &&
+        instance.status == ConnectionStatus.connected) {
+      updateInstanceInList(
+        instanceId,
+        ConnectionStatus.reconnecting,
+        version: instance.version,
+        errorMessage: errorMessage,
+      );
+      return;
+    }
+    if (!isStale && instance.status == ConnectionStatus.reconnecting) {
+      updateInstanceInList(
+        instanceId,
+        ConnectionStatus.connected,
+        version: instance.version,
+        errorMessage: '',
+      );
+    }
+  }
+
   /// Get instance by ID
   Aria2Instance? getInstanceById(String instanceId) {
     for (final instance in _instances) {
@@ -487,7 +529,6 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
     _instances[builtinIndex] = refreshed;
     _invalidateConnectedCache();
-    await _saveInstances();
     notifyListeners();
   }
 

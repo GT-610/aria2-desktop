@@ -10,12 +10,33 @@ Level get defaultLogLevel => Level.INFO;
 StreamSubscription<LogRecord>? _rootLogSubscription;
 
 String _formatRecord(LogRecord record) {
-  final message =
-      '[${record.loggerName}][${record.level.name}] ${record.message}';
+  final message = _redactSensitiveText(
+    '[${record.loggerName}][${record.level.name}] ${record.message}',
+  );
   if (record.error == null) {
     return message;
   }
-  return '$message\nError: ${record.error}';
+  return '$message\nError: ${_redactSensitiveText(record.error.toString())}';
+}
+
+String _redactSensitiveText(String value) {
+  var redacted = value.replaceAll(
+    RegExp(r'''token:[^\s,\]"']+''', caseSensitive: false),
+    'token:[REDACTED]',
+  );
+  redacted = redacted.replaceAllMapped(
+    RegExp(r'(--rpc-secret=)([^\s]+)', caseSensitive: false),
+    (match) => '${match.group(1)}[REDACTED]',
+  );
+  redacted = redacted.replaceAllMapped(
+    RegExp(r'(authorization\s*[:=]\s*)([^\r\n,}]+)', caseSensitive: false),
+    (match) => '${match.group(1)}[REDACTED]',
+  );
+  redacted = redacted.replaceAllMapped(
+    RegExp(r'("(?:secret|rpcSecret)"\s*:\s*")([^"]*)(")', caseSensitive: false),
+    (match) => '${match.group(1)}[REDACTED]${match.group(3)}',
+  );
+  return redacted;
 }
 
 void initializeAppLogging({Level? level}) {
@@ -23,7 +44,13 @@ void initializeAppLogging({Level? level}) {
   Logger.root.level = nextLevel;
   _rootLogSubscription?.cancel();
   _rootLogSubscription = Logger.root.onRecord.listen((record) {
-    DebugProvider.addLog(record);
+    DebugProvider.addLog(
+      record,
+      message: _redactSensitiveText(record.message),
+      error: record.error == null
+          ? null
+          : _redactSensitiveText(record.error.toString()),
+    );
     Loggers.log(_formatRecord(record));
     if (record.stackTrace != null) {
       Loggers.log(record.stackTrace!);

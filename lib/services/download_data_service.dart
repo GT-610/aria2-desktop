@@ -10,6 +10,43 @@ import '../utils/logging.dart';
 
 enum DownloadTaskNotificationType { completed, failed }
 
+class InstanceRefreshState {
+  const InstanceRefreshState({
+    required this.isLoading,
+    required this.isStale,
+    required this.consecutiveFailures,
+    this.error,
+    this.lastUpdated,
+    this.nextRetryAt,
+  });
+
+  final bool isLoading;
+  final bool isStale;
+  final int consecutiveFailures;
+  final String? error;
+  final DateTime? lastUpdated;
+  final DateTime? nextRetryAt;
+}
+
+class _InstanceTaskRefreshResult {
+  const _InstanceTaskRefreshResult.success(this.instanceId, this.tasks)
+    : error = null,
+      attempted = true;
+
+  const _InstanceTaskRefreshResult.failure(
+    this.instanceId,
+    this.error, {
+    this.attempted = true,
+  }) : tasks = const <DownloadTask>[];
+
+  final String instanceId;
+  final List<DownloadTask> tasks;
+  final Object? error;
+  final bool attempted;
+
+  bool get isSuccess => error == null;
+}
+
 class DownloadTaskNotification {
   const DownloadTaskNotification({
     required this.taskId,
@@ -39,6 +76,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   String? _lastError;
   final List<DownloadTaskNotification> _pendingNotifications = [];
   int _tasksVersion = 0;
+  final Map<String, InstanceRefreshState> _instanceStates = {};
 
   final int _refreshInterval = 1000;
 
@@ -49,18 +87,34 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   int get tasksVersion => _tasksVersion;
   bool get isRefreshing => _isRefreshing;
   String? get lastError => _lastError;
+  Map<String, InstanceRefreshState> get instanceStates =>
+      Map.unmodifiable(_instanceStates);
 
   Aria2RpcClient _getClient(Aria2Instance instance) {
-    final key =
-        '${instance.id}_${instance.protocol}_${instance.host}_${instance.port}_${instance.secret}';
+    final key = instance.connectionFingerprint;
     return _clientCache.putIfAbsent(key, () => Aria2RpcClient(instance));
   }
 
   void _clearClientCache() {
     for (final client in _clientCache.values) {
-      client.close();
+      unawaited(client.close());
     }
     _clientCache.clear();
+  }
+
+  void _synchronizeClientCache(List<Aria2Instance> instances) {
+    final activeFingerprints = instances
+        .map((instance) => instance.connectionFingerprint)
+        .toSet();
+    final obsoleteKeys = _clientCache.keys
+        .where((key) => !activeFingerprints.contains(key))
+        .toList();
+    for (final key in obsoleteKeys) {
+      final client = _clientCache.remove(key);
+      if (client != null) {
+        unawaited(client.close());
+      }
+    }
   }
 
   Timer? startPeriodicRefresh(
@@ -80,8 +134,13 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     if (_isRefreshing) return;
 
     final connectedInstances = instances
-        .where((instance) => instance.status == ConnectionStatus.connected)
+        .where(
+          (instance) =>
+              instance.status == ConnectionStatus.connected ||
+              instance.status == ConnectionStatus.reconnecting,
+        )
         .toList();
+    _synchronizeClientCache(connectedInstances);
 
     if (connectedInstances.isEmpty) {
       final hadTasks = _tasks.isNotEmpty;
@@ -101,10 +160,61 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       _lastError = null;
       final previousTasks = _tasks;
 
-      final taskGroups = await Future.wait(
+      for (final instance in connectedInstances) {
+        final previousState = _instanceStates[instance.id];
+        _instanceStates[instance.id] = InstanceRefreshState(
+          isLoading: true,
+          isStale: previousState?.isStale ?? false,
+          consecutiveFailures: previousState?.consecutiveFailures ?? 0,
+          error: previousState?.error,
+          lastUpdated: previousState?.lastUpdated,
+          nextRetryAt: previousState?.nextRetryAt,
+        );
+      }
+
+      final refreshResults = await Future.wait(
         connectedInstances.map(_fetchTasksForInstance),
       );
-      final newTasks = taskGroups.expand((tasks) => tasks).toList();
+      final newTasks = <DownloadTask>[];
+      final errors = <String>[];
+      for (final result in refreshResults) {
+        final previousState = _instanceStates[result.instanceId];
+        if (result.isSuccess) {
+          newTasks.addAll(result.tasks);
+          _instanceStates[result.instanceId] = InstanceRefreshState(
+            isLoading: false,
+            isStale: false,
+            consecutiveFailures: 0,
+            lastUpdated: DateTime.now(),
+          );
+          continue;
+        }
+
+        newTasks.addAll(
+          previousTasks.where((task) => task.instanceId == result.instanceId),
+        );
+        final message = result.error.toString();
+        errors.add('${result.instanceId}: $message');
+        final failures =
+            (previousState?.consecutiveFailures ?? 0) +
+            (result.attempted ? 1 : 0);
+        final retryDelaySeconds = 1 << (failures - 1).clamp(0, 4);
+        _instanceStates[result.instanceId] = InstanceRefreshState(
+          isLoading: false,
+          isStale: true,
+          consecutiveFailures: failures,
+          error: message,
+          lastUpdated: previousState?.lastUpdated,
+          nextRetryAt: result.attempted
+              ? DateTime.now().add(Duration(seconds: retryDelaySeconds))
+              : previousState?.nextRetryAt,
+        );
+      }
+      _instanceStates.removeWhere(
+        (instanceId, _) =>
+            !connectedInstances.any((instance) => instance.id == instanceId),
+      );
+      _lastError = errors.isEmpty ? null : errors.join('; ');
       final lowerCaseNames = <String, String>{
         for (final t in newTasks) t.name: t.name.toLowerCase(),
       };
@@ -143,18 +253,30 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     return notifications;
   }
 
-  Future<List<DownloadTask>> _fetchTasksForInstance(
+  Future<_InstanceTaskRefreshResult> _fetchTasksForInstance(
     Aria2Instance instance,
   ) async {
-    if (instance.status != ConnectionStatus.connected) {
+    if (instance.status != ConnectionStatus.connected &&
+        instance.status != ConnectionStatus.reconnecting) {
       w(
         'Skipping task fetch because instance ${instance.name} is not marked connected',
       );
-      return [];
+      return _InstanceTaskRefreshResult.success(instance.id, const []);
     }
 
     final instanceId = instance.id;
     final isLocal = instance.type == InstanceType.builtin;
+    final previousState = _instanceStates[instanceId];
+    final nextRetryAt = previousState?.nextRetryAt;
+    if (previousState?.isStale == true &&
+        nextRetryAt != null &&
+        DateTime.now().isBefore(nextRetryAt)) {
+      return _InstanceTaskRefreshResult.failure(
+        instanceId,
+        previousState?.error ?? 'Waiting to retry',
+        attempted: false,
+      );
+    }
 
     try {
       final allTasks = <DownloadTask>[];
@@ -163,7 +285,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       final results = await client.getDownloadStatus();
 
       if (results.isEmpty) {
-        return allTasks;
+        return _InstanceTaskRefreshResult.success(instance.id, allTasks);
       }
 
       if (results[0]['success'] && results[0]['data'] is List) {
@@ -206,14 +328,14 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         );
       }
 
-      return allTasks;
+      return _InstanceTaskRefreshResult.success(instance.id, allTasks);
     } catch (e, stackTrace) {
       this.e(
         'Failed to fetch tasks for instance ${instance.name}',
         error: e,
         stackTrace: stackTrace,
       );
-      return [];
+      return _InstanceTaskRefreshResult.failure(instance.id, e);
     }
   }
 

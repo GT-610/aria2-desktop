@@ -90,7 +90,10 @@ class TaskDetailsDialog {
               activeTabController = null;
               activeTabListener = null;
               requestPeersIfNeeded = null;
-              peersClient?.close();
+              final clientToClose = peersClient;
+              if (clientToClose != null) {
+                unawaited(clientToClose.close());
+              }
               peersClient = null;
               peersClientKey = null;
             }
@@ -219,7 +222,7 @@ class TaskDetailsDialog {
                               '${instance.id}_${instance.protocol}_${instance.host}_${instance.port}_${instance.secret}';
                           if (peersClientKey != nextClientKey ||
                               peersClient == null) {
-                            peersClient?.close();
+                            await peersClient?.close();
                             peersClient = Aria2RpcClient(instance);
                             peersClientKey = nextClientKey;
                           }
@@ -645,7 +648,7 @@ class TaskDetailsDialog {
                                                             );
                                                           }
                                                         } finally {
-                                                          client?.close();
+                                                          await client?.close();
                                                           if (context.mounted) {
                                                             setState(() {
                                                               isSavingFileSelection =

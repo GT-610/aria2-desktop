@@ -17,6 +17,21 @@ class UnauthorizedException implements Exception {
   String toString() => 'Authentication failed';
 }
 
+class RpcException implements Exception {
+  const RpcException(this.message, {this.code});
+
+  final String message;
+  final Object? code;
+
+  @override
+  String toString() => code == null ? message : '$message (code: $code)';
+}
+
+class RpcResultIndeterminateException extends RpcException {
+  const RpcResultIndeterminateException(String method)
+    : super('The result of $method is unknown because the connection closed');
+}
+
 /// Aria2 RPC client service
 class Aria2RpcClient with Loggable {
   static int _requestSequence = 0;
@@ -27,6 +42,8 @@ class Aria2RpcClient with Loggable {
   Future<void>? _webSocketInitFuture;
   final Map<String, Completer<Map<String, dynamic>>> _pendingRequests = {};
   bool _isWebSocket = false;
+  bool _isClosed = false;
+  int _connectionGeneration = 0;
 
   /// Factory method to create appropriate client based on protocol
   factory Aria2RpcClient(Aria2Instance instance) {
@@ -39,29 +56,30 @@ class Aria2RpcClient with Loggable {
 
   Aria2RpcClient._(this.instance, {required bool isWebSocket})
     : _isWebSocket = isWebSocket,
-      _httpClient = isWebSocket ? null : http.Client() {
-    if (_isWebSocket) {
-      _initWebSocket();
-    }
-  }
+      _httpClient = isWebSocket ? null : http.Client();
 
   /// Send RPC request
   Future<Map<String, dynamic>> callRpc(
     String method,
-    List<dynamic> params,
-  ) async {
+    List<dynamic> params, {
+    bool idempotent = false,
+  }) async {
+    if (_isClosed) {
+      throw ConnectionFailedException();
+    }
     if (_isWebSocket) {
-      return _callWebSocketRpc(method, params);
+      return _callWebSocketRpc(method, params, idempotent: idempotent);
     } else {
-      return _callHttpRpc(method, params);
+      return _callHttpRpc(method, params, idempotent: idempotent);
     }
   }
 
   /// HTTP RPC implementation
   Future<Map<String, dynamic>> _callHttpRpc(
     String method,
-    List<dynamic> params,
-  ) async {
+    List<dynamic> params, {
+    required bool idempotent,
+  }) async {
     try {
       final requestId = _nextRequestId();
       final requestBody = buildRequestBody(method, params, requestId);
@@ -109,10 +127,16 @@ class Aria2RpcClient with Loggable {
     } catch (e) {
       // Timeout error indicates no response was received
       if (e is TimeoutException) {
+        if (!idempotent) {
+          throw RpcResultIndeterminateException(method);
+        }
         throw ConnectionFailedException();
       }
       // http package wraps SocketException as ClientException
       if (e is SocketException || e is http.ClientException) {
+        if (!idempotent) {
+          throw RpcResultIndeterminateException(method);
+        }
         throw ConnectionFailedException();
       }
       rethrow;
@@ -122,10 +146,12 @@ class Aria2RpcClient with Loggable {
   /// WebSocket RPC implementation
   Future<Map<String, dynamic>> _callWebSocketRpc(
     String method,
-    List<dynamic> params,
-  ) async {
+    List<dynamic> params, {
+    required bool idempotent,
+  }) async {
     const maxRetries = 2;
     String? requestId;
+    var requestWasSent = false;
 
     for (int attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -137,6 +163,7 @@ class Aria2RpcClient with Loggable {
         _pendingRequests[requestId] = completer;
 
         _webSocket!.add(jsonEncode(requestBody));
+        requestWasSent = true;
 
         return await completer.future.timeout(const Duration(seconds: 10));
       } catch (e, stackTrace) {
@@ -144,7 +171,14 @@ class Aria2RpcClient with Loggable {
         if (requestId != null) {
           _pendingRequests.remove(requestId);
         }
-        if (attempt == maxRetries) {
+        if (requestWasSent &&
+            !idempotent &&
+            (e is ConnectionFailedException ||
+                e is TimeoutException ||
+                e is SocketException)) {
+          throw RpcResultIndeterminateException(method);
+        }
+        if (attempt == maxRetries || _isClosed) {
           if (e is TimeoutException || e is SocketException) {
             throw ConnectionFailedException();
           }
@@ -155,7 +189,7 @@ class Aria2RpcClient with Loggable {
           error: e,
           stackTrace: stackTrace,
         );
-        _webSocket?.close();
+        await _webSocket?.close();
         _webSocket = null;
         // Complete pending requests with error before clearing
         for (final completer in _pendingRequests.values) {
@@ -164,6 +198,7 @@ class Aria2RpcClient with Loggable {
           }
         }
         _pendingRequests.clear();
+        requestWasSent = false;
         await Future.delayed(const Duration(milliseconds: 100));
       }
     }
@@ -172,6 +207,9 @@ class Aria2RpcClient with Loggable {
 
   /// Initialize WebSocket connection
   Future<void> _initWebSocket() async {
+    if (_isClosed) {
+      throw ConnectionFailedException();
+    }
     if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
       return;
     }
@@ -196,19 +234,29 @@ class Aria2RpcClient with Loggable {
   }
 
   Future<void> _connectWebSocket() async {
+    if (_isClosed) {
+      throw ConnectionFailedException();
+    }
     if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
       return;
     }
 
     _webSocketSubscription?.cancel();
     _webSocketSubscription = null;
-    _webSocket?.close();
+    await _webSocket?.close();
     _webSocket = null;
 
+    final generation = _connectionGeneration;
     try {
-      _webSocket = await WebSocket.connect(
+      final socket = await WebSocket.connect(
         _buildRpcUrl(),
+        headers: buildHttpHeaders(),
       ).timeout(const Duration(seconds: 10));
+      if (_isClosed || generation != _connectionGeneration) {
+        await socket.close();
+        throw ConnectionFailedException();
+      }
+      _webSocket = socket;
       _webSocketSubscription?.cancel();
       _webSocketSubscription = _webSocket!.listen(
         _handleWebSocketMessage,
@@ -285,17 +333,20 @@ class Aria2RpcClient with Loggable {
 
   /// Get detailed version information, including enabled features.
   Future<Map<String, dynamic>> getVersionInfo() async {
-    final response = await callRpc('aria2.getVersion', []);
+    final response = await callRpc('aria2.getVersion', [], idempotent: true);
     return Map<String, dynamic>.from(response['result'] as Map);
   }
 
   /// Execute multiple RPC calls in one request
   Future<List<Map<String, dynamic>>> multicall(
-    List<Map<String, dynamic>> calls,
-  ) async {
+    List<Map<String, dynamic>> calls, {
+    bool idempotent = false,
+  }) async {
     try {
       // Format: [{"methodName": "aria2.getActive", "params": [...]}, ...]
-      final response = await callRpc('system.multicall', [calls]);
+      final response = await callRpc('system.multicall', [
+        calls,
+      ], idempotent: idempotent);
 
       // Use original response for type checking directly
       if (response.containsKey('result') &&
@@ -332,6 +383,8 @@ class Aria2RpcClient with Loggable {
 
   /// Get download status information
   Future<List<Map<String, dynamic>>> getDownloadStatus() async {
+    const pageSize = 100;
+    const maximumTasksPerState = 10000;
     // Create multicall with three status requests using correct format
     final calls = [
       {
@@ -343,18 +396,88 @@ class Aria2RpcClient with Loggable {
       {
         "methodName": "aria2.tellWaiting",
         "params": instance.secret.isNotEmpty
-            ? ["token:${instance.secret}", 0, 100]
-            : [0, 100],
+            ? ["token:${instance.secret}", 0, pageSize]
+            : [0, pageSize],
       },
       {
         "methodName": "aria2.tellStopped",
         "params": instance.secret.isNotEmpty
-            ? ["token:${instance.secret}", 0, 100]
-            : [0, 100],
+            ? ["token:${instance.secret}", 0, pageSize]
+            : [0, pageSize],
       },
     ];
 
-    return await multicall(calls);
+    final firstPage = await multicall(calls, idempotent: true);
+    if (firstPage.length < 3) {
+      return firstPage;
+    }
+
+    final normalized = <Map<String, dynamic>>[
+      _normalizeTaskMulticallResult(firstPage[0]),
+      _normalizeTaskMulticallResult(firstPage[1]),
+      _normalizeTaskMulticallResult(firstPage[2]),
+    ];
+    await _appendTaskPages(
+      normalized[1],
+      method: 'aria2.tellWaiting',
+      pageSize: pageSize,
+      maximumTasks: maximumTasksPerState,
+    );
+    await _appendTaskPages(
+      normalized[2],
+      method: 'aria2.tellStopped',
+      pageSize: pageSize,
+      maximumTasks: maximumTasksPerState,
+    );
+    return normalized;
+  }
+
+  Map<String, dynamic> _normalizeTaskMulticallResult(
+    Map<String, dynamic> result,
+  ) {
+    if (result['success'] != true) {
+      return result;
+    }
+    final data = result['data'];
+    final tasks = data is List && data.length == 1 && data.first is List
+        ? List<dynamic>.from(data.first as List)
+        : data is List
+        ? List<dynamic>.from(data)
+        : <dynamic>[];
+    return <String, dynamic>{'success': true, 'data': tasks};
+  }
+
+  Future<void> _appendTaskPages(
+    Map<String, dynamic> result, {
+    required String method,
+    required int pageSize,
+    required int maximumTasks,
+  }) async {
+    if (result['success'] != true || result['data'] is! List) {
+      return;
+    }
+    final tasks = result['data'] as List<dynamic>;
+    var offset = tasks.length;
+    while (offset > 0 && offset % pageSize == 0 && offset < maximumTasks) {
+      final response = await callRpc(method, <dynamic>[
+        offset,
+        pageSize,
+      ], idempotent: true);
+      final rawPage = response['result'];
+      if (rawPage is! List || rawPage.isEmpty) {
+        break;
+      }
+      tasks.addAll(rawPage);
+      offset = tasks.length;
+      if (rawPage.length < pageSize) {
+        break;
+      }
+    }
+    if (tasks.length >= maximumTasks) {
+      w(
+        '$method reached the safety limit of $maximumTasks tasks for ${instance.name}',
+      );
+    }
   }
 
   /// Test connection
@@ -416,14 +539,14 @@ class Aria2RpcClient with Loggable {
 
   /// Get task options.
   Future<Map<String, dynamic>> getOption(String gid) async {
-    final response = await callRpc('aria2.getOption', [gid]);
+    final response = await callRpc('aria2.getOption', [gid], idempotent: true);
     return Map<String, dynamic>.from(response['result'] as Map);
   }
 
   /// Get peer information for a BT task.
   Future<List<Map<String, dynamic>>> getPeers(String gid) async {
     try {
-      final response = await callRpc('aria2.getPeers', [gid]);
+      final response = await callRpc('aria2.getPeers', [gid], idempotent: true);
       final result = response['result'];
       if (result is! List) {
         return const [];
@@ -515,7 +638,11 @@ class Aria2RpcClient with Loggable {
   /// Get global options (Aria2 global configuration)
   Future<Map<String, dynamic>> getGlobalOption() async {
     try {
-      final response = await callRpc('aria2.getGlobalOption', []);
+      final response = await callRpc(
+        'aria2.getGlobalOption',
+        [],
+        idempotent: true,
+      );
       return response['result'] as Map<String, dynamic>;
     } catch (e, stackTrace) {
       this.e(
@@ -530,7 +657,11 @@ class Aria2RpcClient with Loggable {
   /// Get global status information.
   Future<Map<String, dynamic>> getGlobalStat() async {
     try {
-      final response = await callRpc('aria2.getGlobalStat', []);
+      final response = await callRpc(
+        'aria2.getGlobalStat',
+        [],
+        idempotent: true,
+      );
       return Map<String, dynamic>.from(response['result'] as Map);
     } catch (e, stackTrace) {
       this.e(
@@ -591,12 +722,17 @@ class Aria2RpcClient with Loggable {
   }
 
   /// Close connection
-  void close() {
+  Future<void> close() async {
+    if (_isClosed) {
+      return;
+    }
+    _isClosed = true;
+    _connectionGeneration++;
     if (_isWebSocket) {
       _webSocketInitFuture = null;
-      _webSocketSubscription?.cancel();
+      await _webSocketSubscription?.cancel();
       _webSocketSubscription = null;
-      _webSocket?.close();
+      await _webSocket?.close();
       _webSocket = null;
       for (final completer in _pendingRequests.values) {
         if (!completer.isCompleted) {

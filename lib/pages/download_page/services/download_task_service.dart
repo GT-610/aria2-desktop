@@ -223,7 +223,7 @@ class DownloadTaskService with Loggable {
         ).showSnackBar(SnackBar(content: Text(l10n.failedToPauseTask('$e'))));
       }
     } finally {
-      client?.close();
+      await client?.close();
     }
   }
 
@@ -283,7 +283,7 @@ class DownloadTaskService with Loggable {
         ).showSnackBar(SnackBar(content: Text(l10n.failedToRemoveTask('$e'))));
       }
     } finally {
-      client?.close();
+      await client?.close();
     }
   }
 
@@ -330,7 +330,7 @@ class DownloadTaskService with Loggable {
         ).showSnackBar(SnackBar(content: Text(l10n.failedToStopSeeding('$e'))));
       }
     } finally {
-      client?.close();
+      await client?.close();
     }
   }
 
@@ -368,7 +368,7 @@ class DownloadTaskService with Loggable {
         ).showSnackBar(SnackBar(content: Text(l10n.failedToResumeTask('$e'))));
       }
     } finally {
-      client?.close();
+      await client?.close();
     }
   }
 
@@ -429,7 +429,7 @@ class DownloadTaskService with Loggable {
         );
       }
     } finally {
-      client?.close();
+      await client?.close();
     }
   }
 
@@ -529,7 +529,7 @@ class DownloadTaskService with Loggable {
         ).showSnackBar(SnackBar(content: Text(l10n.failedToRetryTask('$e'))));
       }
     } finally {
-      client?.close();
+      await client?.close();
     }
   }
 
@@ -579,7 +579,10 @@ class DownloadTaskService with Loggable {
       }
 
       try {
-        final entityType = await FileSystemEntity.type(target);
+        final entityType = await FileSystemEntity.type(
+          target,
+          followLinks: false,
+        );
         switch (entityType) {
           case FileSystemEntityType.file:
           case FileSystemEntityType.link:
@@ -627,6 +630,13 @@ class DownloadTaskService with Loggable {
     while (_isWithinBaseDirectory(currentPath, stopPath) &&
         currentPath != stopPath) {
       final directory = Directory(currentPath);
+      final entityType = await FileSystemEntity.type(
+        currentPath,
+        followLinks: false,
+      );
+      if (entityType == FileSystemEntityType.link) {
+        break;
+      }
       if (!directory.existsSync()) {
         currentPath = _normalizePath(directory.parent.path);
         continue;

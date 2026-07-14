@@ -18,14 +18,14 @@ final class DebugProvider {
   static final lines = <String>[];
   static final _widgetCounts = <int>[];
 
-  static void addLog(LogRecord record) {
+  static void addLog(LogRecord record, {String? message, String? error}) {
     final color = _level2Color[record.level.name] ?? Colors.blue;
     final title = '[${DateTime.now().hourMinute}][${record.loggerName}]';
     final level = '[${record.level}]';
-    final message = record.error == null
-        ? '\n${record.message}'
-        : '\n${record.message}: ${record.error}';
-    lines.add('$title$level$message');
+    final displayMessage = error == null
+        ? '\n${message ?? record.message}'
+        : '\n${message ?? record.message}: $error';
+    lines.add('$title$level$displayMessage');
 
     var widgetCount = 1;
     final newWidgets = <Widget>[
@@ -41,7 +41,7 @@ final class DebugProvider {
               style: TextStyle(color: color),
             ),
             TextSpan(
-              text: message,
+              text: displayMessage,
               style: const TextStyle(color: Colors.white),
             ),
           ],

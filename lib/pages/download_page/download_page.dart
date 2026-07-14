@@ -42,7 +42,6 @@ class DownloadPageState extends State<DownloadPage>
   String? _selectedInstanceId;
   String _searchQuery = '';
   final Set<String> _selectedTaskKeys = <String>{};
-  Timer? _refreshTimer;
   String? _lastShownRefreshError;
   late final TextEditingController _searchController;
   bool _isHandlingPendingProtocolLink = false;
@@ -95,7 +94,6 @@ class DownloadPageState extends State<DownloadPage>
 
     if (dependenciesChanged) {
       _loadInstanceNames(instanceManager!);
-      _updateRefreshTimer();
       _schedulePendingProtocolLinkHandling();
     }
   }
@@ -104,8 +102,6 @@ class DownloadPageState extends State<DownloadPage>
   void dispose() {
     instanceManager?.removeListener(_handleInstanceChanges);
     downloadDataService?.removeListener(_handleDownloadDataChanges);
-    downloadDataService?.stopPeriodicRefresh();
-    _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -113,7 +109,6 @@ class DownloadPageState extends State<DownloadPage>
   void _handleInstanceChanges() {
     if (!mounted) return;
 
-    _updateRefreshTimer();
     if (instanceManager != null) {
       _loadInstanceNames(instanceManager!);
     }
@@ -151,27 +146,6 @@ class DownloadPageState extends State<DownloadPage>
         ),
       );
     });
-  }
-
-  void _updateRefreshTimer() {
-    if (instanceManager == null || downloadDataService == null || !mounted) {
-      return;
-    }
-
-    final connectedInstances = instanceManager!.getConnectedInstances();
-
-    if (connectedInstances.isEmpty) {
-      downloadDataService!.stopPeriodicRefresh();
-      _refreshTimer = null;
-      return;
-    }
-
-    _refreshTimer = downloadDataService!.startPeriodicRefresh(
-      () => instanceManager?.getConnectedInstances() ?? const [],
-    );
-    if (_refreshTimer != null) {
-      downloadDataService!.refreshTasks(connectedInstances);
-    }
   }
 
   void _schedulePendingProtocolLinkHandling() {
@@ -950,7 +924,7 @@ class DownloadPageState extends State<DownloadPage>
                   }
                   return false;
                 } finally {
-                  client?.close();
+                  await client?.close();
                 }
               },
         );
