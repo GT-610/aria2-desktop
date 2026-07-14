@@ -924,7 +924,17 @@ class DownloadPageState extends State<DownloadPage>
                   }
                   return false;
                 } finally {
-                  await client?.close();
+                  if (client != null) {
+                    try {
+                      await client.close();
+                    } catch (error, stackTrace) {
+                      w(
+                        'Failed to close task-add RPC client',
+                        error: error,
+                        stackTrace: stackTrace,
+                      );
+                    }
+                  }
                 }
               },
         );

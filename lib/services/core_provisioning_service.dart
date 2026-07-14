@@ -32,14 +32,9 @@ class CoreProvisioningService {
       final bundledFile = File(
         p.join(_paths.bundledCoreDirectory.path, 'aria2.conf'),
       );
-      if (await bundledFile.exists()) {
-        await target.parent.create(recursive: true);
-        await bundledFile.copy(target.path);
-        return;
-      }
-      final configuration = await rootBundle.loadString(
-        'assets/core/aria2.conf',
-      );
+      final configuration = await bundledFile.exists()
+          ? await bundledFile.readAsString()
+          : await rootBundle.loadString('assets/core/aria2.conf');
       await AtomicFile.writeString(target, configuration);
     } on FileSystemException catch (error, stackTrace) {
       Error.throwWithStackTrace(
