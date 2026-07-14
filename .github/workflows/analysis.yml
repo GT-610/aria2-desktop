@@ -15,10 +15,14 @@ jobs:
         with:
           fetch-depth: 1
           submodules: recursive
+          persist-credentials: false
 
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+
+      - name: Install Linux secure storage build dependency
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
 
       - name: Install dependencies
         run: flutter pub get
@@ -27,7 +31,34 @@ jobs:
         run: dart format --output=none --set-exit-if-changed lib test
 
       - name: Analyze project source
-        run: flutter analyze lib test
+        run: flutter analyze --fatal-infos --fatal-warnings
 
       - name: Run tests
         run: flutter test
+
+  windows_build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build a clean Windows release
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item -LiteralPath "${{ github.workspace }}\build\windows" -Recurse -Force -ErrorAction SilentlyContinue
+          flutter build windows --release
+          $staleCore = "${{ github.workspace }}\build\windows\x64\runner\Release\data\core\aria2c.exe"
+          if (Test-Path -LiteralPath $staleCore) {
+            throw 'A clean application build unexpectedly contains a stale bundled aria2 binary.'
+          }

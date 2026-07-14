@@ -174,9 +174,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
         : _name.trim();
 
     return Aria2Instance(
-      id:
-          widget.instance?.id ??
-          DateTime.now().millisecondsSinceEpoch.toString(),
+      id: widget.instance?.id ?? '',
       name: resolvedName,
       type: InstanceType.remote,
       protocol: _protocol,
@@ -228,7 +226,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
         ),
       );
     } finally {
-      client.close();
+      await client.close();
       if (mounted) {
         setState(() {
           _isTestingConnection = false;

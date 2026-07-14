@@ -8,6 +8,8 @@ permissions:
 
 env:
   APP_NAME: Setsuna
+  ARIA2_VERSION: 1.37.0
+  ARIA2_WINDOWS_SHA256: 67D015301EEF0B612191212D564C5BB0A14B5B9C4796B76454276A4D28D9B288
 
 jobs:
   release_windows:
@@ -51,26 +53,19 @@ jobs:
           echo "release_name=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
           echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
 
-      - name: Resolve latest aria2 release
-        id: aria2
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          RELEASE_JSON="$(curl -fsSL https://api.github.com/repos/aria2/aria2/releases/latest)"
-          TAG_NAME="$(printf '%s' "$RELEASE_JSON" | python -c "import json,sys; print(json.load(sys.stdin)['tag_name'])")"
-          ASSET_URL="$(printf '%s' "$RELEASE_JSON" | python -c "import json,sys; assets=json.load(sys.stdin)['assets']; print(next(asset['browser_download_url'] for asset in assets if asset['name'].endswith('win-64bit-build1.zip')))")"
-
-          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
-          echo "asset_url=${ASSET_URL}" >> "$GITHUB_OUTPUT"
-
       - name: Download bundled aria2
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\aria2" | Out-Null
-          Invoke-WebRequest -Uri "${{ steps.aria2.outputs.asset_url }}" -OutFile "$env:RUNNER_TEMP\aria2\aria2.zip"
-          Expand-Archive -LiteralPath "$env:RUNNER_TEMP\aria2\aria2.zip" -DestinationPath "$env:RUNNER_TEMP\aria2\unzipped" -Force
+          $assetUrl = "https://github.com/aria2/aria2/releases/download/release-$env:ARIA2_VERSION/aria2-$env:ARIA2_VERSION-win-64bit-build1.zip"
+          $archive = "$env:RUNNER_TEMP\aria2\aria2.zip"
+          Invoke-WebRequest -Uri $assetUrl -OutFile $archive
+          $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash
+          if ($actualHash -ne $env:ARIA2_WINDOWS_SHA256) {
+            throw "aria2 checksum mismatch. Expected $env:ARIA2_WINDOWS_SHA256, got $actualHash."
+          }
+          Expand-Archive -LiteralPath $archive -DestinationPath "$env:RUNNER_TEMP\aria2\unzipped" -Force
           $aria2Exe = Get-ChildItem -Path "$env:RUNNER_TEMP\aria2\unzipped" -Recurse -Filter aria2c.exe | Select-Object -First 1
           if (-not $aria2Exe) {
             throw 'aria2c.exe not found in the downloaded aria2 archive.'
@@ -83,10 +78,14 @@ jobs:
         run: flutter pub get
 
       - name: Build Windows release
-        run: >
-          flutter build windows --release
-          --build-name=${{ steps.version.outputs.version_name }}
-          --build-number=${{ steps.version.outputs.revision }}
+        shell: powershell
+        env:
+          BUILD_NAME: ${{ steps.version.outputs.version_name }}
+          BUILD_NUMBER: ${{ steps.version.outputs.revision }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item -LiteralPath "${{ github.workspace }}\build\windows" -Recurse -Force -ErrorAction SilentlyContinue
+          flutter build windows --release --build-name=$env:BUILD_NAME --build-number=$env:BUILD_NUMBER
 
       - name: Bundle built-in aria2 core
         shell: powershell
@@ -98,6 +97,20 @@ jobs:
           Copy-Item -LiteralPath "$env:RUNNER_TEMP\core\aria2.conf" -Destination "$coreDir\aria2.conf" -Force
           Remove-Item -LiteralPath "$coreDir\aria2.log" -ErrorAction SilentlyContinue
           Remove-Item -LiteralPath "$coreDir\aria2.session" -ErrorAction SilentlyContinue
+          if (-not (Test-Path -LiteralPath "$coreDir\aria2c.exe")) {
+            throw 'Release artifact is missing aria2c.exe.'
+          }
+          if (-not (Test-Path -LiteralPath "$coreDir\aria2.conf")) {
+            throw 'Release artifact is missing aria2.conf.'
+          }
+          foreach ($forbidden in @('aria2.log', 'aria2.session')) {
+            if (Test-Path -LiteralPath "$coreDir\$forbidden") {
+              throw "Release artifact contains forbidden runtime file: $forbidden"
+            }
+          }
+          if (Test-Path -LiteralPath "${{ github.workspace }}\build\windows\x64\runner\Release\data\config\settings.json") {
+            throw 'Release artifact contains a local settings file.'
+          }
 
       - name: Create release archive
         shell: powershell

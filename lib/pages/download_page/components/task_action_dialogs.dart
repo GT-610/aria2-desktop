@@ -364,7 +364,7 @@ class TaskActionDialogs {
       );
       failCount += tasks.length - successCount - skippedCount;
     } finally {
-      client?.close();
+      await client?.close();
     }
 
     return _TaskActionOutcome(

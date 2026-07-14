@@ -25,6 +25,7 @@ import 'services/startup_integration_service.dart';
 import 'services/system_tray_service.dart';
 import 'services/tracker_sync_service.dart';
 import 'services/aria2_rpc_client.dart';
+import 'services/task_bulk_action_service.dart';
 import 'utils/logging.dart';
 
 class MyApp extends StatelessWidget {
@@ -294,6 +295,8 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       (l) => l?.addListener(_handleSettingsChanged),
     );
 
+    _synchronizeDownloadRefresh();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_applyShellSettings());
     });
@@ -383,7 +386,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
           }
         }
       } finally {
-        client.close();
+        await client.close();
       }
     }
 
@@ -393,6 +396,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
 
   void _handleInstanceManagerChanged() {
     unawaited(_handleTrayStateChanged());
+    _synchronizeDownloadRefresh();
 
     final instanceManager =
         _instanceManager ??
@@ -428,6 +432,23 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         _showBuiltinConnectionFailedDialog(context);
       });
     }
+  }
+
+  void _synchronizeDownloadRefresh() {
+    final instanceManager = _instanceManager;
+    final downloadDataService = _downloadDataService;
+    if (instanceManager == null || downloadDataService == null) {
+      return;
+    }
+    final refreshableInstances = instanceManager.getRefreshableInstances();
+    if (refreshableInstances.isEmpty) {
+      downloadDataService.stopPeriodicRefresh();
+      return;
+    }
+    downloadDataService.startPeriodicRefresh(
+      instanceManager.getRefreshableInstances,
+    );
+    unawaited(downloadDataService.refreshTasks(refreshableInstances));
   }
 
   Future<void> _initSystemTrayCallbacks() async {
@@ -515,6 +536,18 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     }
 
     unawaited(_handleTrayStateChanged());
+
+    final instanceManager = _instanceManager;
+    if (instanceManager != null) {
+      for (final entry in _downloadDataService!.instanceStates.entries) {
+        instanceManager.updateConnectionHealth(
+          entry.key,
+          isStale: entry.value.isStale,
+          consecutiveFailures: entry.value.consecutiveFailures,
+          errorMessage: entry.value.error,
+        );
+      }
+    }
 
     final notifications = _downloadDataService!.takePendingNotifications();
     if (notifications.isEmpty) {
@@ -711,38 +744,11 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
-    final tasksByInstance = <String, List<DownloadTask>>{};
-    for (final task in actionableTasks) {
-      tasksByInstance.putIfAbsent(task.instanceId, () => []).add(task);
-    }
-
-    var successCount = 0;
-    var failCount = 0;
-    for (final instance in connectedInstances) {
-      final instanceTasks = tasksByInstance[instance.id];
-      if (instanceTasks == null || instanceTasks.isEmpty) {
-        continue;
-      }
-
-      final client = Aria2RpcClient(instance);
-      try {
-        for (final task in instanceTasks) {
-          try {
-            await perform(client, task.id);
-            successCount++;
-          } catch (e, stackTrace) {
-            failCount++;
-            this.e(
-              'Tray action failed for task ${task.id} on instance ${instance.name}',
-              error: e,
-              stackTrace: stackTrace,
-            );
-          }
-        }
-      } finally {
-        client.close();
-      }
-    }
+    final result = await TaskBulkActionService().run(
+      instances: connectedInstances,
+      tasks: actionableTasks,
+      perform: perform,
+    );
 
     await downloadDataService.refreshTasks(connectedInstances);
 
@@ -750,12 +756,12 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
-    final message = failCount == 0
-        ? l10n.taskActionSummarySuccess(actionLabel, successCount)
+    final message = result.failureCount == 0
+        ? l10n.taskActionSummarySuccess(actionLabel, result.successCount)
         : l10n.taskActionSummaryDetailed(
             actionLabel,
-            successCount,
-            failCount,
+            result.successCount,
+            result.failureCount,
             0,
           );
     _showTrayActionSnackBar(message);

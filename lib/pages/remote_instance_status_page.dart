@@ -60,7 +60,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
         _loadError = '$error';
       });
     } finally {
-      client.close();
+      await client.close();
     }
   }
 
@@ -89,7 +89,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
         backgroundColor: Colors.red,
       );
     } finally {
-      client.close();
+      await client.close();
       if (mounted) {
         setState(() {
           _isSavingSession = false;
@@ -158,7 +158,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
         backgroundColor: Colors.red,
       );
     } finally {
-      client.close();
+      await client.close();
       if (mounted) {
         setState(() {
           _isPurgingResults = false;
@@ -202,6 +202,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
       case ConnectionStatus.disconnected:
         return l10n.disconnected;
       case ConnectionStatus.connecting:
+      case ConnectionStatus.reconnecting:
         return l10n.connecting;
       case ConnectionStatus.connected:
         return l10n.connected;

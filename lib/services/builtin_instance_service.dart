@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 
 import '../models/aria2_instance.dart';
 import '../utils/app_data_dir.dart';
+import '../utils/app_paths.dart';
 import '../utils/default_download_directory.dart';
 import '../utils/logging.dart';
 import 'aria2_rpc_client.dart';
@@ -29,6 +30,7 @@ class BuiltinInstanceService with Loggable {
   StreamSubscription<String>? _stderrSubscription;
   final BuiltinUpnpService _upnpService = BuiltinUpnpService();
   BuiltinInstanceApplyMode _pendingApplyMode = BuiltinInstanceApplyMode.none;
+  Future<void> _lifecycleTail = Future<void>.value();
 
   factory BuiltinInstanceService() {
     _instance ??= BuiltinInstanceService._internal();
@@ -40,8 +42,8 @@ class BuiltinInstanceService with Loggable {
   }
 
   void _initializePaths() {
-    final dataDir = getAppDataDirectory();
-    final coreDirPath = p.join(dataDir.path, 'core');
+    final paths = AppPaths.instance;
+    final coreDirPath = paths.coreDirectory.path;
     final coreDir = Directory(coreDirPath);
 
     if (!coreDir.existsSync()) {
@@ -50,12 +52,12 @@ class BuiltinInstanceService with Loggable {
     }
 
     _aria2cPath = p.join(
-      coreDirPath,
+      paths.bundledCoreDirectory.path,
       'aria2c${Platform.isWindows ? '.exe' : ''}',
     );
     _aria2ConfPath = p.join(coreDirPath, 'aria2.conf');
     _sessionPath = p.join(coreDirPath, 'aria2.session');
-    _logPath = p.join(coreDirPath, 'aria2.log');
+    _logPath = p.join(paths.logDirectory.path, 'aria2.log');
   }
 
   String _getSettingsFilePath() {
@@ -191,6 +193,9 @@ class BuiltinInstanceService with Loggable {
     for (final fileInfo in requiredFiles) {
       final file = File(fileInfo.path);
       if (!file.existsSync()) {
+        if (fileInfo.label == 'aria2c' && !Platform.isWindows) {
+          return 'Built-in aria2 is not bundled for this platform. Remote instances remain available.';
+        }
         return 'Missing ${fileInfo.label}: ${fileInfo.path}';
       }
 
@@ -378,7 +383,21 @@ class BuiltinInstanceService with Loggable {
     return args;
   }
 
-  Future<bool> startInstance() async {
+  Future<T> _serializeLifecycle<T>(Future<T> Function() action) {
+    final completer = Completer<T>();
+    _lifecycleTail = _lifecycleTail.then((_) async {
+      try {
+        completer.complete(await action());
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+      }
+    });
+    return completer.future;
+  }
+
+  Future<bool> startInstance() => _serializeLifecycle(_startInstance);
+
+  Future<bool> _startInstance() async {
     try {
       _isConnected = false;
 
@@ -400,18 +419,21 @@ class BuiltinInstanceService with Loggable {
       }
 
       final args = _buildArgs();
-      _aria2Process = await Process.start(
+      final process = await Process.start(
         _aria2cPath!,
         args,
         runInShell: false,
         mode: ProcessStartMode.normal,
       );
+      _aria2Process = process;
 
-      _aria2Process!.exitCode.then((exitCode) {
+      process.exitCode.then((exitCode) {
         w('Built-in Aria2 process exited with code: $exitCode');
-        _aria2Process = null;
-        _isConnected = false;
-        unawaited(_upnpService.shutdown());
+        if (identical(_aria2Process, process)) {
+          _aria2Process = null;
+          _isConnected = false;
+          unawaited(_upnpService.shutdown());
+        }
       });
 
       if (kDebugMode) {
@@ -431,7 +453,9 @@ class BuiltinInstanceService with Loggable {
     }
   }
 
-  Future<bool> stopInstance() async {
+  Future<bool> stopInstance() => _serializeLifecycle(_stopInstance);
+
+  Future<bool> _stopInstance() async {
     try {
       if (_aria2Process == null) {
         w('Built-in Aria2 process is not running');
@@ -498,7 +522,7 @@ class BuiltinInstanceService with Loggable {
       );
       _aria2Process?.kill();
     } finally {
-      client.close();
+      await client.close();
     }
   }
 

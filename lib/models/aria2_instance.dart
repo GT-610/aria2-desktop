@@ -6,24 +6,25 @@ enum ConnectionStatus {
   disconnected, // Disconnected
   connecting, // Connecting
   connected, // Connected
+  reconnecting, // Temporarily unavailable and retrying
   failed, // Connection failed
 }
 
 /// Aria2 instance data model
 class Aria2Instance {
-  String id;
-  String name;
-  InstanceType type;
-  String protocol;
-  String host;
-  int port;
-  String secret;
-  String downloadDir;
-  String rpcPath;
-  String rpcRequestHeaders;
-  String? version;
-  String? errorMessage;
-  ConnectionStatus status;
+  final String id;
+  final String name;
+  final InstanceType type;
+  final String protocol;
+  final String host;
+  final int port;
+  final String secret;
+  final String downloadDir;
+  final String rpcPath;
+  final String rpcRequestHeaders;
+  final String? version;
+  final String? errorMessage;
+  final ConnectionStatus status;
 
   Aria2Instance({
     required this.id,
@@ -80,6 +81,29 @@ class Aria2Instance {
       'status': status.name,
     };
   }
+
+  Map<String, dynamic> toPersistenceJson() {
+    return {
+      'id': id,
+      'name': name,
+      'type': type.name,
+      'protocol': protocol,
+      'host': host,
+      'port': port,
+      'downloadDir': downloadDir,
+      'rpcPath': rpcPath,
+    };
+  }
+
+  String get connectionFingerprint => <Object>[
+    id,
+    protocol,
+    host,
+    port,
+    normalizedRpcPath,
+    secret,
+    rpcRequestHeaders,
+  ].join('\u001f');
 
   String get normalizedRpcPath {
     final trimmed = rpcPath.trim();

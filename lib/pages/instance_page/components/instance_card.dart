@@ -81,6 +81,7 @@ class _InstanceCardState extends State<InstanceCard> {
       case ConnectionStatus.disconnected:
         return colorScheme.surfaceContainerHighest;
       case ConnectionStatus.connecting:
+      case ConnectionStatus.reconnecting:
         return colorScheme.primary;
       case ConnectionStatus.connected:
         return colorScheme.secondary;
@@ -94,6 +95,7 @@ class _InstanceCardState extends State<InstanceCard> {
       case ConnectionStatus.disconnected:
         return const Icon(Icons.link_off, size: 16, color: Colors.white);
       case ConnectionStatus.connecting:
+      case ConnectionStatus.reconnecting:
         return const SizedBox(
           width: 16,
           height: 16,
@@ -126,6 +128,7 @@ class _InstanceCardState extends State<InstanceCard> {
         textColor = colorScheme.onSurfaceVariant;
         break;
       case ConnectionStatus.connecting:
+      case ConnectionStatus.reconnecting:
         label = l10n.connecting;
         backgroundColor = colorScheme.primary.withValues(alpha: 0.2);
         textColor = colorScheme.primary;
@@ -143,7 +146,9 @@ class _InstanceCardState extends State<InstanceCard> {
     }
 
     return Chip(
-      label: status == ConnectionStatus.connecting
+      label:
+          status == ConnectionStatus.connecting ||
+              status == ConnectionStatus.reconnecting
           ? Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -251,6 +256,7 @@ class _InstanceCardState extends State<InstanceCard> {
             destructive: true,
           );
         case ConnectionStatus.connecting:
+        case ConnectionStatus.reconnecting:
           return _buildInlineTextAction(
             context,
             onPressed: null,
@@ -272,6 +278,7 @@ class _InstanceCardState extends State<InstanceCard> {
           onPressed: onPressed,
         );
       case ConnectionStatus.connecting:
+      case ConnectionStatus.reconnecting:
         return _buildInlineIconAction(
           context: context,
           tooltip: l10n.disconnect,
