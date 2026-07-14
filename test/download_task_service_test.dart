@@ -118,6 +118,49 @@ void main() {
         );
       },
     );
+
+    test(
+      'deletes a directory symlink without following it',
+      () async {
+        final tempRoot = await Directory.systemTemp.createTemp(
+          'download-task-service-link-',
+        );
+        addTearDown(() => tempRoot.deleteSync(recursive: true));
+        final baseDir = Directory(p.join(tempRoot.path, 'base'))..createSync();
+        final outsideDir = Directory(p.join(tempRoot.path, 'outside'))
+          ..createSync();
+        final outsideFile = File(p.join(outsideDir.path, 'keep.txt'))
+          ..writeAsStringSync('keep me');
+        final link = Link(p.join(baseDir.path, 'linked-directory'));
+        await link.create(outsideDir.path);
+        final task = DownloadTask(
+          id: 'task-link',
+          name: 'linked-directory',
+          status: DownloadStatus.stopped,
+          progress: 0,
+          downloadSpeed: '0 B/s',
+          uploadSpeed: '0 B/s',
+          size: '0 B',
+          completedSize: '0 B',
+          isLocal: true,
+          instanceId: 'local',
+          dir: baseDir.path,
+          files: <Map<String, dynamic>>[
+            <String, dynamic>{'path': link.path},
+          ],
+        );
+
+        final errors =
+            await DownloadTaskService.deleteDownloadedFilesForTesting(task);
+
+        expect(errors, isEmpty);
+        expect(await link.exists(), isFalse);
+        expect(await outsideFile.exists(), isTrue);
+      },
+      skip: Platform.isWindows
+          ? 'Creating symlinks commonly requires extra Windows privileges.'
+          : false,
+    );
   });
 
   group('DownloadTaskService deleteTaskWithClient', () {
