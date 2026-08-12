@@ -1,31 +1,26 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart' as wm;
 
-import '../core/platform.dart';
-import 'appbar.dart';
-
-abstract final class WindowFrameConfig {
-  static bool get showCaption => isDesktop;
-}
-
-class VirtualWindowFrame extends StatelessWidget {
-  final Widget child;
-  final String? title;
-  final bool showCaption;
-
-  const VirtualWindowFrame({
+class AppVirtualWindowFrame extends StatelessWidget {
+  const AppVirtualWindowFrame({
     super.key,
     required this.child,
     this.title,
     this.showCaption = true,
   });
 
+  final Widget child;
+  final String? title;
+  final bool showCaption;
+
+  bool get _isDesktop =>
+      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
   @override
   Widget build(BuildContext context) {
-    final content =
-        (CustomAppBar.sysStatusBarHeight != 0.0 &&
-            showCaption &&
-            WindowFrameConfig.showCaption)
+    final content = showCaption && _isDesktop
         ? Column(
             children: [
               _WindowCaption(title: title),
@@ -38,16 +33,16 @@ class VirtualWindowFrame extends StatelessWidget {
 }
 
 class _WindowCaption extends StatelessWidget {
-  final String? title;
-
   const _WindowCaption({this.title});
+
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       color: theme.scaffoldBackgroundColor,
-      height: CustomAppBar.sysStatusBarHeight,
+      height: wm.kWindowCaptionHeight,
       width: double.infinity,
       child: Stack(
         alignment: Alignment.center,
@@ -64,7 +59,7 @@ class _WindowCaption extends StatelessWidget {
                 ),
               ),
             ),
-          if (isLinux || isWindows)
+          if (Platform.isWindows || Platform.isLinux)
             wm.WindowCaption(
               backgroundColor: Colors.transparent,
               brightness: theme.brightness,

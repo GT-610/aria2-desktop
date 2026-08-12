@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../kit/kit.dart' as kit;
 
 import '../generated/l10n/l10n.dart';
 import '../models/aria2_instance.dart';
 import '../services/aria2_rpc_client.dart';
 import '../utils/format_utils.dart';
+import '../widgets/sized_loading.dart';
 import 'components/settings_helpers.dart';
 
 class RemoteInstanceSettingsPage extends StatefulWidget {
@@ -424,7 +424,7 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: kit.SizedLoading.small,
+                    child: SizedLoading.small,
                   )
                 : Text(l10n.save),
           ),
@@ -471,7 +471,7 @@ class _RemoteInstanceSettingsPageState extends State<RemoteInstanceSettingsPage>
     }
 
     if (_isLoading) {
-      return const Center(child: kit.SizedLoading.medium);
+      return const Center(child: SizedLoading.medium);
     }
 
     if (_loadError != null) {

@@ -8,11 +8,14 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../constants/app_branding.dart';
 import '../../constants/github_id.dart';
 import '../../generated/l10n/l10n.dart';
-import '../../kit/kit.dart' as kit;
 import '../../models/settings.dart';
+import '../../pages/debug_log_page.dart';
 import '../../services/protocol_integration_service.dart';
 import '../../services/startup_integration_service.dart';
 import '../../utils/logging.dart';
+import '../../widgets/app_card.dart';
+import '../../widgets/section_title.dart';
+import '../../widgets/sized_loading.dart';
 import './components/appearance_dialog.dart';
 
 enum _SettingsTab { global, system, about }
@@ -103,7 +106,7 @@ class _SettingsPageState extends State<SettingsPage>
   Widget build(BuildContext context) {
     super.build(context);
     if (_isLoading) {
-      return Scaffold(body: Center(child: kit.SizedLoading.medium));
+      return const Scaffold(body: Center(child: SizedLoading.medium));
     }
 
     final settings = Provider.of<Settings>(context);
@@ -182,10 +185,7 @@ class _SettingsPageState extends State<SettingsPage>
                     width: itemWidth,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        kit.CenterGreyTitle(section.title),
-                        section.child,
-                      ],
+                      children: [SectionTitle(section.title), section.child],
                     ),
                   ),
                 )
@@ -323,7 +323,7 @@ class _SettingsPageState extends State<SettingsPage>
           value: settings.autoStart,
           onChanged: (value) => _setRunAtStartupPreference(value, settings),
         ),
-        kit.CardX(
+        AppCard(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -333,7 +333,7 @@ class _SettingsPageState extends State<SettingsPage>
                   title: Text(l10n.runMode, style: theme.textTheme.bodyLarge),
                   subtitle: Text(
                     _runModeDescription(settings.runMode, l10n),
-                    style: kit.UIs.textGrey,
+                    style: const TextStyle(color: Colors.grey),
                   ),
                   contentPadding: EdgeInsets.zero,
                 ),
@@ -402,7 +402,10 @@ class _SettingsPageState extends State<SettingsPage>
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-            child: Text(l10n.setAsDefaultClientTip, style: kit.UIs.textGrey),
+            child: Text(
+              l10n.setAsDefaultClientTip,
+              style: const TextStyle(color: Colors.grey),
+            ),
           ),
           _buildSettingsGroup([
             _buildSwitchTile(
@@ -485,7 +488,7 @@ class _SettingsPageState extends State<SettingsPage>
             '$kAppName\n'
             '${_versionLabel.isEmpty ? l10n.versionLoading : _versionLabel}',
             textAlign: TextAlign.center,
-            style: kit.UIs.text15,
+            style: const TextStyle(fontSize: 15),
           ),
           const SizedBox(height: 13),
           SizedBox(
@@ -519,7 +522,7 @@ class _SettingsPageState extends State<SettingsPage>
             ),
           ),
           const SizedBox(height: 13),
-          kit.CardX(
+          AppCard(
             child: Padding(
               padding: const EdgeInsets.all(13),
               child: _buildAboutRichText(context, l10n),
@@ -604,7 +607,7 @@ class _SettingsPageState extends State<SettingsPage>
     Widget? trailing,
     VoidCallback? onTap,
   }) {
-    return kit.CardX(
+    return AppCard(
       child: ListTile(
         title: DefaultTextStyle.merge(
           style: Theme.of(context).textTheme.bodyLarge,
@@ -612,7 +615,10 @@ class _SettingsPageState extends State<SettingsPage>
         ),
         subtitle: subtitle == null
             ? null
-            : DefaultTextStyle.merge(style: kit.UIs.textGrey, child: subtitle),
+            : DefaultTextStyle.merge(
+                style: const TextStyle(color: Colors.grey),
+                child: subtitle,
+              ),
         trailing: trailing,
         onTap: onTap,
       ),
@@ -640,12 +646,12 @@ class _SettingsPageState extends State<SettingsPage>
     required Future<void> Function(bool value) onChanged,
     bool enabled = true,
   }) {
-    return kit.CardX(
+    return AppCard(
       child: ListTile(
         title: Text(title),
         subtitle: subtitle == null
             ? null
-            : Text(subtitle, style: kit.UIs.textGrey),
+            : Text(subtitle, style: const TextStyle(color: Colors.grey)),
         trailing: Switch.adaptive(
           value: value,
           onChanged: !enabled
@@ -816,8 +822,7 @@ class _SettingsPageState extends State<SettingsPage>
     final l10n = AppLocalizations.of(context)!;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) =>
-            kit.DebugPage(args: kit.DebugPageArgs(title: l10n.viewLogs)),
+        builder: (_) => DebugLogPage(title: l10n.viewLogs),
       ),
     );
   }

@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import '../../../kit/kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -494,10 +493,10 @@ class _AddTaskDialogState extends State<AddTaskDialog>
                 const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Btn.tile(
-                    text: l10n.pasteFromClipboard,
-                    icon: const Icon(Icons.paste),
-                    onTap: _isSubmitting ? null : _pasteFromClipboard,
+                  child: _TaskDialogButton(
+                    label: l10n.pasteFromClipboard,
+                    icon: Icons.paste,
+                    onPressed: _isSubmitting ? null : _pasteFromClipboard,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -537,10 +536,10 @@ class _AddTaskDialogState extends State<AddTaskDialog>
         children: [
           const Icon(Icons.file_open, size: 56),
           const SizedBox(height: 16),
-          Btn.tile(
-            text: selectButtonText,
-            icon: const Icon(Icons.upload_file),
-            onTap: _isSubmitting ? null : onSelect,
+          _TaskDialogButton(
+            label: selectButtonText,
+            icon: Icons.upload_file,
+            onPressed: _isSubmitting ? null : onSelect,
           ),
           const SizedBox(height: 16),
           if (selectedFilePath != null)
@@ -895,13 +894,51 @@ class _AddTaskDialogState extends State<AddTaskDialog>
             ),
           ),
           actions: [
-            Btn.cancel(
-              onTap: _isSubmitting ? null : () => Navigator.of(context).pop(),
+            TextButton(
+              onPressed: _isSubmitting
+                  ? null
+                  : () => Navigator.of(context).pop(),
+              child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
             ),
-            Btn.ok(
-              onTap: _hasAvailableTargets && !_isSubmitting
+            FilledButton(
+              onPressed: _hasAvailableTargets && !_isSubmitting
                   ? () => unawaited(_submitCurrentTab())
                   : null,
+              child: Text(MaterialLocalizations.of(context).okButtonLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskDialogButton extends StatelessWidget {
+  const _TaskDialogButton({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(13),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 20),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon),
+            const SizedBox(width: 20),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
             ),
           ],
         ),

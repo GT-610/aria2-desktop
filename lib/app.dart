@@ -6,8 +6,6 @@ import 'package:window_manager/window_manager.dart';
 
 import 'constants/app_branding.dart';
 import 'generated/l10n/l10n.dart';
-import 'kit/kit.dart' as kit;
-import 'kit/kit.dart' show ChineseThemeData;
 import 'models/aria2_instance.dart';
 import 'models/settings.dart';
 import 'pages/download_page/download_page.dart';
@@ -15,6 +13,7 @@ import 'pages/download_page/enums.dart';
 import 'pages/download_page/models/download_task.dart';
 import 'pages/instance_page/instance_page.dart';
 import 'utils/format_utils.dart';
+import 'utils/windows_font_theme.dart';
 import 'pages/settings_page/settings_page.dart';
 import 'services/download_data_service.dart';
 import 'services/instance_manager.dart';
@@ -27,6 +26,8 @@ import 'services/tracker_sync_service.dart';
 import 'services/aria2_rpc_client.dart';
 import 'services/task_bulk_action_service.dart';
 import 'utils/logging.dart';
+import 'widgets/sized_loading.dart';
+import 'widgets/virtual_window_frame.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -71,7 +72,7 @@ class _ThemeProviderState extends State<_ThemeProvider> {
       locale: display.locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      builder: (context, child) => kit.VirtualWindowFrame(
+      builder: (context, child) => AppVirtualWindowFrame(
         title: kAppName,
         showCaption: display.hideTitleBar,
         child: ClipRect(child: child ?? const SizedBox.shrink()),
@@ -82,14 +83,14 @@ class _ThemeProviderState extends State<_ThemeProvider> {
           seedColor: display.primaryColor,
           brightness: Brightness.light,
         ),
-      ).fixWindowsFont,
+      ).withWindowsChineseFontFallback,
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: display.primaryColor,
           brightness: Brightness.dark,
         ),
-      ).fixWindowsFont,
+      ).withWindowsChineseFontFallback,
       themeMode: display.themeMode,
       home: MultiProvider(
         providers: [
@@ -215,7 +216,7 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
-      return Scaffold(body: Center(child: kit.SizedLoading.medium));
+      return const Scaffold(body: Center(child: SizedLoading.medium));
     }
     return const MainWindow();
   }
