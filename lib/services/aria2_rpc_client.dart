@@ -712,7 +712,10 @@ class Aria2RpcClient with Loggable {
 
   /// Change task options.
   Future<String> changeOption(String gid, Map<String, dynamic> options) async {
-    final response = await callRpc('aria2.changeOption', [gid, options]);
+    final response = await callRpc('aria2.changeOption', [
+      gid,
+      options,
+    ], idempotent: true);
     return response['result'] as String;
   }
 
@@ -802,7 +805,9 @@ class Aria2RpcClient with Loggable {
   /// Set global options (Aria2 global configuration)
   Future<bool> setGlobalOption(Map<String, dynamic> options) async {
     try {
-      final response = await callRpc('aria2.changeGlobalOption', [options]);
+      final response = await callRpc('aria2.changeGlobalOption', [
+        options,
+      ], idempotent: true);
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
       this.e(
@@ -855,7 +860,7 @@ class Aria2RpcClient with Loggable {
   /// Save the current aria2 session.
   Future<bool> saveSession() async {
     try {
-      final response = await callRpc('aria2.saveSession', []);
+      final response = await callRpc('aria2.saveSession', [], idempotent: true);
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
       this.e(
@@ -888,7 +893,11 @@ class Aria2RpcClient with Loggable {
   /// Purge all stopped download results from aria2.
   Future<bool> purgeDownloadResult() async {
     try {
-      final response = await callRpc('aria2.purgeDownloadResult', []);
+      final response = await callRpc(
+        'aria2.purgeDownloadResult',
+        [],
+        idempotent: true,
+      );
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
       this.e(

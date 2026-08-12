@@ -911,6 +911,28 @@ class DownloadPageState extends State<DownloadPage>
                     );
                   }
                   return true;
+                } on RpcResultIndeterminateException catch (e, stackTrace) {
+                  w(
+                    'Task add result could not be confirmed',
+                    error: e,
+                    stackTrace: stackTrace,
+                  );
+                  _refreshTasks();
+                  Future<void>.delayed(
+                    const Duration(milliseconds: 600),
+                    _refreshTasks,
+                  );
+                  if (showDownloadsAfterAdd && mounted) {
+                    _focusDownloadingView();
+                  }
+                  if (pageContext.mounted) {
+                    ScaffoldMessenger.of(pageContext).showSnackBar(
+                      SnackBar(content: Text(l10n.rpcOperationResultUnknown)),
+                    );
+                  }
+                  // Close the dialog so users do not accidentally submit the
+                  // same task again before the refreshed state is available.
+                  return true;
                 } catch (e, stackTrace) {
                   this.e(
                     'Failed to add task',

@@ -213,5 +213,51 @@ void main() {
         client.close();
       },
     );
+
+    test('does not delete files when task removal is unconfirmed', () async {
+      var deleteFilesCalled = false;
+      final task = DownloadTask(
+        id: 'task-unknown',
+        name: 'file.zip',
+        status: DownloadStatus.active,
+        progress: 0,
+        downloadSpeed: '0 B/s',
+        uploadSpeed: '0 B/s',
+        size: '0 B',
+        completedSize: '0 B',
+        isLocal: true,
+        instanceId: 'local',
+        dir: Directory.systemTemp.path,
+      );
+      final client = Aria2RpcClient(
+        Aria2Instance(
+          id: 'local',
+          name: 'Local',
+          type: InstanceType.remote,
+          protocol: 'http',
+          host: '127.0.0.1',
+          port: 6800,
+        ),
+      );
+
+      await expectLater(
+        DownloadTaskService.deleteTaskWithClient(
+          client,
+          task,
+          deleteDownloadedFiles: true,
+          removeTaskOverride: () async {
+            throw const RpcResultIndeterminateException('aria2.remove');
+          },
+          deleteFilesOverride: (_) async {
+            deleteFilesCalled = true;
+            return const <String>[];
+          },
+        ),
+        throwsA(isA<RpcResultIndeterminateException>()),
+      );
+
+      expect(deleteFilesCalled, isFalse);
+      await client.close();
+    });
   });
 }

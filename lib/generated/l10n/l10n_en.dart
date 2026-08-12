@@ -1232,6 +1232,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String taskActionSummaryIndeterminate(
+    Object action,
+    int success,
+    int failed,
+    int indeterminate,
+    int skipped,
+  ) {
+    return '$action: $success succeeded, $failed failed, $indeterminate could not be confirmed, $skipped skipped. Refresh before retrying unconfirmed items.';
+  }
+
+  @override
+  String get rpcOperationResultUnknown =>
+      'The request may have reached aria2, but its result could not be confirmed. Check the latest state before trying again.';
+
+  @override
   String fileDeletionWarningsSummary(int count) {
     return 'Some files could not be deleted for $count task(s).';
   }

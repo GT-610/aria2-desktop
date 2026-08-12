@@ -212,6 +212,10 @@ class DownloadTaskService with Loggable {
         );
       }
     } catch (e, stackTrace) {
+      if (context.mounted &&
+          _handleIndeterminateResult(context, e, onTaskUpdated)) {
+        return;
+      }
       _logger.e(
         'Failed to pause task ${task.id}',
         error: e,
@@ -272,6 +276,10 @@ class DownloadTaskService with Loggable {
         );
       }
     } catch (e, stackTrace) {
+      if (context.mounted &&
+          _handleIndeterminateResult(context, e, onTaskUpdated)) {
+        return;
+      }
       _logger.e(
         'Failed to stop task ${task.id}',
         error: e,
@@ -319,6 +327,10 @@ class DownloadTaskService with Loggable {
         );
       }
     } catch (e, stackTrace) {
+      if (context.mounted &&
+          _handleIndeterminateResult(context, e, onTaskUpdated)) {
+        return;
+      }
       _logger.e(
         'Failed to stop seeding task ${task.id}',
         error: e,
@@ -357,6 +369,10 @@ class DownloadTaskService with Loggable {
         );
       }
     } catch (e, stackTrace) {
+      if (context.mounted &&
+          _handleIndeterminateResult(context, e, onTaskUpdated)) {
+        return;
+      }
       _logger.e(
         'Failed to resume task ${task.id}',
         error: e,
@@ -418,6 +434,10 @@ class DownloadTaskService with Loggable {
         );
       }
     } catch (e, stackTrace) {
+      if (context.mounted &&
+          _handleIndeterminateResult(context, e, onTaskUpdated)) {
+        return;
+      }
       _logger.e(
         'Failed to remove failed task ${task.id}',
         error: e,
@@ -518,6 +538,10 @@ class DownloadTaskService with Loggable {
       }
       onTaskUpdated();
     } catch (e, stackTrace) {
+      if (context.mounted &&
+          _handleIndeterminateResult(context, e, onTaskUpdated)) {
+        return;
+      }
       _logger.e(
         'Failed to retry task ${task.id}',
         error: e,
@@ -535,6 +559,29 @@ class DownloadTaskService with Loggable {
 
   static void _scheduleFollowUpRefresh(VoidCallback onTaskUpdated) {
     Future<void>.delayed(const Duration(milliseconds: 600), onTaskUpdated);
+  }
+
+  static bool _handleIndeterminateResult(
+    BuildContext context,
+    Object error,
+    VoidCallback onTaskUpdated,
+  ) {
+    if (error is! RpcResultIndeterminateException) {
+      return false;
+    }
+    _logger.w(
+      'Task action result could not be confirmed; refreshing before retry',
+      error: error,
+    );
+    onTaskUpdated();
+    _scheduleFollowUpRefresh(onTaskUpdated);
+    if (context.mounted) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.rpcOperationResultUnknown)));
+    }
+    return true;
   }
 
   static Future<List<String>> _deleteDownloadedFiles(DownloadTask task) async {

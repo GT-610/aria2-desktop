@@ -757,7 +757,15 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
-    final message = result.failureCount == 0
+    final message = result.indeterminateCount > 0
+        ? l10n.taskActionSummaryIndeterminate(
+            actionLabel,
+            result.successCount,
+            result.failureCount,
+            result.indeterminateCount,
+            0,
+          )
+        : result.failureCount == 0
         ? l10n.taskActionSummarySuccess(actionLabel, result.successCount)
         : l10n.taskActionSummaryDetailed(
             actionLabel,
