@@ -348,6 +348,10 @@ class WindowManagerService with Loggable {
 
   Future<void> initialize({bool hideTitleBar = false}) async {
     await windowManager.ensureInitialized();
+    // Route every native close request through MainWindow.onWindowClose so the
+    // built-in aria2 process can save its session and stop before the runner
+    // exits. windowManager.destroy() still force-closes after cleanup.
+    await windowManager.setPreventClose(true);
 
     final windowOptions = WindowOptions(
       size: Size(1200, 800),

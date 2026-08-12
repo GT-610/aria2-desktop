@@ -238,6 +238,9 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       final refreshResults = await Future.wait(
         connectedInstances.map(_fetchTasksForInstance),
       );
+      if (_isDisposed) {
+        return;
+      }
       final newTasks = <DownloadTask>[];
       final errors = <String>[];
       for (final result in refreshResults) {

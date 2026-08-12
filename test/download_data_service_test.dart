@@ -277,6 +277,64 @@ void main() {
     await server.close(force: true);
   });
 
+  test('does not publish an in-flight refresh after disposal', () async {
+    final requestSeen = Completer<void>();
+    final releaseRequest = Completer<void>();
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      final body = await utf8.decoder.bind(request).join();
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+      requestSeen.complete();
+      await releaseRequest.future;
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(
+        jsonEncode(<String, dynamic>{
+          'jsonrpc': '2.0',
+          'id': decoded['id'],
+          'result': <Object>[
+            <Object>[
+              <Object>[
+                <String, String>{
+                  'gid': 'late',
+                  'status': 'active',
+                  'totalLength': '10',
+                  'completedLength': '1',
+                  'downloadSpeed': '1',
+                  'uploadSpeed': '0',
+                },
+              ],
+            ],
+            <Object>[<Object>[]],
+            <Object>[<Object>[]],
+          ],
+        }),
+      );
+      await request.response.close();
+    });
+    final instance = Aria2Instance(
+      id: 'dispose',
+      name: 'Dispose',
+      type: InstanceType.remote,
+      protocol: 'http',
+      host: InternetAddress.loopbackIPv4.address,
+      port: server.port,
+      status: ConnectionStatus.connected,
+    );
+    final service = DownloadDataService();
+    var notificationCount = 0;
+    service.addListener(() => notificationCount++);
+
+    final refresh = service.refreshTasks(<Aria2Instance>[instance]);
+    await requestSeen.future;
+    service.dispose();
+    releaseRequest.complete();
+    await refresh;
+
+    expect(notificationCount, 0);
+    expect(service.tasks, isEmpty);
+    await server.close(force: true);
+  });
+
   test('refreshes tasks when aria2 sends a websocket notification', () async {
     WebSocket? socket;
     var gid = 'initial';
