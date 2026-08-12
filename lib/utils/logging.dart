@@ -53,12 +53,19 @@ void initializeAppLogging({Level? level}) {
         ? _redactSensitiveText(record.message)
         : '${_redactSensitiveText(record.message)}: '
               '${_redactSensitiveText(record.error.toString())}';
-    DebugLogStore.add(record, message: displayMessage);
+    final displayStackTrace = record.stackTrace == null
+        ? null
+        : _redactSensitiveText(record.stackTrace.toString());
+    DebugLogStore.add(
+      record,
+      message: displayMessage,
+      stackTrace: displayStackTrace,
+    );
     // ignore: avoid_print
     print(_formatRecord(record));
-    if (record.stackTrace != null) {
+    if (displayStackTrace != null) {
       // ignore: avoid_print
-      print(record.stackTrace!);
+      print(displayStackTrace);
     }
   });
 }

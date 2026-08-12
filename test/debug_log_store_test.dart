@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logging/logging.dart';
 import 'package:setsuna/services/debug_log_store.dart';
+import 'package:setsuna/utils/logging.dart';
 
 void main() {
   setUp(DebugLogStore.clear);
@@ -11,6 +12,7 @@ void main() {
       DebugLogStore.add(
         LogRecord(Level.INFO, 'message-$index', 'Test'),
         message: 'message-$index',
+        stackTrace: null,
       );
     }
 
@@ -31,12 +33,27 @@ void main() {
       loggerName: 'Rpc',
       level: Level.WARNING,
       message: 'Connection delayed',
-      stackTrace: StackTrace.fromString('trace line'),
+      stackTrace: 'trace line',
     );
 
     expect(
       entry.plainText,
       '[09:05][Rpc][WARNING] Connection delayed\ntrace line',
+    );
+  });
+
+  test('stores redacted stack traces from the root logger', () async {
+    initializeAppLogging(level: Level.ALL);
+
+    taggedLogger('Test').e(
+      'RPC failed',
+      stackTrace: StackTrace.fromString('authorization: Bearer private-token'),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(
+      DebugLogStore.entries.value.single.stackTrace,
+      'authorization: [REDACTED]',
     );
   });
 }

@@ -333,7 +333,7 @@ class _SettingsPageState extends State<SettingsPage>
                   title: Text(l10n.runMode, style: theme.textTheme.bodyLarge),
                   subtitle: Text(
                     _runModeDescription(settings.runMode, l10n),
-                    style: const TextStyle(color: Colors.grey),
+                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                   ),
                   contentPadding: EdgeInsets.zero,
                 ),
@@ -404,7 +404,9 @@ class _SettingsPageState extends State<SettingsPage>
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
             child: Text(
               l10n.setAsDefaultClientTip,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           _buildSettingsGroup([
@@ -616,7 +618,9 @@ class _SettingsPageState extends State<SettingsPage>
         subtitle: subtitle == null
             ? null
             : DefaultTextStyle.merge(
-                style: const TextStyle(color: Colors.grey),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 child: subtitle,
               ),
         trailing: trailing,
@@ -651,7 +655,12 @@ class _SettingsPageState extends State<SettingsPage>
         title: Text(title),
         subtitle: subtitle == null
             ? null
-            : Text(subtitle, style: const TextStyle(color: Colors.grey)),
+            : Text(
+                subtitle,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
         trailing: Switch.adaptive(
           value: value,
           onChanged: !enabled

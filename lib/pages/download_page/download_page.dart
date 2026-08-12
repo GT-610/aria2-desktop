@@ -31,6 +31,10 @@ class DownloadPage extends StatefulWidget {
 
 class DownloadPageState extends State<DownloadPage>
     with AutomaticKeepAliveClientMixin, Loggable {
+  static const Duration _indeterminateRefreshDelay = Duration(
+    milliseconds: 600,
+  );
+
   FilterOption _selectedFilter = FilterOption.all;
   CategoryType _currentCategoryType = CategoryType.all;
   TaskSortOption _sortOption = TaskSortOption.name;
@@ -245,6 +249,7 @@ class DownloadPageState extends State<DownloadPage>
   }
 
   void _refreshTasks() {
+    if (!mounted) return;
     if (instanceManager == null || downloadDataService == null) return;
 
     final refreshableInstances = instanceManager!.getRefreshableInstances();
@@ -916,9 +921,11 @@ class DownloadPageState extends State<DownloadPage>
                     stackTrace: stackTrace,
                   );
                   _refreshTasks();
-                  Future<void>.delayed(
-                    const Duration(milliseconds: 600),
-                    _refreshTasks,
+                  unawaited(
+                    Future<void>.delayed(
+                      _indeterminateRefreshDelay,
+                      _refreshTasks,
+                    ),
                   );
                   if (showDownloadsAfterAdd && mounted) {
                     _focusDownloadingView();

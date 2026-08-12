@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
+import '../generated/l10n/l10n.dart';
 import '../services/debug_log_store.dart';
+import '../utils/logging.dart';
+
+final _logger = taggedLogger('DebugLogPage');
 
 class DebugLogPage extends StatelessWidget {
   const DebugLogPage({super.key, required this.title});
@@ -16,7 +20,23 @@ class DebugLogPage extends StatelessWidget {
         actions: [
           IconButton(
             tooltip: MaterialLocalizations.of(context).copyButtonLabel,
-            onPressed: DebugLogStore.copy,
+            onPressed: () async {
+              try {
+                await DebugLogStore.copy();
+              } catch (error, stackTrace) {
+                _logger.e(
+                  'Failed to copy debug logs',
+                  error: error,
+                  stackTrace: stackTrace,
+                );
+                if (context.mounted) {
+                  final l10n = AppLocalizations.of(context)!;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.operationFailed('$error'))),
+                  );
+                }
+              }
+            },
             icon: const Icon(Icons.copy_outlined),
           ),
           IconButton(
@@ -49,19 +69,23 @@ class DebugLogPage extends StatelessWidget {
   Future<void> _confirmClear(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Clear logs?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+      builder: (dialogContext) {
+        final materialL10n = MaterialLocalizations.of(dialogContext);
+        final l10n = AppLocalizations.of(dialogContext)!;
+        return AlertDialog(
+          title: Text(l10n.clearLogsConfirm),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(materialL10n.cancelButtonLabel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(materialL10n.okButtonLabel),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed == true) {
       DebugLogStore.clear();

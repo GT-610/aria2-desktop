@@ -251,7 +251,20 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
     windowManager.addListener(this);
+    unawaited(_showPreparedWindow());
     _initSystemTrayCallbacks();
+  }
+
+  Future<void> _showPreparedWindow() async {
+    try {
+      await WindowManagerService().showPreparedWindow();
+    } catch (error, stackTrace) {
+      e(
+        'Failed to show the prepared application window',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   @override

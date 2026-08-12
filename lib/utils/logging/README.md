@@ -9,7 +9,8 @@ on the same path.
 - `lib/utils/logging.dart` is the single logging facade for app code.
 - `initializeAppLogging()` configures `Logger.root.level` and the root record
   listener.
-- The root listener forwards each `LogRecord` to `DebugLogStore.add(record)`.
+- The root listener forwards each `LogRecord` to
+  `DebugLogStore.add(record, message: displayMessage, stackTrace: displayStackTrace)`.
 - The same listener writes redacted, formatted output to stdout.
 - Errors and stack traces are emitted from the root listener, not ad hoc in
   feature code.

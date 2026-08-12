@@ -77,10 +77,38 @@ void main() {
         'findExpectedProcess',
       ]);
       expect(calls[1].arguments, <String, Object>{'pid': 123});
+      expect(calls[2].arguments, <String, Object>{
+        'pid': 123,
+        'executablePath': r'C:\aria2c.exe',
+      });
       expect(calls[3].arguments, <String, Object>{
         'port': 16800,
         'executablePath': r'C:\aria2c.exe',
       });
     },
   );
+
+  test(
+    'allows startup when the ownership-lock plugin is unavailable',
+    () async {
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        throw MissingPluginException();
+      });
+      final service = ProcessLifecycleService(
+        channel: channel,
+        isWindows: true,
+      );
+
+      expect(await service.canManageBuiltinProcess(), isTrue);
+    },
+  );
+
+  test('rejects startup when the ownership-lock query fails', () async {
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      throw PlatformException(code: 'unavailable');
+    });
+    final service = ProcessLifecycleService(channel: channel, isWindows: true);
+
+    expect(await service.canManageBuiltinProcess(), isFalse);
+  });
 }

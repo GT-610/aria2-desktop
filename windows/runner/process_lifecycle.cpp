@@ -13,10 +13,30 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace {
 
 constexpr wchar_t kEngineMutexName[] = L"Local\\SetsunaBuiltinAria2";
+constexpr int kTcpTableQueryAttempts = 3;
+
+// MIB_TCP6TABLE_OWNER_PID is hidden by some Windows SDK family partitions
+// even though GetExtendedTcpTable supports the corresponding desktop query.
+struct Tcp6RowOwnerPid {
+  UCHAR local_address[16];
+  DWORD local_scope_id;
+  DWORD local_port;
+  UCHAR remote_address[16];
+  DWORD remote_scope_id;
+  DWORD remote_port;
+  DWORD state;
+  DWORD owning_pid;
+};
+
+struct Tcp6TableOwnerPid {
+  DWORD number_of_entries;
+  Tcp6RowOwnerPid table[1];
+};
 
 std::optional<int64_t> GetIntegerArgument(const flutter::EncodableMap& args,
                                           const char* key) {
@@ -212,24 +232,43 @@ class ProcessLifecycle::Impl {
 
   std::optional<DWORD> FindExpectedProcess(
       uint16_t port, const std::string& expected_path) const {
-    ULONG size = 0;
-    DWORD status = GetExtendedTcpTable(nullptr, &size, FALSE, AF_INET,
-                                       TCP_TABLE_OWNER_PID_LISTENER, 0);
-    if (status != ERROR_INSUFFICIENT_BUFFER) {
-      return std::nullopt;
-    }
-    auto buffer = std::make_unique<unsigned char[]>(size);
-    auto* table = reinterpret_cast<MIB_TCPTABLE_OWNER_PID*>(buffer.get());
-    status = GetExtendedTcpTable(table, &size, FALSE, AF_INET,
-                                 TCP_TABLE_OWNER_PID_LISTENER, 0);
-    if (status != NO_ERROR) {
-      return std::nullopt;
-    }
-    for (DWORD index = 0; index < table->dwNumEntries; ++index) {
-      const auto& row = table->table[index];
-      if (ntohs(static_cast<u_short>(row.dwLocalPort)) == port &&
-          IsExpectedProcess(row.dwOwningPid, expected_path)) {
-        return row.dwOwningPid;
+    for (const ULONG address_family : {AF_INET, AF_INET6}) {
+      ULONG size = 0;
+      std::vector<unsigned char> buffer;
+      DWORD status = ERROR_INSUFFICIENT_BUFFER;
+      for (int attempt = 0;
+           attempt < kTcpTableQueryAttempts &&
+           status == ERROR_INSUFFICIENT_BUFFER;
+           ++attempt) {
+        buffer.resize(size);
+        status = GetExtendedTcpTable(
+            buffer.empty() ? nullptr : buffer.data(), &size, FALSE,
+            address_family, TCP_TABLE_OWNER_PID_LISTENER, 0);
+      }
+      if (status != NO_ERROR) {
+        return std::nullopt;
+      }
+
+      if (address_family == AF_INET) {
+        const auto* table =
+            reinterpret_cast<const MIB_TCPTABLE_OWNER_PID*>(buffer.data());
+        for (DWORD index = 0; index < table->dwNumEntries; ++index) {
+          const auto& row = table->table[index];
+          if (ntohs(static_cast<u_short>(row.dwLocalPort)) == port &&
+              IsExpectedProcess(row.dwOwningPid, expected_path)) {
+            return row.dwOwningPid;
+          }
+        }
+      } else {
+        const auto* table =
+            reinterpret_cast<const Tcp6TableOwnerPid*>(buffer.data());
+        for (DWORD index = 0; index < table->number_of_entries; ++index) {
+          const auto& row = table->table[index];
+          if (ntohs(static_cast<u_short>(row.local_port)) == port &&
+              IsExpectedProcess(row.owning_pid, expected_path)) {
+            return row.owning_pid;
+          }
+        }
       }
     }
     return std::nullopt;

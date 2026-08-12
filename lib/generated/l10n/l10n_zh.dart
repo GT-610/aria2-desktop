@@ -270,6 +270,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewLogsTip => '查看应用内日志与调试输出';
 
   @override
+  String get clearLogsConfirm => '清除日志？';
+
+  @override
   String get maintenance => '维护与恢复';
 
   @override

@@ -612,7 +612,12 @@ class BuiltinInstanceService with Loggable {
       return await client.testConnection();
     } on UnauthorizedException {
       return true;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      w(
+        'Failed to probe the built-in aria2 RPC endpoint',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return false;
     } finally {
       await client.close();
@@ -718,7 +723,7 @@ class BuiltinInstanceService with Loggable {
     _stdoutSubscription = process.stdout.transform(utf8.decoder).listen((_) {});
 
     _stderrSubscription = process.stderr.transform(utf8.decoder).listen((data) {
-      if (kDebugMode && !_isConnected) {
+      if (!_isConnected) {
         e('Aria2 [builtin] stderr: $data');
       }
     });

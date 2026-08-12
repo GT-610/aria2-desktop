@@ -425,8 +425,8 @@ void main() {
             final decoded =
                 jsonDecode(message as String) as Map<String, dynamic>;
             final delay = switch (sequence) {
-              1 => const Duration(milliseconds: 120),
-              2 => const Duration(milliseconds: 30),
+              1 => const Duration(milliseconds: 360),
+              2 => const Duration(milliseconds: 90),
               _ => Duration.zero,
             };
             Future<void>.delayed(delay, () {
@@ -451,7 +451,7 @@ void main() {
             host: InternetAddress.loopbackIPv4.address,
             port: server.port,
           ),
-          requestTimeout: const Duration(milliseconds: 70),
+          requestTimeout: const Duration(milliseconds: 210),
           retryDelay: const Duration(milliseconds: 5),
         );
 

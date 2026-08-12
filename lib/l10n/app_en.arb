@@ -91,6 +91,7 @@
   "failedToSetCustomThemeColor": "Failed to set custom theme color: {error}",
   "viewLogs": "View logs",
   "viewLogsTip": "View in-app logs and debug output",
+  "clearLogsConfirm": "Clear logs?",
   "maintenance": "Maintenance",
   "resetAppSettings": "Reset app settings",
   "resetAppSettingsTip": "Restore app preferences and built-in defaults without deleting tasks or downloaded files",

@@ -584,6 +584,12 @@ abstract class AppLocalizations {
   /// **'View in-app logs and debug output'**
   String get viewLogsTip;
 
+  /// No description provided for @clearLogsConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear logs?'**
+  String get clearLogsConfirm;
+
   /// No description provided for @maintenance.
   ///
   /// In en, this message translates to:

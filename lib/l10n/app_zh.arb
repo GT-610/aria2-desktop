@@ -91,6 +91,7 @@
   "failedToSetCustomThemeColor": "设置自定义主题色失败: {error}",
   "viewLogs": "查看日志",
   "viewLogsTip": "查看应用内日志与调试输出",
+  "clearLogsConfirm": "清除日志？",
   "maintenance": "维护与恢复",
   "resetAppSettings": "重置应用设置",
   "resetAppSettingsTip": "恢复应用偏好和内建默认设置，不删除任务或已下载文件",

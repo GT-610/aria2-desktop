@@ -230,7 +230,13 @@ class Aria2RpcClient with Loggable {
           generation: requestGeneration,
         );
 
-        requestSocket.add(jsonEncode(requestBody));
+        try {
+          requestSocket.add(jsonEncode(requestBody));
+        } on StateError catch (error) {
+          throw ConnectionFailedException(
+            'Failed to send WebSocket RPC request: $error',
+          );
+        }
         requestWasSent = true;
 
         final response = await completer.future.timeout(_requestTimeout);
@@ -463,8 +469,7 @@ class Aria2RpcClient with Loggable {
         error is TimeoutException ||
         error is SocketException ||
         error is WebSocketException ||
-        error is http.ClientException ||
-        error is StateError;
+        error is http.ClientException;
   }
 
   Future<void> _waitBeforeRetry(int attempt) {

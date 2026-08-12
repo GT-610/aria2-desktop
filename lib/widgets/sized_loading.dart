@@ -6,7 +6,7 @@ class SizedLoading extends StatelessWidget {
   final double size;
   final double padding;
 
-  static const small = SizedLoading(25);
+  static const small = SizedLoading(16, padding: 2);
   static const medium = SizedLoading(45);
   static const large = SizedLoading(65);
 

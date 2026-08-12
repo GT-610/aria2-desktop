@@ -286,6 +286,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewLogsTip => 'View in-app logs and debug output';
 
   @override
+  String get clearLogsConfirm => 'Clear logs?';
+
+  @override
   String get maintenance => 'Maintenance';
 
   @override

@@ -15,7 +15,7 @@ class DebugLogEntry {
   final String loggerName;
   final Level level;
   final String message;
-  final StackTrace? stackTrace;
+  final String? stackTrace;
 
   String get plainText {
     final time =
@@ -33,7 +33,11 @@ class DebugLogStore {
   static final ValueNotifier<List<DebugLogEntry>> entries =
       ValueNotifier<List<DebugLogEntry>>(const []);
 
-  static void add(LogRecord record, {required String message}) {
+  static void add(
+    LogRecord record, {
+    required String message,
+    required String? stackTrace,
+  }) {
     final next = <DebugLogEntry>[
       ...entries.value,
       DebugLogEntry(
@@ -41,7 +45,7 @@ class DebugLogStore {
         loggerName: record.loggerName,
         level: record.level,
         message: message,
-        stackTrace: record.stackTrace,
+        stackTrace: stackTrace,
       ),
     ];
     entries.value = next.length <= maximumEntries

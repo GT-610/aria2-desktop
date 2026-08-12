@@ -433,6 +433,8 @@ void main() {
       status: ConnectionStatus.connected,
     );
     final service = DownloadDataService();
+    // Install the provider used by RPC notifications without leaving the
+    // periodic refresh timer running during this test.
     service.startPeriodicRefresh(() => <Aria2Instance>[instance]);
     service.stopPeriodicRefresh();
 

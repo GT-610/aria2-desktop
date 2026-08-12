@@ -926,6 +926,10 @@ class _TaskDialogButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final foregroundColor = onPressed == null
+        ? colorScheme.onSurface.withValues(alpha: 0.38)
+        : null;
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(13),
@@ -934,11 +938,15 @@ class _TaskDialogButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon),
+            Icon(icon, color: foregroundColor),
             const SizedBox(width: 20),
             Text(
               label,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+              style: TextStyle(
+                color: foregroundColor,
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+              ),
             ),
           ],
         ),
