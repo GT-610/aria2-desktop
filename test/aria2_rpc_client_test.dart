@@ -505,6 +505,51 @@ void main() {
       await server.close(force: true);
     });
 
+    test('emits aria2 websocket notifications without an id', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        final socket = await WebSocketTransformer.upgrade(request);
+        socket.listen((message) {
+          final decoded = jsonDecode(message as String) as Map<String, dynamic>;
+          socket.add(
+            jsonEncode(<String, dynamic>{
+              'jsonrpc': '2.0',
+              'id': decoded['id'],
+              'result': <String, dynamic>{'version': '1.37.0'},
+            }),
+          );
+          socket.add(
+            jsonEncode(<String, dynamic>{
+              'jsonrpc': '2.0',
+              'method': 'aria2.onDownloadComplete',
+              'params': <Object>[
+                <String, String>{'gid': 'complete-gid'},
+              ],
+            }),
+          );
+        });
+      });
+      final client = Aria2RpcClient(
+        Aria2Instance(
+          id: 'ws-events',
+          name: 'WS',
+          type: InstanceType.remote,
+          protocol: 'ws',
+          host: InternetAddress.loopbackIPv4.address,
+          port: server.port,
+        ),
+      );
+      final notification = client.notifications.first;
+
+      expect(await client.getVersion(), '1.37.0');
+      final event = await notification.timeout(const Duration(seconds: 1));
+      expect(event.method, 'aria2.onDownloadComplete');
+      expect(event.gid, 'complete-gid');
+
+      await client.close();
+      await server.close(force: true);
+    });
+
     test('paginates waiting tasks beyond the first one hundred', () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       server.listen((request) async {

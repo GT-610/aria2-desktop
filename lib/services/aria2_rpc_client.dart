@@ -40,6 +40,20 @@ class RpcResultIndeterminateException extends RpcException {
     : super('The result of $method is unknown because the connection closed');
 }
 
+class Aria2RpcNotification {
+  const Aria2RpcNotification({required this.method, required this.params});
+
+  final String method;
+  final List<dynamic> params;
+
+  String? get gid {
+    if (params.isEmpty || params.first is! Map) {
+      return null;
+    }
+    return (params.first as Map)['gid']?.toString();
+  }
+}
+
 class _PendingRpcRequest {
   _PendingRpcRequest({required this.completer, required this.generation});
 
@@ -62,9 +76,14 @@ class Aria2RpcClient with Loggable {
   StreamSubscription? _webSocketSubscription;
   Future<void>? _webSocketInitFuture;
   final Map<String, _PendingRpcRequest> _pendingRequests = {};
+  final StreamController<Aria2RpcNotification>? _notificationController;
   final bool _isWebSocket;
   bool _isClosed = false;
   int _connectionGeneration = 0;
+
+  Stream<Aria2RpcNotification> get notifications =>
+      _notificationController?.stream ??
+      const Stream<Aria2RpcNotification>.empty();
 
   /// Factory method to create appropriate client based on protocol
   factory Aria2RpcClient(
@@ -88,6 +107,9 @@ class Aria2RpcClient with Loggable {
   }) : _isWebSocket = isWebSocket,
        _requestTimeout = requestTimeout,
        _retryDelay = retryDelay,
+       _notificationController = isWebSocket
+           ? StreamController<Aria2RpcNotification>.broadcast()
+           : null,
        _httpClient = isWebSocket ? null : http.Client();
 
   /// Send RPC request
@@ -331,7 +353,20 @@ class Aria2RpcClient with Loggable {
       if (data is! Map) return;
       final response = Map<String, dynamic>.from(data);
       final requestId = response['id']?.toString();
-      final pending = requestId == null ? null : _pendingRequests[requestId];
+      if (requestId == null) {
+        final method = response['method'];
+        final params = response['params'];
+        if (method is String && params is List) {
+          _notificationController?.add(
+            Aria2RpcNotification(
+              method: method,
+              params: List<dynamic>.from(params),
+            ),
+          );
+        }
+        return;
+      }
+      final pending = _pendingRequests[requestId];
       if (pending == null || pending.generation != generation) {
         return;
       }
@@ -888,6 +923,7 @@ class Aria2RpcClient with Loggable {
       _httpClient?.close();
       _httpClient = null;
     }
+    await _notificationController?.close();
   }
 
   @visibleForTesting

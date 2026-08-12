@@ -73,6 +73,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   List<DownloadTask> _tasks = [];
   List<DownloadTask> _tasksView = const [];
   bool _isRefreshing = false;
+  bool _isDisposed = false;
   String? _lastError;
   final List<DownloadTaskNotification> _pendingNotifications = [];
   int _tasksVersion = 0;
@@ -81,7 +82,11 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   final int _refreshInterval = 1000;
 
   final Map<String, Aria2RpcClient> _clientCache = {};
+  final Map<String, StreamSubscription<Aria2RpcNotification>>
+  _notificationSubscriptions = {};
   List<Aria2Instance> Function()? _connectedInstancesProvider;
+  List<Aria2Instance>? _pendingRefreshInstances;
+  Future<void>? _refreshLoop;
 
   List<DownloadTask> get tasks => _tasksView;
   int get tasksVersion => _tasksVersion;
@@ -92,10 +97,27 @@ class DownloadDataService extends ChangeNotifier with Loggable {
 
   Aria2RpcClient _getClient(Aria2Instance instance) {
     final key = instance.connectionFingerprint;
-    return _clientCache.putIfAbsent(key, () => Aria2RpcClient(instance));
+    return _clientCache.putIfAbsent(key, () {
+      final client = Aria2RpcClient(instance);
+      _notificationSubscriptions[key] = client.notifications.listen(
+        (notification) => _handleRpcNotification(instance, notification),
+        onError: (Object error, StackTrace stackTrace) {
+          w(
+            'aria2 notification stream failed for ${instance.name}',
+            error: error,
+            stackTrace: stackTrace,
+          );
+        },
+      );
+      return client;
+    });
   }
 
   void _clearClientCache() {
+    for (final subscription in _notificationSubscriptions.values) {
+      unawaited(subscription.cancel());
+    }
+    _notificationSubscriptions.clear();
     for (final client in _clientCache.values) {
       unawaited(client.close());
     }
@@ -110,6 +132,10 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         .where((key) => !activeFingerprints.contains(key))
         .toList();
     for (final key in obsoleteKeys) {
+      final subscription = _notificationSubscriptions.remove(key);
+      if (subscription != null) {
+        unawaited(subscription.cancel());
+      }
       final client = _clientCache.remove(key);
       if (client != null) {
         unawaited(client.close());
@@ -130,9 +156,46 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     _refreshTimer = null;
   }
 
-  Future<void> refreshTasks(List<Aria2Instance> instances) async {
-    if (_isRefreshing) return;
+  Future<void> refreshTasks(List<Aria2Instance> instances) {
+    if (_isDisposed) {
+      return Future<void>.value();
+    }
+    _pendingRefreshInstances = List<Aria2Instance>.from(instances);
+    final activeLoop = _refreshLoop;
+    if (activeLoop != null) {
+      return activeLoop;
+    }
 
+    final completion = Completer<void>();
+    final loop = completion.future;
+    _refreshLoop = loop;
+    unawaited(_runRefreshLoop(loop, completion));
+    return loop;
+  }
+
+  Future<void> _runRefreshLoop(
+    Future<void> loop,
+    Completer<void> completion,
+  ) async {
+    try {
+      while (!_isDisposed && _pendingRefreshInstances != null) {
+        final instances = _pendingRefreshInstances!;
+        _pendingRefreshInstances = null;
+        await _refreshTasksOnce(instances);
+      }
+      if (identical(_refreshLoop, loop)) {
+        _refreshLoop = null;
+      }
+      completion.complete();
+    } catch (error, stackTrace) {
+      if (identical(_refreshLoop, loop)) {
+        _refreshLoop = null;
+      }
+      completion.completeError(error, stackTrace);
+    }
+  }
+
+  Future<void> _refreshTasksOnce(List<Aria2Instance> instances) async {
     final connectedInstances = instances
         .where(
           (instance) =>
@@ -150,7 +213,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       _tasksVersion++;
       _lastError = null;
       if (hadTasks || hadError) {
-        notifyListeners();
+        _notifyIfActive();
       }
       return;
     }
@@ -232,7 +295,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         connectedInstances,
         terminalTransitionInstanceIds,
       );
-      notifyListeners();
+      _notifyIfActive();
     } catch (e, stackTrace) {
       _lastError = e.toString();
       this.e(
@@ -240,9 +303,32 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         error: e,
         stackTrace: stackTrace,
       );
-      notifyListeners();
+      _notifyIfActive();
     } finally {
       _isRefreshing = false;
+    }
+  }
+
+  void _handleRpcNotification(
+    Aria2Instance instance,
+    Aria2RpcNotification notification,
+  ) {
+    if (_isDisposed || !notification.method.startsWith('aria2.on')) {
+      return;
+    }
+    i(
+      'Received ${notification.method} for ${instance.name}'
+      '${notification.gid == null ? '' : ' (${notification.gid})'}',
+    );
+    final latestInstances = _connectedInstancesProvider?.call();
+    if (latestInstances != null) {
+      unawaited(refreshTasks(latestInstances));
+    }
+  }
+
+  void _notifyIfActive() {
+    if (!_isDisposed) {
+      notifyListeners();
     }
   }
 
@@ -285,8 +371,11 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       final client = _getClient(instance);
       final results = await client.getDownloadStatus();
 
-      if (results.isEmpty) {
-        return _InstanceTaskRefreshResult.success(instance.id, allTasks);
+      if (results.length < 3 ||
+          results.take(3).any((result) => result['success'] != true)) {
+        throw const RpcException(
+          'aria2 returned an incomplete task status response',
+        );
       }
 
       if (results[0]['success'] && results[0]['data'] is List) {
@@ -375,10 +464,10 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       _refreshTimer = Timer.periodic(Duration(milliseconds: _refreshInterval), (
         timer,
       ) {
-        if (timer.isActive && !_isRefreshing) {
+        if (timer.isActive) {
           final latestConnectedInstances =
               _connectedInstancesProvider?.call() ?? const [];
-          refreshTasks(latestConnectedInstances);
+          unawaited(refreshTasks(latestConnectedInstances));
         }
       });
     }
@@ -466,6 +555,8 @@ class DownloadDataService extends ChangeNotifier with Loggable {
 
   @override
   void dispose() {
+    _isDisposed = true;
+    _pendingRefreshInstances = null;
     stopPeriodicRefresh();
     _clearClientCache();
     super.dispose();
