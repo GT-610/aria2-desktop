@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "process_lifecycle.h"
 #include "protocol_integration.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
@@ -28,6 +29,8 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   protocol_integration_ =
       std::make_unique<ProtocolIntegration>(flutter_controller_->engine());
+  process_lifecycle_ =
+      std::make_unique<ProcessLifecycle>(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -43,6 +46,7 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  process_lifecycle_ = nullptr;
   protocol_integration_ = nullptr;
   if (flutter_controller_) {
     flutter_controller_ = nullptr;

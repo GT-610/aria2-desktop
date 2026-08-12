@@ -329,6 +329,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         if (!isStarted) {
           e('Failed to start built-in Aria2 instance');
           final startFailureMessage =
+              _builtinInstanceService.lastStartError ??
               _builtinInstanceService.validateBuiltinFiles() ??
               'Failed to start built-in Aria2 instance';
           updateInstanceInList(

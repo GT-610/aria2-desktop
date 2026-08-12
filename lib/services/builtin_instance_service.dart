@@ -8,10 +8,12 @@ import 'package:path/path.dart' as p;
 import '../models/aria2_instance.dart';
 import '../utils/app_data_dir.dart';
 import '../utils/app_paths.dart';
+import '../utils/atomic_file.dart';
 import '../utils/default_download_directory.dart';
 import '../utils/logging.dart';
 import 'aria2_rpc_client.dart';
 import 'builtin_upnp_service.dart';
+import 'process_lifecycle_service.dart';
 
 enum BuiltinInstanceApplyMode { none, liveApply, restartRequired }
 
@@ -25,12 +27,15 @@ class BuiltinInstanceService with Loggable {
   String? _aria2ConfPath;
   String? _sessionPath;
   String? _logPath;
+  File? _pidFile;
+  int? _managedPid;
   bool _isConnected = false;
   StreamSubscription<String>? _stdoutSubscription;
   StreamSubscription<String>? _stderrSubscription;
   final BuiltinUpnpService _upnpService = BuiltinUpnpService();
   BuiltinInstanceApplyMode _pendingApplyMode = BuiltinInstanceApplyMode.none;
   Future<void> _lifecycleTail = Future<void>.value();
+  String? _lastStartError;
 
   factory BuiltinInstanceService() {
     _instance ??= BuiltinInstanceService._internal();
@@ -58,6 +63,7 @@ class BuiltinInstanceService with Loggable {
     _aria2ConfPath = p.join(coreDirPath, 'aria2.conf');
     _sessionPath = p.join(coreDirPath, 'aria2.session');
     _logPath = p.join(paths.logDirectory.path, 'aria2.log');
+    _pidFile = File(p.join(coreDirPath, 'aria2.pid'));
   }
 
   String _getSettingsFilePath() {
@@ -218,6 +224,7 @@ class BuiltinInstanceService with Loggable {
   }
 
   BuiltinInstanceApplyMode get pendingApplyMode => _pendingApplyMode;
+  String? get lastStartError => _lastStartError;
 
   void markPendingApply(BuiltinInstanceApplyMode mode) {
     if (_pendingApplyMode == BuiltinInstanceApplyMode.restartRequired &&
@@ -400,12 +407,24 @@ class BuiltinInstanceService with Loggable {
   Future<bool> _startInstance() async {
     try {
       _isConnected = false;
+      _lastStartError = null;
 
       final validationError = validateBuiltinFiles();
       if (validationError != null) {
+        _lastStartError = validationError;
         e(
           'Built-in Aria2 files are not ready, cannot start instance: '
           '$validationError',
+        );
+        return false;
+      }
+
+      if (!await ProcessLifecycleService.instance.canManageBuiltinProcess()) {
+        _lastStartError =
+            'Another Setsuna window is already managing the built-in aria2 instance';
+        e(
+          'Another Setsuna process owns the built-in aria2 lifecycle lock; '
+          'refusing to start a duplicate process',
         );
         return false;
       }
@@ -418,6 +437,36 @@ class BuiltinInstanceService with Loggable {
         return true;
       }
 
+      if (await _adoptPersistedProcess()) {
+        i('Adopted existing built-in Aria2 process, PID: $_managedPid');
+        unawaited(syncUpnpStateForRunningInstance());
+        return true;
+      }
+
+      final legacyPid = await ProcessLifecycleService.instance
+          .findExpectedProcess(
+            port: _getConfiguredRpcPort(_readSettingsSnapshot()),
+            executablePath: _aria2cPath!,
+          );
+      if (legacyPid != null) {
+        _managedPid = legacyPid;
+        await _persistManagedPid(legacyPid);
+        await ProcessLifecycleService.instance.attachToAppLifecycle(legacyPid);
+        i('Adopted legacy built-in Aria2 process, PID: $legacyPid');
+        unawaited(syncUpnpStateForRunningInstance());
+        return true;
+      }
+
+      if (await _isRpcReachable()) {
+        _lastStartError =
+            'The built-in aria2 RPC port is already used by another process';
+        e(
+          'The configured built-in aria2 RPC endpoint is already in use by '
+          'an unmanaged process; refusing to start a duplicate process',
+        );
+        return false;
+      }
+
       final args = _buildArgs();
       final process = await Process.start(
         _aria2cPath!,
@@ -426,24 +475,42 @@ class BuiltinInstanceService with Loggable {
         mode: ProcessStartMode.normal,
       );
       _aria2Process = process;
+      _managedPid = process.pid;
+      try {
+        await _persistManagedPid(process.pid);
+        if (!await ProcessLifecycleService.instance.attachToAppLifecycle(
+          process.pid,
+        )) {
+          w(
+            'Built-in Aria2 process ${process.pid} could not be attached to the '
+            'application lifecycle safety net',
+          );
+        }
+      } catch (_) {
+        process.kill();
+        _aria2Process = null;
+        _managedPid = null;
+        rethrow;
+      }
 
       process.exitCode.then((exitCode) {
         w('Built-in Aria2 process exited with code: $exitCode');
         if (identical(_aria2Process, process)) {
           _aria2Process = null;
+          _managedPid = null;
           _isConnected = false;
+          unawaited(_deletePidFileIfMatches(process.pid));
           unawaited(_upnpService.shutdown());
         }
       });
 
-      if (kDebugMode) {
-        _monitorProcessOutput();
-      }
+      _monitorProcessOutput(process);
 
       unawaited(syncUpnpStateForRunningInstance());
 
       return true;
     } catch (e, stackTrace) {
+      _lastStartError = 'Failed to start built-in aria2: $e';
       this.e(
         'Failed to start built-in Aria2 instance',
         error: e,
@@ -457,13 +524,18 @@ class BuiltinInstanceService with Loggable {
 
   Future<bool> _stopInstance() async {
     try {
-      if (_aria2Process == null) {
+      if (_aria2Process == null && !await _adoptPersistedProcess()) {
+        if (await _isRpcReachable()) {
+          w(
+            'Built-in aria2 RPC is reachable but the process is not owned by '
+            'this Setsuna process; leaving it untouched',
+          );
+          return false;
+        }
         w('Built-in Aria2 process is not running');
+        await _clearManagedProcessState();
         return true;
       }
-
-      await _stdoutSubscription?.cancel();
-      await _stderrSubscription?.cancel();
 
       try {
         await _shutdownThroughRpcIfPossible().timeout(_rpcShutdownTimeout);
@@ -474,20 +546,29 @@ class BuiltinInstanceService with Loggable {
         _aria2Process?.kill();
       }
 
-      if (_aria2Process != null) {
+      final process = _aria2Process;
+      final managedPid = _managedPid;
+      if (process != null) {
         try {
-          await _aria2Process!.exitCode.timeout(const Duration(seconds: 5));
+          await process.exitCode.timeout(const Duration(seconds: 5));
         } on TimeoutException {
           w(
             'Built-in Aria2 did not exit after RPC shutdown, terminating process',
           );
-          _aria2Process!.kill();
-          await _aria2Process!.exitCode.timeout(const Duration(seconds: 5));
+          process.kill();
+          await process.exitCode.timeout(const Duration(seconds: 5));
         }
+      } else if (managedPid != null &&
+          await ProcessLifecycleService.instance.isExpectedProcess(
+            managedPid,
+            _aria2cPath!,
+          )) {
+        Process.killPid(managedPid);
+        await _waitForPidExit(managedPid);
       }
 
-      _aria2Process = null;
-      _isConnected = false;
+      await _clearManagedProcessState();
+      await _cancelProcessOutput();
       await _upnpService.shutdown();
       return true;
     } catch (e, stackTrace) {
@@ -501,7 +582,114 @@ class BuiltinInstanceService with Loggable {
   }
 
   bool isRunning() {
-    return _aria2Process != null;
+    return _aria2Process != null || _managedPid != null;
+  }
+
+  Future<bool> _adoptPersistedProcess() async {
+    final pid = await _readPersistedPid();
+    if (pid == null) {
+      return false;
+    }
+    if (!await ProcessLifecycleService.instance.isExpectedProcess(
+      pid,
+      _aria2cPath!,
+    )) {
+      await _deletePidFileIfMatches(pid);
+      return false;
+    }
+    _managedPid = pid;
+    await ProcessLifecycleService.instance.attachToAppLifecycle(pid);
+    return true;
+  }
+
+  Future<bool> _isRpcReachable() async {
+    final client = Aria2RpcClient(
+      getBuiltinInstanceConfig(),
+      requestTimeout: const Duration(seconds: 1),
+      retryDelay: const Duration(milliseconds: 50),
+    );
+    try {
+      return await client.testConnection();
+    } on UnauthorizedException {
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      await client.close();
+    }
+  }
+
+  Future<int?> _readPersistedPid() async {
+    final pidFile = _pidFile;
+    if (pidFile == null || !await pidFile.exists()) {
+      return null;
+    }
+    try {
+      final pid = int.tryParse((await pidFile.readAsString()).trim());
+      if (pid == null || pid <= 0) {
+        await pidFile.delete();
+        return null;
+      }
+      return pid;
+    } on FileSystemException catch (error, stackTrace) {
+      w(
+        'Failed to read the built-in aria2 PID file',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
+  }
+
+  Future<void> _persistManagedPid(int pid) async {
+    final pidFile = _pidFile;
+    if (pidFile == null) {
+      return;
+    }
+    await AtomicFile.writeString(pidFile, '$pid\n');
+  }
+
+  Future<void> _deletePidFileIfMatches(int pid) async {
+    final pidFile = _pidFile;
+    if (pidFile == null || !await pidFile.exists()) {
+      return;
+    }
+    try {
+      final persistedPid = int.tryParse((await pidFile.readAsString()).trim());
+      if (persistedPid == pid) {
+        await pidFile.delete();
+      }
+    } on FileSystemException catch (error, stackTrace) {
+      w(
+        'Failed to delete the built-in aria2 PID file',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> _waitForPidExit(int pid) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (DateTime.now().isBefore(deadline)) {
+      if (!await ProcessLifecycleService.instance.isExpectedProcess(
+        pid,
+        _aria2cPath!,
+      )) {
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    throw TimeoutException('aria2 process $pid did not exit');
+  }
+
+  Future<void> _clearManagedProcessState() async {
+    final pid = _managedPid;
+    _aria2Process = null;
+    _managedPid = null;
+    _isConnected = false;
+    if (pid != null) {
+      await _deletePidFileIfMatches(pid);
+    }
   }
 
   Future<void> _shutdownThroughRpcIfPossible() async {
@@ -526,29 +714,27 @@ class BuiltinInstanceService with Loggable {
     }
   }
 
-  void _monitorProcessOutput() {
-    if (_aria2Process == null) return;
+  void _monitorProcessOutput(Process process) {
+    _stdoutSubscription = process.stdout.transform(utf8.decoder).listen((_) {});
 
-    _stdoutSubscription = _aria2Process!.stdout
-        .transform(utf8.decoder)
-        .listen((_) {});
-
-    _stderrSubscription = _aria2Process!.stderr.transform(utf8.decoder).listen((
-      data,
-    ) {
-      if (!_isConnected) {
+    _stderrSubscription = process.stderr.transform(utf8.decoder).listen((data) {
+      if (kDebugMode && !_isConnected) {
         e('Aria2 [builtin] stderr: $data');
       }
     });
   }
 
-  void onConnected() {
-    _isConnected = true;
-    clearPendingApply();
-    _stdoutSubscription?.cancel();
-    _stderrSubscription?.cancel();
+  Future<void> _cancelProcessOutput() async {
+    await _stdoutSubscription?.cancel();
+    await _stderrSubscription?.cancel();
     _stdoutSubscription = null;
     _stderrSubscription = null;
+  }
+
+  void onConnected() {
+    _isConnected = true;
+    _lastStartError = null;
+    clearPendingApply();
   }
 
   Aria2Instance getBuiltinInstanceConfig() {
@@ -570,7 +756,7 @@ class BuiltinInstanceService with Loggable {
   }
 
   void dispose() {
-    if (_aria2Process != null) {
+    if (isRunning()) {
       unawaited(stopInstance());
     }
     clearPendingApply();
