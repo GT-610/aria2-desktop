@@ -247,10 +247,8 @@ class DownloadPageState extends State<DownloadPage>
   void _refreshTasks() {
     if (instanceManager == null || downloadDataService == null) return;
 
-    final connectedInstances = instanceManager!.getConnectedInstances();
-    if (connectedInstances.isNotEmpty) {
-      downloadDataService!.refreshTasks(connectedInstances);
-    }
+    final refreshableInstances = instanceManager!.getRefreshableInstances();
+    unawaited(downloadDataService!.refreshTasks(refreshableInstances));
 
     _pruneSelection();
   }

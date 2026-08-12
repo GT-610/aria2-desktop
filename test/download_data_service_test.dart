@@ -170,6 +170,62 @@ void main() {
     await firstServer.close(force: true);
   });
 
+  test(
+    'clears tasks and instance state when all instances disconnect',
+    () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        final body = await utf8.decoder.bind(request).join();
+        final decoded = jsonDecode(body) as Map<String, dynamic>;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          jsonEncode(<String, dynamic>{
+            'jsonrpc': '2.0',
+            'id': decoded['id'],
+            'result': <Object>[
+              <Object>[
+                <Object>[
+                  <String, String>{
+                    'gid': 'connected',
+                    'status': 'active',
+                    'totalLength': '10',
+                    'completedLength': '1',
+                    'downloadSpeed': '1',
+                    'uploadSpeed': '0',
+                  },
+                ],
+              ],
+              <Object>[<Object>[]],
+              <Object>[<Object>[]],
+            ],
+          }),
+        );
+        await request.response.close();
+      });
+      final instance = Aria2Instance(
+        id: 'disconnect',
+        name: 'Disconnect',
+        type: InstanceType.remote,
+        protocol: 'http',
+        host: InternetAddress.loopbackIPv4.address,
+        port: server.port,
+        status: ConnectionStatus.connected,
+      );
+      final service = DownloadDataService();
+
+      await service.refreshTasks(<Aria2Instance>[instance]);
+      expect(service.tasks.single.id, 'connected');
+      expect(service.instanceStates, contains(instance.id));
+
+      await service.refreshTasks(const <Aria2Instance>[]);
+
+      expect(service.tasks, isEmpty);
+      expect(service.instanceStates, isEmpty);
+      service.dispose();
+      await server.close(force: true);
+    },
+  );
+
   test('keeps stale tasks when a multicall item fails', () async {
     var failWaitingCall = false;
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);

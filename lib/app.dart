@@ -444,6 +444,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     final refreshableInstances = instanceManager.getRefreshableInstances();
     if (refreshableInstances.isEmpty) {
       downloadDataService.stopPeriodicRefresh();
+      unawaited(downloadDataService.refreshTasks(const <Aria2Instance>[]));
       return;
     }
     downloadDataService.startPeriodicRefresh(

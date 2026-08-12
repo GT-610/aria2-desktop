@@ -99,16 +99,18 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     final key = instance.connectionFingerprint;
     return _clientCache.putIfAbsent(key, () {
       final client = Aria2RpcClient(instance);
-      _notificationSubscriptions[key] = client.notifications.listen(
-        (notification) => _handleRpcNotification(instance, notification),
-        onError: (Object error, StackTrace stackTrace) {
-          w(
-            'aria2 notification stream failed for ${instance.name}',
-            error: error,
-            stackTrace: stackTrace,
-          );
-        },
-      );
+      if (instance.protocol.startsWith('ws')) {
+        _notificationSubscriptions[key] = client.notifications.listen(
+          (notification) => _handleRpcNotification(instance, notification),
+          onError: (Object error, StackTrace stackTrace) {
+            w(
+              'aria2 notification stream failed for ${instance.name}',
+              error: error,
+              stackTrace: stackTrace,
+            );
+          },
+        );
+      }
       return client;
     });
   }
@@ -208,11 +210,13 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     if (connectedInstances.isEmpty) {
       final hadTasks = _tasks.isNotEmpty;
       final hadError = _lastError != null;
+      final hadInstanceStates = _instanceStates.isNotEmpty;
       _tasks = [];
       _tasksView = UnmodifiableListView(_tasks);
+      _instanceStates.clear();
       _tasksVersion++;
       _lastError = null;
-      if (hadTasks || hadError) {
+      if (hadTasks || hadError || hadInstanceStates) {
         _notifyIfActive();
       }
       return;
