@@ -80,7 +80,7 @@ class DesktopProgressService with Loggable {
       return activeLoop;
     }
 
-    final loop = _runSyncLoop();
+    final loop = Future<void>.microtask(_runSyncLoop);
     _syncLoop = loop;
     return loop;
   }
@@ -90,21 +90,24 @@ class DesktopProgressService with Loggable {
   }
 
   Future<void> _runSyncLoop() async {
-    while (_desiredProgress != _appliedProgress) {
-      final progress = _desiredProgress!;
-      try {
-        await _setProgress(progress);
-      } on MissingPluginException {
-        w('Desktop progress integration is unavailable');
-      } on PlatformException catch (error, stackTrace) {
-        w(
-          'Failed to update desktop download progress',
-          error: error,
-          stackTrace: stackTrace,
-        );
+    try {
+      while (_desiredProgress != _appliedProgress) {
+        final progress = _desiredProgress!;
+        try {
+          await _setProgress(progress);
+        } on MissingPluginException {
+          w('Desktop progress integration is unavailable');
+        } on PlatformException catch (error, stackTrace) {
+          w(
+            'Failed to update desktop download progress',
+            error: error,
+            stackTrace: stackTrace,
+          );
+        }
+        _appliedProgress = progress;
       }
-      _appliedProgress = progress;
+    } finally {
+      _syncLoop = null;
     }
-    _syncLoop = null;
   }
 }

@@ -145,6 +145,40 @@ void main() {
     },
   );
 
+  test('continues updating after an unchanged synchronization', () async {
+    final applied = <double>[];
+    final service = DesktopProgressService(
+      isSupported: true,
+      setProgress: (progress) async => applied.add(progress),
+    );
+
+    final firstTasks = <DownloadTask>[
+      _task(
+        id: 'one',
+        status: DownloadStatus.active,
+        taskStatus: 'active',
+        totalBytes: 100,
+        completedBytes: 25,
+      ),
+    ];
+    await service.synchronize(enabled: true, tasks: firstTasks);
+    await service.synchronize(enabled: true, tasks: firstTasks);
+    await service.synchronize(
+      enabled: true,
+      tasks: <DownloadTask>[
+        _task(
+          id: 'one',
+          status: DownloadStatus.active,
+          taskStatus: 'active',
+          totalBytes: 100,
+          completedBytes: 75,
+        ),
+      ],
+    );
+
+    expect(applied, <double>[0.25, 0.75]);
+  });
+
   test('does not call unsupported desktop integrations', () async {
     var called = false;
     final service = DesktopProgressService(
