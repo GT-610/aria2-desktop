@@ -1,7 +1,34 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:setsuna/models/settings.dart';
+import 'package:setsuna/repositories/settings_repository.dart';
+
+class _MemorySettingsRepository extends SettingsRepository {
+  _MemorySettingsRepository(this.values);
+
+  final Map<String, dynamic> values;
+  Map<String, dynamic>? savedValues;
+
+  @override
+  Future<SettingsLoadResult> load() async {
+    return SettingsLoadResult(
+      values: Map<String, dynamic>.from(values),
+      credentialsBlocked: false,
+    );
+  }
+
+  @override
+  Future<void> save(
+    Map<String, dynamic> values, {
+    bool credentialsBlocked = false,
+  }) async {
+    savedValues = Map<String, dynamic>.from(values);
+  }
+}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('Settings', () {
     group('default values', () {
       late Settings settings;
@@ -178,6 +205,126 @@ void main() {
           settings.normalizeBtTracker(input),
           'udp://t1.example.com:6969/announce,udp://t2.example.com:6969/announce,udp://t3.example.com:6969/announce',
         );
+      });
+    });
+
+    group('settings hydration', () {
+      test(
+        'repairs individual legacy values without resetting valid fields',
+        () async {
+          final repository = _MemorySettingsRepository(<String, dynamic>{
+            'autoStart': 'true',
+            'runMode': 'invalid',
+            'taskNotification': false,
+            'themeMode': 'dark',
+            'primaryColor': 0xFF123456,
+            'locale': 'zh_CN',
+            'rpcListenPort': '16801',
+            'maxConcurrentDownloads': 999,
+            'maxConnectionPerServer': 32.0,
+            'split': '8',
+            'continueDownloads': 1,
+            'downloadDir': 123,
+            'maxOverallDownloadLimit': '-1',
+            'maxOverallUploadLimit': '2048',
+            'seedRatio': '2.5',
+            'seedTime': 30.0,
+            'btTracker': 'udp://one\n udp://two',
+            'dhtListenPort': '70000',
+            'trackerSource': '',
+            'userAgent': '',
+          });
+          final settings = Settings(repository: repository);
+
+          await settings.loadSettings();
+
+          expect(settings.isLoaded, isTrue);
+          expect(settings.autoStart, isTrue);
+          expect(settings.runMode, AppRunMode.tray);
+          expect(settings.taskNotification, isFalse);
+          expect(settings.themeMode, ThemeMode.dark);
+          expect(settings.primaryColor, const Color(0xFF123456));
+          expect(settings.locale, const Locale('zh'));
+          expect(settings.rpcListenPort, 16801);
+          expect(settings.maxConcurrentDownloads, 5);
+          expect(settings.maxConnectionPerServer, 32);
+          expect(settings.split, 8);
+          expect(settings.continueDownloads, isTrue);
+          expect(settings.downloadDir, isNotEmpty);
+          expect(settings.maxOverallDownloadLimit, 0);
+          expect(settings.maxOverallUploadLimit, 2048);
+          expect(settings.seedRatio, 2.5);
+          expect(settings.seedTime, 30);
+          expect(settings.btTracker, 'udp://one,udp://two');
+          expect(settings.dhtListenPort, 26701);
+          expect(repository.savedValues, isNotNull);
+          expect(repository.savedValues!['autoStart'], isTrue);
+          expect(repository.savedValues!['rpcListenPort'], 16801);
+          expect(repository.savedValues!['maxConcurrentDownloads'], 5);
+          expect(repository.savedValues!['locale'], 'zh');
+        },
+      );
+
+      test('does not rewrite already normalized settings', () async {
+        final repository = _MemorySettingsRepository(<String, dynamic>{
+          'autoStart': false,
+          'minimizeToTray': true,
+          'runMode': 'tray',
+          'autoHideWindow': false,
+          'showTraySpeed': true,
+          'taskNotification': true,
+          'protocolMagnetEnabled': false,
+          'protocolThunderEnabled': false,
+          'skipDeleteConfirm': false,
+          'resumeAllOnLaunch': false,
+          'showDownloadsAfterAdd': true,
+          'showProgressBar': true,
+          'hideTitleBar': false,
+          'themeMode': 'system',
+          'primaryColor': '4280391411',
+          'customColorCode': null,
+          'locale': null,
+          'rpcListenPort': 16800,
+          'rpcSecret': '',
+          'maxConcurrentDownloads': 5,
+          'maxConnectionPerServer': 16,
+          'split': 16,
+          'continueDownloads': true,
+          'downloadDir': 'C:\\Downloads',
+          'maxOverallDownloadLimit': 0,
+          'maxOverallUploadLimit': 0,
+          'btSaveMetadata': true,
+          'btForceEncryption': false,
+          'btLoadSavedMetadata': true,
+          'keepSeeding': false,
+          'seedRatio': 1.0,
+          'seedTime': 60,
+          'btListenPort': '6881-6999',
+          'btTracker': '',
+          'btExcludeTracker': '',
+          'proxyEnabled': false,
+          'allProxy': '',
+          'noProxy': '',
+          'dhtListenPort': 26701,
+          'enableDht6': true,
+          'enableUpnp': true,
+          'sessionPath': '',
+          'logPath': '',
+          'autoSyncTracker': true,
+          'lastSyncTrackerTime': 0,
+          'trackerSource':
+              'https://fastly.jsdelivr.net/gh/ngosang/trackerslist/trackers_best_ip.txt',
+          'autoFileRenaming': true,
+          'allowOverwrite': false,
+          'userAgent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+              'AppleWebKit/537.36 (KHTML, like Gecko) '
+              'Chrome/120.0.0.0 Safari/537.36',
+        });
+
+        await Settings(repository: repository).loadSettings();
+
+        expect(repository.savedValues, isNull);
       });
     });
   });
