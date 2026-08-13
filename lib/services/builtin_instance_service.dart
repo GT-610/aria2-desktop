@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../models/aria2_instance.dart';
+import '../models/settings.dart';
 import '../utils/app_data_dir.dart';
 import '../utils/app_paths.dart';
 import '../utils/atomic_file.dart';
@@ -36,6 +37,7 @@ class BuiltinInstanceService with Loggable {
   BuiltinInstanceApplyMode _pendingApplyMode = BuiltinInstanceApplyMode.none;
   Future<void> _lifecycleTail = Future<void>.value();
   String? _lastStartError;
+  Settings? _settings;
 
   factory BuiltinInstanceService() {
     _instance ??= BuiltinInstanceService._internal();
@@ -44,6 +46,15 @@ class BuiltinInstanceService with Loggable {
 
   BuiltinInstanceService._internal() {
     _initializePaths();
+  }
+
+  void bindSettings(Settings settings) {
+    _settings = settings;
+  }
+
+  @visibleForTesting
+  void clearBoundSettings() {
+    _settings = null;
   }
 
   void _initializePaths() {
@@ -76,16 +87,18 @@ class BuiltinInstanceService with Loggable {
   }
 
   Map<String, dynamic> _readSettingsSnapshot() {
+    final settings = _settings;
+    if (settings != null) {
+      return settings.toBuiltinInstanceSettings();
+    }
+
     try {
       final file = File(_getSettingsFilePath());
       if (!file.existsSync()) {
         return {};
       }
       final content = file.readAsStringSync();
-      final decoded = jsonDecode(content);
-      if (decoded is Map<String, dynamic>) {
-        return decoded;
-      }
+      return decodePersistedSettingsSnapshot(content);
     } catch (e, stackTrace) {
       this.e(
         'Failed to read built-in settings snapshot',
@@ -96,14 +109,33 @@ class BuiltinInstanceService with Loggable {
     return {};
   }
 
+  @visibleForTesting
+  Map<String, dynamic> decodePersistedSettingsSnapshot(String content) {
+    final decoded = jsonDecode(content);
+    if (decoded is! Map<String, dynamic>) {
+      return {};
+    }
+
+    final storedSettings = decoded['settings'];
+    if (storedSettings is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(storedSettings);
+    }
+    return Map<String, dynamic>.from(decoded);
+  }
+
   int _getConfiguredRpcPort([Map<String, dynamic>? settings]) {
     final s = settings ?? _readSettingsSnapshot();
-    return s['rpcListenPort'] is int ? s['rpcListenPort'] as int : 16800;
+    final rawPort = s['rpcListenPort'];
+    final port = rawPort is int
+        ? rawPort
+        : int.tryParse(rawPort?.toString().trim() ?? '');
+    return port != null && port >= 1 && port <= 65535 ? port : 16800;
   }
 
   String _getConfiguredRpcSecret([Map<String, dynamic>? settings]) {
     final s = settings ?? _readSettingsSnapshot();
-    return s['rpcSecret'] as String? ?? '';
+    final secret = s['rpcSecret'];
+    return secret is String ? secret : '';
   }
 
   String _defaultSessionPath() {
@@ -346,7 +378,6 @@ class BuiltinInstanceService with Loggable {
       '--bt-require-crypto=${settings['btForceEncryption'] ?? false}',
       '--bt-save-metadata=${settings['btSaveMetadata'] ?? true}',
       '--bt-load-saved-metadata=${settings['btLoadSavedMetadata'] ?? true}',
-      '--bt-seed-unverified=${settings['keepSeeding'] ?? false}',
       '--listen-port=$btListenPort',
       '--dht-listen-port=${resolveEffectiveDhtListenPort(settings)}',
       '--enable-dht6=${settings['enableDht6'] ?? true}',

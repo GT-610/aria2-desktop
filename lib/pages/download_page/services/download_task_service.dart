@@ -12,6 +12,7 @@ import '../../../services/instance_manager.dart';
 import '../../../utils/logging.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
+import '../utils/task_retry.dart';
 
 final _logger = taggedLogger('DownloadTaskService');
 
@@ -28,6 +29,23 @@ class DeleteTaskResult {
 }
 
 class DownloadTaskService with Loggable {
+  static const Set<String> _portableRetryOptionKeys = <String>{
+    'dir',
+    'out',
+    'header',
+    'split',
+    'user-agent',
+    'referer',
+    'all-proxy',
+    'auto-file-renaming',
+    'allow-overwrite',
+    'max-connection-per-server',
+    'continue',
+    'select-file',
+    'check-integrity',
+    'force-save',
+  };
+
   static Future<bool?> promptDeleteDownloadedFiles(
     BuildContext context,
     List<DownloadTask> tasks,
@@ -461,11 +479,7 @@ class DownloadTaskService with Loggable {
     final l10n = AppLocalizations.of(context)!;
     Aria2RpcClient? client;
     try {
-      final sourceUris = (task.uris ?? const <String>[])
-          .map((uri) => uri.trim())
-          .where((uri) => uri.isNotEmpty)
-          .toList();
-      if (sourceUris.isEmpty) {
+      if (buildTaskRetrySources(task).isEmpty) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.retryTaskSourceUnavailable)),
@@ -489,53 +503,7 @@ class DownloadTaskService with Loggable {
       }
 
       client = Aria2RpcClient(targetInstance!);
-      final currentOptions = await client.getOption(task.id);
-      final options = <String, dynamic>{};
-
-      const retainedOptionKeys = <String>{
-        'dir',
-        'out',
-        'header',
-        'split',
-        'user-agent',
-        'referer',
-        'all-proxy',
-        'auto-file-renaming',
-        'allow-overwrite',
-        'max-connection-per-server',
-        'continue',
-      };
-      for (final key in retainedOptionKeys) {
-        final value = currentOptions[key];
-        if (value == null) {
-          continue;
-        }
-        if (value is String && value.trim().isEmpty) {
-          continue;
-        }
-        if (value is List && value.isEmpty) {
-          continue;
-        }
-        options[key] = value;
-      }
-
-      final taskDir = task.dir?.trim() ?? '';
-      if (taskDir.isNotEmpty) {
-        options['dir'] = taskDir;
-      }
-
-      await client.addUri(sourceUris, options);
-      if (task.status == DownloadStatus.stopped) {
-        try {
-          await client.removeDownloadResult(task.id);
-        } catch (error, stackTrace) {
-          _logger.w(
-            'Retried task ${task.id}, but failed to remove original result record',
-            error: error,
-            stackTrace: stackTrace,
-          );
-        }
-      }
+      await retryTaskWithClient(client, task);
       onTaskUpdated();
     } catch (e, stackTrace) {
       if (context.mounted &&
@@ -555,6 +523,145 @@ class DownloadTaskService with Loggable {
     } finally {
       await client?.close();
     }
+  }
+
+  static Future<List<String>> retryTaskWithClient(
+    Aria2RpcClient client,
+    DownloadTask task, {
+    Future<Map<String, dynamic>> Function()? getOptionsOverride,
+    Future<String> Function(List<String> uris, Map<String, dynamic> options)?
+    addUriOverride,
+    Future<String?> Function(String gid)? getTaskStatusOverride,
+    Future<String> Function(String gid)? removeTaskOverride,
+    Future<String> Function(String gid)? removeDownloadResultOverride,
+    Future<bool> Function()? saveSessionOverride,
+  }) async {
+    final sources = buildTaskRetrySources(task);
+    if (sources.isEmpty) {
+      throw const RpcException('The original task source is unavailable');
+    }
+
+    final options = <String, dynamic>{};
+    try {
+      final currentOptions = getOptionsOverride != null
+          ? await getOptionsOverride()
+          : await client.getOption(task.id);
+      for (final key in _portableRetryOptionKeys) {
+        final value = currentOptions[key];
+        if (value == null || value is String && value.trim().isEmpty) {
+          continue;
+        }
+        if (value is List && value.isEmpty) {
+          continue;
+        }
+        options[key] = value;
+      }
+    } catch (error, stackTrace) {
+      _logger.w(
+        'Failed to read options for retrying task ${task.id}; using fallback options',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final taskDir = task.dir?.trim() ?? '';
+    if (taskDir.isNotEmpty) {
+      options['dir'] = taskDir;
+    }
+    final isBitTorrent = sources.any(
+      (source) => source.uris.any(
+        (uri) => Uri.tryParse(uri)?.scheme.toLowerCase() == 'magnet',
+      ),
+    );
+    if (isBitTorrent) {
+      options.putIfAbsent('check-integrity', () => 'true');
+      options.putIfAbsent('force-save', () => 'true');
+    }
+
+    final createdGids = <String>[];
+    try {
+      for (final source in sources) {
+        final sourceOptions = Map<String, dynamic>.from(options);
+        if (!isBitTorrent && source.outputName != null) {
+          sourceOptions['out'] = source.outputName;
+        }
+        final gid = addUriOverride != null
+            ? await addUriOverride(source.uris, sourceOptions)
+            : await client.addUri(source.uris, sourceOptions);
+        createdGids.add(gid);
+      }
+    } catch (error, stackTrace) {
+      if (error is RpcResultIndeterminateException) {
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+      for (final gid in createdGids.reversed) {
+        try {
+          String? status;
+          try {
+            status = getTaskStatusOverride != null
+                ? await getTaskStatusOverride(gid)
+                : (await client.getTaskStatus(gid))['status']?.toString();
+          } catch (statusError, statusStackTrace) {
+            _logger.w(
+              'Failed to inspect partially retried task $gid; using active-task rollback',
+              error: statusError,
+              stackTrace: statusStackTrace,
+            );
+          }
+          final isStopped =
+              status == 'complete' || status == 'error' || status == 'removed';
+          if (isStopped) {
+            if (removeDownloadResultOverride != null) {
+              await removeDownloadResultOverride(gid);
+            } else {
+              await client.removeDownloadResult(gid);
+            }
+          } else if (removeTaskOverride != null) {
+            await removeTaskOverride(gid);
+          } else {
+            await client.removeTask(gid);
+          }
+        } catch (rollbackError, rollbackStackTrace) {
+          _logger.w(
+            'Failed to roll back partially retried task $gid',
+            error: rollbackError,
+            stackTrace: rollbackStackTrace,
+          );
+        }
+      }
+      Error.throwWithStackTrace(error, stackTrace);
+    }
+
+    if (task.status == DownloadStatus.stopped) {
+      try {
+        if (removeDownloadResultOverride != null) {
+          await removeDownloadResultOverride(task.id);
+        } else {
+          await client.removeDownloadResult(task.id);
+        }
+      } catch (error, stackTrace) {
+        _logger.w(
+          'Retried task ${task.id}, but failed to remove original result record',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+
+    try {
+      if (saveSessionOverride != null) {
+        await saveSessionOverride();
+      } else {
+        await client.saveSession();
+      }
+    } catch (error, stackTrace) {
+      _logger.w(
+        'Retried task ${task.id}, but failed to save the aria2 session',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+    return createdGids;
   }
 
   static void _scheduleFollowUpRefresh(VoidCallback onTaskUpdated) {

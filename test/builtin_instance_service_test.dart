@@ -1,12 +1,48 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:setsuna/models/settings.dart';
 import 'package:setsuna/services/builtin_instance_service.dart';
 
+import 'support/memory_settings_repository.dart';
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('BuiltinInstanceService helper methods', () {
     late BuiltinInstanceService service;
 
     setUp(() {
       service = BuiltinInstanceService();
+      service.clearBoundSettings();
+    });
+
+    tearDown(() {
+      service.clearBoundSettings();
+    });
+
+    test('unwraps repository settings snapshots', () {
+      final snapshot = service.decodePersistedSettingsSnapshot(
+        '{"schemaVersion":2,"settings":{"rpcListenPort":"16881"}}',
+      );
+
+      expect(snapshot, {'rpcListenPort': '16881'});
+    });
+
+    test('uses the bound loaded settings for the built-in instance', () async {
+      final settings = Settings(
+        repository: MemorySettingsRepository(<String, dynamic>{
+          'rpcListenPort': 16882,
+          'rpcSecret': 'secure-secret',
+          'downloadDir': 'C:\\Downloads\\Setsuna',
+        }),
+      );
+      await settings.loadSettings();
+
+      service.bindSettings(settings);
+
+      final instance = service.getBuiltinInstanceConfig();
+      expect(instance.port, 16882);
+      expect(instance.secret, 'secure-secret');
+      expect(instance.downloadDir, 'C:\\Downloads\\Setsuna');
     });
 
     group('resolveEffectiveDhtListenPort', () {

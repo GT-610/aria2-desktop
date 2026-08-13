@@ -1,7 +1,12 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:setsuna/models/settings.dart';
 
+import 'support/memory_settings_repository.dart';
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('Settings', () {
     group('default values', () {
       late Settings settings;
@@ -70,6 +75,7 @@ void main() {
         expect(settings.resumeAllOnLaunch, isFalse);
         expect(settings.showDownloadsAfterAdd, isTrue);
         expect(settings.showProgressBar, isTrue);
+        expect(settings.keepAwake, isFalse);
         expect(settings.hideTitleBar, isFalse);
       });
 
@@ -178,6 +184,185 @@ void main() {
           settings.normalizeBtTracker(input),
           'udp://t1.example.com:6969/announce,udp://t2.example.com:6969/announce,udp://t3.example.com:6969/announce',
         );
+      });
+    });
+
+    group('settings hydration', () {
+      test('exposes typed settings for the built-in instance', () async {
+        final repository = MemorySettingsRepository(<String, dynamic>{
+          'rpcListenPort': 16888,
+          'rpcSecret': 'secure-secret',
+          'continueDownloads': false,
+          'downloadDir': 'C:\\Downloads\\Setsuna',
+          'maxOverallDownloadLimit': 1024,
+          'btForceEncryption': true,
+          'seedRatio': 2.5,
+          'proxyEnabled': true,
+          'allProxy': 'http://127.0.0.1:7890',
+          'enableUpnp': false,
+          'userAgent': 'Setsuna Test',
+        });
+        final settings = Settings(repository: repository);
+
+        await settings.loadSettings();
+
+        final snapshot = settings.toBuiltinInstanceSettings();
+        expect(snapshot['rpcListenPort'], 16888);
+        expect(snapshot['rpcSecret'], 'secure-secret');
+        expect(snapshot['continueDownloads'], isFalse);
+        expect(snapshot['downloadDir'], 'C:\\Downloads\\Setsuna');
+        expect(snapshot['maxOverallDownloadLimit'], 1024);
+        expect(snapshot['btForceEncryption'], isTrue);
+        expect(snapshot['seedRatio'], 2.5);
+        expect(snapshot['proxyEnabled'], isTrue);
+        expect(snapshot['allProxy'], 'http://127.0.0.1:7890');
+        expect(snapshot['enableUpnp'], isFalse);
+        expect(snapshot['userAgent'], 'Setsuna Test');
+      });
+
+      test(
+        'repairs individual legacy values without resetting valid fields',
+        () async {
+          final repository = MemorySettingsRepository(<String, dynamic>{
+            'autoStart': 'true',
+            'runMode': 'invalid',
+            'taskNotification': false,
+            'themeMode': 'dark',
+            'primaryColor': 0xFF123456,
+            'locale': 'zh_CN',
+            'rpcListenPort': '16801',
+            'maxConcurrentDownloads': 999,
+            'maxConnectionPerServer': 32.0,
+            'split': '8',
+            'continueDownloads': 1,
+            'downloadDir': 123,
+            'maxOverallDownloadLimit': '-1',
+            'maxOverallUploadLimit': '2048',
+            'seedRatio': '2.5',
+            'seedTime': 30.0,
+            'btTracker': 'udp://one\n udp://two',
+            'dhtListenPort': '70000',
+            'trackerSource': '',
+            'userAgent': '',
+          });
+          final settings = Settings(repository: repository);
+
+          await settings.loadSettings();
+
+          expect(settings.isLoaded, isTrue);
+          expect(settings.autoStart, isTrue);
+          expect(settings.runMode, AppRunMode.tray);
+          expect(settings.taskNotification, isFalse);
+          expect(settings.themeMode, ThemeMode.dark);
+          expect(settings.primaryColor, const Color(0xFF123456));
+          expect(settings.locale, const Locale('zh'));
+          expect(settings.rpcListenPort, 16801);
+          expect(settings.maxConcurrentDownloads, 5);
+          expect(settings.maxConnectionPerServer, 32);
+          expect(settings.split, 8);
+          expect(settings.continueDownloads, isTrue);
+          expect(settings.downloadDir, isNotEmpty);
+          expect(settings.maxOverallDownloadLimit, 0);
+          expect(settings.maxOverallUploadLimit, 2048);
+          expect(settings.seedRatio, 2.5);
+          expect(settings.seedTime, 30);
+          expect(settings.btTracker, 'udp://one,udp://two');
+          expect(settings.dhtListenPort, 26701);
+          expect(repository.savedValues, isNotNull);
+          expect(repository.savedValues!['autoStart'], isTrue);
+          expect(repository.savedValues!['rpcListenPort'], 16801);
+          expect(repository.savedValues!['maxConcurrentDownloads'], 5);
+          expect(repository.savedValues!['locale'], 'zh');
+        },
+      );
+
+      test('does not rewrite already normalized settings', () async {
+        final repository = MemorySettingsRepository(<String, dynamic>{
+          'autoStart': false,
+          'minimizeToTray': true,
+          'runMode': 'tray',
+          'autoHideWindow': false,
+          'showTraySpeed': true,
+          'taskNotification': true,
+          'protocolMagnetEnabled': false,
+          'protocolThunderEnabled': false,
+          'skipDeleteConfirm': false,
+          'resumeAllOnLaunch': false,
+          'showDownloadsAfterAdd': true,
+          'showProgressBar': true,
+          'keepAwake': false,
+          'hideTitleBar': false,
+          'themeMode': 'system',
+          'primaryColor': '4280391411',
+          'customColorCode': null,
+          'locale': null,
+          'rpcListenPort': 16800,
+          'rpcSecret': '',
+          'maxConcurrentDownloads': 5,
+          'maxConnectionPerServer': 16,
+          'split': 16,
+          'continueDownloads': true,
+          'downloadDir': 'C:\\Downloads',
+          'maxOverallDownloadLimit': 0,
+          'maxOverallUploadLimit': 0,
+          'btSaveMetadata': true,
+          'btForceEncryption': false,
+          'btLoadSavedMetadata': true,
+          'keepSeeding': false,
+          'seedRatio': 1.0,
+          'seedTime': 60,
+          'btListenPort': '6881-6999',
+          'btTracker': '',
+          'btExcludeTracker': '',
+          'proxyEnabled': false,
+          'allProxy': '',
+          'noProxy': '',
+          'dhtListenPort': 26701,
+          'enableDht6': true,
+          'enableUpnp': true,
+          'sessionPath': '',
+          'logPath': '',
+          'autoSyncTracker': true,
+          'lastSyncTrackerTime': 0,
+          'trackerSource':
+              'https://fastly.jsdelivr.net/gh/ngosang/trackerslist/trackers_best_ip.txt',
+          'autoFileRenaming': true,
+          'allowOverwrite': false,
+          'userAgent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+              'AppleWebKit/537.36 (KHTML, like Gecko) '
+              'Chrome/120.0.0.0 Safari/537.36',
+        });
+
+        await Settings(repository: repository).loadSettings();
+
+        expect(repository.savedValues, isNull);
+      });
+
+      test('drops the obsolete minimize-to-tray field on save', () async {
+        final repository = MemorySettingsRepository(<String, dynamic>{
+          'minimizeToTray': false,
+        });
+        final settings = Settings(repository: repository);
+
+        await settings.loadSettings();
+        expect(settings.runMode, AppRunMode.standard);
+
+        await settings.setRunMode(AppRunMode.tray);
+
+        expect(repository.savedValues, isNot(contains('minimizeToTray')));
+        expect(repository.savedValues!['runMode'], 'tray');
+      });
+
+      test('persists the keep-awake preference', () async {
+        final repository = MemorySettingsRepository(<String, dynamic>{});
+        final settings = Settings(repository: repository);
+
+        await settings.loadSettings();
+        await settings.setKeepAwake(true);
+
+        expect(settings.keepAwake, isTrue);
+        expect(repository.savedValues!['keepAwake'], isTrue);
       });
     });
   });

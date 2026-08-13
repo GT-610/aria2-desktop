@@ -12,9 +12,11 @@ class SettingsService extends ChangeNotifier with Loggable {
 
   void initialize(Settings settings) {
     _settings = settings;
+    BuiltinInstanceService().bindSettings(settings);
   }
 
-  Map<String, dynamic> _convertSettingsToRuntimeAria2Options() {
+  @visibleForTesting
+  Map<String, dynamic> convertSettingsToRuntimeAria2Options() {
     if (_settings == null) {
       w(
         'Cannot convert runtime settings to aria2 options because settings are not initialized',
@@ -74,7 +76,7 @@ class SettingsService extends ChangeNotifier with Loggable {
 
     try {
       final result = await client.setGlobalOption(
-        _convertSettingsToRuntimeAria2Options(),
+        convertSettingsToRuntimeAria2Options(),
       );
       if (result) {
         i('Applied runtime settings to the built-in aria2 instance');

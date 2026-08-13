@@ -467,8 +467,20 @@ abstract class AppLocalizations {
   /// No description provided for @showProgressBarTip.
   ///
   /// In en, this message translates to:
-  /// **'Display task progress bars in the download list'**
+  /// **'Display task progress bars in the list and aggregate active downloads in the Windows taskbar or macOS Dock'**
   String get showProgressBarTip;
+
+  /// No description provided for @keepAwake.
+  ///
+  /// In en, this message translates to:
+  /// **'Prevent sleep while downloading'**
+  String get keepAwake;
+
+  /// No description provided for @keepAwakeTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the system awake while downloads are active; the display may still turn off'**
+  String get keepAwakeTip;
 
   /// No description provided for @hideTitleBar.
   ///

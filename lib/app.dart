@@ -16,6 +16,8 @@ import 'utils/format_utils.dart';
 import 'utils/windows_font_theme.dart';
 import 'pages/settings_page/settings_page.dart';
 import 'services/download_data_service.dart';
+import 'services/desktop_progress_service.dart';
+import 'services/power_management_service.dart';
 import 'services/instance_manager.dart';
 import 'services/protocol_integration_service.dart';
 import 'services/settings_service.dart';
@@ -30,12 +32,17 @@ import 'widgets/sized_loading.dart';
 import 'widgets/virtual_window_frame.dart';
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.initialSettings});
+
+  final Settings? initialSettings;
 
   @override
   Widget build(BuildContext context) {
+    final settingsProvider = initialSettings == null
+        ? ChangeNotifierProvider<Settings>(create: (context) => Settings())
+        : ChangeNotifierProvider<Settings>.value(value: initialSettings!);
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (context) => Settings())],
+      providers: [settingsProvider],
       child: _ThemeProvider(),
     );
   }
@@ -245,6 +252,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   int _shellSettingsGeneration = 0;
   bool _hasShownBuiltinFailureDialog = false;
   bool _hasResumedTasks = false;
+  final DesktopProgressService _desktopProgressService =
+      DesktopProgressService();
+  final PowerManagementService _powerManagementService =
+      PowerManagementService();
 
   @override
   void initState() {
@@ -272,6 +283,8 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     _downloadDataService?.removeListener(_handleDownloadNotifications);
     _instanceManager?.removeListener(_handleInstanceManagerChanged);
     _settings?.removeListener(_handleSettingsChanged);
+    unawaited(_desktopProgressService.clear());
+    unawaited(_powerManagementService.dispose());
     _pendingAutoHideTimer?.cancel();
     _pageController.dispose();
     windowManager.removeListener(this);
@@ -330,6 +343,8 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   }
 
   void _handleSettingsChanged() {
+    unawaited(_synchronizeDesktopProgress());
+    unawaited(_synchronizePowerManagement());
     unawaited(_handleTrayStateChanged());
     unawaited(_applyShellSettings());
   }
@@ -550,6 +565,8 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
+    unawaited(_synchronizeDesktopProgress());
+    unawaited(_synchronizePowerManagement());
     unawaited(_handleTrayStateChanged());
 
     final instanceManager = _instanceManager;
@@ -639,6 +656,28 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         resumeAllDisabled: summary.resumable == 0,
         pauseAllDisabled: summary.pausable == 0,
       ),
+    );
+  }
+
+  Future<void> _synchronizeDesktopProgress() async {
+    if (!mounted || _downloadDataService == null) {
+      return;
+    }
+    final settings = _settings ?? Provider.of<Settings>(context, listen: false);
+    await _desktopProgressService.synchronize(
+      enabled: settings.showProgressBar,
+      tasks: _downloadDataService!.tasks,
+    );
+  }
+
+  Future<void> _synchronizePowerManagement() async {
+    if (!mounted || _downloadDataService == null) {
+      return;
+    }
+    final settings = _settings ?? Provider.of<Settings>(context, listen: false);
+    await _powerManagementService.synchronize(
+      enabled: settings.keepAwake,
+      tasks: _downloadDataService!.tasks,
     );
   }
 

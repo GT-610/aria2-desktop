@@ -115,9 +115,25 @@ class _InstanceDialogState extends State<InstanceDialog> {
         : nextName.trim();
     var isValid = true;
     int? parsedPort;
+    Aria2RpcEndpoint? endpoint;
 
     if (nextPortText.isNotEmpty) {
       parsedPort = int.tryParse(nextPortText);
+    }
+
+    final isPortValid =
+        parsedPort != null && parsedPort >= 1 && parsedPort <= 65535;
+    if (isPortValid) {
+      try {
+        endpoint = Aria2RpcEndpoint.parse(
+          hostInput: nextHost,
+          fallbackProtocol: _protocol,
+          fallbackPort: parsedPort,
+          fallbackRpcPath: _rpcPathController.text,
+        );
+      } on FormatException {
+        endpoint = null;
+      }
     }
 
     setState(() {
@@ -145,8 +161,20 @@ class _InstanceDialogState extends State<InstanceDialog> {
       if (_host.trim().isEmpty) {
         _hostError = l10n.hostRequired;
         isValid = false;
+      } else if (isPortValid && endpoint == null) {
+        _hostError = l10n.hostRequired;
+        isValid = false;
       } else {
         _hostError = null;
+        if (endpoint != null) {
+          _protocol = endpoint.protocol;
+          _host = endpoint.host;
+          _port = endpoint.port;
+          _rpcPath = endpoint.rpcPath;
+          _hostController.text = _host;
+          _portController.text = _port.toString();
+          _rpcPathController.text = _rpcPath;
+        }
       }
 
       if (nextPortText.isEmpty) {
@@ -157,7 +185,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
         isValid = false;
       } else {
         _portError = null;
-        _port = parsedPort;
+        _port = endpoint?.port ?? parsedPort;
       }
     });
 
@@ -182,7 +210,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
       port: _port,
       secret: _secretController.text.trim(),
       downloadDir: _downloadDirController.text.trim(),
-      rpcPath: _rpcPathController.text.trim(),
+      rpcPath: _rpcPath,
       rpcRequestHeaders: _usesHttpTransport
           ? _rpcRequestHeadersController.text
           : '',
@@ -392,7 +420,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                                   },
                                   decoration: InputDecoration(
                                     labelText: l10n.host,
-                                    hintText: 'localhost',
+                                    hintText: l10n.hostTip,
                                     errorText: _hostError,
                                   ),
                                 ),

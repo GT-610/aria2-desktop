@@ -204,7 +204,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showProgressBar => '显示进度条';
 
   @override
-  String get showProgressBarTip => '在下载列表中显示任务进度条';
+  String get showProgressBarTip =>
+      '在下载列表中显示任务进度条，并在 Windows 任务栏或 macOS Dock 汇总活动下载进度';
+
+  @override
+  String get keepAwake => '下载时阻止系统休眠';
+
+  @override
+  String get keepAwakeTip => '存在活动下载时保持系统唤醒；显示器仍可按系统设置关闭';
 
   @override
   String get hideTitleBar => '隐藏标题栏';

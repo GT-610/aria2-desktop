@@ -6,6 +6,7 @@ import 'services/startup_integration_service.dart';
 import 'services/system_tray_service.dart';
 import 'services/data_migration_service.dart';
 import 'services/core_provisioning_service.dart';
+import 'services/builtin_instance_service.dart';
 import 'utils/app_paths.dart';
 import 'utils/logging.dart';
 
@@ -39,6 +40,7 @@ void main(List<String> args) async {
 
   final settings = Settings();
   await settings.loadSettings();
+  BuiltinInstanceService().bindSettings(settings);
   try {
     await StartupIntegrationService().initialize();
   } catch (e, stackTrace) {
@@ -53,5 +55,5 @@ void main(List<String> args) async {
   await WindowManagerService().initialize(hideTitleBar: settings.hideTitleBar);
 
   // Run the application
-  runApp(const MyApp());
+  runApp(MyApp(initialSettings: settings));
 }

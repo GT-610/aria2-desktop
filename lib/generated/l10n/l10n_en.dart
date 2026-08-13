@@ -219,7 +219,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get showProgressBarTip =>
-      'Display task progress bars in the download list';
+      'Display task progress bars in the list and aggregate active downloads in the Windows taskbar or macOS Dock';
+
+  @override
+  String get keepAwake => 'Prevent sleep while downloading';
+
+  @override
+  String get keepAwakeTip =>
+      'Keep the system awake while downloads are active; the display may still turn off';
 
   @override
   String get hideTitleBar => 'Hide title bar';

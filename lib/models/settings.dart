@@ -15,9 +15,15 @@ class Settings extends ChangeNotifier with Loggable {
   final SettingsRepository _repository;
   bool _credentialsBlocked = false;
 
+  static const String _defaultTrackerSource =
+      'https://fastly.jsdelivr.net/gh/ngosang/trackerslist/trackers_best_ip.txt';
+  static const String _defaultUserAgent =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+      'AppleWebKit/537.36 (KHTML, like Gecko) '
+      'Chrome/120.0.0.0 Safari/537.36';
+
   // Global settings
   bool _autoStart = false; // Auto-run on system startup
-  bool _minimizeToTray = true; // Legacy migration field
   AppRunMode _runMode = AppRunMode.tray; // Desktop shell mode
   bool _autoHideWindow = false; // Hide window when it loses focus
   bool _showTraySpeed = true; // Show download speed in tray tooltip
@@ -29,6 +35,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool _showDownloadsAfterAdd =
       true; // Focus downloading view after adding tasks
   bool _showProgressBar = true; // Show progress bars in task list
+  bool _keepAwake = false; // Prevent idle sleep while downloads are active
   bool _hideTitleBar = false; // Hide the native desktop title bar
   bool _isLoaded = false; // Whether settings have finished loading
 
@@ -79,12 +86,10 @@ class Settings extends ChangeNotifier with Loggable {
   String _logPath = ''; // Custom aria2 log file path
   bool _autoSyncTracker = true; // Auto sync tracker list
   int _lastSyncTrackerTime = 0; // Last successful tracker sync time
-  String _trackerSource =
-      'https://fastly.jsdelivr.net/gh/ngosang/trackerslist/trackers_best_ip.txt'; // Selected tracker source
+  String _trackerSource = _defaultTrackerSource; // Selected tracker source
   bool _autoFileRenaming = true; // Auto rename files
   bool _allowOverwrite = false; // Allow overwrite
-  String _userAgent =
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; // User agent
+  String _userAgent = _defaultUserAgent; // User agent
 
   Future<String> _defaultDownloadDirectory() {
     return Future.value(getDefaultDownloadDirectorySync());
@@ -92,7 +97,6 @@ class Settings extends ChangeNotifier with Loggable {
 
   void _assignDefaultSettings({required String defaultDownloadDir}) {
     _autoStart = false;
-    _minimizeToTray = true;
     _runMode = AppRunMode.tray;
     _autoHideWindow = false;
     _showTraySpeed = true;
@@ -103,6 +107,7 @@ class Settings extends ChangeNotifier with Loggable {
     _resumeAllOnLaunch = false;
     _showDownloadsAfterAdd = true;
     _showProgressBar = true;
+    _keepAwake = false;
     _hideTitleBar = false;
     _themeMode = ThemeMode.system;
     _primaryColor = Colors.blue;
@@ -147,12 +152,10 @@ class Settings extends ChangeNotifier with Loggable {
     _logPath = '';
     _autoSyncTracker = true;
     _lastSyncTrackerTime = 0;
-    _trackerSource =
-        'https://fastly.jsdelivr.net/gh/ngosang/trackerslist/trackers_best_ip.txt';
+    _trackerSource = _defaultTrackerSource;
     _autoFileRenaming = true;
     _allowOverwrite = false;
-    _userAgent =
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    _userAgent = _defaultUserAgent;
   }
 
   @visibleForTesting
@@ -176,6 +179,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool get resumeAllOnLaunch => _resumeAllOnLaunch;
   bool get showDownloadsAfterAdd => _showDownloadsAfterAdd;
   bool get showProgressBar => _showProgressBar;
+  bool get keepAwake => _keepAwake;
   bool get hideTitleBar => _hideTitleBar;
   bool get isLoaded => _isLoaded;
   ThemeMode get themeMode => _themeMode;
@@ -226,6 +230,40 @@ class Settings extends ChangeNotifier with Loggable {
   bool get allowOverwrite => _allowOverwrite;
   String get userAgent => _userAgent;
 
+  Map<String, dynamic> toBuiltinInstanceSettings() {
+    return <String, dynamic>{
+      'rpcListenPort': _rpcListenPort,
+      'rpcSecret': _rpcSecret,
+      'maxConcurrentDownloads': _maxConcurrentDownloads,
+      'maxConnectionPerServer': _maxConnectionPerServer,
+      'split': _split,
+      'continueDownloads': _continueDownloads,
+      'downloadDir': _downloadDir,
+      'maxOverallDownloadLimit': _maxOverallDownloadLimit,
+      'maxOverallUploadLimit': _maxOverallUploadLimit,
+      'btSaveMetadata': _btSaveMetadata,
+      'btForceEncryption': _btForceEncryption,
+      'btLoadSavedMetadata': _btLoadSavedMetadata,
+      'keepSeeding': _keepSeeding,
+      'seedRatio': _seedRatio,
+      'seedTime': _seedTime,
+      'btListenPort': _btListenPort,
+      'btTracker': _btTracker,
+      'btExcludeTracker': _btExcludeTracker,
+      'proxyEnabled': _proxyEnabled,
+      'allProxy': _allProxy,
+      'noProxy': _noProxy,
+      'dhtListenPort': _dhtListenPort,
+      'enableDht6': _enableDht6,
+      'enableUpnp': _enableUpnp,
+      'sessionPath': _sessionPath,
+      'logPath': _logPath,
+      'autoFileRenaming': _autoFileRenaming,
+      'allowOverwrite': _allowOverwrite,
+      'userAgent': _userAgent,
+    };
+  }
+
   // Load all settings from JSON file
   Future<void> loadSettings() async {
     try {
@@ -235,113 +273,289 @@ class Settings extends ChangeNotifier with Loggable {
 
       if (settingsMap != null) {
         var needsSave = false;
+        final defaultDownloadDir = await _defaultDownloadDirectory();
+        _assignDefaultSettings(defaultDownloadDir: defaultDownloadDir);
+
+        bool readBool(String key, bool fallback) {
+          final rawValue = settingsMap[key];
+          if (rawValue == null) {
+            return fallback;
+          }
+          if (rawValue is bool) {
+            return rawValue;
+          }
+          if (rawValue is String) {
+            final normalized = rawValue.trim().toLowerCase();
+            if (normalized == 'true' || normalized == 'false') {
+              needsSave = true;
+              return normalized == 'true';
+            }
+          }
+          if (rawValue is num && (rawValue == 0 || rawValue == 1)) {
+            needsSave = true;
+            return rawValue == 1;
+          }
+          needsSave = true;
+          return fallback;
+        }
+
+        int readInt(String key, int fallback, {int? min, int? max}) {
+          final rawValue = settingsMap[key];
+          if (rawValue == null) {
+            return fallback;
+          }
+
+          int? parsed;
+          if (rawValue is int) {
+            parsed = rawValue;
+          } else if (rawValue is num && rawValue.isFinite) {
+            final candidate = rawValue.toInt();
+            if (candidate == rawValue) {
+              parsed = candidate;
+              needsSave = true;
+            }
+          } else if (rawValue is String) {
+            parsed = int.tryParse(rawValue.trim());
+            if (parsed != null) {
+              needsSave = true;
+            }
+          }
+
+          if (parsed == null ||
+              (min != null && parsed < min) ||
+              (max != null && parsed > max)) {
+            needsSave = true;
+            return fallback;
+          }
+          return parsed;
+        }
+
+        double readDouble(
+          String key,
+          double fallback, {
+          double? min,
+          double? max,
+        }) {
+          final rawValue = settingsMap[key];
+          if (rawValue == null) {
+            return fallback;
+          }
+
+          double? parsed;
+          if (rawValue is num && rawValue.isFinite) {
+            parsed = rawValue.toDouble();
+            if (rawValue is! double) {
+              needsSave = true;
+            }
+          } else if (rawValue is String) {
+            parsed = double.tryParse(rawValue.trim());
+            if (parsed != null && parsed.isFinite) {
+              needsSave = true;
+            } else {
+              parsed = null;
+            }
+          }
+
+          if (parsed == null ||
+              (min != null && parsed < min) ||
+              (max != null && parsed > max)) {
+            needsSave = true;
+            return fallback;
+          }
+          return parsed;
+        }
+
+        String readString(
+          String key,
+          String fallback, {
+          bool allowEmpty = true,
+        }) {
+          final rawValue = settingsMap[key];
+          if (rawValue == null) {
+            return fallback;
+          }
+          if (rawValue is! String || (!allowEmpty && rawValue.trim().isEmpty)) {
+            needsSave = true;
+            return fallback;
+          }
+          return rawValue;
+        }
+
+        String? readNullableString(String key) {
+          final rawValue = settingsMap[key];
+          if (rawValue == null) {
+            return null;
+          }
+          if (rawValue is String) {
+            return rawValue.trim().isEmpty ? null : rawValue;
+          }
+          needsSave = true;
+          return null;
+        }
 
         // Global settings
-        _autoStart = settingsMap['autoStart'] ?? false;
-        _minimizeToTray = settingsMap['minimizeToTray'] ?? true;
+        _autoStart = readBool('autoStart', false);
+        final minimizeToTray = readBool('minimizeToTray', true);
         final runModeValue = settingsMap['runMode'];
-        if (runModeValue != null) {
-          _runMode = AppRunMode.values.firstWhere(
-            (mode) => mode.name == runModeValue,
-            orElse: () => AppRunMode.tray,
-          );
+        if (runModeValue is String &&
+            AppRunMode.values.any((mode) => mode.name == runModeValue)) {
+          _runMode = AppRunMode.values.byName(runModeValue);
         } else {
-          _runMode = _minimizeToTray ? AppRunMode.tray : AppRunMode.standard;
+          if (runModeValue != null) {
+            needsSave = true;
+            _runMode = AppRunMode.tray;
+          } else {
+            _runMode = minimizeToTray ? AppRunMode.tray : AppRunMode.standard;
+            needsSave = true;
+          }
         }
-        _autoHideWindow = settingsMap['autoHideWindow'] ?? false;
-        _showTraySpeed = settingsMap['showTraySpeed'] ?? true;
-        _taskNotification = settingsMap['taskNotification'] ?? true;
-        _protocolMagnetEnabled = settingsMap['protocolMagnetEnabled'] ?? false;
-        _protocolThunderEnabled =
-            settingsMap['protocolThunderEnabled'] ?? false;
-        _skipDeleteConfirm = settingsMap['skipDeleteConfirm'] ?? false;
-        _resumeAllOnLaunch = settingsMap['resumeAllOnLaunch'] ?? false;
-        _showDownloadsAfterAdd = settingsMap['showDownloadsAfterAdd'] ?? true;
-        _showProgressBar = settingsMap['showProgressBar'] ?? true;
-        _hideTitleBar = settingsMap['hideTitleBar'] ?? false;
+        _autoHideWindow = readBool('autoHideWindow', false);
+        _showTraySpeed = readBool('showTraySpeed', true);
+        _taskNotification = readBool('taskNotification', true);
+        _protocolMagnetEnabled = readBool('protocolMagnetEnabled', false);
+        _protocolThunderEnabled = readBool('protocolThunderEnabled', false);
+        _skipDeleteConfirm = readBool('skipDeleteConfirm', false);
+        _resumeAllOnLaunch = readBool('resumeAllOnLaunch', false);
+        _showDownloadsAfterAdd = readBool('showDownloadsAfterAdd', true);
+        _showProgressBar = readBool('showProgressBar', true);
+        _keepAwake = readBool('keepAwake', false);
+        _hideTitleBar = readBool('hideTitleBar', false);
 
         // Appearance settings
         final themeModeValue = settingsMap['themeMode'];
-        if (themeModeValue != null) {
-          _themeMode = ThemeMode.values.firstWhere(
-            (e) => e.name == themeModeValue,
-            orElse: () => ThemeMode.system,
-          );
+        if (themeModeValue is String &&
+            ThemeMode.values.any((mode) => mode.name == themeModeValue)) {
+          _themeMode = ThemeMode.values.byName(themeModeValue);
+        } else if (themeModeValue != null) {
+          needsSave = true;
         }
 
         final colorCode = settingsMap['primaryColor'];
         if (colorCode != null) {
-          try {
-            _primaryColor = Color(int.parse(colorCode));
-          } catch (e) {
-            w('Invalid color code, using default', error: e);
+          final parsedColor = colorCode is int
+              ? colorCode
+              : int.tryParse(colorCode.toString());
+          if (parsedColor != null &&
+              parsedColor >= 0 &&
+              parsedColor <= 0xFFFFFFFF) {
+            _primaryColor = Color(parsedColor);
+            if (colorCode is! String) {
+              needsSave = true;
+            }
+          } else {
             _primaryColor = Colors.blue;
+            needsSave = true;
           }
         }
 
-        _customColorCode = settingsMap['customColorCode'];
+        _customColorCode = readNullableString('customColorCode');
 
         // Locale settings
-        final localeCode = settingsMap['locale'];
-        if (localeCode != null && localeCode.isNotEmpty) {
-          _locale = Locale(localeCode);
+        final localeCode = readNullableString('locale');
+        if (localeCode != null) {
+          final normalizedLocale = localeCode
+              .trim()
+              .split(RegExp('[-_]'))
+              .first
+              .toLowerCase();
+          if (normalizedLocale == 'en' || normalizedLocale == 'zh') {
+            _locale = Locale(normalizedLocale);
+            if (normalizedLocale != localeCode) {
+              needsSave = true;
+            }
+          } else {
+            needsSave = true;
+          }
         }
 
         // Built-in Aria2 instance settings
         // Connection settings
-        _rpcListenPort = settingsMap['rpcListenPort'] ?? 16800;
-        _rpcSecret = settingsMap['rpcSecret'] ?? '';
+        _rpcListenPort = readInt('rpcListenPort', 16800, min: 1, max: 65535);
+        _rpcSecret = readString('rpcSecret', '');
 
         // Transfer settings
-        _maxConcurrentDownloads = settingsMap['maxConcurrentDownloads'] ?? 5;
-        _maxConnectionPerServer = settingsMap['maxConnectionPerServer'] ?? 16;
-        _split = settingsMap['split'] ?? 16;
-        _continueDownloads = settingsMap['continueDownloads'] ?? true;
-        final configuredDownloadDir =
-            (settingsMap['downloadDir'] as String? ?? '').trim();
+        _maxConcurrentDownloads = readInt(
+          'maxConcurrentDownloads',
+          5,
+          min: 1,
+          max: 16,
+        );
+        _maxConnectionPerServer = readInt(
+          'maxConnectionPerServer',
+          16,
+          min: 1,
+          max: 128,
+        );
+        _split = readInt('split', 16, min: 1, max: 128);
+        _continueDownloads = readBool('continueDownloads', true);
+        final configuredDownloadDir = readString('downloadDir', '').trim();
         if (configuredDownloadDir.isEmpty) {
-          _downloadDir = await _defaultDownloadDirectory();
+          _downloadDir = defaultDownloadDir;
           needsSave = true;
         } else {
           _downloadDir = p.normalize(configuredDownloadDir);
+          if (_downloadDir != configuredDownloadDir) {
+            needsSave = true;
+          }
         }
 
         // Speed settings
-        _maxOverallDownloadLimit = settingsMap['maxOverallDownloadLimit'] ?? 0;
-        _maxOverallUploadLimit = settingsMap['maxOverallUploadLimit'] ?? 0;
+        _maxOverallDownloadLimit = readInt(
+          'maxOverallDownloadLimit',
+          0,
+          min: 0,
+          max: 65535,
+        );
+        _maxOverallUploadLimit = readInt(
+          'maxOverallUploadLimit',
+          0,
+          min: 0,
+          max: 65535,
+        );
 
         // BT settings
-        _btSaveMetadata = settingsMap['btSaveMetadata'] ?? true;
-        _btForceEncryption = settingsMap['btForceEncryption'] ?? false;
-        _btLoadSavedMetadata = settingsMap['btLoadSavedMetadata'] ?? true;
-        _keepSeeding = settingsMap['keepSeeding'] ?? false;
-        _seedRatio = settingsMap['seedRatio'] ?? 1.0;
-        _seedTime = settingsMap['seedTime'] ?? 60;
-        _btListenPort = settingsMap['btListenPort'] ?? '6881-6999';
-        _btTracker = normalizeBtTracker(settingsMap['btTracker'] ?? '');
-        _btExcludeTracker = settingsMap['btExcludeTracker'] ?? '';
+        _btSaveMetadata = readBool('btSaveMetadata', true);
+        _btForceEncryption = readBool('btForceEncryption', false);
+        _btLoadSavedMetadata = readBool('btLoadSavedMetadata', true);
+        _keepSeeding = readBool('keepSeeding', false);
+        _seedRatio = readDouble('seedRatio', 1.0, min: 0, max: 100);
+        _seedTime = readInt('seedTime', 60, min: 0, max: 10080);
+        _btListenPort = readString('btListenPort', '6881-6999');
+        final rawBtTracker = readString('btTracker', '');
+        _btTracker = normalizeBtTracker(rawBtTracker);
+        if (_btTracker != rawBtTracker) {
+          needsSave = true;
+        }
+        _btExcludeTracker = readString('btExcludeTracker', '');
 
         // Advanced settings
-        _allProxy = settingsMap['allProxy'] ?? '';
+        _allProxy = readString('allProxy', '');
         _proxyEnabled = settingsMap.containsKey('proxyEnabled')
-            ? (settingsMap['proxyEnabled'] ?? false)
+            ? readBool('proxyEnabled', false)
             : _allProxy.isNotEmpty;
-        _noProxy = settingsMap['noProxy'] ?? '';
-        _dhtListenPort = settingsMap['dhtListenPort'] ?? 26701;
-        _enableDht6 = settingsMap['enableDht6'] ?? true;
-        _enableUpnp = settingsMap['enableUpnp'] ?? true;
-        _sessionPath = settingsMap['sessionPath'] ?? '';
-        _logPath = settingsMap['logPath'] ?? '';
-        _autoSyncTracker = settingsMap['autoSyncTracker'] ?? true;
-        _lastSyncTrackerTime = settingsMap['lastSyncTrackerTime'] ?? 0;
-        _trackerSource =
-            settingsMap['trackerSource'] ??
-            'https://fastly.jsdelivr.net/gh/ngosang/trackerslist/trackers_best_ip.txt';
-        _autoFileRenaming = settingsMap['autoFileRenaming'] ?? true;
-        _allowOverwrite = settingsMap['allowOverwrite'] ?? false;
-        _userAgent =
-            settingsMap['userAgent'] ??
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        if (!settingsMap.containsKey('proxyEnabled')) {
+          needsSave = true;
+        }
+        _noProxy = readString('noProxy', '');
+        _dhtListenPort = readInt('dhtListenPort', 26701, min: 1024, max: 65535);
+        _enableDht6 = readBool('enableDht6', true);
+        _enableUpnp = readBool('enableUpnp', true);
+        _sessionPath = readString('sessionPath', '');
+        _logPath = readString('logPath', '');
+        _autoSyncTracker = readBool('autoSyncTracker', true);
+        _lastSyncTrackerTime = readInt('lastSyncTrackerTime', 0, min: 0);
+        _trackerSource = readString(
+          'trackerSource',
+          _defaultTrackerSource,
+          allowEmpty: false,
+        );
+        _autoFileRenaming = readBool('autoFileRenaming', true);
+        _allowOverwrite = readBool('allowOverwrite', false);
+        _userAgent = readString(
+          'userAgent',
+          _defaultUserAgent,
+          allowEmpty: false,
+        );
 
         if (needsSave && !_credentialsBlocked) {
           await _saveAllSettings();
@@ -394,7 +608,6 @@ class Settings extends ChangeNotifier with Loggable {
     try {
       final settingsMap = {
         'autoStart': _autoStart,
-        'minimizeToTray': _minimizeToTray,
         'runMode': _runMode.name,
         'autoHideWindow': _autoHideWindow,
         'showTraySpeed': _showTraySpeed,
@@ -405,6 +618,7 @@ class Settings extends ChangeNotifier with Loggable {
         'resumeAllOnLaunch': _resumeAllOnLaunch,
         'showDownloadsAfterAdd': _showDownloadsAfterAdd,
         'showProgressBar': _showProgressBar,
+        'keepAwake': _keepAwake,
         'hideTitleBar': _hideTitleBar,
         'themeMode': _themeMode.name,
         'primaryColor': _primaryColor.toARGB32().toString(),
@@ -483,7 +697,6 @@ class Settings extends ChangeNotifier with Loggable {
 
   Future<void> setRunMode(AppRunMode value) async {
     _runMode = value;
-    _minimizeToTray = value == AppRunMode.tray;
     notifyListeners();
     await _saveAllSettings();
   }
@@ -538,6 +751,12 @@ class Settings extends ChangeNotifier with Loggable {
 
   Future<void> setShowProgressBar(bool value) async {
     _showProgressBar = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setKeepAwake(bool value) async {
+    _keepAwake = value;
     notifyListeners();
     await _saveAllSettings();
   }
