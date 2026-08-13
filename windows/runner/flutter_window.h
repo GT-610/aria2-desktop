@@ -11,6 +11,7 @@
 class ProtocolIntegration;
 class ProcessLifecycle;
 class DesktopProgress;
+class PowerManagement;
 
 // A window that does nothing but host a Flutter view.
 class FlutterWindow : public Win32Window {
@@ -35,6 +36,7 @@ class FlutterWindow : public Win32Window {
   std::unique_ptr<ProtocolIntegration> protocol_integration_;
   std::unique_ptr<ProcessLifecycle> process_lifecycle_;
   std::unique_ptr<DesktopProgress> desktop_progress_;
+  std::unique_ptr<PowerManagement> power_management_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

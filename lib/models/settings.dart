@@ -35,6 +35,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool _showDownloadsAfterAdd =
       true; // Focus downloading view after adding tasks
   bool _showProgressBar = true; // Show progress bars in task list
+  bool _keepAwake = false; // Prevent idle sleep while downloads are active
   bool _hideTitleBar = false; // Hide the native desktop title bar
   bool _isLoaded = false; // Whether settings have finished loading
 
@@ -106,6 +107,7 @@ class Settings extends ChangeNotifier with Loggable {
     _resumeAllOnLaunch = false;
     _showDownloadsAfterAdd = true;
     _showProgressBar = true;
+    _keepAwake = false;
     _hideTitleBar = false;
     _themeMode = ThemeMode.system;
     _primaryColor = Colors.blue;
@@ -177,6 +179,7 @@ class Settings extends ChangeNotifier with Loggable {
   bool get resumeAllOnLaunch => _resumeAllOnLaunch;
   bool get showDownloadsAfterAdd => _showDownloadsAfterAdd;
   bool get showProgressBar => _showProgressBar;
+  bool get keepAwake => _keepAwake;
   bool get hideTitleBar => _hideTitleBar;
   bool get isLoaded => _isLoaded;
   ThemeMode get themeMode => _themeMode;
@@ -415,6 +418,7 @@ class Settings extends ChangeNotifier with Loggable {
         _resumeAllOnLaunch = readBool('resumeAllOnLaunch', false);
         _showDownloadsAfterAdd = readBool('showDownloadsAfterAdd', true);
         _showProgressBar = readBool('showProgressBar', true);
+        _keepAwake = readBool('keepAwake', false);
         _hideTitleBar = readBool('hideTitleBar', false);
 
         // Appearance settings
@@ -614,6 +618,7 @@ class Settings extends ChangeNotifier with Loggable {
         'resumeAllOnLaunch': _resumeAllOnLaunch,
         'showDownloadsAfterAdd': _showDownloadsAfterAdd,
         'showProgressBar': _showProgressBar,
+        'keepAwake': _keepAwake,
         'hideTitleBar': _hideTitleBar,
         'themeMode': _themeMode.name,
         'primaryColor': _primaryColor.toARGB32().toString(),
@@ -746,6 +751,12 @@ class Settings extends ChangeNotifier with Loggable {
 
   Future<void> setShowProgressBar(bool value) async {
     _showProgressBar = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setKeepAwake(bool value) async {
+    _keepAwake = value;
     notifyListeners();
     await _saveAllSettings();
   }

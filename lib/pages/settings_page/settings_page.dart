@@ -244,6 +244,12 @@ class _SettingsPageState extends State<SettingsPage>
           value: settings.showProgressBar,
           onChanged: (value) => settings.setShowProgressBar(value),
         ),
+        _buildSwitchTile(
+          title: l10n.keepAwake,
+          subtitle: l10n.keepAwakeTip,
+          value: settings.keepAwake,
+          onChanged: (value) => settings.setKeepAwake(value),
+        ),
       ]),
     );
   }

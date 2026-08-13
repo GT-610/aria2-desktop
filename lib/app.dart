@@ -17,6 +17,7 @@ import 'utils/windows_font_theme.dart';
 import 'pages/settings_page/settings_page.dart';
 import 'services/download_data_service.dart';
 import 'services/desktop_progress_service.dart';
+import 'services/power_management_service.dart';
 import 'services/instance_manager.dart';
 import 'services/protocol_integration_service.dart';
 import 'services/settings_service.dart';
@@ -253,6 +254,8 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   bool _hasResumedTasks = false;
   final DesktopProgressService _desktopProgressService =
       DesktopProgressService();
+  final PowerManagementService _powerManagementService =
+      PowerManagementService();
 
   @override
   void initState() {
@@ -281,6 +284,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     _instanceManager?.removeListener(_handleInstanceManagerChanged);
     _settings?.removeListener(_handleSettingsChanged);
     unawaited(_desktopProgressService.clear());
+    unawaited(_powerManagementService.release());
     _pendingAutoHideTimer?.cancel();
     _pageController.dispose();
     windowManager.removeListener(this);
@@ -340,6 +344,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
 
   void _handleSettingsChanged() {
     unawaited(_synchronizeDesktopProgress());
+    unawaited(_synchronizePowerManagement());
     unawaited(_handleTrayStateChanged());
     unawaited(_applyShellSettings());
   }
@@ -561,6 +566,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     }
 
     unawaited(_synchronizeDesktopProgress());
+    unawaited(_synchronizePowerManagement());
     unawaited(_handleTrayStateChanged());
 
     final instanceManager = _instanceManager;
@@ -660,6 +666,17 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     final settings = _settings ?? Provider.of<Settings>(context, listen: false);
     await _desktopProgressService.synchronize(
       enabled: settings.showProgressBar,
+      tasks: _downloadDataService!.tasks,
+    );
+  }
+
+  Future<void> _synchronizePowerManagement() async {
+    if (!mounted || _downloadDataService == null) {
+      return;
+    }
+    final settings = _settings ?? Provider.of<Settings>(context, listen: false);
+    await _powerManagementService.synchronize(
+      enabled: settings.keepAwake,
       tasks: _downloadDataService!.tasks,
     );
   }

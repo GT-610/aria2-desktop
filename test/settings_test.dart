@@ -97,6 +97,7 @@ void main() {
         expect(settings.resumeAllOnLaunch, isFalse);
         expect(settings.showDownloadsAfterAdd, isTrue);
         expect(settings.showProgressBar, isTrue);
+        expect(settings.keepAwake, isFalse);
         expect(settings.hideTitleBar, isFalse);
       });
 
@@ -311,6 +312,7 @@ void main() {
           'resumeAllOnLaunch': false,
           'showDownloadsAfterAdd': true,
           'showProgressBar': true,
+          'keepAwake': false,
           'hideTitleBar': false,
           'themeMode': 'system',
           'primaryColor': '4280391411',
@@ -372,6 +374,17 @@ void main() {
 
         expect(repository.savedValues, isNot(contains('minimizeToTray')));
         expect(repository.savedValues!['runMode'], 'tray');
+      });
+
+      test('persists the keep-awake preference', () async {
+        final repository = _MemorySettingsRepository(<String, dynamic>{});
+        final settings = Settings(repository: repository);
+
+        await settings.loadSettings();
+        await settings.setKeepAwake(true);
+
+        expect(settings.keepAwake, isTrue);
+        expect(repository.savedValues!['keepAwake'], isTrue);
       });
     });
   });

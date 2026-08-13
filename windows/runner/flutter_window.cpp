@@ -5,6 +5,7 @@
 #include "flutter/generated_plugin_registrant.h"
 #include "desktop_progress.h"
 #include "process_lifecycle.h"
+#include "power_management.h"
 #include "protocol_integration.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
@@ -34,6 +35,8 @@ bool FlutterWindow::OnCreate() {
       std::make_unique<ProcessLifecycle>(flutter_controller_->engine());
   desktop_progress_ = std::make_unique<DesktopProgress>(
       flutter_controller_->engine(), GetHandle());
+  power_management_ =
+      std::make_unique<PowerManagement>(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -49,6 +52,7 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  power_management_ = nullptr;
   desktop_progress_ = nullptr;
   process_lifecycle_ = nullptr;
   protocol_integration_ = nullptr;

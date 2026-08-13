@@ -72,6 +72,8 @@
   "showDownloadsAfterAddTip": "添加新任务后自动切换到下载中任务视图",
   "showProgressBar": "显示进度条",
   "showProgressBarTip": "在下载列表中显示任务进度条，并在 Windows 任务栏或 macOS Dock 汇总活动下载进度",
+  "keepAwake": "下载时阻止系统休眠",
+  "keepAwakeTip": "存在活动下载时保持系统唤醒；显示器仍可按系统设置关闭",
   "hideTitleBar": "隐藏标题栏",
   "hideTitleBarTip": "使用自定义桌面窗口框架来替代系统原生标题栏。",
   "appearance": "外观",

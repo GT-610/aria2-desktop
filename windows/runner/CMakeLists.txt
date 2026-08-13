@@ -11,6 +11,7 @@ add_executable(${BINARY_NAME} WIN32
   "desktop_progress.cpp"
   "main.cpp"
   "process_lifecycle.cpp"
+  "power_management.cpp"
   "protocol_integration.cpp"
   "utils.cpp"
   "win32_window.cpp"
