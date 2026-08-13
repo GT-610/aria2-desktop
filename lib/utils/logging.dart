@@ -2,8 +2,7 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 
-import '../kit/core/logger.dart';
-import '../kit/provider/debug.dart';
+import '../services/debug_log_store.dart';
 
 Level get defaultLogLevel => Level.INFO;
 
@@ -50,16 +49,23 @@ void initializeAppLogging({Level? level}) {
   Logger.root.level = nextLevel;
   _rootLogSubscription?.cancel();
   _rootLogSubscription = Logger.root.onRecord.listen((record) {
-    DebugProvider.addLog(
+    final displayMessage = record.error == null
+        ? _redactSensitiveText(record.message)
+        : '${_redactSensitiveText(record.message)}: '
+              '${_redactSensitiveText(record.error.toString())}';
+    final displayStackTrace = record.stackTrace == null
+        ? null
+        : _redactSensitiveText(record.stackTrace.toString());
+    DebugLogStore.add(
       record,
-      message: _redactSensitiveText(record.message),
-      error: record.error == null
-          ? null
-          : _redactSensitiveText(record.error.toString()),
+      message: displayMessage,
+      stackTrace: displayStackTrace,
     );
-    Loggers.log(_formatRecord(record));
-    if (record.stackTrace != null) {
-      Loggers.log(record.stackTrace!);
+    // ignore: avoid_print
+    print(_formatRecord(record));
+    if (displayStackTrace != null) {
+      // ignore: avoid_print
+      print(displayStackTrace);
     }
   });
 }

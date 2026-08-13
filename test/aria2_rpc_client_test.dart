@@ -266,6 +266,111 @@ void main() {
   });
 
   group('Aria2RpcClient transport lifecycle', () {
+    test('retries an idempotent HTTP request after a timeout', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      var requestCount = 0;
+      server.listen((request) async {
+        requestCount++;
+        final body = await utf8.decoder.bind(request).join();
+        final decoded = jsonDecode(body) as Map<String, dynamic>;
+        if (requestCount == 1) {
+          await Future<void>.delayed(const Duration(milliseconds: 120));
+        }
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          jsonEncode(<String, dynamic>{
+            'jsonrpc': '2.0',
+            'id': decoded['id'],
+            'result': <String, dynamic>{'version': '1.37.0'},
+          }),
+        );
+        await request.response.close();
+      });
+      final client = Aria2RpcClient(
+        Aria2Instance(
+          id: 'http-retry',
+          name: 'HTTP',
+          type: InstanceType.remote,
+          protocol: 'http',
+          host: InternetAddress.loopbackIPv4.address,
+          port: server.port,
+        ),
+        requestTimeout: const Duration(milliseconds: 50),
+        retryDelay: const Duration(milliseconds: 5),
+      );
+
+      expect(await client.getVersion(), '1.37.0');
+      expect(requestCount, 2);
+
+      await client.close();
+      await server.close(force: true);
+    });
+
+    test('does not retry a non-idempotent HTTP request after send', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      var requestCount = 0;
+      server.listen((request) async {
+        requestCount++;
+        await utf8.decoder.bind(request).join();
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+        await request.response.close();
+      });
+      final client = Aria2RpcClient(
+        Aria2Instance(
+          id: 'http-write',
+          name: 'HTTP',
+          type: InstanceType.remote,
+          protocol: 'http',
+          host: InternetAddress.loopbackIPv4.address,
+          port: server.port,
+        ),
+        requestTimeout: const Duration(milliseconds: 50),
+        retryDelay: const Duration(milliseconds: 5),
+      );
+
+      await expectLater(
+        client.addUri(<String>[
+          'https://example.com/file',
+        ], <String, dynamic>{}),
+        throwsA(isA<RpcResultIndeterminateException>()),
+      );
+      expect(requestCount, 1);
+
+      await client.close();
+      await server.close(force: true);
+    });
+
+    test('rejects mismatched JSON-RPC response ids', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        await utf8.decoder.bind(request).join();
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          jsonEncode(<String, dynamic>{
+            'jsonrpc': '2.0',
+            'id': 'wrong-id',
+            'result': <String, dynamic>{'version': '1.37.0'},
+          }),
+        );
+        await request.response.close();
+      });
+      final client = Aria2RpcClient(
+        Aria2Instance(
+          id: 'http-id',
+          name: 'HTTP',
+          type: InstanceType.remote,
+          protocol: 'http',
+          host: InternetAddress.loopbackIPv4.address,
+          port: server.port,
+        ),
+      );
+
+      await expectLater(client.getVersion(), throwsA(isA<RpcException>()));
+
+      await client.close();
+      await server.close(force: true);
+    });
+
     test(
       'does not retry a non-idempotent websocket request after send',
       () async {
@@ -305,6 +410,65 @@ void main() {
       },
     );
 
+    test(
+      'keeps concurrent websocket requests isolated when one times out',
+      () async {
+        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+        var connectionCount = 0;
+        var messageCount = 0;
+        server.listen((request) async {
+          connectionCount++;
+          final socket = await WebSocketTransformer.upgrade(request);
+          socket.listen((message) {
+            messageCount++;
+            final sequence = messageCount;
+            final decoded =
+                jsonDecode(message as String) as Map<String, dynamic>;
+            final delay = switch (sequence) {
+              1 => const Duration(milliseconds: 360),
+              2 => const Duration(milliseconds: 90),
+              _ => Duration.zero,
+            };
+            Future<void>.delayed(delay, () {
+              if (socket.readyState == WebSocket.open) {
+                socket.add(
+                  jsonEncode(<String, dynamic>{
+                    'jsonrpc': '2.0',
+                    'id': decoded['id'],
+                    'result': <String, dynamic>{'version': '1.37.$sequence'},
+                  }),
+                );
+              }
+            });
+          });
+        });
+        final client = Aria2RpcClient(
+          Aria2Instance(
+            id: 'ws-concurrent',
+            name: 'WS',
+            type: InstanceType.remote,
+            protocol: 'ws',
+            host: InternetAddress.loopbackIPv4.address,
+            port: server.port,
+          ),
+          requestTimeout: const Duration(milliseconds: 210),
+          retryDelay: const Duration(milliseconds: 5),
+        );
+
+        final delayedRequest = client.getVersion();
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        final fastRequest = client.getVersion();
+
+        expect(await fastRequest, '1.37.2');
+        expect(await delayedRequest, '1.37.3');
+        expect(connectionCount, 1);
+        expect(messageCount, 3);
+
+        await client.close();
+        await server.close(force: true);
+      },
+    );
+
     test('sends configured headers during websocket upgrade', () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       String? authorization;
@@ -336,6 +500,51 @@ void main() {
 
       expect(await client.getVersion(), '1.37.0');
       expect(authorization, 'Bearer test-token');
+
+      await client.close();
+      await server.close(force: true);
+    });
+
+    test('emits aria2 websocket notifications without an id', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        final socket = await WebSocketTransformer.upgrade(request);
+        socket.listen((message) {
+          final decoded = jsonDecode(message as String) as Map<String, dynamic>;
+          socket.add(
+            jsonEncode(<String, dynamic>{
+              'jsonrpc': '2.0',
+              'id': decoded['id'],
+              'result': <String, dynamic>{'version': '1.37.0'},
+            }),
+          );
+          socket.add(
+            jsonEncode(<String, dynamic>{
+              'jsonrpc': '2.0',
+              'method': 'aria2.onDownloadComplete',
+              'params': <Object>[
+                <String, String>{'gid': 'complete-gid'},
+              ],
+            }),
+          );
+        });
+      });
+      final client = Aria2RpcClient(
+        Aria2Instance(
+          id: 'ws-events',
+          name: 'WS',
+          type: InstanceType.remote,
+          protocol: 'ws',
+          host: InternetAddress.loopbackIPv4.address,
+          port: server.port,
+        ),
+      );
+      final notification = client.notifications.first;
+
+      expect(await client.getVersion(), '1.37.0');
+      final event = await notification.timeout(const Duration(seconds: 1));
+      expect(event.method, 'aria2.onDownloadComplete');
+      expect(event.gid, 'complete-gid');
 
       await client.close();
       await server.close(force: true);

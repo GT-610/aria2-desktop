@@ -1,4 +1,3 @@
-import '../kit/kit.dart' as kit;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,6 +7,7 @@ import '../services/aria2_rpc_client.dart';
 import '../services/download_data_service.dart';
 import '../services/instance_manager.dart';
 import '../utils/format_utils.dart';
+import '../widgets/sized_loading.dart';
 
 class RemoteInstanceStatusPage extends StatefulWidget {
   final Aria2Instance instance;
@@ -230,7 +230,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: kit.SizedLoading.small,
+                    child: SizedLoading.small,
                   )
                 : const Icon(Icons.refresh),
             tooltip: l10n.refresh,
@@ -249,7 +249,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
     Aria2Instance instance,
   ) {
     if (_isLoading && _snapshot == null) {
-      return const Center(child: kit.SizedLoading.large);
+      return const Center(child: SizedLoading.large);
     }
 
     if (_loadError != null && _snapshot == null) {
@@ -452,7 +452,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: kit.SizedLoading.small,
+                      child: SizedLoading.small,
                     )
                   : const Icon(Icons.save_outlined),
               label: Text(l10n.saveSession),
@@ -471,7 +471,7 @@ class _RemoteInstanceStatusPage extends State<RemoteInstanceStatusPage> {
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: kit.SizedLoading.small,
+                      child: SizedLoading.small,
                     )
                   : const Icon(Icons.delete_sweep_outlined),
               label: Text(l10n.purgeDownloadResults),

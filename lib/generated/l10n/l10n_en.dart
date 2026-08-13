@@ -286,6 +286,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewLogsTip => 'View in-app logs and debug output';
 
   @override
+  String get clearLogsConfirm => 'Clear logs?';
+
+  @override
   String get maintenance => 'Maintenance';
 
   @override
@@ -1230,6 +1233,21 @@ class AppLocalizationsEn extends AppLocalizations {
   ) {
     return '$action: $success succeeded, $failed failed, $skipped skipped.';
   }
+
+  @override
+  String taskActionSummaryIndeterminate(
+    Object action,
+    int success,
+    int failed,
+    int indeterminate,
+    int skipped,
+  ) {
+    return '$action: $success succeeded, $failed failed, $indeterminate could not be confirmed, $skipped skipped. Refresh before retrying unconfirmed items.';
+  }
+
+  @override
+  String get rpcOperationResultUnknown =>
+      'The request may have reached aria2, but its result could not be confirmed. Check the latest state before trying again.';
 
   @override
   String fileDeletionWarningsSummary(int count) {

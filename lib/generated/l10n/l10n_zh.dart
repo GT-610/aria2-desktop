@@ -270,6 +270,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewLogsTip => '查看应用内日志与调试输出';
 
   @override
+  String get clearLogsConfirm => '清除日志？';
+
+  @override
   String get maintenance => '维护与恢复';
 
   @override
@@ -1181,6 +1184,21 @@ class AppLocalizationsZh extends AppLocalizations {
   ) {
     return '$action：成功 $success 项，失败 $failed 项，跳过 $skipped 项。';
   }
+
+  @override
+  String taskActionSummaryIndeterminate(
+    Object action,
+    int success,
+    int failed,
+    int indeterminate,
+    int skipped,
+  ) {
+    return '$action：成功 $success 项，失败 $failed 项，$indeterminate 项无法确认，跳过 $skipped 项。请刷新后再重试无法确认的项目。';
+  }
+
+  @override
+  String get rpcOperationResultUnknown =>
+      '请求可能已到达 aria2，但无法确认执行结果。请先检查最新状态，再决定是否重试。';
 
   @override
   String fileDeletionWarningsSummary(int count) {

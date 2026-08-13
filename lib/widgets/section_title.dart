@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../res/ui.dart';
+class SectionTitle extends StatelessWidget {
+  const SectionTitle(this.text, {super.key});
 
-final class CenterGreyTitle extends StatelessWidget {
   final String text;
-
-  const CenterGreyTitle(this.text, {super.key});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 23, bottom: 17),
-      child: Center(child: Text(text, style: UIs.textGrey)),
+      child: Center(
+        child: Text(text, style: const TextStyle(color: Colors.grey)),
+      ),
     );
   }
 }

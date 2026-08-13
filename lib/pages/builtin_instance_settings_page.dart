@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../kit/kit.dart' as kit;
 import 'package:provider/provider.dart';
 
 import '../generated/l10n/l10n.dart';
@@ -10,6 +9,7 @@ import '../services/instance_manager.dart';
 import '../services/settings_service.dart';
 import '../services/tracker_sync_service.dart';
 import '../utils/logging.dart';
+import '../widgets/sized_loading.dart';
 import 'components/builtin_settings_apply_hint_card.dart';
 import 'components/settings_helpers.dart';
 import 'download_page/components/directory_picker.dart';
@@ -252,7 +252,7 @@ class _BuiltinInstanceSettingsPageState
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: kit.SizedLoading.small,
+                    child: SizedLoading.small,
                   )
                 : Text(
                     l10n.saveAndApply,
@@ -1365,7 +1365,7 @@ class _BuiltinInstanceSettingsPageState
       builder: (dialogContext) => AlertDialog(
         content: Row(
           children: [
-            kit.SizedLoading.medium,
+            SizedLoading.medium,
             const SizedBox(width: 16),
             Expanded(child: Text(message)),
           ],

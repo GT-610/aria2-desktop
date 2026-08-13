@@ -1,16 +1,17 @@
 # Aria2 Desktop Logging
 
 This project uses `package:logging` for log levels and routes all log records
-through `fl_lib`'s `DebugProvider`, keeping output and in-app inspection on the
-same path.
+through the project-owned `DebugLogStore`, keeping output and in-app inspection
+on the same path.
 
 ## Architecture
 
 - `lib/utils/logging.dart` is the single logging facade for app code.
 - `initializeAppLogging()` configures `Logger.root.level` and the root record
   listener.
-- The root listener forwards each `LogRecord` to `DebugProvider.addLog(record)`.
-- The same listener writes formatted output through `Loggers.log(...)`.
+- The root listener forwards each `LogRecord` to
+  `DebugLogStore.add(record, message: displayMessage, stackTrace: displayStackTrace)`.
+- The same listener writes redacted, formatted output to stdout.
 - Errors and stack traces are emitted from the root listener, not ad hoc in
   feature code.
 

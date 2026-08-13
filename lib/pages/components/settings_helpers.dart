@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../kit/kit.dart' as kit;
+
+import '../../widgets/app_card.dart';
+import '../../widgets/section_title.dart';
 
 abstract class SettingsSection {
   String get title;
@@ -33,7 +35,7 @@ mixin SettingsPageHelpers<T extends StatefulWidget> on State<T> {
           .map(
             (child) => Padding(
               padding: const EdgeInsets.only(bottom: kSettingCardSpacing),
-              child: kit.CardX(child: child),
+              child: AppCard(child: child),
             ),
           )
           .toList(growable: false),
@@ -44,7 +46,7 @@ mixin SettingsPageHelpers<T extends StatefulWidget> on State<T> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        kit.CenterGreyTitle(section.title),
+        SectionTitle(section.title),
         const SizedBox(height: 4),
         section.child,
       ],

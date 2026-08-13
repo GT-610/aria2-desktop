@@ -7,10 +7,12 @@ class TaskBulkActionResult {
   const TaskBulkActionResult({
     required this.successCount,
     required this.failureCount,
+    this.indeterminateCount = 0,
   });
 
   final int successCount;
   final int failureCount;
+  final int indeterminateCount;
 }
 
 class TaskBulkActionService with Loggable {
@@ -27,6 +29,7 @@ class TaskBulkActionService with Loggable {
 
     var successCount = 0;
     var failureCount = 0;
+    var indeterminateCount = 0;
     for (final instance in instances) {
       final instanceTasks = tasksByInstance[instance.id];
       if (instanceTasks == null || instanceTasks.isEmpty) {
@@ -38,6 +41,13 @@ class TaskBulkActionService with Loggable {
           try {
             await perform(client, task.id);
             successCount++;
+          } on RpcResultIndeterminateException catch (error, stackTrace) {
+            indeterminateCount++;
+            w(
+              'Bulk action result is unknown for task ${task.id} on ${instance.name}',
+              error: error,
+              stackTrace: stackTrace,
+            );
           } catch (error, stackTrace) {
             failureCount++;
             e(
@@ -55,6 +65,7 @@ class TaskBulkActionService with Loggable {
     return TaskBulkActionResult(
       successCount: successCount,
       failureCount: failureCount,
+      indeterminateCount: indeterminateCount,
     );
   }
 }

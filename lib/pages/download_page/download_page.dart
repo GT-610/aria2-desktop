@@ -31,6 +31,10 @@ class DownloadPage extends StatefulWidget {
 
 class DownloadPageState extends State<DownloadPage>
     with AutomaticKeepAliveClientMixin, Loggable {
+  static const Duration _indeterminateRefreshDelay = Duration(
+    milliseconds: 600,
+  );
+
   FilterOption _selectedFilter = FilterOption.all;
   CategoryType _currentCategoryType = CategoryType.all;
   TaskSortOption _sortOption = TaskSortOption.name;
@@ -245,12 +249,11 @@ class DownloadPageState extends State<DownloadPage>
   }
 
   void _refreshTasks() {
+    if (!mounted) return;
     if (instanceManager == null || downloadDataService == null) return;
 
-    final connectedInstances = instanceManager!.getConnectedInstances();
-    if (connectedInstances.isNotEmpty) {
-      downloadDataService!.refreshTasks(connectedInstances);
-    }
+    final refreshableInstances = instanceManager!.getRefreshableInstances();
+    unawaited(downloadDataService!.refreshTasks(refreshableInstances));
 
     _pruneSelection();
   }
@@ -910,6 +913,30 @@ class DownloadPageState extends State<DownloadPage>
                       ),
                     );
                   }
+                  return true;
+                } on RpcResultIndeterminateException catch (e, stackTrace) {
+                  w(
+                    'Task add result could not be confirmed',
+                    error: e,
+                    stackTrace: stackTrace,
+                  );
+                  _refreshTasks();
+                  unawaited(
+                    Future<void>.delayed(
+                      _indeterminateRefreshDelay,
+                      _refreshTasks,
+                    ),
+                  );
+                  if (showDownloadsAfterAdd && mounted) {
+                    _focusDownloadingView();
+                  }
+                  if (pageContext.mounted) {
+                    ScaffoldMessenger.of(pageContext).showSnackBar(
+                      SnackBar(content: Text(l10n.rpcOperationResultUnknown)),
+                    );
+                  }
+                  // Close the dialog so users do not accidentally submit the
+                  // same task again before the refreshed state is available.
                   return true;
                 } catch (e, stackTrace) {
                   this.e(

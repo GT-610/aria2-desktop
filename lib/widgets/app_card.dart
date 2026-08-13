@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 
-class CardX extends StatelessWidget {
-  final Widget child;
-  final Color? color;
-  final BorderRadius? radius;
-  final Clip clipBehavior;
-
-  const CardX({
+class AppCard extends StatelessWidget {
+  const AppCard({
     super.key,
     required this.child,
     this.color,
-    this.radius,
+    this.borderRadius,
     this.clipBehavior = Clip.hardEdge,
   });
 
-  static const borderRadius = BorderRadius.all(Radius.circular(13));
+  final Widget child;
+  final Color? color;
+  final BorderRadius? borderRadius;
+  final Clip clipBehavior;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       clipBehavior: clipBehavior,
       color: color,
-      shape: RoundedRectangleBorder(borderRadius: radius ?? borderRadius),
+      shape: RoundedRectangleBorder(
+        borderRadius: borderRadius ?? BorderRadius.circular(13),
+      ),
       elevation: 0,
       child: child,
     );

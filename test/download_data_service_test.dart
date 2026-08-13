@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -167,5 +168,300 @@ void main() {
 
     service.dispose();
     await firstServer.close(force: true);
+  });
+
+  test(
+    'clears tasks and instance state when all instances disconnect',
+    () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        final body = await utf8.decoder.bind(request).join();
+        final decoded = jsonDecode(body) as Map<String, dynamic>;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          jsonEncode(<String, dynamic>{
+            'jsonrpc': '2.0',
+            'id': decoded['id'],
+            'result': <Object>[
+              <Object>[
+                <Object>[
+                  <String, String>{
+                    'gid': 'connected',
+                    'status': 'active',
+                    'totalLength': '10',
+                    'completedLength': '1',
+                    'downloadSpeed': '1',
+                    'uploadSpeed': '0',
+                  },
+                ],
+              ],
+              <Object>[<Object>[]],
+              <Object>[<Object>[]],
+            ],
+          }),
+        );
+        await request.response.close();
+      });
+      final instance = Aria2Instance(
+        id: 'disconnect',
+        name: 'Disconnect',
+        type: InstanceType.remote,
+        protocol: 'http',
+        host: InternetAddress.loopbackIPv4.address,
+        port: server.port,
+        status: ConnectionStatus.connected,
+      );
+      final service = DownloadDataService();
+
+      await service.refreshTasks(<Aria2Instance>[instance]);
+      expect(service.tasks.single.id, 'connected');
+      expect(service.instanceStates, contains(instance.id));
+
+      await service.refreshTasks(const <Aria2Instance>[]);
+
+      expect(service.tasks, isEmpty);
+      expect(service.instanceStates, isEmpty);
+      service.dispose();
+      await server.close(force: true);
+    },
+  );
+
+  test('keeps stale tasks when a multicall item fails', () async {
+    var failWaitingCall = false;
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      final body = await utf8.decoder.bind(request).join();
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(
+        jsonEncode(<String, dynamic>{
+          'jsonrpc': '2.0',
+          'id': decoded['id'],
+          'result': <Object>[
+            <Object>[
+              <Object>[
+                <String, String>{
+                  'gid': 'kept',
+                  'status': 'active',
+                  'totalLength': '10',
+                  'completedLength': '1',
+                  'downloadSpeed': '1',
+                  'uploadSpeed': '0',
+                },
+              ],
+            ],
+            if (failWaitingCall)
+              <String, Object>{'code': 1, 'message': 'waiting failed'}
+            else
+              <Object>[<Object>[]],
+            <Object>[<Object>[]],
+          ],
+        }),
+      );
+      await request.response.close();
+    });
+    final instance = Aria2Instance(
+      id: 'partial',
+      name: 'Partial',
+      type: InstanceType.remote,
+      protocol: 'http',
+      host: InternetAddress.loopbackIPv4.address,
+      port: server.port,
+      status: ConnectionStatus.connected,
+    );
+    final service = DownloadDataService();
+
+    await service.refreshTasks(<Aria2Instance>[instance]);
+    expect(service.tasks.single.id, 'kept');
+
+    failWaitingCall = true;
+    await service.refreshTasks(<Aria2Instance>[instance]);
+
+    expect(service.tasks.single.id, 'kept');
+    expect(service.instanceStates['partial']?.isStale, isTrue);
+    service.dispose();
+    await server.close(force: true);
+  });
+
+  test('queues one latest refresh while a refresh is in progress', () async {
+    final firstRequestSeen = Completer<void>();
+    final releaseFirstRequest = Completer<void>();
+    var requestCount = 0;
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      requestCount++;
+      final requestNumber = requestCount;
+      final body = await utf8.decoder.bind(request).join();
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+      if (requestNumber == 1) {
+        firstRequestSeen.complete();
+        await releaseFirstRequest.future;
+      }
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(
+        jsonEncode(<String, dynamic>{
+          'jsonrpc': '2.0',
+          'id': decoded['id'],
+          'result': <Object>[
+            <Object>[<Object>[]],
+            <Object>[<Object>[]],
+            <Object>[<Object>[]],
+          ],
+        }),
+      );
+      await request.response.close();
+    });
+    final instance = Aria2Instance(
+      id: 'queue',
+      name: 'Queue',
+      type: InstanceType.remote,
+      protocol: 'http',
+      host: InternetAddress.loopbackIPv4.address,
+      port: server.port,
+      status: ConnectionStatus.connected,
+    );
+    final service = DownloadDataService();
+
+    final firstRefresh = service.refreshTasks(<Aria2Instance>[instance]);
+    await firstRequestSeen.future;
+    final queuedRefresh = service.refreshTasks(<Aria2Instance>[instance]);
+    releaseFirstRequest.complete();
+    await Future.wait(<Future<void>>[firstRefresh, queuedRefresh]);
+
+    expect(requestCount, 2);
+    service.dispose();
+    await server.close(force: true);
+  });
+
+  test('does not publish an in-flight refresh after disposal', () async {
+    final requestSeen = Completer<void>();
+    final releaseRequest = Completer<void>();
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      final body = await utf8.decoder.bind(request).join();
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+      requestSeen.complete();
+      await releaseRequest.future;
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(
+        jsonEncode(<String, dynamic>{
+          'jsonrpc': '2.0',
+          'id': decoded['id'],
+          'result': <Object>[
+            <Object>[
+              <Object>[
+                <String, String>{
+                  'gid': 'late',
+                  'status': 'active',
+                  'totalLength': '10',
+                  'completedLength': '1',
+                  'downloadSpeed': '1',
+                  'uploadSpeed': '0',
+                },
+              ],
+            ],
+            <Object>[<Object>[]],
+            <Object>[<Object>[]],
+          ],
+        }),
+      );
+      await request.response.close();
+    });
+    final instance = Aria2Instance(
+      id: 'dispose',
+      name: 'Dispose',
+      type: InstanceType.remote,
+      protocol: 'http',
+      host: InternetAddress.loopbackIPv4.address,
+      port: server.port,
+      status: ConnectionStatus.connected,
+    );
+    final service = DownloadDataService();
+    var notificationCount = 0;
+    service.addListener(() => notificationCount++);
+
+    final refresh = service.refreshTasks(<Aria2Instance>[instance]);
+    await requestSeen.future;
+    service.dispose();
+    releaseRequest.complete();
+    await refresh;
+
+    expect(notificationCount, 0);
+    expect(service.tasks, isEmpty);
+    await server.close(force: true);
+  });
+
+  test('refreshes tasks when aria2 sends a websocket notification', () async {
+    WebSocket? socket;
+    var gid = 'initial';
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      socket = await WebSocketTransformer.upgrade(request);
+      socket!.listen((message) {
+        final decoded = jsonDecode(message as String) as Map<String, dynamic>;
+        socket!.add(
+          jsonEncode(<String, dynamic>{
+            'jsonrpc': '2.0',
+            'id': decoded['id'],
+            'result': <Object>[
+              <Object>[
+                <Object>[
+                  <String, String>{
+                    'gid': gid,
+                    'status': 'active',
+                    'totalLength': '10',
+                    'completedLength': '1',
+                    'downloadSpeed': '1',
+                    'uploadSpeed': '0',
+                  },
+                ],
+              ],
+              <Object>[<Object>[]],
+              <Object>[<Object>[]],
+            ],
+          }),
+        );
+      });
+    });
+    final instance = Aria2Instance(
+      id: 'events',
+      name: 'Events',
+      type: InstanceType.remote,
+      protocol: 'ws',
+      host: InternetAddress.loopbackIPv4.address,
+      port: server.port,
+      status: ConnectionStatus.connected,
+    );
+    final service = DownloadDataService();
+    // Install the provider used by RPC notifications without leaving the
+    // periodic refresh timer running during this test.
+    service.startPeriodicRefresh(() => <Aria2Instance>[instance]);
+    service.stopPeriodicRefresh();
+
+    await service.refreshTasks(<Aria2Instance>[instance]);
+    expect(service.tasks.single.id, 'initial');
+
+    final refreshed = Completer<void>();
+    service.addListener(() {
+      if (service.tasks.any((task) => task.id == 'updated') &&
+          !refreshed.isCompleted) {
+        refreshed.complete();
+      }
+    });
+    gid = 'updated';
+    socket!.add(
+      jsonEncode(<String, dynamic>{
+        'jsonrpc': '2.0',
+        'method': 'aria2.onDownloadStart',
+        'params': <Object>[
+          <String, String>{'gid': gid},
+        ],
+      }),
+    );
+
+    await refreshed.future.timeout(const Duration(seconds: 2));
+    expect(service.tasks.single.id, 'updated');
+    service.dispose();
+    await server.close(force: true);
   });
 }

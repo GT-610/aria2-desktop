@@ -584,6 +584,12 @@ abstract class AppLocalizations {
   /// **'View in-app logs and debug output'**
   String get viewLogsTip;
 
+  /// No description provided for @clearLogsConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear logs?'**
+  String get clearLogsConfirm;
+
   /// No description provided for @maintenance.
   ///
   /// In en, this message translates to:
@@ -2256,6 +2262,24 @@ abstract class AppLocalizations {
     int failed,
     int skipped,
   );
+
+  /// No description provided for @taskActionSummaryIndeterminate.
+  ///
+  /// In en, this message translates to:
+  /// **'{action}: {success} succeeded, {failed} failed, {indeterminate} could not be confirmed, {skipped} skipped. Refresh before retrying unconfirmed items.'**
+  String taskActionSummaryIndeterminate(
+    Object action,
+    int success,
+    int failed,
+    int indeterminate,
+    int skipped,
+  );
+
+  /// No description provided for @rpcOperationResultUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'The request may have reached aria2, but its result could not be confirmed. Check the latest state before trying again.'**
+  String get rpcOperationResultUnknown;
 
   /// No description provided for @fileDeletionWarningsSummary.
   ///

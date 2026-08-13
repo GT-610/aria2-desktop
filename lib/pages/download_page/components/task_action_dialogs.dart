@@ -20,12 +20,14 @@ class _TaskActionOutcome {
   const _TaskActionOutcome({
     this.successCount = 0,
     this.failCount = 0,
+    this.indeterminateCount = 0,
     this.skippedCount = 0,
     this.fileDeletionWarningCount = 0,
   });
 
   final int successCount;
   final int failCount;
+  final int indeterminateCount;
   final int skippedCount;
   final int fileDeletionWarningCount;
 
@@ -33,6 +35,7 @@ class _TaskActionOutcome {
     return _TaskActionOutcome(
       successCount: successCount + other.successCount,
       failCount: failCount + other.failCount,
+      indeterminateCount: indeterminateCount + other.indeterminateCount,
       skippedCount: skippedCount + other.skippedCount,
       fileDeletionWarningCount:
           fileDeletionWarningCount + other.fileDeletionWarningCount,
@@ -40,7 +43,10 @@ class _TaskActionOutcome {
   }
 
   bool get hasAnyWork =>
-      successCount > 0 || failCount > 0 || fileDeletionWarningCount > 0;
+      successCount > 0 ||
+      failCount > 0 ||
+      indeterminateCount > 0 ||
+      fileDeletionWarningCount > 0;
 }
 
 class TaskActionDialogs {
@@ -295,6 +301,7 @@ class TaskActionDialogs {
     Aria2RpcClient? client;
     var successCount = 0;
     var failCount = 0;
+    var indeterminateCount = 0;
     var skippedCount = 0;
     var fileDeletionWarningCount = 0;
 
@@ -343,6 +350,13 @@ class TaskActionDialogs {
               successCount++;
               break;
           }
+        } on RpcResultIndeterminateException catch (e, stackTrace) {
+          indeterminateCount++;
+          _logger.w(
+            'Result of ${actionType.name} is unknown for task ${task.id}',
+            error: e,
+            stackTrace: stackTrace,
+          );
         } catch (e, stackTrace) {
           failCount++;
           _logger.e(
@@ -362,7 +376,8 @@ class TaskActionDialogs {
         error: e,
         stackTrace: stackTrace,
       );
-      failCount += tasks.length - successCount - skippedCount;
+      failCount +=
+          tasks.length - successCount - indeterminateCount - skippedCount;
     } finally {
       await client?.close();
     }
@@ -370,6 +385,7 @@ class TaskActionDialogs {
     return _TaskActionOutcome(
       successCount: successCount,
       failCount: failCount,
+      indeterminateCount: indeterminateCount,
       skippedCount: skippedCount,
       fileDeletionWarningCount: fileDeletionWarningCount,
     );
@@ -390,6 +406,14 @@ class TaskActionDialogs {
     String message;
     if (!outcome.hasAnyWork && outcome.skippedCount > 0) {
       message = l10n.taskActionNoMatchingTasks(actionLabel);
+    } else if (outcome.indeterminateCount > 0) {
+      message = l10n.taskActionSummaryIndeterminate(
+        actionLabel,
+        outcome.successCount,
+        outcome.failCount,
+        outcome.indeterminateCount,
+        outcome.skippedCount,
+      );
     } else if (outcome.failCount == 0 && outcome.skippedCount == 0) {
       message = l10n.taskActionSummarySuccess(
         actionLabel,

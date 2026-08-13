@@ -1,9 +1,9 @@
-import '../../../kit/kit.dart' as kit;
 import 'package:flutter/material.dart';
 
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
 import '../../../services/aria2_rpc_client.dart';
+import '../../../widgets/sized_loading.dart';
 
 class InstanceDialog extends StatefulWidget {
   final Aria2Instance? instance;
@@ -307,11 +307,13 @@ class _InstanceDialogState extends State<InstanceDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    kit.Input(
+                    TextField(
                       controller: _nameController,
-                      label: l10n.instanceName,
-                      hint: _nameHint(l10n),
-                      errorText: _nameError,
+                      decoration: InputDecoration(
+                        labelText: l10n.instanceName,
+                        hintText: _nameHint(l10n),
+                        errorText: _nameError,
+                      ),
                       onChanged: (value) {
                         _name = value;
                         if (_nameError != null) {
@@ -422,10 +424,12 @@ class _InstanceDialogState extends State<InstanceDialog> {
                             ],
                           ),
                           const SizedBox(height: _fieldSpacing),
-                          kit.Input(
+                          TextField(
                             controller: _rpcPathController,
-                            label: l10n.rpcPath,
-                            hint: l10n.rpcPathTip,
+                            decoration: InputDecoration(
+                              labelText: l10n.rpcPath,
+                              hintText: l10n.rpcPathTip,
+                            ),
                             onChanged: (value) {
                               setState(() {
                                 _rpcPath = value;
@@ -452,10 +456,12 @@ class _InstanceDialogState extends State<InstanceDialog> {
                       ),
                     ],
                     const SizedBox(height: _sectionSpacing),
-                    kit.Input(
+                    TextField(
                       controller: _downloadDirController,
-                      label: l10n.defaultDownloadDir,
-                      hint: l10n.remoteDownloadDirHint,
+                      decoration: InputDecoration(
+                        labelText: l10n.defaultDownloadDir,
+                        hintText: l10n.remoteDownloadDirHint,
+                      ),
                       onChanged: (value) => _downloadDir = value,
                     ),
                     const SizedBox(height: 8),
@@ -482,7 +488,7 @@ class _InstanceDialogState extends State<InstanceDialog> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: kit.SizedLoading.small,
+                                child: SizedLoading.small,
                               )
                             : const Icon(Icons.wifi_find_outlined),
                         label: Text(
@@ -497,11 +503,16 @@ class _InstanceDialogState extends State<InstanceDialog> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      kit.Btn.cancel(onTap: () => Navigator.of(context).pop()),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text(l10n.cancel),
+                      ),
                       const SizedBox(width: 8),
-                      kit.Btn.elevated(
-                        text: widget.instance == null ? l10n.add : l10n.save,
-                        onTap: _submit,
+                      FilledButton(
+                        onPressed: _submit,
+                        child: Text(
+                          widget.instance == null ? l10n.add : l10n.save,
+                        ),
                       ),
                     ],
                   ),

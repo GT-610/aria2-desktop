@@ -1,15 +1,23 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
 import '../models/aria2_instance.dart';
 import '../utils/logging.dart';
 
 // Custom exception classes
 class ConnectionFailedException implements Exception {
+  const ConnectionFailedException([
+    this.message = 'Failed to connect to instance',
+  ]);
+
+  final String message;
+
   @override
-  String toString() => 'Failed to connect to instance';
+  String toString() => message;
 }
 
 class UnauthorizedException implements Exception {
@@ -32,31 +40,77 @@ class RpcResultIndeterminateException extends RpcException {
     : super('The result of $method is unknown because the connection closed');
 }
 
+class Aria2RpcNotification {
+  const Aria2RpcNotification({required this.method, required this.params});
+
+  final String method;
+  final List<dynamic> params;
+
+  String? get gid {
+    if (params.isEmpty || params.first is! Map) {
+      return null;
+    }
+    return (params.first as Map)['gid']?.toString();
+  }
+}
+
+class _PendingRpcRequest {
+  _PendingRpcRequest({required this.completer, required this.generation});
+
+  final Completer<Map<String, dynamic>> completer;
+  final int generation;
+}
+
 /// Aria2 RPC client service
 class Aria2RpcClient with Loggable {
+  static const Duration _defaultRequestTimeout = Duration(seconds: 10);
+  static const Duration _defaultRetryDelay = Duration(milliseconds: 150);
+  static const int _maximumAttempts = 3;
   static int _requestSequence = 0;
+
   final Aria2Instance instance;
+  final Duration _requestTimeout;
+  final Duration _retryDelay;
   http.Client? _httpClient;
   WebSocket? _webSocket;
   StreamSubscription? _webSocketSubscription;
   Future<void>? _webSocketInitFuture;
-  final Map<String, Completer<Map<String, dynamic>>> _pendingRequests = {};
-  bool _isWebSocket = false;
+  final Map<String, _PendingRpcRequest> _pendingRequests = {};
+  final StreamController<Aria2RpcNotification>? _notificationController;
+  final bool _isWebSocket;
   bool _isClosed = false;
   int _connectionGeneration = 0;
 
+  Stream<Aria2RpcNotification> get notifications =>
+      _notificationController?.stream ??
+      const Stream<Aria2RpcNotification>.empty();
+
   /// Factory method to create appropriate client based on protocol
-  factory Aria2RpcClient(Aria2Instance instance) {
-    if (instance.protocol.startsWith('ws')) {
-      return Aria2RpcClient._(instance, isWebSocket: true);
-    } else {
-      return Aria2RpcClient._(instance, isWebSocket: false);
-    }
+  factory Aria2RpcClient(
+    Aria2Instance instance, {
+    Duration requestTimeout = _defaultRequestTimeout,
+    Duration retryDelay = _defaultRetryDelay,
+  }) {
+    return Aria2RpcClient._(
+      instance,
+      isWebSocket: instance.protocol.startsWith('ws'),
+      requestTimeout: requestTimeout,
+      retryDelay: retryDelay,
+    );
   }
 
-  Aria2RpcClient._(this.instance, {required bool isWebSocket})
-    : _isWebSocket = isWebSocket,
-      _httpClient = isWebSocket ? null : http.Client();
+  Aria2RpcClient._(
+    this.instance, {
+    required bool isWebSocket,
+    required Duration requestTimeout,
+    required Duration retryDelay,
+  }) : _isWebSocket = isWebSocket,
+       _requestTimeout = requestTimeout,
+       _retryDelay = retryDelay,
+       _notificationController = isWebSocket
+           ? StreamController<Aria2RpcNotification>.broadcast()
+           : null,
+       _httpClient = isWebSocket ? null : http.Client();
 
   /// Send RPC request
   Future<Map<String, dynamic>> callRpc(
@@ -80,67 +134,72 @@ class Aria2RpcClient with Loggable {
     List<dynamic> params, {
     required bool idempotent,
   }) async {
-    try {
+    for (var attempt = 0; attempt < _maximumAttempts; attempt++) {
       final requestId = _nextRequestId();
       final requestBody = buildRequestBody(method, params, requestId);
-
-      final client = _httpClient;
-      if (client == null) throw ConnectionFailedException();
-      final response = await client
-          .post(
-            Uri.parse(_buildRpcUrl()),
-            headers: buildHttpHeaders(),
-            body: jsonEncode(requestBody),
-          )
-          .timeout(const Duration(seconds: 10));
-
-      // Regardless of status code, try to parse response body to check for Unauthorized error
       try {
-        final data = jsonDecode(response.body);
-
-        // Check for Unauthorized error in structured response
-        if (data.containsKey('error') &&
-            data['error'] is Map &&
-            data['error']['message'] == 'Unauthorized') {
-          throw UnauthorizedException();
+        final client = _httpClient;
+        if (client == null || _isClosed) {
+          throw const ConnectionFailedException();
         }
 
-        if (response.statusCode == 200) {
-          if (data.containsKey('error')) {
-            final errorMsg = data['error'] is Map
-                ? data['error']['message']
-                : data['error'];
-            throw Exception('RPC Error: $errorMsg');
-          }
-          return data;
-        } else {
-          throw Exception('HTTP Error: ${response.statusCode}');
+        final response = await client
+            .post(
+              Uri.parse(_buildRpcUrl()),
+              headers: buildHttpHeaders(),
+              body: jsonEncode(requestBody),
+            )
+            .timeout(_requestTimeout);
+        return _parseHttpResponse(response, requestId);
+      } catch (error, stackTrace) {
+        if (!_isTransportFailure(error)) {
+          rethrow;
         }
-      } catch (e) {
-        // If JSON parsing fails, check again if response body contains Unauthorized
-        if (e is FormatException && response.body.contains('Unauthorized')) {
-          throw UnauthorizedException();
-        }
-        // Re-throw other exceptions
-        rethrow;
-      }
-    } catch (e) {
-      // Timeout error indicates no response was received
-      if (e is TimeoutException) {
         if (!idempotent) {
           throw RpcResultIndeterminateException(method);
         }
-        throw ConnectionFailedException();
-      }
-      // http package wraps SocketException as ClientException
-      if (e is SocketException || e is http.ClientException) {
-        if (!idempotent) {
-          throw RpcResultIndeterminateException(method);
+        if (_isClosed || attempt == _maximumAttempts - 1) {
+          throw const ConnectionFailedException();
         }
-        throw ConnectionFailedException();
+        w(
+          'HTTP RPC attempt ${attempt + 1} failed for ${instance.name}, '
+          'retrying',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        await _waitBeforeRetry(attempt);
       }
-      rethrow;
     }
+    throw const ConnectionFailedException();
+  }
+
+  Map<String, dynamic> _parseHttpResponse(
+    http.Response response,
+    String requestId,
+  ) {
+    Object? decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException catch (error) {
+      if (response.body.toLowerCase().contains('unauthorized')) {
+        throw UnauthorizedException();
+      }
+      throw RpcException('aria2 returned invalid JSON: ${error.message}');
+    }
+
+    if (decoded is! Map) {
+      throw const RpcException('aria2 returned an invalid JSON-RPC response');
+    }
+    final data = Map<String, dynamic>.from(decoded);
+    if (_isUnauthorizedResponse(data) ||
+        response.statusCode == HttpStatus.unauthorized ||
+        response.statusCode == HttpStatus.forbidden) {
+      throw UnauthorizedException();
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw RpcException('aria2 returned HTTP ${response.statusCode}');
+    }
+    return _validateRpcResponse(data, requestId);
   }
 
   /// WebSocket RPC implementation
@@ -149,66 +208,74 @@ class Aria2RpcClient with Loggable {
     List<dynamic> params, {
     required bool idempotent,
   }) async {
-    const maxRetries = 2;
-    String? requestId;
-    var requestWasSent = false;
-
-    for (int attempt = 0; attempt <= maxRetries; attempt++) {
+    for (var attempt = 0; attempt < _maximumAttempts; attempt++) {
+      String? requestId;
+      WebSocket? requestSocket;
+      var requestGeneration = -1;
+      var requestWasSent = false;
       try {
         await _initWebSocket();
+        requestSocket = _webSocket;
+        requestGeneration = _connectionGeneration;
+        if (requestSocket == null ||
+            requestSocket.readyState != WebSocket.open) {
+          throw const ConnectionFailedException();
+        }
         requestId = _nextRequestId();
         final requestBody = buildRequestBody(method, params, requestId);
 
         final completer = Completer<Map<String, dynamic>>();
-        _pendingRequests[requestId] = completer;
+        _pendingRequests[requestId] = _PendingRpcRequest(
+          completer: completer,
+          generation: requestGeneration,
+        );
 
-        _webSocket!.add(jsonEncode(requestBody));
+        try {
+          requestSocket.add(jsonEncode(requestBody));
+        } on StateError catch (error) {
+          throw ConnectionFailedException(
+            'Failed to send WebSocket RPC request: $error',
+          );
+        }
         requestWasSent = true;
 
-        return await completer.future.timeout(const Duration(seconds: 10));
-      } catch (e, stackTrace) {
-        // Clean up current request from pending before rethrowing
+        final response = await completer.future.timeout(_requestTimeout);
+        return _validateRpcResponse(response, requestId);
+      } catch (error, stackTrace) {
         if (requestId != null) {
           _pendingRequests.remove(requestId);
         }
-        if (requestWasSent &&
-            !idempotent &&
-            (e is ConnectionFailedException ||
-                e is TimeoutException ||
-                e is SocketException)) {
+        if (requestWasSent && !idempotent && _isTransportFailure(error)) {
           throw RpcResultIndeterminateException(method);
         }
-        if (attempt == maxRetries || _isClosed) {
-          if (e is TimeoutException || e is SocketException) {
-            throw ConnectionFailedException();
-          }
+        if (!_isTransportFailure(error)) {
           rethrow;
+        }
+        if (_isClosed || attempt == _maximumAttempts - 1) {
+          throw const ConnectionFailedException();
         }
         w(
           'WebSocket RPC attempt ${attempt + 1} failed for ${instance.name}, retrying',
-          error: e,
+          error: error,
           stackTrace: stackTrace,
         );
-        await _webSocket?.close();
-        _webSocket = null;
-        // Complete pending requests with error before clearing
-        for (final completer in _pendingRequests.values) {
-          if (!completer.isCompleted) {
-            completer.completeError(ConnectionFailedException());
-          }
+        if (requestSocket != null && error is! TimeoutException) {
+          await _invalidateWebSocket(
+            requestSocket,
+            requestGeneration,
+            const ConnectionFailedException(),
+          );
         }
-        _pendingRequests.clear();
-        requestWasSent = false;
-        await Future.delayed(const Duration(milliseconds: 100));
+        await _waitBeforeRetry(attempt);
       }
     }
-    throw ConnectionFailedException();
+    throw const ConnectionFailedException();
   }
 
   /// Initialize WebSocket connection
   Future<void> _initWebSocket() async {
     if (_isClosed) {
-      throw ConnectionFailedException();
+      throw const ConnectionFailedException();
     }
     if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
       return;
@@ -243,56 +310,75 @@ class Aria2RpcClient with Loggable {
 
     _webSocketSubscription?.cancel();
     _webSocketSubscription = null;
-    await _webSocket?.close();
+    await _closeWebSocket(_webSocket);
     _webSocket = null;
 
-    final generation = _connectionGeneration;
+    final generation = ++_connectionGeneration;
     try {
       final socket = await WebSocket.connect(
         _buildRpcUrl(),
         headers: buildHttpHeaders(),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(_requestTimeout);
       if (_isClosed || generation != _connectionGeneration) {
-        await socket.close();
-        throw ConnectionFailedException();
+        await _closeWebSocket(socket);
+        throw const ConnectionFailedException();
       }
       _webSocket = socket;
       _webSocketSubscription?.cancel();
-      _webSocketSubscription = _webSocket!.listen(
-        _handleWebSocketMessage,
-        onError: _handleWebSocketError,
-        onDone: _handleWebSocketDone,
+      _webSocketSubscription = socket.listen(
+        (message) => _handleWebSocketMessage(socket, generation, message),
+        onError: (Object error) =>
+            _handleWebSocketError(socket, generation, error),
+        onDone: () => _handleWebSocketDone(socket, generation),
       );
-    } catch (e) {
-      _webSocket = null;
-      throw ConnectionFailedException();
+    } catch (error) {
+      if (generation == _connectionGeneration) {
+        _webSocket = null;
+      }
+      if (error is TimeoutException ||
+          error is SocketException ||
+          error is WebSocketException ||
+          error is ConnectionFailedException) {
+        throw const ConnectionFailedException();
+      }
+      throw ConnectionFailedException('Failed to open WebSocket: $error');
     }
   }
 
   /// Handle WebSocket messages
-  void _handleWebSocketMessage(dynamic message) {
+  void _handleWebSocketMessage(
+    WebSocket socket,
+    int generation,
+    dynamic message,
+  ) {
+    if (!_isCurrentWebSocket(socket, generation)) {
+      return;
+    }
     try {
       final data = jsonDecode(message);
-      if (data is! Map<String, dynamic>) return;
-      final requestId = data['id']?.toString();
-
-      if (requestId != null && _pendingRequests.containsKey(requestId)) {
-        final completer = _pendingRequests[requestId]!;
-        _pendingRequests.remove(requestId);
-
-        if (data.containsKey('error')) {
-          if (data['error'] is Map &&
-              data['error']['message'] == 'Unauthorized') {
-            completer.completeError(UnauthorizedException());
-          } else {
-            final errorMsg = data['error'] is Map
-                ? data['error']['message']
-                : data['error'];
-            completer.completeError(Exception('RPC Error: $errorMsg'));
-          }
-        } else {
-          completer.complete(data);
+      if (data is! Map) return;
+      final response = Map<String, dynamic>.from(data);
+      final requestId = response['id']?.toString();
+      if (requestId == null) {
+        final method = response['method'];
+        final params = response['params'];
+        if (method is String && params is List) {
+          _notificationController?.add(
+            Aria2RpcNotification(
+              method: method,
+              params: List<dynamic>.from(params),
+            ),
+          );
         }
+        return;
+      }
+      final pending = _pendingRequests[requestId];
+      if (pending == null || pending.generation != generation) {
+        return;
+      }
+      _pendingRequests.remove(requestId);
+      if (!pending.completer.isCompleted) {
+        pending.completer.complete(response);
       }
     } catch (err, stackTrace) {
       e(
@@ -304,25 +390,123 @@ class Aria2RpcClient with Loggable {
   }
 
   /// Handle WebSocket errors
-  void _handleWebSocketError(dynamic error) {
-    // Complete all pending requests with error
-    final errorToThrow = error is ConnectionFailedException
-        ? error
-        : ConnectionFailedException();
-
-    for (final Completer<Map<String, dynamic>> completer
-        in _pendingRequests.values) {
-      if (!completer.isCompleted) {
-        completer.completeError(errorToThrow);
-      }
-    }
-    _pendingRequests.clear();
+  void _handleWebSocketError(WebSocket socket, int generation, Object error) {
+    unawaited(
+      _invalidateWebSocket(
+        socket,
+        generation,
+        error is ConnectionFailedException
+            ? error
+            : const ConnectionFailedException(),
+      ),
+    );
   }
 
   /// Handle WebSocket connection closed
-  void _handleWebSocketDone() {
-    _handleWebSocketError(ConnectionFailedException());
+  void _handleWebSocketDone(WebSocket socket, int generation) {
+    unawaited(
+      _invalidateWebSocket(
+        socket,
+        generation,
+        const ConnectionFailedException(),
+      ),
+    );
+  }
+
+  Future<void> _invalidateWebSocket(
+    WebSocket socket,
+    int generation,
+    Object error,
+  ) async {
+    if (!_isCurrentWebSocket(socket, generation)) {
+      return;
+    }
+    _connectionGeneration++;
     _webSocket = null;
+    final subscription = _webSocketSubscription;
+    _webSocketSubscription = null;
+    await subscription?.cancel();
+    await _closeWebSocket(socket);
+    _completePendingGeneration(generation, error);
+  }
+
+  Future<void> _closeWebSocket(WebSocket? socket) async {
+    if (socket == null) {
+      return;
+    }
+    try {
+      await socket.close().timeout(const Duration(seconds: 1));
+    } on TimeoutException {
+      w('Timed out while closing WebSocket for ${instance.name}');
+    } catch (error, stackTrace) {
+      w(
+        'Failed to close WebSocket for ${instance.name}',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  bool _isCurrentWebSocket(WebSocket socket, int generation) {
+    return identical(_webSocket, socket) && generation == _connectionGeneration;
+  }
+
+  void _completePendingGeneration(int generation, Object error) {
+    final requestIds = _pendingRequests.entries
+        .where((entry) => entry.value.generation == generation)
+        .map((entry) => entry.key)
+        .toList(growable: false);
+    for (final requestId in requestIds) {
+      final pending = _pendingRequests.remove(requestId);
+      if (pending != null && !pending.completer.isCompleted) {
+        pending.completer.completeError(error);
+      }
+    }
+  }
+
+  bool _isTransportFailure(Object error) {
+    return error is ConnectionFailedException ||
+        error is TimeoutException ||
+        error is SocketException ||
+        error is WebSocketException ||
+        error is http.ClientException;
+  }
+
+  Future<void> _waitBeforeRetry(int attempt) {
+    final multiplier = 1 << attempt;
+    return Future<void>.delayed(_retryDelay * multiplier);
+  }
+
+  bool _isUnauthorizedResponse(Map<String, dynamic> response) {
+    final error = response['error'];
+    return error is Map &&
+        error['message']?.toString().toLowerCase() == 'unauthorized';
+  }
+
+  Map<String, dynamic> _validateRpcResponse(
+    Map<String, dynamic> response,
+    String requestId,
+  ) {
+    if (response['id']?.toString() != requestId) {
+      throw const RpcException('aria2 returned a mismatched response id');
+    }
+    if (_isUnauthorizedResponse(response)) {
+      throw UnauthorizedException();
+    }
+    final error = response['error'];
+    if (error != null) {
+      if (error is Map) {
+        throw RpcException(
+          error['message']?.toString() ?? 'Unknown aria2 RPC error',
+          code: error['code'],
+        );
+      }
+      throw RpcException(error.toString());
+    }
+    if (!response.containsKey('result')) {
+      throw const RpcException('aria2 returned no result');
+    }
+    return response;
   }
 
   /// Get version string
@@ -533,7 +717,10 @@ class Aria2RpcClient with Loggable {
 
   /// Change task options.
   Future<String> changeOption(String gid, Map<String, dynamic> options) async {
-    final response = await callRpc('aria2.changeOption', [gid, options]);
+    final response = await callRpc('aria2.changeOption', [
+      gid,
+      options,
+    ], idempotent: true);
     return response['result'] as String;
   }
 
@@ -623,7 +810,9 @@ class Aria2RpcClient with Loggable {
   /// Set global options (Aria2 global configuration)
   Future<bool> setGlobalOption(Map<String, dynamic> options) async {
     try {
-      final response = await callRpc('aria2.changeGlobalOption', [options]);
+      final response = await callRpc('aria2.changeGlobalOption', [
+        options,
+      ], idempotent: true);
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
       this.e(
@@ -676,7 +865,7 @@ class Aria2RpcClient with Loggable {
   /// Save the current aria2 session.
   Future<bool> saveSession() async {
     try {
-      final response = await callRpc('aria2.saveSession', []);
+      final response = await callRpc('aria2.saveSession', [], idempotent: true);
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
       this.e(
@@ -709,7 +898,11 @@ class Aria2RpcClient with Loggable {
   /// Purge all stopped download results from aria2.
   Future<bool> purgeDownloadResult() async {
     try {
-      final response = await callRpc('aria2.purgeDownloadResult', []);
+      final response = await callRpc(
+        'aria2.purgeDownloadResult',
+        [],
+        idempotent: true,
+      );
       return response['result'] == 'OK';
     } catch (e, stackTrace) {
       this.e(
@@ -732,11 +925,11 @@ class Aria2RpcClient with Loggable {
       _webSocketInitFuture = null;
       await _webSocketSubscription?.cancel();
       _webSocketSubscription = null;
-      await _webSocket?.close();
+      await _closeWebSocket(_webSocket);
       _webSocket = null;
-      for (final completer in _pendingRequests.values) {
-        if (!completer.isCompleted) {
-          completer.completeError(ConnectionFailedException());
+      for (final pending in _pendingRequests.values) {
+        if (!pending.completer.isCompleted) {
+          pending.completer.completeError(const ConnectionFailedException());
         }
       }
       _pendingRequests.clear();
@@ -744,6 +937,7 @@ class Aria2RpcClient with Loggable {
       _httpClient?.close();
       _httpClient = null;
     }
+    await _notificationController?.close();
   }
 
   @visibleForTesting
