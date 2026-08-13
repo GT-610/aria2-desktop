@@ -12,6 +12,7 @@ class SettingsService extends ChangeNotifier with Loggable {
 
   void initialize(Settings settings) {
     _settings = settings;
+    BuiltinInstanceService().bindSettings(settings);
   }
 
   Map<String, dynamic> _convertSettingsToRuntimeAria2Options() {

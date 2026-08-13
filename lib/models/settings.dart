@@ -229,6 +229,40 @@ class Settings extends ChangeNotifier with Loggable {
   bool get allowOverwrite => _allowOverwrite;
   String get userAgent => _userAgent;
 
+  Map<String, dynamic> toBuiltinInstanceSettings() {
+    return <String, dynamic>{
+      'rpcListenPort': _rpcListenPort,
+      'rpcSecret': _rpcSecret,
+      'maxConcurrentDownloads': _maxConcurrentDownloads,
+      'maxConnectionPerServer': _maxConnectionPerServer,
+      'split': _split,
+      'continueDownloads': _continueDownloads,
+      'downloadDir': _downloadDir,
+      'maxOverallDownloadLimit': _maxOverallDownloadLimit,
+      'maxOverallUploadLimit': _maxOverallUploadLimit,
+      'btSaveMetadata': _btSaveMetadata,
+      'btForceEncryption': _btForceEncryption,
+      'btLoadSavedMetadata': _btLoadSavedMetadata,
+      'keepSeeding': _keepSeeding,
+      'seedRatio': _seedRatio,
+      'seedTime': _seedTime,
+      'btListenPort': _btListenPort,
+      'btTracker': _btTracker,
+      'btExcludeTracker': _btExcludeTracker,
+      'proxyEnabled': _proxyEnabled,
+      'allProxy': _allProxy,
+      'noProxy': _noProxy,
+      'dhtListenPort': _dhtListenPort,
+      'enableDht6': _enableDht6,
+      'enableUpnp': _enableUpnp,
+      'sessionPath': _sessionPath,
+      'logPath': _logPath,
+      'autoFileRenaming': _autoFileRenaming,
+      'allowOverwrite': _allowOverwrite,
+      'userAgent': _userAgent,
+    };
+  }
+
   // Load all settings from JSON file
   Future<void> loadSettings() async {
     try {

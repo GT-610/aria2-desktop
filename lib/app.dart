@@ -30,12 +30,17 @@ import 'widgets/sized_loading.dart';
 import 'widgets/virtual_window_frame.dart';
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.initialSettings});
+
+  final Settings? initialSettings;
 
   @override
   Widget build(BuildContext context) {
+    final settingsProvider = initialSettings == null
+        ? ChangeNotifierProvider<Settings>(create: (context) => Settings())
+        : ChangeNotifierProvider<Settings>.value(value: initialSettings!);
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (context) => Settings())],
+      providers: [settingsProvider],
       child: _ThemeProvider(),
     );
   }

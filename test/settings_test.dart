@@ -209,6 +209,38 @@ void main() {
     });
 
     group('settings hydration', () {
+      test('exposes typed settings for the built-in instance', () async {
+        final repository = _MemorySettingsRepository(<String, dynamic>{
+          'rpcListenPort': 16888,
+          'rpcSecret': 'secure-secret',
+          'continueDownloads': false,
+          'downloadDir': 'C:\\Downloads\\Setsuna',
+          'maxOverallDownloadLimit': 1024,
+          'btForceEncryption': true,
+          'seedRatio': 2.5,
+          'proxyEnabled': true,
+          'allProxy': 'http://127.0.0.1:7890',
+          'enableUpnp': false,
+          'userAgent': 'Setsuna Test',
+        });
+        final settings = Settings(repository: repository);
+
+        await settings.loadSettings();
+
+        final snapshot = settings.toBuiltinInstanceSettings();
+        expect(snapshot['rpcListenPort'], 16888);
+        expect(snapshot['rpcSecret'], 'secure-secret');
+        expect(snapshot['continueDownloads'], isFalse);
+        expect(snapshot['downloadDir'], 'C:\\Downloads\\Setsuna');
+        expect(snapshot['maxOverallDownloadLimit'], 1024);
+        expect(snapshot['btForceEncryption'], isTrue);
+        expect(snapshot['seedRatio'], 2.5);
+        expect(snapshot['proxyEnabled'], isTrue);
+        expect(snapshot['allProxy'], 'http://127.0.0.1:7890');
+        expect(snapshot['enableUpnp'], isFalse);
+        expect(snapshot['userAgent'], 'Setsuna Test');
+      });
+
       test(
         'repairs individual legacy values without resetting valid fields',
         () async {
