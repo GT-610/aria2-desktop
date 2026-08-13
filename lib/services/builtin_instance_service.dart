@@ -378,7 +378,6 @@ class BuiltinInstanceService with Loggable {
       '--bt-require-crypto=${settings['btForceEncryption'] ?? false}',
       '--bt-save-metadata=${settings['btSaveMetadata'] ?? true}',
       '--bt-load-saved-metadata=${settings['btLoadSavedMetadata'] ?? true}',
-      '--bt-seed-unverified=${settings['keepSeeding'] ?? false}',
       '--listen-port=$btListenPort',
       '--dht-listen-port=${resolveEffectiveDhtListenPort(settings)}',
       '--enable-dht6=${settings['enableDht6'] ?? true}',

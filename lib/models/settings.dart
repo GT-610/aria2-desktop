@@ -24,7 +24,6 @@ class Settings extends ChangeNotifier with Loggable {
 
   // Global settings
   bool _autoStart = false; // Auto-run on system startup
-  bool _minimizeToTray = true; // Legacy migration field
   AppRunMode _runMode = AppRunMode.tray; // Desktop shell mode
   bool _autoHideWindow = false; // Hide window when it loses focus
   bool _showTraySpeed = true; // Show download speed in tray tooltip
@@ -97,7 +96,6 @@ class Settings extends ChangeNotifier with Loggable {
 
   void _assignDefaultSettings({required String defaultDownloadDir}) {
     _autoStart = false;
-    _minimizeToTray = true;
     _runMode = AppRunMode.tray;
     _autoHideWindow = false;
     _showTraySpeed = true;
@@ -394,7 +392,7 @@ class Settings extends ChangeNotifier with Loggable {
 
         // Global settings
         _autoStart = readBool('autoStart', false);
-        _minimizeToTray = readBool('minimizeToTray', true);
+        final minimizeToTray = readBool('minimizeToTray', true);
         final runModeValue = settingsMap['runMode'];
         if (runModeValue is String &&
             AppRunMode.values.any((mode) => mode.name == runModeValue)) {
@@ -404,7 +402,7 @@ class Settings extends ChangeNotifier with Loggable {
             needsSave = true;
             _runMode = AppRunMode.tray;
           } else {
-            _runMode = _minimizeToTray ? AppRunMode.tray : AppRunMode.standard;
+            _runMode = minimizeToTray ? AppRunMode.tray : AppRunMode.standard;
             needsSave = true;
           }
         }
@@ -606,7 +604,6 @@ class Settings extends ChangeNotifier with Loggable {
     try {
       final settingsMap = {
         'autoStart': _autoStart,
-        'minimizeToTray': _minimizeToTray,
         'runMode': _runMode.name,
         'autoHideWindow': _autoHideWindow,
         'showTraySpeed': _showTraySpeed,
@@ -695,7 +692,6 @@ class Settings extends ChangeNotifier with Loggable {
 
   Future<void> setRunMode(AppRunMode value) async {
     _runMode = value;
-    _minimizeToTray = value == AppRunMode.tray;
     notifyListeners();
     await _saveAllSettings();
   }

@@ -358,6 +358,21 @@ void main() {
 
         expect(repository.savedValues, isNull);
       });
+
+      test('drops the obsolete minimize-to-tray field on save', () async {
+        final repository = _MemorySettingsRepository(<String, dynamic>{
+          'minimizeToTray': false,
+        });
+        final settings = Settings(repository: repository);
+
+        await settings.loadSettings();
+        expect(settings.runMode, AppRunMode.standard);
+
+        await settings.setRunMode(AppRunMode.tray);
+
+        expect(repository.savedValues, isNot(contains('minimizeToTray')));
+        expect(repository.savedValues!['runMode'], 'tray');
+      });
     });
   });
 }
