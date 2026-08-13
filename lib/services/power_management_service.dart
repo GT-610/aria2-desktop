@@ -124,17 +124,13 @@ class _LinuxSleepInhibitor {
         name: 'org.freedesktop.login1',
         path: DBusObjectPath('/org/freedesktop/login1'),
       );
-      final response = await loginManager.callMethod(
-        'org.freedesktop.login1.Manager',
-        'Inhibit',
-        <DBusValue>[
-          const DBusString('idle'),
-          const DBusString('Setsuna'),
-          const DBusString('Active downloads in progress'),
-          const DBusString('block'),
-        ],
-        replySignature: DBusSignature.unixFd,
-      );
+      final response = await loginManager
+          .callMethod('org.freedesktop.login1.Manager', 'Inhibit', <DBusValue>[
+            const DBusString('idle'),
+            const DBusString('Setsuna'),
+            const DBusString('Active downloads in progress'),
+            const DBusString('block'),
+          ], replySignature: DBusSignature.unixFd);
       _inhibitorFile = response.returnValues.single.asUnixFd().toFile();
       _client = client;
     } catch (_) {
