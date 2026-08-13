@@ -467,7 +467,7 @@ abstract class AppLocalizations {
   /// No description provided for @showProgressBarTip.
   ///
   /// In en, this message translates to:
-  /// **'Display task progress bars in the download list'**
+  /// **'Display task progress bars in the list and aggregate active downloads in the Windows taskbar or macOS Dock'**
   String get showProgressBarTip;
 
   /// No description provided for @hideTitleBar.

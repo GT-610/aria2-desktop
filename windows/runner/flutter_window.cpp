@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "desktop_progress.h"
 #include "process_lifecycle.h"
 #include "protocol_integration.h"
 
@@ -31,6 +32,8 @@ bool FlutterWindow::OnCreate() {
       std::make_unique<ProtocolIntegration>(flutter_controller_->engine());
   process_lifecycle_ =
       std::make_unique<ProcessLifecycle>(flutter_controller_->engine());
+  desktop_progress_ = std::make_unique<DesktopProgress>(
+      flutter_controller_->engine(), GetHandle());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -46,6 +49,7 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  desktop_progress_ = nullptr;
   process_lifecycle_ = nullptr;
   protocol_integration_ = nullptr;
   if (flutter_controller_) {
