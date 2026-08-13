@@ -30,6 +30,7 @@ void main() {
     List<String>? trackers,
     List<String>? uris,
     List<Map<String, dynamic>>? files,
+    String dir = '/downloads',
   }) {
     return DownloadTask(
       id: 'old-gid',
@@ -43,7 +44,7 @@ void main() {
       completedSize: '512 B',
       isLocal: false,
       instanceId: 'test',
-      dir: '/downloads',
+      dir: dir,
       infoHash: infoHash,
       trackers: trackers,
       uris: uris,
@@ -55,7 +56,7 @@ void main() {
     test('builds a magnet link with trackers from a BT task', () {
       final sources = buildTaskRetrySources(
         task(
-          infoHash: '0123456789ABCDEF',
+          infoHash: '0123456789ABCDEF0123456789ABCDEF01234567',
           trackers: const <String>[
             'udp://tracker.example.com:6969/announce',
             'https://tracker.example.com/announce',
@@ -67,10 +68,76 @@ void main() {
       final magnet = Uri.parse(sources.single.uris.single);
       expect(magnet.scheme, 'magnet');
       expect(magnet.queryParametersAll['xt'], <String>[
-        'urn:btih:0123456789ABCDEF',
+        'urn:btih:0123456789ABCDEF0123456789ABCDEF01234567',
       ]);
       expect(magnet.queryParametersAll['dn'], <String>['archive.zip']);
       expect(magnet.queryParametersAll['tr'], hasLength(2));
+    });
+
+    test('falls back when magnet topics and info hashes are invalid', () {
+      final sources = buildTaskRetrySources(
+        task(
+          infoHash: 'not-a-hash',
+          uris: const <String>[
+            'magnet:?xt=urn:btih:not-a-hash',
+            'https://example/archive.zip',
+          ],
+        ),
+      );
+
+      expect(sources.single.uris, <String>['https://example/archive.zip']);
+    });
+
+    test('preserves paths relative to the task directory', () {
+      final sources = buildTaskRetrySources(
+        task(
+          files: <Map<String, dynamic>>[
+            <String, dynamic>{
+              'path': '/downloads/releases/one.iso',
+              'uris': <Map<String, String>>[
+                <String, String>{'uri': 'https://example/one.iso'},
+              ],
+            },
+          ],
+        ),
+      );
+
+      expect(sources.single.outputName, 'releases/one.iso');
+    });
+
+    test('does not preserve paths that escape the task directory', () {
+      final sources = buildTaskRetrySources(
+        task(
+          files: <Map<String, dynamic>>[
+            <String, dynamic>{
+              'path': '../outside/one.iso',
+              'uris': <Map<String, String>>[
+                <String, String>{'uri': 'https://example/one.iso'},
+              ],
+            },
+          ],
+        ),
+      );
+
+      expect(sources.single.outputName, 'one.iso');
+    });
+
+    test('does not preserve Windows paths that escape the task directory', () {
+      final sources = buildTaskRetrySources(
+        task(
+          dir: r'C:\downloads',
+          files: <Map<String, dynamic>>[
+            <String, dynamic>{
+              'path': r'..\outside\one.iso',
+              'uris': <Map<String, String>>[
+                <String, String>{'uri': 'https://example/one.iso'},
+              ],
+            },
+          ],
+        ),
+      );
+
+      expect(sources.single.outputName, 'one.iso');
     });
 
     test('keeps mirror URIs grouped by HTTP file', () {
@@ -147,6 +214,38 @@ void main() {
       expect(removedOld, isTrue);
     });
 
+    test(
+      'applies a nested retry destination under the task directory',
+      () async {
+        Map<String, dynamic>? submittedOptions;
+
+        await DownloadTaskService.retryTaskWithClient(
+          client,
+          task(
+            infoHash: 'invalid',
+            files: <Map<String, dynamic>>[
+              <String, dynamic>{
+                'path': '/downloads/releases/one.iso',
+                'uris': <Map<String, String>>[
+                  <String, String>{'uri': 'https://example/one.iso'},
+                ],
+              },
+            ],
+          ),
+          getOptionsOverride: () async => <String, dynamic>{},
+          addUriOverride: (uris, options) async {
+            submittedOptions = Map<String, dynamic>.from(options);
+            return 'new-1';
+          },
+          removeDownloadResultOverride: (gid) async => 'OK',
+          saveSessionOverride: () async => true,
+        );
+
+        expect(submittedOptions?['dir'], '/downloads');
+        expect(submittedOptions?['out'], 'releases/one.iso');
+      },
+    );
+
     test('rolls back new tasks after a partial submission failure', () async {
       final rolledBack = <String>[];
       var addCount = 0;
@@ -179,6 +278,7 @@ void main() {
             }
             return 'new-1';
           },
+          getTaskStatusOverride: (gid) async => 'active',
           removeTaskOverride: (gid) async {
             rolledBack.add(gid);
             return gid;
@@ -194,6 +294,56 @@ void main() {
 
       expect(rolledBack, <String>['new-1']);
       expect(removedOld, isFalse);
+    });
+
+    test('removes a completed retry result during rollback', () async {
+      final removedTasks = <String>[];
+      final removedResults = <String>[];
+      var addCount = 0;
+
+      await expectLater(
+        DownloadTaskService.retryTaskWithClient(
+          client,
+          task(
+            files: <Map<String, dynamic>>[
+              <String, dynamic>{
+                'path': '/downloads/one.iso',
+                'uris': <Map<String, String>>[
+                  <String, String>{'uri': 'https://example/one.iso'},
+                ],
+              },
+              <String, dynamic>{
+                'path': '/downloads/two.iso',
+                'uris': <Map<String, String>>[
+                  <String, String>{'uri': 'https://example/two.iso'},
+                ],
+              },
+            ],
+          ),
+          getOptionsOverride: () async => <String, dynamic>{},
+          addUriOverride: (uris, options) async {
+            addCount++;
+            if (addCount == 2) {
+              throw const RpcException('submission failed');
+            }
+            return 'new-1';
+          },
+          getTaskStatusOverride: (gid) async => 'complete',
+          removeTaskOverride: (gid) async {
+            removedTasks.add(gid);
+            return gid;
+          },
+          removeDownloadResultOverride: (gid) async {
+            removedResults.add(gid);
+            return 'OK';
+          },
+          saveSessionOverride: () async => true,
+        ),
+        throwsA(isA<RpcException>()),
+      );
+
+      expect(removedTasks, isEmpty);
+      expect(removedResults, <String>['new-1']);
     });
 
     test(

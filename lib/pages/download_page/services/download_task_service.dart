@@ -531,6 +531,7 @@ class DownloadTaskService with Loggable {
     Future<Map<String, dynamic>> Function()? getOptionsOverride,
     Future<String> Function(List<String> uris, Map<String, dynamic> options)?
     addUriOverride,
+    Future<String?> Function(String gid)? getTaskStatusOverride,
     Future<String> Function(String gid)? removeTaskOverride,
     Future<String> Function(String gid)? removeDownloadResultOverride,
     Future<bool> Function()? saveSessionOverride,
@@ -567,7 +568,11 @@ class DownloadTaskService with Loggable {
     if (taskDir.isNotEmpty) {
       options['dir'] = taskDir;
     }
-    final isBitTorrent = task.infoHash?.trim().isNotEmpty == true;
+    final isBitTorrent = sources.any(
+      (source) => source.uris.any(
+        (uri) => Uri.tryParse(uri)?.scheme.toLowerCase() == 'magnet',
+      ),
+    );
     if (isBitTorrent) {
       options.putIfAbsent('check-integrity', () => 'true');
       options.putIfAbsent('force-save', () => 'true');
@@ -591,7 +596,27 @@ class DownloadTaskService with Loggable {
       }
       for (final gid in createdGids.reversed) {
         try {
-          if (removeTaskOverride != null) {
+          String? status;
+          try {
+            status = getTaskStatusOverride != null
+                ? await getTaskStatusOverride(gid)
+                : (await client.getTaskStatus(gid))['status']?.toString();
+          } catch (statusError, statusStackTrace) {
+            _logger.w(
+              'Failed to inspect partially retried task $gid; using active-task rollback',
+              error: statusError,
+              stackTrace: statusStackTrace,
+            );
+          }
+          final isStopped =
+              status == 'complete' || status == 'error' || status == 'removed';
+          if (isStopped) {
+            if (removeDownloadResultOverride != null) {
+              await removeDownloadResultOverride(gid);
+            } else {
+              await client.removeDownloadResult(gid);
+            }
+          } else if (removeTaskOverride != null) {
             await removeTaskOverride(gid);
           } else {
             await client.removeTask(gid);

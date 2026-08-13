@@ -2,18 +2,20 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:window_manager/window_manager.dart';
 
 import '../pages/download_page/enums.dart';
 import '../pages/download_page/models/download_task.dart';
 import '../utils/logging.dart';
+
+const double desktopProgressCleared = -1;
+const double desktopProgressIndeterminate = 2;
 
 double calculateDesktopProgress({
   required bool enabled,
   required List<DownloadTask> tasks,
 }) {
   if (!enabled) {
-    return -1;
+    return desktopProgressCleared;
   }
 
   final activeDownloads = tasks.where(
@@ -32,10 +34,10 @@ double calculateDesktopProgress({
   }
 
   if (!hasActiveDownloads) {
-    return -1;
+    return desktopProgressCleared;
   }
   if (totalBytes <= 0) {
-    return 2;
+    return desktopProgressIndeterminate;
   }
   return (completedBytes / totalBytes).clamp(0.0, 1.0);
 }
@@ -50,6 +52,9 @@ class DesktopProgressService with Loggable {
   static const MethodChannel _windowsChannel = MethodChannel(
     'setsuna/desktop_progress',
   );
+  static const MethodChannel _macosChannel = MethodChannel(
+    'setsuna/desktop_progress',
+  );
 
   static Future<void> _platformSetProgress(double progress) {
     if (Platform.isWindows) {
@@ -57,7 +62,11 @@ class DesktopProgressService with Loggable {
         'progress': progress,
       });
     }
-    return windowManager.setProgressBar(progress);
+    return _macosChannel.invokeMethod<void>('setProgress', <String, Object>{
+      'progress': progress < 0 || progress > 1
+          ? progress
+          : progress.clamp(0.0, 1.0),
+    });
   }
 
   final Future<void> Function(double progress) _setProgress;
@@ -98,6 +107,12 @@ class DesktopProgressService with Loggable {
         } on MissingPluginException {
           w('Desktop progress integration is unavailable');
         } on PlatformException catch (error, stackTrace) {
+          w(
+            'Failed to update desktop download progress',
+            error: error,
+            stackTrace: stackTrace,
+          );
+        } catch (error, stackTrace) {
           w(
             'Failed to update desktop download progress',
             error: error,

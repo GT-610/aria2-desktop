@@ -121,7 +121,9 @@ class _InstanceDialogState extends State<InstanceDialog> {
       parsedPort = int.tryParse(nextPortText);
     }
 
-    if (parsedPort != null && parsedPort >= 1 && parsedPort <= 65535) {
+    final isPortValid =
+        parsedPort != null && parsedPort >= 1 && parsedPort <= 65535;
+    if (isPortValid) {
       try {
         endpoint = Aria2RpcEndpoint.parse(
           hostInput: nextHost,
@@ -156,15 +158,23 @@ class _InstanceDialogState extends State<InstanceDialog> {
         _nameError = null;
       }
 
-      if (_host.trim().isEmpty || endpoint == null) {
+      if (_host.trim().isEmpty) {
+        _hostError = l10n.hostRequired;
+        isValid = false;
+      } else if (isPortValid && endpoint == null) {
         _hostError = l10n.hostRequired;
         isValid = false;
       } else {
         _hostError = null;
-        _protocol = endpoint.protocol;
-        _host = endpoint.host;
-        _port = endpoint.port;
-        _rpcPath = endpoint.rpcPath;
+        if (endpoint != null) {
+          _protocol = endpoint.protocol;
+          _host = endpoint.host;
+          _port = endpoint.port;
+          _rpcPath = endpoint.rpcPath;
+          _hostController.text = _host;
+          _portController.text = _port.toString();
+          _rpcPathController.text = _rpcPath;
+        }
       }
 
       if (nextPortText.isEmpty) {

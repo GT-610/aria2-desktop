@@ -284,7 +284,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     _instanceManager?.removeListener(_handleInstanceManagerChanged);
     _settings?.removeListener(_handleSettingsChanged);
     unawaited(_desktopProgressService.clear());
-    unawaited(_powerManagementService.release());
+    unawaited(_powerManagementService.dispose());
     _pendingAutoHideTimer?.cancel();
     _pageController.dispose();
     windowManager.removeListener(this);

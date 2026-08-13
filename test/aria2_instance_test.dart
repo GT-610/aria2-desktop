@@ -169,6 +169,20 @@ void main() {
         expect(instance.rpcEndpoint.port, 443);
         expect(instance.rpcEndpoint.rpcPath, 'custom/rpc');
       });
+
+      test('uses the fallback port for an absolute WebSocket URL', () {
+        final instance = Aria2Instance(
+          id: '1',
+          name: 'URL',
+          type: InstanceType.remote,
+          protocol: 'http',
+          host: 'ws://aria2.example.com/jsonrpc',
+          port: 16800,
+        );
+
+        expect(instance.rpcEndpoint.port, 16800);
+        expect(instance.rpcUrl, 'ws://aria2.example.com:16800/jsonrpc');
+      });
     });
 
     group('Aria2RpcEndpoint', () {

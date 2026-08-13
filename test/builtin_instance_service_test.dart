@@ -1,27 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:setsuna/models/settings.dart';
-import 'package:setsuna/repositories/settings_repository.dart';
 import 'package:setsuna/services/builtin_instance_service.dart';
 
-class _MemorySettingsRepository extends SettingsRepository {
-  _MemorySettingsRepository(this.values);
-
-  final Map<String, dynamic> values;
-
-  @override
-  Future<SettingsLoadResult> load() async {
-    return SettingsLoadResult(
-      values: Map<String, dynamic>.from(values),
-      credentialsBlocked: false,
-    );
-  }
-
-  @override
-  Future<void> save(
-    Map<String, dynamic> values, {
-    bool credentialsBlocked = false,
-  }) async {}
-}
+import 'support/memory_settings_repository.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -48,7 +29,7 @@ void main() {
 
     test('uses the bound loaded settings for the built-in instance', () async {
       final settings = Settings(
-        repository: _MemorySettingsRepository(<String, dynamic>{
+        repository: MemorySettingsRepository(<String, dynamic>{
           'rpcListenPort': 16882,
           'rpcSecret': 'secure-secret',
           'downloadDir': 'C:\\Downloads\\Setsuna',

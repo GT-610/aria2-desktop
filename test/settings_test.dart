@@ -1,30 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:setsuna/models/settings.dart';
-import 'package:setsuna/repositories/settings_repository.dart';
 
-class _MemorySettingsRepository extends SettingsRepository {
-  _MemorySettingsRepository(this.values);
-
-  final Map<String, dynamic> values;
-  Map<String, dynamic>? savedValues;
-
-  @override
-  Future<SettingsLoadResult> load() async {
-    return SettingsLoadResult(
-      values: Map<String, dynamic>.from(values),
-      credentialsBlocked: false,
-    );
-  }
-
-  @override
-  Future<void> save(
-    Map<String, dynamic> values, {
-    bool credentialsBlocked = false,
-  }) async {
-    savedValues = Map<String, dynamic>.from(values);
-  }
-}
+import 'support/memory_settings_repository.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -211,7 +189,7 @@ void main() {
 
     group('settings hydration', () {
       test('exposes typed settings for the built-in instance', () async {
-        final repository = _MemorySettingsRepository(<String, dynamic>{
+        final repository = MemorySettingsRepository(<String, dynamic>{
           'rpcListenPort': 16888,
           'rpcSecret': 'secure-secret',
           'continueDownloads': false,
@@ -245,7 +223,7 @@ void main() {
       test(
         'repairs individual legacy values without resetting valid fields',
         () async {
-          final repository = _MemorySettingsRepository(<String, dynamic>{
+          final repository = MemorySettingsRepository(<String, dynamic>{
             'autoStart': 'true',
             'runMode': 'invalid',
             'taskNotification': false,
@@ -299,7 +277,7 @@ void main() {
       );
 
       test('does not rewrite already normalized settings', () async {
-        final repository = _MemorySettingsRepository(<String, dynamic>{
+        final repository = MemorySettingsRepository(<String, dynamic>{
           'autoStart': false,
           'minimizeToTray': true,
           'runMode': 'tray',
@@ -362,7 +340,7 @@ void main() {
       });
 
       test('drops the obsolete minimize-to-tray field on save', () async {
-        final repository = _MemorySettingsRepository(<String, dynamic>{
+        final repository = MemorySettingsRepository(<String, dynamic>{
           'minimizeToTray': false,
         });
         final settings = Settings(repository: repository);
@@ -377,7 +355,7 @@ void main() {
       });
 
       test('persists the keep-awake preference', () async {
-        final repository = _MemorySettingsRepository(<String, dynamic>{});
+        final repository = MemorySettingsRepository(<String, dynamic>{});
         final settings = Settings(repository: repository);
 
         await settings.loadSettings();

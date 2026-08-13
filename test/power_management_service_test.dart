@@ -133,6 +133,28 @@ void main() {
     ]);
   });
 
+  test('uses the Linux inhibitor for enable and disable updates', () async {
+    final applied = <bool>[];
+    var disposed = false;
+    final service = PowerManagementService(
+      isSupported: true,
+      isLinux: true,
+      setLinuxInhibitor: (enabled) async => applied.add(enabled),
+      disposeLinuxInhibitor: () async => disposed = true,
+    );
+
+    await service.synchronize(
+      enabled: true,
+      tasks: <DownloadTask>[
+        _task(status: DownloadStatus.active, taskStatus: 'active'),
+      ],
+    );
+    await service.dispose();
+
+    expect(applied, <bool>[true, false]);
+    expect(disposed, isTrue);
+  });
+
   test('does not call unsupported platform integrations', () async {
     var called = false;
     messenger.setMockMethodCallHandler(channel, (call) async {

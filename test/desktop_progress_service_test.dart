@@ -78,7 +78,7 @@ void main() {
       ],
     );
 
-    expect(progress, -1);
+    expect(progress, desktopProgressCleared);
   });
 
   test('uses indeterminate progress when active size is unknown', () {
@@ -93,7 +93,7 @@ void main() {
       ],
     );
 
-    expect(progress, greaterThan(1));
+    expect(progress, desktopProgressIndeterminate);
   });
 
   test(
@@ -189,5 +189,17 @@ void main() {
     await service.clear();
 
     expect(called, isFalse);
+  });
+
+  test('applies the clear progress value on supported platforms', () async {
+    final applied = <double>[];
+    final service = DesktopProgressService(
+      isSupported: true,
+      setProgress: (progress) async => applied.add(progress),
+    );
+
+    await service.clear();
+
+    expect(applied, <double>[desktopProgressCleared]);
   });
 }

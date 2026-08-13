@@ -41,7 +41,11 @@ class Aria2RpcEndpoint {
     _validatePort(fallbackPort);
 
     if (input.contains('://')) {
-      return _parseAbsoluteUri(input, fallbackRpcPath: fallbackRpcPath);
+      return _parseAbsoluteUri(
+        input,
+        fallbackPort: fallbackPort,
+        fallbackRpcPath: fallbackRpcPath,
+      );
     }
 
     final authority = _parseAuthority(input);
@@ -55,6 +59,7 @@ class Aria2RpcEndpoint {
 
   static Aria2RpcEndpoint _parseAbsoluteUri(
     String input, {
+    required int fallbackPort,
     required String fallbackRpcPath,
   }) {
     final uri = Uri.tryParse(input);
@@ -73,10 +78,12 @@ class Aria2RpcEndpoint {
     final rpcPath = uri.pathSegments.isEmpty
         ? _normalizeRpcPath(fallbackRpcPath)
         : _normalizeRpcPath(uri.path);
+    final resolvedPort = uri.hasPort ? uri.port : fallbackPort;
+    _validatePort(resolvedPort);
     return Aria2RpcEndpoint(
       protocol: protocol,
       host: uri.host,
-      port: uri.port,
+      port: resolvedPort,
       rpcPath: rpcPath,
     );
   }
@@ -171,6 +178,13 @@ class Aria2Instance {
   final String? errorMessage;
   final ConnectionStatus status;
 
+  late final Aria2RpcEndpoint _rpcEndpoint = Aria2RpcEndpoint.parse(
+    hostInput: host,
+    fallbackProtocol: protocol,
+    fallbackPort: port,
+    fallbackRpcPath: rpcPath,
+  );
+
   Aria2Instance({
     required this.id,
     required this.name,
@@ -254,12 +268,7 @@ class Aria2Instance {
     rpcRequestHeaders,
   ].join('\u001f');
 
-  Aria2RpcEndpoint get rpcEndpoint => Aria2RpcEndpoint.parse(
-    hostInput: host,
-    fallbackProtocol: protocol,
-    fallbackPort: port,
-    fallbackRpcPath: rpcPath,
-  );
+  Aria2RpcEndpoint get rpcEndpoint => _rpcEndpoint;
 
   String get normalizedRpcPath {
     return rpcEndpoint.rpcPath;

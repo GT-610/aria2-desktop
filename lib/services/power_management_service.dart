@@ -28,16 +28,25 @@ class PowerManagementService with Loggable {
     MethodChannel? channel,
     @visibleForTesting bool? isSupported,
     @visibleForTesting bool? isLinux,
+    @visibleForTesting Future<void> Function(bool enabled)? setLinuxInhibitor,
+    @visibleForTesting Future<void> Function()? disposeLinuxInhibitor,
   }) : _channel = channel ?? const MethodChannel('setsuna/power_management'),
        _isSupported =
            isSupported ??
            (Platform.isWindows || Platform.isMacOS || Platform.isLinux),
-       _isLinux = isLinux ?? Platform.isLinux;
+       _isLinux = isLinux ?? Platform.isLinux,
+       _setLinuxInhibitor = setLinuxInhibitor,
+       _disposeLinuxInhibitor = disposeLinuxInhibitor,
+       _linuxInhibitor = setLinuxInhibitor == null
+           ? _LinuxSleepInhibitor()
+           : null;
 
   final MethodChannel _channel;
   final bool _isSupported;
   final bool _isLinux;
-  final _LinuxSleepInhibitor _linuxInhibitor = _LinuxSleepInhibitor();
+  final Future<void> Function(bool enabled)? _setLinuxInhibitor;
+  final Future<void> Function()? _disposeLinuxInhibitor;
+  final _LinuxSleepInhibitor? _linuxInhibitor;
   bool? _desiredEnabled;
   bool? _appliedEnabled;
   Future<void>? _syncLoop;
@@ -64,13 +73,26 @@ class PowerManagementService with Loggable {
     return synchronize(enabled: false, tasks: const <DownloadTask>[]);
   }
 
+  Future<void> dispose() async {
+    await release();
+    if (_disposeLinuxInhibitor != null) {
+      await _disposeLinuxInhibitor();
+    } else {
+      await _linuxInhibitor?.dispose();
+    }
+  }
+
   Future<void> _runSyncLoop() async {
     try {
       while (_desiredEnabled != _appliedEnabled) {
         final enabled = _desiredEnabled!;
         try {
           if (_isLinux) {
-            await _linuxInhibitor.setEnabled(enabled);
+            if (_setLinuxInhibitor != null) {
+              await _setLinuxInhibitor(enabled);
+            } else {
+              await _linuxInhibitor!.setEnabled(enabled);
+            }
           } else {
             await _channel.invokeMethod<void>(
               'setPreventSleep',
@@ -117,7 +139,7 @@ class _LinuxSleepInhibitor {
       return;
     }
 
-    final client = DBusClient.system();
+    final client = _client ??= DBusClient.system();
     try {
       final loginManager = DBusRemoteObject(
         client,
@@ -132,19 +154,26 @@ class _LinuxSleepInhibitor {
             const DBusString('block'),
           ], replySignature: DBusSignature.unixFd);
       _inhibitorFile = response.returnValues.single.asUnixFd().toFile();
-      _client = client;
     } catch (_) {
       await client.close();
+      _client = null;
       rethrow;
     }
   }
 
   Future<void> _release() async {
     final file = _inhibitorFile;
-    final client = _client;
     _inhibitorFile = null;
-    _client = null;
     await file?.close();
-    await client?.close();
+  }
+
+  Future<void> dispose() async {
+    try {
+      await _release();
+    } finally {
+      final client = _client;
+      _client = null;
+      await client?.close();
+    }
   }
 }

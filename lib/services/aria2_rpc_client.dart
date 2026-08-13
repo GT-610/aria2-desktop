@@ -715,6 +715,15 @@ class Aria2RpcClient with Loggable {
     return response['result'] as String;
   }
 
+  /// Get the current status for one task.
+  Future<Map<String, dynamic>> getTaskStatus(String gid) async {
+    final response = await callRpc('aria2.tellStatus', <dynamic>[
+      gid,
+      <String>['status'],
+    ], idempotent: true);
+    return Map<String, dynamic>.from(response['result'] as Map);
+  }
+
   /// Change task options.
   Future<String> changeOption(String gid, Map<String, dynamic> options) async {
     final response = await callRpc('aria2.changeOption', [
