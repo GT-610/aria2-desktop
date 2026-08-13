@@ -73,6 +73,19 @@ void main() {
         final instance = Aria2Instance.fromJson(json);
         expect(instance.status, ConnectionStatus.disconnected);
       });
+
+      test('rejects malformed persisted endpoints', () {
+        final json = {
+          'id': 'id-3',
+          'name': 'Invalid',
+          'type': 'remote',
+          'protocol': 'ftp',
+          'host': 'localhost',
+          'port': 6800,
+        };
+
+        expect(() => Aria2Instance.fromJson(json), throwsFormatException);
+      });
     });
 
     group('rpcUrl', () {
@@ -111,6 +124,89 @@ void main() {
           rpcPath: 'custom/rpc',
         );
         expect(instance.rpcUrl, 'http://example.com:8080/custom/rpc');
+      });
+
+      test('brackets an IPv6 literal', () {
+        final instance = Aria2Instance(
+          id: '1',
+          name: 'IPv6',
+          type: InstanceType.remote,
+          protocol: 'http',
+          host: '2001:db8::1',
+          port: 6800,
+        );
+
+        expect(instance.rpcUrl, 'http://[2001:db8::1]:6800/jsonrpc');
+      });
+
+      test('accepts a bracketed IPv6 host with a port', () {
+        final instance = Aria2Instance(
+          id: '1',
+          name: 'IPv6',
+          type: InstanceType.remote,
+          protocol: 'http',
+          host: '[::1]:16800',
+          port: 6800,
+        );
+
+        expect(instance.rpcUrl, 'http://[::1]:16800/jsonrpc');
+      });
+
+      test('normalizes a complete RPC URL stored in the host field', () {
+        final instance = Aria2Instance(
+          id: '1',
+          name: 'URL',
+          type: InstanceType.remote,
+          protocol: 'http',
+          host: 'wss://aria2.example.com:443/custom/rpc',
+          port: 6800,
+          rpcPath: 'jsonrpc',
+        );
+
+        expect(instance.rpcUrl, 'wss://aria2.example.com:443/custom/rpc');
+        expect(instance.rpcEndpoint.protocol, 'wss');
+        expect(instance.rpcEndpoint.host, 'aria2.example.com');
+        expect(instance.rpcEndpoint.port, 443);
+        expect(instance.rpcEndpoint.rpcPath, 'custom/rpc');
+      });
+    });
+
+    group('Aria2RpcEndpoint', () {
+      test('uses a port supplied with a host name', () {
+        final endpoint = Aria2RpcEndpoint.parse(
+          hostInput: 'aria2.example.com:16800',
+          fallbackProtocol: 'http',
+          fallbackPort: 6800,
+          fallbackRpcPath: '/jsonrpc/',
+        );
+
+        expect(endpoint.host, 'aria2.example.com');
+        expect(endpoint.port, 16800);
+        expect(endpoint.url, 'http://aria2.example.com:16800/jsonrpc');
+      });
+
+      test('rejects credentials embedded in a complete URL', () {
+        expect(
+          () => Aria2RpcEndpoint.parse(
+            hostInput: 'http://user:password@aria2.example.com/jsonrpc',
+            fallbackProtocol: 'http',
+            fallbackPort: 6800,
+            fallbackRpcPath: 'jsonrpc',
+          ),
+          throwsFormatException,
+        );
+      });
+
+      test('rejects unsupported protocols', () {
+        expect(
+          () => Aria2RpcEndpoint.parse(
+            hostInput: 'ftp://aria2.example.com/jsonrpc',
+            fallbackProtocol: 'http',
+            fallbackPort: 6800,
+            fallbackRpcPath: 'jsonrpc',
+          ),
+          throwsFormatException,
+        );
       });
     });
 
