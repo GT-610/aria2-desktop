@@ -17,7 +17,7 @@ workspace="$(cd "$script_dir/.." && pwd)"
 manifest="$script_dir/aria2_next_release.json"
 aria2_version="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$manifest")"
 app_path="$workspace/build/macos/Build/Products/Release/setsuna.app"
-core_dir="$app_path/Contents/MacOS/data/core"
+core_dir="$app_path/Contents/Resources/data/core"
 temporary_dir="$(mktemp -d)"
 
 cleanup() {
