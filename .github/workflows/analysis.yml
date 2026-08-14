@@ -21,14 +21,17 @@ jobs:
         with:
           channel: stable
 
-      - name: Install Linux secure storage build dependency
-        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev
+      - name: Install analysis dependencies
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev shellcheck
 
       - name: Install dependencies
         run: flutter pub get
 
       - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: dart format --output=none --set-exit-if-changed lib test tool/*.dart
+
+      - name: Check release shell scripts
+        run: shellcheck --shell=bash tool/*.sh
 
       - name: Analyze project source
         run: flutter analyze --fatal-infos --fatal-warnings
@@ -36,7 +39,8 @@ jobs:
       - name: Run tests
         run: flutter test
 
-  windows_build:
+  windows_package:
+    name: Windows release package
     runs-on: windows-latest
 
     steps:
@@ -49,16 +53,72 @@ jobs:
         with:
           channel: stable
 
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Build a clean Windows release
+      - name: Build and verify Windows release package
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          Remove-Item -LiteralPath "${{ github.workspace }}\build\windows" -Recurse -Force -ErrorAction SilentlyContinue
-          flutter build windows --release
-          $staleCore = "${{ github.workspace }}\build\windows\x64\runner\Release\data\core\aria2c.exe"
-          if (Test-Path -LiteralPath $staleCore) {
-            throw 'A clean application build unexpectedly contains a stale bundled aria2 binary.'
-          }
+          .\tool\build_windows_release.ps1 -BuildName '0.0.0' -BuildNumber '0'
+
+  macos_package:
+    name: macOS release package
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Build and verify macOS release package
+        shell: bash
+        run: |
+          chmod +x tool/prepare_aria2_next.sh tool/package_macos_release.sh
+          tool/package_macos_release.sh \
+            macos-arm64 \
+            0.0.0 \
+            0 \
+            ci \
+            arm64 \
+            "$RUNNER_TEMP/dist"
+
+  linux_package:
+    name: Linux release package
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install Linux build dependencies
+        run: |
+          export NEEDRESTART_SUSPEND=1
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update
+          sudo -E apt-get install -y \
+            clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
+            libsecret-1-dev libayatana-appindicator3-dev libnotify-dev
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Build and verify Linux release package
+        shell: bash
+        run: |
+          chmod +x tool/prepare_aria2_next.sh tool/package_linux_release.sh
+          tool/package_linux_release.sh \
+            linux-x64 \
+            linux-x64 \
+            x64 \
+            amd64 \
+            0.0.0 \
+            0 \
+            ci \
+            x64 \
+            "$RUNNER_TEMP/dist"
