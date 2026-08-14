@@ -1,0 +1,13 @@
+Setsuna bundles Aria2 Next as a separate download engine process.
+
+Aria2 Next 2.5.5
+Copyright (C) 2006, 2019 Tatsuhiro Tsujikawa
+Maintained by AnInsomniacy and the Aria2 Next contributors.
+
+Project: https://github.com/AnInsomniacy/aria2-next
+Source: https://github.com/AnInsomniacy/aria2-next/tree/v2.5.5
+Release: https://github.com/AnInsomniacy/aria2-next/releases/tag/v2.5.5
+
+Aria2 Next is licensed under the GNU General Public License, version 2 or,
+at your option, any later version. The complete license is distributed as
+aria2-next.COPYING beside the bundled executable.
