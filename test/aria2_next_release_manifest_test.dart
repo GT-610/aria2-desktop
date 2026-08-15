@@ -10,11 +10,10 @@ void main() {
     final manifest = jsonDecode(manifestFile.readAsStringSync());
     expect(manifest, isA<Map<String, dynamic>>());
     final values = manifest as Map<String, dynamic>;
-    final version = values['version'];
-    final assets = values['assets'];
+    final version = values['version'] as String;
+    final assets = values['assets'] as Map<String, dynamic>;
 
     expect(version, matches(RegExp(r'^\d+\.\d+\.\d+$')));
-    expect(assets, isA<Map<String, dynamic>>());
 
     const requiredTargets = <String>{
       'windows-x64',
@@ -24,11 +23,10 @@ void main() {
       'linux-x64',
       'linux-arm64',
     };
-    final assetValues = assets as Map<String, dynamic>;
-    expect(assetValues.keys.toSet(), containsAll(requiredTargets));
+    expect(assets.keys.toSet(), containsAll(requiredTargets));
 
     for (final target in requiredTargets) {
-      final asset = assetValues[target];
+      final asset = assets[target];
       expect(asset, isA<Map<String, dynamic>>(), reason: target);
       final assetMap = asset as Map<String, dynamic>;
       expect(assetMap['file'], contains(version), reason: target);

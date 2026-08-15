@@ -129,7 +129,13 @@ Future<void> main(List<String> arguments) async {
     }
     await outputSubscription?.cancel();
     await errorSubscription?.cancel();
-    await temporaryDirectory.delete(recursive: true);
+    try {
+      await temporaryDirectory.delete(recursive: true);
+    } catch (error) {
+      stderr.writeln(
+        'Failed to remove the Aria2 Next smoke-test directory: $error',
+      );
+    }
   }
 }
 
@@ -200,7 +206,10 @@ Future<Map<String, Object?>> _callRpc({
   request.contentLength = payload.length;
   request.add(payload);
   final response = await request.close().timeout(const Duration(seconds: 2));
-  final body = await utf8.decoder.bind(response).join();
+  final body = await utf8.decoder
+      .bind(response)
+      .join()
+      .timeout(const Duration(seconds: 2));
   if (response.statusCode != HttpStatus.ok) {
     throw HttpException('RPC returned HTTP ${response.statusCode}: $body');
   }

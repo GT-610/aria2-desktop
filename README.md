@@ -80,10 +80,11 @@ On Windows:
 .\tool\build_windows_release.ps1 -BuildName 1.0.0 -BuildNumber 0
 ```
 
-On macOS:
+On macOS for local package validation:
 
 ```bash
-tool/package_macos_release.sh macos-arm64 1.0.0 0 local arm64 dist
+MACOS_AD_HOC_SIGNING=true \
+  tool/package_macos_release.sh macos-arm64 1.0.0 0 local arm64 dist
 ```
 
 On Linux x64:
@@ -93,9 +94,23 @@ tool/package_linux_release.sh \
   linux-x64 linux-x64 x64 amd64 1.0.0 0 local x64 dist
 ```
 
+On Linux ARM64:
+
+```bash
+tool/package_linux_release.sh \
+  linux-arm64 linux-arm64 arm64 arm64 1.0.0 0 local arm64 dist
+```
+
 Runtime settings, logs, and session files are rejected from every release
 artifact. GitHub Actions publishes a Windows x64 ZIP, Apple Silicon and Intel
 macOS DMGs, and Linux x64/ARM64 tarballs and Debian packages.
+
+Published macOS packages require these GitHub Actions secrets:
+`MACOS_CERTIFICATE_BASE64`, `MACOS_CERTIFICATE_PASSWORD`,
+`MACOS_SIGNING_IDENTITY`, `MACOS_NOTARY_APPLE_ID`, `MACOS_NOTARY_TEAM_ID`, and
+`MACOS_NOTARY_PASSWORD`. The certificate must be a base64-encoded Developer ID
+Application PKCS #12 file, and the notarization password must be an app-specific
+password.
 
 ### Application data and credentials
 

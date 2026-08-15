@@ -15,9 +15,23 @@ output_dir="$6"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 workspace="$(cd "$script_dir/.." && pwd)"
 manifest="$script_dir/aria2_next_release.json"
-aria2_version="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$manifest")"
 app_path="$workspace/build/macos/Build/Products/Release/setsuna.app"
 core_dir="$app_path/Contents/Resources/data/core"
+ad_hoc_signing="${MACOS_AD_HOC_SIGNING:-false}"
+
+if [[ "$ad_hoc_signing" == "true" ]]; then
+  signing_identity="-"
+elif [[ "$ad_hoc_signing" == "false" ]]; then
+  signing_identity="${MACOS_SIGNING_IDENTITY:?MACOS_SIGNING_IDENTITY is required}"
+  notary_apple_id="${MACOS_NOTARY_APPLE_ID:?MACOS_NOTARY_APPLE_ID is required}"
+  notary_team_id="${MACOS_NOTARY_TEAM_ID:?MACOS_NOTARY_TEAM_ID is required}"
+  notary_password="${MACOS_NOTARY_PASSWORD:?MACOS_NOTARY_PASSWORD is required}"
+else
+  echo "MACOS_AD_HOC_SIGNING must be true or false." >&2
+  exit 64
+fi
+
+aria2_version="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["version"])' "$manifest")"
 temporary_dir="$(mktemp -d)"
 
 cleanup() {
@@ -59,9 +73,13 @@ for forbidden_file in aria2.log aria2.session; do
 done
 
 xattr -cr "$app_path"
-codesign --force --sign - "$core_dir/aria2c"
-codesign --force \
-  --sign - \
+codesign_options=(--force --options runtime --sign "$signing_identity")
+if [[ "$ad_hoc_signing" == "false" ]]; then
+  codesign_options+=(--timestamp)
+fi
+codesign "${codesign_options[@]}" "$core_dir/aria2c"
+codesign "${codesign_options[@]}" --deep "$app_path"
+codesign "${codesign_options[@]}" \
   --entitlements "$workspace/macos/Runner/Release.entitlements" \
   "$app_path"
 codesign --verify --deep --strict --verbose=2 "$app_path"
@@ -79,5 +97,17 @@ hdiutil create \
   -ov \
   -format UDZO \
   "$artifact_path"
+
+if [[ "$ad_hoc_signing" == "false" ]]; then
+  xcrun notarytool submit "$artifact_path" \
+    --apple-id "$notary_apple_id" \
+    --team-id "$notary_team_id" \
+    --password "$notary_password" \
+    --wait
+  xcrun stapler staple "$artifact_path"
+  xcrun stapler validate "$artifact_path"
+else
+  echo "Created an ad hoc-signed validation package; do not publish it." >&2
+fi
 
 echo "Created $artifact_path"

@@ -75,6 +75,8 @@ jobs:
 
       - name: Build and verify macOS release package
         shell: bash
+        env:
+          MACOS_AD_HOC_SIGNING: "true"
         run: |
           chmod +x tool/prepare_aria2_next.sh tool/package_macos_release.sh
           tool/package_macos_release.sh \

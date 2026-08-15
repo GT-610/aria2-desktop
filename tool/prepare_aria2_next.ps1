@@ -10,7 +10,8 @@ $ErrorActionPreference = 'Stop'
 $workspace = Split-Path -Parent $PSScriptRoot
 $manifestPath = Join-Path $PSScriptRoot 'aria2_next_release.json'
 $manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
-$asset = $manifest.assets.PSObject.Properties[$Target].Value
+$assetProperty = $manifest.assets.PSObject.Properties[$Target]
+$asset = if ($null -eq $assetProperty) { $null } else { $assetProperty.Value }
 
 if (-not $asset) {
   throw "Unsupported Aria2 Next target: $Target"
@@ -25,6 +26,7 @@ $assetUrl = "https://github.com/$repository/releases/download/v$version/$($asset
 Invoke-WebRequest -Uri $assetUrl -OutFile $downloadPath
 $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $downloadPath).Hash
 if ($actualHash -ne $asset.sha256) {
+  Remove-Item -LiteralPath $downloadPath -Force -ErrorAction SilentlyContinue
   throw "Aria2 Next checksum mismatch. Expected $($asset.sha256), got $actualHash."
 }
 
@@ -36,10 +38,13 @@ $licensePath = Join-Path $destinationDirectory.FullName 'aria2-next.COPYING'
 Invoke-WebRequest -Uri $manifest.license.url -OutFile $licensePath
 $actualLicenseHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $licensePath).Hash
 if ($actualLicenseHash -ne $manifest.license.sha256) {
+  Remove-Item -LiteralPath $licensePath -Force -ErrorAction SilentlyContinue
   throw "Aria2 Next license checksum mismatch. Expected $($manifest.license.sha256), got $actualLicenseHash."
 }
 
-Copy-Item -LiteralPath (Join-Path $workspace 'assets\core\aria2.conf') -Destination $destinationDirectory.FullName -Force
-Copy-Item -LiteralPath (Join-Path $workspace 'assets\core\ARIA2_NEXT_NOTICE.txt') -Destination $destinationDirectory.FullName -Force
+$assetsDirectory = Join-Path $workspace 'assets'
+$coreAssetsDirectory = Join-Path $assetsDirectory 'core'
+Copy-Item -LiteralPath (Join-Path $coreAssetsDirectory 'aria2.conf') -Destination $destinationDirectory.FullName -Force
+Copy-Item -LiteralPath (Join-Path $coreAssetsDirectory 'ARIA2_NEXT_NOTICE.txt') -Destination $destinationDirectory.FullName -Force
 
 Write-Host "Prepared Aria2 Next $version for $Target at $($destinationDirectory.FullName)"
