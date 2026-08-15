@@ -306,6 +306,114 @@ void main() {
       await server.close(force: true);
     });
 
+    test('limits an idempotent HTTP probe to one attempt', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      var requestCount = 0;
+      server.listen((request) async {
+        requestCount++;
+        await utf8.decoder.bind(request).join();
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+        await request.response.close();
+      });
+      final client = Aria2RpcClient(
+        Aria2Instance(
+          id: 'http-probe',
+          name: 'HTTP probe',
+          type: InstanceType.builtin,
+          protocol: 'http',
+          host: InternetAddress.loopbackIPv4.address,
+          port: server.port,
+        ),
+        requestTimeout: const Duration(milliseconds: 50),
+        retryDelay: const Duration(milliseconds: 5),
+        maximumAttempts: 1,
+      );
+
+      await expectLater(
+        client.getVersion(),
+        throwsA(isA<ConnectionFailedException>()),
+      );
+      expect(requestCount, 1);
+
+      await client.close();
+      await server.close(force: true);
+    });
+
+    test('keeps maximum attempt limits isolated between clients', () async {
+      final singleAttemptServer = await HttpServer.bind(
+        InternetAddress.loopbackIPv4,
+        0,
+      );
+      final defaultRetryServer = await HttpServer.bind(
+        InternetAddress.loopbackIPv4,
+        0,
+      );
+      var singleAttemptRequests = 0;
+      var defaultRetryRequests = 0;
+      singleAttemptServer.listen((request) async {
+        singleAttemptRequests++;
+        await utf8.decoder.bind(request).join();
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+        await request.response.close();
+      });
+      defaultRetryServer.listen((request) async {
+        defaultRetryRequests++;
+        final body = await utf8.decoder.bind(request).join();
+        final decoded = jsonDecode(body) as Map<String, dynamic>;
+        if (defaultRetryRequests == 1) {
+          await Future<void>.delayed(const Duration(milliseconds: 120));
+        }
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          jsonEncode(<String, dynamic>{
+            'jsonrpc': '2.0',
+            'id': decoded['id'],
+            'result': <String, dynamic>{'version': '1.37.0'},
+          }),
+        );
+        await request.response.close();
+      });
+
+      final singleAttemptClient = Aria2RpcClient(
+        Aria2Instance(
+          id: 'single-attempt-client',
+          name: 'Single attempt',
+          type: InstanceType.remote,
+          protocol: 'http',
+          host: InternetAddress.loopbackIPv4.address,
+          port: singleAttemptServer.port,
+        ),
+        requestTimeout: const Duration(milliseconds: 50),
+        retryDelay: const Duration(milliseconds: 5),
+        maximumAttempts: 1,
+      );
+      final defaultRetryClient = Aria2RpcClient(
+        Aria2Instance(
+          id: 'default-retry-client',
+          name: 'Default retry',
+          type: InstanceType.remote,
+          protocol: 'http',
+          host: InternetAddress.loopbackIPv4.address,
+          port: defaultRetryServer.port,
+        ),
+        requestTimeout: const Duration(milliseconds: 50),
+        retryDelay: const Duration(milliseconds: 5),
+      );
+
+      await expectLater(
+        singleAttemptClient.getVersion(),
+        throwsA(isA<ConnectionFailedException>()),
+      );
+      expect(singleAttemptRequests, 1);
+      expect(await defaultRetryClient.getVersion(), '1.37.0');
+      expect(defaultRetryRequests, 2);
+
+      await singleAttemptClient.close();
+      await defaultRetryClient.close();
+      await singleAttemptServer.close(force: true);
+      await defaultRetryServer.close(force: true);
+    });
+
     test(
       'supports a single WebSocket attempt for an idempotent probe',
       () async {

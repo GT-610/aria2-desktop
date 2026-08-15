@@ -9,6 +9,10 @@ import 'builtin_instance_service.dart';
 
 /// Unified instance management service class, combining the functionality of InstanceManager and NotifiableInstanceManager
 class InstanceManager extends ChangeNotifier with Loggable {
+  static const Duration _builtinConnectionWindow = Duration(seconds: 10);
+  static const Duration _builtinProbeTimeout = Duration(seconds: 1);
+  static const Duration _builtinStartupTimeout = Duration(seconds: 12);
+
   InstanceManager({InstanceRepository? repository})
     : _repository = repository ?? InstanceRepository();
 
@@ -110,7 +114,17 @@ class InstanceManager extends ChangeNotifier with Loggable {
       // Finish the built-in startup attempt before presenting the main window.
       final builtinInstance = getBuiltinInstance();
       if (builtinInstance != null) {
-        await connectInstance(builtinInstance);
+        await connectInstance(builtinInstance).timeout(
+          _builtinStartupTimeout,
+          onTimeout: () {
+            w(
+              'Built-in instance startup exceeded '
+              '${_builtinStartupTimeout.inSeconds} seconds; continuing '
+              'application initialization',
+            );
+            return false;
+          },
+        );
       }
 
       i(
@@ -417,17 +431,56 @@ class InstanceManager extends ChangeNotifier with Loggable {
   }
 
   Future<bool> _waitForConnection(Aria2Instance instance) async {
-    final deadline = DateTime.now().add(const Duration(seconds: 10));
+    final deadline = DateTime.now().add(_builtinConnectionWindow);
     var delay = const Duration(milliseconds: 150);
-    while (DateTime.now().isBefore(deadline)) {
-      if (await checkConnection(instance)) {
+    while (true) {
+      final remaining = deadline.difference(DateTime.now());
+      if (remaining <= Duration.zero) {
+        return false;
+      }
+      final probeTimeout = remaining < _builtinProbeTimeout
+          ? remaining
+          : _builtinProbeTimeout;
+      if (await _probeConnectionOnce(instance, timeout: probeTimeout)) {
         return true;
       }
-      await Future<void>.delayed(delay);
+
+      final remainingAfterProbe = deadline.difference(DateTime.now());
+      if (remainingAfterProbe <= Duration.zero) {
+        return false;
+      }
+      await Future<void>.delayed(
+        delay < remainingAfterProbe ? delay : remainingAfterProbe,
+      );
       final nextMilliseconds = (delay.inMilliseconds * 1.6).round();
       delay = Duration(milliseconds: nextMilliseconds.clamp(150, 1000));
     }
-    return false;
+  }
+
+  Future<bool> _probeConnectionOnce(
+    Aria2Instance instance, {
+    required Duration timeout,
+  }) async {
+    final client = Aria2RpcClient(
+      instance,
+      requestTimeout: timeout,
+      maximumAttempts: 1,
+    );
+    try {
+      await client.getVersion();
+      return true;
+    } on ConnectionFailedException {
+      return false;
+    } catch (error, stackTrace) {
+      w(
+        'Built-in startup RPC probe failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return false;
+    } finally {
+      await client.close();
+    }
   }
 
   /// Disconnect instance
