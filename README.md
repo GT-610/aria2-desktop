@@ -66,19 +66,51 @@ flutter test
 flutter build windows --release
 ```
 
-### Reproducible Windows release
+### Reproducible desktop releases
 
-Use the checked-in PowerShell build helper instead of reusing an existing
-`build/` directory:
+Release builds download the platform-specific Aria2 Next binary described in
+`tool/aria2_next_release.json`, verify its SHA-256 checksum, and run a process
+and JSON-RPC smoke test before packaging it with Setsuna. The engine license and
+exact source link are included beside the binary.
+
+Use the checked-in helpers instead of reusing an existing `build/` directory.
+On Windows:
 
 ```powershell
 .\tool\build_windows_release.ps1 -BuildName 1.0.0 -BuildNumber 0
 ```
 
-The script downloads the pinned aria2 1.37.0 Windows binary, verifies its
-SHA-256 checksum, performs a clean Windows build, and injects only `aria2c.exe`
-and `aria2.conf`. Runtime settings, logs, and session files are rejected from
-release artifacts.
+On macOS for local package validation:
+
+```bash
+MACOS_AD_HOC_SIGNING=true \
+  tool/package_macos_release.sh macos-arm64 1.0.0 0 local arm64 dist
+```
+
+On Linux x64:
+
+```bash
+tool/package_linux_release.sh \
+  linux-x64 linux-x64 x64 amd64 1.0.0 0 local x64 dist
+```
+
+On Linux ARM64:
+
+```bash
+tool/package_linux_release.sh \
+  linux-arm64 linux-arm64 arm64 arm64 1.0.0 0 local arm64 dist
+```
+
+Runtime settings, logs, and session files are rejected from every release
+artifact. GitHub Actions publishes a Windows x64 ZIP, Apple Silicon and Intel
+macOS DMGs, and Linux x64/ARM64 tarballs and Debian packages.
+
+Published macOS packages require these GitHub Actions secrets:
+`MACOS_CERTIFICATE_BASE64`, `MACOS_CERTIFICATE_PASSWORD`,
+`MACOS_SIGNING_IDENTITY`, `MACOS_NOTARY_APPLE_ID`, `MACOS_NOTARY_TEAM_ID`, and
+`MACOS_NOTARY_PASSWORD`. The certificate must be a base64-encoded Developer ID
+Application PKCS #12 file, and the notarization password must be an app-specific
+password.
 
 ### Application data and credentials
 
@@ -100,9 +132,10 @@ or KWallet.
 sudo apt-get install libsecret-1-dev libsecret-1-0 gnome-keyring
 ```
 
-The built-in aria2 binary is currently bundled only by the Windows release
-pipeline. macOS and Linux builds continue to support remote aria2 instances
-and report a clear remote-only message when no platform core is packaged.
+The built-in engine is Aria2 Next, launched as a separate process and managed
+through the aria2-compatible JSON-RPC interface. Windows, macOS, and Linux
+release packages all include the matching platform binary. Development builds
+without a packaged core continue to support remote aria2 instances.
 
 ### Runtime architecture
 
@@ -139,5 +172,6 @@ test/
 
 ## Acknowledgements
 
+- [Aria2 Next](https://github.com/AnInsomniacy/aria2-next)
 - [aria2](https://aria2.github.io/)
 - [Flutter](https://flutter.dev/)

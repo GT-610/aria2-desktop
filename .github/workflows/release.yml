@@ -4,29 +4,28 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
-env:
-  APP_NAME: Setsuna
-  ARIA2_VERSION: 1.37.0
-  ARIA2_WINDOWS_SHA256: 67D015301EEF0B612191212D564C5BB0A14B5B9C4796B76454276A4D28D9B288
+concurrency:
+  group: setsuna-release
+  cancel-in-progress: false
 
 jobs:
-  release_windows:
-    name: Release Windows
-    runs-on: windows-latest
+  prepare:
+    name: Prepare release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      version_name: ${{ steps.version.outputs.version_name }}
+      build_number: ${{ steps.version.outputs.build_number }}
+      tag_name: ${{ steps.version.outputs.tag_name }}
+      release_name: ${{ steps.version.outputs.release_name }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          submodules: recursive
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
 
       - name: Resolve release version
         id: version
@@ -44,99 +43,238 @@ jobs:
           VERSION_NAME="1.0.${COMMIT_COUNT}"
           TAG_NAME="v${VERSION_NAME}+${REVISION}"
           RELEASE_NAME="v${COMMIT_COUNT} (rev ${REVISION})"
-          ARCHIVE_NAME="${APP_NAME}_${TAG_NAME}_windows_amd64.zip"
 
-          echo "commit_count=${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
-          echo "revision=${REVISION}" >> "$GITHUB_OUTPUT"
           echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${REVISION}" >> "$GITHUB_OUTPUT"
           echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
           echo "release_name=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
-          echo "archive_name=${ARCHIVE_NAME}" >> "$GITHUB_OUTPUT"
 
-      - name: Download bundled aria2
+  build-windows:
+    name: Windows x64
+    needs: prepare
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Build and verify Windows release
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\aria2" | Out-Null
-          $assetUrl = "https://github.com/aria2/aria2/releases/download/release-$env:ARIA2_VERSION/aria2-$env:ARIA2_VERSION-win-64bit-build1.zip"
-          $archive = "$env:RUNNER_TEMP\aria2\aria2.zip"
-          Invoke-WebRequest -Uri $assetUrl -OutFile $archive
-          $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash
-          if ($actualHash -ne $env:ARIA2_WINDOWS_SHA256) {
-            throw "aria2 checksum mismatch. Expected $env:ARIA2_WINDOWS_SHA256, got $actualHash."
-          }
-          Expand-Archive -LiteralPath $archive -DestinationPath "$env:RUNNER_TEMP\aria2\unzipped" -Force
-          $aria2Exe = Get-ChildItem -Path "$env:RUNNER_TEMP\aria2\unzipped" -Recurse -Filter aria2c.exe | Select-Object -First 1
-          if (-not $aria2Exe) {
-            throw 'aria2c.exe not found in the downloaded aria2 archive.'
-          }
-          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\core" | Out-Null
-          Copy-Item -LiteralPath $aria2Exe.FullName -Destination "$env:RUNNER_TEMP\core\aria2c.exe"
-          Copy-Item -LiteralPath "${{ github.workspace }}\assets\core\aria2.conf" -Destination "$env:RUNNER_TEMP\core\aria2.conf"
+          .\tool\build_windows_release.ps1 `
+            -BuildName '${{ needs.prepare.outputs.version_name }}' `
+            -BuildNumber '${{ needs.prepare.outputs.build_number }}'
 
-      - name: Flutter pub get
-        run: flutter pub get
-
-      - name: Build Windows release
-        shell: powershell
-        env:
-          BUILD_NAME: ${{ steps.version.outputs.version_name }}
-          BUILD_NUMBER: ${{ steps.version.outputs.revision }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Remove-Item -LiteralPath "${{ github.workspace }}\build\windows" -Recurse -Force -ErrorAction SilentlyContinue
-          flutter build windows --release --build-name=$env:BUILD_NAME --build-number=$env:BUILD_NUMBER
-
-      - name: Bundle built-in aria2 core
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $coreDir = "${{ github.workspace }}\build\windows\x64\runner\Release\data\core"
-          New-Item -ItemType Directory -Force -Path $coreDir | Out-Null
-          Copy-Item -LiteralPath "$env:RUNNER_TEMP\core\aria2c.exe" -Destination "$coreDir\aria2c.exe" -Force
-          Copy-Item -LiteralPath "$env:RUNNER_TEMP\core\aria2.conf" -Destination "$coreDir\aria2.conf" -Force
-          Remove-Item -LiteralPath "$coreDir\aria2.log" -ErrorAction SilentlyContinue
-          Remove-Item -LiteralPath "$coreDir\aria2.session" -ErrorAction SilentlyContinue
-          if (-not (Test-Path -LiteralPath "$coreDir\aria2c.exe")) {
-            throw 'Release artifact is missing aria2c.exe.'
-          }
-          if (-not (Test-Path -LiteralPath "$coreDir\aria2.conf")) {
-            throw 'Release artifact is missing aria2.conf.'
-          }
-          foreach ($forbidden in @('aria2.log', 'aria2.session')) {
-            if (Test-Path -LiteralPath "$coreDir\$forbidden") {
-              throw "Release artifact contains forbidden runtime file: $forbidden"
-            }
-          }
-          if (Test-Path -LiteralPath "${{ github.workspace }}\build\windows\x64\runner\Release\data\config\settings.json") {
-            throw 'Release artifact contains a local settings file.'
-          }
-
-      - name: Create release archive
+      - name: Create Windows archive
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
           $releaseDir = "${{ github.workspace }}\build\windows\x64\runner\Release"
-          $archivePath = "${{ github.workspace }}\${{ steps.version.outputs.archive_name }}"
-          if (Test-Path -LiteralPath $archivePath) {
-            Remove-Item -LiteralPath $archivePath -Force
-          }
-          Compress-Archive -Path "$releaseDir\*" -DestinationPath $archivePath -Force
+          $outputDir = "${{ github.workspace }}\dist"
+          $archive = Join-Path $outputDir "Setsuna_${{ needs.prepare.outputs.tag_name }}_windows_x64.zip"
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+          Compress-Archive -Path "$releaseDir\*" -DestinationPath $archive -Force
 
-      - name: Create and push tag
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: setsuna-windows-x64
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  build-macos:
+    name: macOS ${{ matrix.artifact_arch }}
+    needs: prepare
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            core_target: macos-arm64
+            artifact_arch: arm64
+          - runner: macos-15-intel
+            core_target: macos-x64
+            artifact_arch: x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Import Developer ID certificate
         shell: bash
+        env:
+          MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
         run: |
           set -euo pipefail
+          : "${MACOS_CERTIFICATE_BASE64:?MACOS_CERTIFICATE_BASE64 is required}"
+          : "${MACOS_CERTIFICATE_PASSWORD:?MACOS_CERTIFICATE_PASSWORD is required}"
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag "${{ steps.version.outputs.tag_name }}"
-          git push origin "${{ steps.version.outputs.tag_name }}"
+          certificate_path="$RUNNER_TEMP/developer-id.p12"
+          keychain_path="$RUNNER_TEMP/setsuna-signing.keychain-db"
+          keychain_password="$(openssl rand -hex 24)"
+          trap 'rm -f "$certificate_path"' EXIT
+
+          printf '%s' "$MACOS_CERTIFICATE_BASE64" | base64 -D > "$certificate_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" \
+            -k "$keychain_path" \
+            -P "$MACOS_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k "$keychain_password" \
+            "$keychain_path"
+          security list-keychains -d user -s "$keychain_path"
+          security default-keychain -d user -s "$keychain_path"
+
+      - name: Build, bundle, and verify macOS release
+        shell: bash
+        env:
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          MACOS_NOTARY_APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
+          MACOS_NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
+          MACOS_NOTARY_PASSWORD: ${{ secrets.MACOS_NOTARY_PASSWORD }}
+        run: |
+          chmod +x tool/prepare_aria2_next.sh tool/package_macos_release.sh
+          tool/package_macos_release.sh \
+            '${{ matrix.core_target }}' \
+            '${{ needs.prepare.outputs.version_name }}' \
+            '${{ needs.prepare.outputs.build_number }}' \
+            '${{ needs.prepare.outputs.tag_name }}' \
+            '${{ matrix.artifact_arch }}' \
+            '${{ github.workspace }}/dist'
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: setsuna-macos-${{ matrix.artifact_arch }}
+          path: dist/*.dmg
+          if-no-files-found: error
+          retention-days: 7
+
+  build-linux:
+    name: Linux ${{ matrix.artifact_arch }}
+    needs: prepare
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            core_target: linux-x64
+            flutter_target: linux-x64
+            bundle_arch: x64
+            deb_arch: amd64
+            artifact_arch: x64
+          - runner: ubuntu-22.04-arm
+            core_target: linux-arm64
+            flutter_target: linux-arm64
+            bundle_arch: arm64
+            deb_arch: arm64
+            artifact_arch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Install Linux build dependencies
+        run: |
+          export NEEDRESTART_SUSPEND=1
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update
+          sudo -E apt-get install -y \
+            clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
+            libsecret-1-dev libayatana-appindicator3-dev libnotify-dev
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Build, bundle, and verify Linux release
+        shell: bash
+        run: |
+          chmod +x tool/prepare_aria2_next.sh tool/package_linux_release.sh
+          tool/package_linux_release.sh \
+            '${{ matrix.core_target }}' \
+            '${{ matrix.flutter_target }}' \
+            '${{ matrix.bundle_arch }}' \
+            '${{ matrix.deb_arch }}' \
+            '${{ needs.prepare.outputs.version_name }}' \
+            '${{ needs.prepare.outputs.build_number }}' \
+            '${{ needs.prepare.outputs.tag_name }}' \
+            '${{ matrix.artifact_arch }}' \
+            '${{ github.workspace }}/dist'
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: setsuna-linux-${{ matrix.artifact_arch }}
+          path: |
+            dist/*.tar.gz
+            dist/*.deb
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub release
+    needs:
+      - prepare
+      - build-windows
+      - build-macos
+      - build-linux
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate release checksums
+        shell: bash
+        run: |
+          cd dist
+          sha256sum Setsuna_* > "Setsuna_${{ needs.prepare.outputs.tag_name }}_checksums.sha256"
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.tag_name }}
-          name: ${{ steps.version.outputs.release_name }}
-          files: ${{ steps.version.outputs.archive_name }}
+          tag_name: ${{ needs.prepare.outputs.tag_name }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ needs.prepare.outputs.release_name }}
+          files: dist/*
           generate_release_notes: true
+          body: |
+            This release bundles the pinned Aria2 Next engine for each supported desktop target.
+
+            Available packages:
+            - Windows x64 portable ZIP
+            - macOS DMG for Apple Silicon and Intel
+            - Linux portable tarball and Debian package for x64 and ARM64

@@ -39,7 +39,10 @@ class AppPaths {
     return _instance = AppPaths._(
       supportDirectory: portableDirectory,
       legacyPortableDirectory: portableDirectory,
-      bundledCoreDirectory: Directory(p.join(portableDirectory.path, 'core')),
+      bundledCoreDirectory: bundledCoreDirectoryFor(
+        executableDirectory: executableDirectory,
+        isMacOS: Platform.isMacOS,
+      ),
     );
   }
 
@@ -61,8 +64,9 @@ class AppPaths {
     final paths = AppPaths._(
       supportDirectory: supportDirectory,
       legacyPortableDirectory: legacyPortableDirectory,
-      bundledCoreDirectory: Directory(
-        p.join(executableDirectory.path, 'data', 'core'),
+      bundledCoreDirectory: bundledCoreDirectoryFor(
+        executableDirectory: executableDirectory,
+        isMacOS: Platform.isMacOS,
       ),
     );
     await paths.ensureDirectories();
@@ -85,6 +89,16 @@ class AppPaths {
 
   static void setForTesting(AppPaths paths) {
     _instance = paths;
+  }
+
+  static Directory bundledCoreDirectoryFor({
+    required Directory executableDirectory,
+    required bool isMacOS,
+  }) {
+    final dataDirectory = isMacOS
+        ? p.join(executableDirectory.path, '..', 'Resources', 'data')
+        : p.join(executableDirectory.path, 'data');
+    return Directory(p.normalize(p.join(dataDirectory, 'core')));
   }
 
   static AppPaths testing({

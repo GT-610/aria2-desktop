@@ -1,0 +1,34 @@
+{
+  "repository": "AnInsomniacy/aria2-next",
+  "version": "2.5.5",
+  "license": {
+    "url": "https://raw.githubusercontent.com/AnInsomniacy/aria2-next/v2.5.5/COPYING",
+    "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+  },
+  "assets": {
+    "windows-x64": {
+      "file": "aria2-next-2.5.5-windows-x86_64.exe",
+      "sha256": "554f2f81ca53731dc9e01710cfb16081a34759f3276ff16eb4b12656c1b6e5b9"
+    },
+    "windows-arm64": {
+      "file": "aria2-next-2.5.5-windows-arm64.exe",
+      "sha256": "fe029b00c72014690f128c17830f51924b6c07bafee28e28763d1fed93cb393e"
+    },
+    "macos-x64": {
+      "file": "aria2-next-2.5.5-macos-x86_64",
+      "sha256": "49a39dd624d45f693a41ecca0e6359ec0bd91df9efa16cf994f2f200aa45d415"
+    },
+    "macos-arm64": {
+      "file": "aria2-next-2.5.5-macos-arm64",
+      "sha256": "1417eec59edba6ac436b5f3b1bbcc2add01696d62333e8de8c3900677bd45926"
+    },
+    "linux-x64": {
+      "file": "aria2-next-2.5.5-linux-x86_64",
+      "sha256": "b6f2cdadcd34ba16dd7fcb29de4b84c36f893f9b223a9a05157d1892687a45a0"
+    },
+    "linux-arm64": {
+      "file": "aria2-next-2.5.5-linux-aarch64",
+      "sha256": "fd4b07aeb50fb02a9d19dd55e3ff5cea99e5a6263db1cc6a554c216dc49fa987"
+    }
+  }
+}
