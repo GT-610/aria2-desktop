@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:uuid/uuid.dart';
@@ -108,10 +107,10 @@ class InstanceManager extends ChangeNotifier with Loggable {
 
       await refreshBuiltinInstanceConfig();
 
-      // Automatically connect to built-in instance on startup (non-blocking)
+      // Finish the built-in startup attempt before presenting the main window.
       final builtinInstance = getBuiltinInstance();
       if (builtinInstance != null) {
-        unawaited(connectInstance(builtinInstance));
+        await connectInstance(builtinInstance);
       }
 
       i(

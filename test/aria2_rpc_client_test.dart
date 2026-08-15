@@ -306,6 +306,60 @@ void main() {
       await server.close(force: true);
     });
 
+    test(
+      'supports a single WebSocket attempt for an idempotent probe',
+      () async {
+        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+        var connectionCount = 0;
+        server.listen((request) async {
+          connectionCount++;
+          final socket = await WebSocketTransformer.upgrade(request);
+          socket.listen((_) async {
+            await socket.close();
+          });
+        });
+        final client = Aria2RpcClient(
+          Aria2Instance(
+            id: 'ws-probe',
+            name: 'WebSocket probe',
+            type: InstanceType.builtin,
+            protocol: 'ws',
+            host: InternetAddress.loopbackIPv4.address,
+            port: server.port,
+          ),
+          requestTimeout: const Duration(milliseconds: 200),
+          retryDelay: const Duration(milliseconds: 5),
+          maximumAttempts: 1,
+        );
+
+        await expectLater(
+          client.getVersion(),
+          throwsA(isA<ConnectionFailedException>()),
+        );
+        expect(connectionCount, 1);
+
+        await client.close();
+        await server.close(force: true);
+      },
+    );
+
+    test('rejects an invalid maximum attempt count', () {
+      expect(
+        () => Aria2RpcClient(
+          Aria2Instance(
+            id: 'invalid-attempts',
+            name: 'Invalid attempts',
+            type: InstanceType.remote,
+            protocol: 'http',
+            host: 'localhost',
+            port: 6800,
+          ),
+          maximumAttempts: 0,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('does not retry a non-idempotent HTTP request after send', () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       var requestCount = 0;

@@ -637,12 +637,15 @@ class BuiltinInstanceService with Loggable {
     final client = Aria2RpcClient(
       getBuiltinInstanceConfig(),
       requestTimeout: const Duration(seconds: 1),
-      retryDelay: const Duration(milliseconds: 50),
+      maximumAttempts: 1,
     );
     try {
-      return await client.testConnection();
+      await client.getVersion();
+      return true;
     } on UnauthorizedException {
       return true;
+    } on ConnectionFailedException {
+      return false;
     } catch (error, stackTrace) {
       w(
         'Failed to probe the built-in aria2 RPC endpoint',
