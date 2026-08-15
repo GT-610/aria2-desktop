@@ -65,12 +65,13 @@ class _PendingRpcRequest {
 class Aria2RpcClient with Loggable {
   static const Duration _defaultRequestTimeout = Duration(seconds: 10);
   static const Duration _defaultRetryDelay = Duration(milliseconds: 150);
-  static const int _maximumAttempts = 3;
+  static const int _defaultMaximumAttempts = 3;
   static int _requestSequence = 0;
 
   final Aria2Instance instance;
   final Duration _requestTimeout;
   final Duration _retryDelay;
+  final int _maximumAttempts;
   http.Client? _httpClient;
   WebSocket? _webSocket;
   StreamSubscription? _webSocketSubscription;
@@ -90,12 +91,21 @@ class Aria2RpcClient with Loggable {
     Aria2Instance instance, {
     Duration requestTimeout = _defaultRequestTimeout,
     Duration retryDelay = _defaultRetryDelay,
+    int maximumAttempts = _defaultMaximumAttempts,
   }) {
+    if (maximumAttempts < 1) {
+      throw ArgumentError.value(
+        maximumAttempts,
+        'maximumAttempts',
+        'Must be at least 1',
+      );
+    }
     return Aria2RpcClient._(
       instance,
       isWebSocket: instance.protocol.startsWith('ws'),
       requestTimeout: requestTimeout,
       retryDelay: retryDelay,
+      maximumAttempts: maximumAttempts,
     );
   }
 
@@ -104,9 +114,11 @@ class Aria2RpcClient with Loggable {
     required bool isWebSocket,
     required Duration requestTimeout,
     required Duration retryDelay,
+    required int maximumAttempts,
   }) : _isWebSocket = isWebSocket,
        _requestTimeout = requestTimeout,
        _retryDelay = retryDelay,
+       _maximumAttempts = maximumAttempts,
        _notificationController = isWebSocket
            ? StreamController<Aria2RpcNotification>.broadcast()
            : null,
