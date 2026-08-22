@@ -1717,6 +1717,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get speedScheduleTo => 'To';
 
   @override
+  String get shutdownWhenComplete => 'Shut down when downloads complete';
+
+  @override
+  String get shutdownWhenCompleteTip =>
+      'Shows a cancellable 60-second countdown once every download has finished.';
+
+  @override
+  String shutdownCountdownMessage(Object seconds) {
+    return 'The system will shut down in $seconds seconds.';
+  }
+
+  @override
+  String get clipboardMonitorEnabled => 'Watch clipboard for download links';
+
+  @override
+  String get clipboardMonitorEnabledTip =>
+      'Opens the add-task dialog when a supported link is copied.';
+
+  @override
   String get selectFilesAfterMetadata =>
       'Select files once torrent metadata is fetched';
 

@@ -617,6 +617,16 @@
   "speedScheduleTitle": "Limit schedule",
   "speedScheduleFrom": "From",
   "speedScheduleTo": "To",
+  "shutdownWhenComplete": "Shut down when downloads complete",
+  "shutdownWhenCompleteTip": "Shows a cancellable 60-second countdown once every download has finished.",
+  "shutdownCountdownMessage": "The system will shut down in {seconds} seconds.",
+  "@shutdownCountdownMessage": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
+  "clipboardMonitorEnabled": "Watch clipboard for download links",
+  "clipboardMonitorEnabledTip": "Opens the add-task dialog when a supported link is copied.",
   "selectFilesAfterMetadata": "Select files once torrent metadata is fetched",
   "metadataTimeout": "Timed out waiting for torrent metadata",
   "metadataReadyHint": "Torrent metadata fetched - choose the files to download",

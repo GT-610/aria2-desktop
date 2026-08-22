@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
+import '../../../services/clipboard_monitor_service.dart';
 import '../../../services/download_data_service.dart';
 import '../../../services/instance_manager.dart';
 import '../../../utils/format_utils.dart';
@@ -908,6 +909,9 @@ class TaskDetailsDialog {
                               }
                               await Clipboard.setData(
                                 ClipboardData(text: buffer.toString()),
+                              );
+                              ClipboardMonitorService.markSelfCopied(
+                                buffer.toString(),
                               );
                               if (!context.mounted) {
                                 return;

@@ -252,6 +252,18 @@ class _SettingsPageState extends State<SettingsPage>
           value: settings.keepAwake,
           onChanged: (value) => settings.setKeepAwake(value),
         ),
+        _buildSwitchTile(
+          title: l10n.shutdownWhenComplete,
+          subtitle: l10n.shutdownWhenCompleteTip,
+          value: settings.shutdownWhenComplete,
+          onChanged: (value) => settings.setShutdownWhenComplete(value),
+        ),
+        _buildSwitchTile(
+          title: l10n.clipboardMonitorEnabled,
+          subtitle: l10n.clipboardMonitorEnabledTip,
+          value: settings.clipboardMonitorEnabled,
+          onChanged: (value) => settings.setClipboardMonitorEnabled(value),
+        ),
       ]),
     );
   }

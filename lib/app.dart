@@ -20,12 +20,14 @@ import 'services/download_data_service.dart';
 import 'services/desktop_progress_service.dart';
 import 'services/power_management_service.dart';
 import 'services/builtin_instance_service.dart';
+import 'services/clipboard_monitor_service.dart';
 import 'services/instance_manager.dart';
 import 'services/protocol_integration_service.dart';
 import 'services/settings_service.dart';
 import 'services/auto_hide_window_service.dart';
 import 'services/startup_integration_service.dart';
 import 'services/system_tray_service.dart';
+import 'services/shutdown_service.dart';
 import 'services/tracker_sync_service.dart';
 import 'services/task_bulk_action_service.dart';
 import 'utils/logging.dart';
@@ -271,6 +273,14 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     BuiltinInstanceService.portRecoveryNotice.addListener(
       _handlePortRecoveryNotice,
     );
+    ClipboardMonitorService.instance.version.addListener(
+      _handleClipboardUriDetected,
+    );
+    final initialSettings = Provider.of<Settings>(context, listen: false);
+    ClipboardMonitorService.instance.synchronize(
+      enabled: initialSettings.clipboardMonitorEnabled,
+      schemes: initialSettings.clipboardMonitorSchemes,
+    );
     unawaited(_showPreparedWindow());
     _initSystemTrayCallbacks();
   }
@@ -285,6 +295,16 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
     _showTrayActionSnackBar(message);
+  }
+
+  bool _isShowingShutdownDialog = false;
+
+  void _handleClipboardUriDetected() {
+    final uri = ClipboardMonitorService.instance.takePendingUri();
+    if (uri == null || !mounted) {
+      return;
+    }
+    unawaited(_navigateAndOpenAddTask(initialUri: uri));
   }
 
   Future<void> _showPreparedWindow() async {
@@ -307,6 +327,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     BuiltinInstanceService.portRecoveryNotice.removeListener(
       _handlePortRecoveryNotice,
     );
+    ClipboardMonitorService.instance.version.removeListener(
+      _handleClipboardUriDetected,
+    );
+    ClipboardMonitorService.instance.stop();
     unawaited(_desktopProgressService.clear());
     unawaited(_powerManagementService.dispose());
     _pendingAutoHideTimer?.cancel();
@@ -367,6 +391,13 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   }
 
   void _handleSettingsChanged() {
+    final settings = _settings;
+    if (settings != null) {
+      ClipboardMonitorService.instance.synchronize(
+        enabled: settings.clipboardMonitorEnabled,
+        schemes: settings.clipboardMonitorSchemes,
+      );
+    }
     unawaited(_synchronizeDesktopProgress());
     unawaited(_synchronizePowerManagement());
     unawaited(_handleTrayStateChanged());
@@ -590,6 +621,24 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
+    ShutdownService.instance.synchronize(
+      notifications: notifications,
+      tasks: _downloadDataService!.tasks,
+      enabled: Provider.of<Settings>(
+        context,
+        listen: false,
+      ).shutdownWhenComplete,
+    );
+    if (ShutdownService.instance.isCountingDown &&
+        mounted &&
+        !_isShowingShutdownDialog) {
+      _isShowingShutdownDialog = true;
+      showDialog<void>(
+        context: context,
+        builder: (_) => const ShutdownCountdownDialog(),
+      ).whenComplete(() => _isShowingShutdownDialog = false);
+    }
+
     final settings = Provider.of<Settings>(context, listen: false);
     if (!settings.taskNotification) {
       return;
@@ -705,6 +754,11 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   }
 
   Future<void> _openAddTaskFromTray() async {
+    await _navigateAndOpenAddTask();
+    await _handleTrayStateChanged();
+  }
+
+  Future<void> _navigateAndOpenAddTask({String? initialUri}) async {
     if (!mounted) {
       return;
     }
@@ -729,9 +783,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _downloadPageKey.currentState?.showAddTaskDialogFromExternalTrigger();
+      _downloadPageKey.currentState?.showAddTaskDialogFromExternalTrigger(
+        initialUri: initialUri,
+      );
     });
-    await _handleTrayStateChanged();
   }
 
   Future<void> _pauseAllTasksFromTray() async {

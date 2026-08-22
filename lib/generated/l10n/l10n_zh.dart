@@ -1645,6 +1645,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get speedScheduleTo => '结束';
 
   @override
+  String get shutdownWhenComplete => '下载完成后自动关机';
+
+  @override
+  String get shutdownWhenCompleteTip => '全部下载结束后显示可取消的 60 秒倒计时。';
+
+  @override
+  String shutdownCountdownMessage(Object seconds) {
+    return '系统将在 $seconds 秒后关机。';
+  }
+
+  @override
+  String get clipboardMonitorEnabled => '监视剪贴板中的下载链接';
+
+  @override
+  String get clipboardMonitorEnabledTip => '复制受支持的链接后自动打开新建任务对话框。';
+
+  @override
   String get selectFilesAfterMetadata => '获取到种子元数据后选择文件';
 
   @override

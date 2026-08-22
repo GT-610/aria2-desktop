@@ -617,6 +617,16 @@
   "speedScheduleTitle": "限速时段",
   "speedScheduleFrom": "开始",
   "speedScheduleTo": "结束",
+  "shutdownWhenComplete": "下载完成后自动关机",
+  "shutdownWhenCompleteTip": "全部下载结束后显示可取消的 60 秒倒计时。",
+  "shutdownCountdownMessage": "系统将在 {seconds} 秒后关机。",
+  "@shutdownCountdownMessage": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
+  "clipboardMonitorEnabled": "监视剪贴板中的下载链接",
+  "clipboardMonitorEnabledTip": "复制受支持的链接后自动打开新建任务对话框。",
   "selectFilesAfterMetadata": "获取到种子元数据后选择文件",
   "metadataTimeout": "等待种子元数据超时",
   "metadataReadyHint": "已获取种子元数据，请选择要下载的文件",

@@ -3079,6 +3079,36 @@ abstract class AppLocalizations {
   /// **'To'**
   String get speedScheduleTo;
 
+  /// No description provided for @shutdownWhenComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Shut down when downloads complete'**
+  String get shutdownWhenComplete;
+
+  /// No description provided for @shutdownWhenCompleteTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows a cancellable 60-second countdown once every download has finished.'**
+  String get shutdownWhenCompleteTip;
+
+  /// No description provided for @shutdownCountdownMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The system will shut down in {seconds} seconds.'**
+  String shutdownCountdownMessage(Object seconds);
+
+  /// No description provided for @clipboardMonitorEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch clipboard for download links'**
+  String get clipboardMonitorEnabled;
+
+  /// No description provided for @clipboardMonitorEnabledTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens the add-task dialog when a supported link is copied.'**
+  String get clipboardMonitorEnabledTip;
+
   /// No description provided for @selectFilesAfterMetadata.
   ///
   /// In en, this message translates to:

@@ -37,6 +37,10 @@ class Settings extends ChangeNotifier with Loggable {
       true; // Focus downloading view after adding tasks
   bool _showProgressBar = true; // Show progress bars in task list
   bool _keepAwake = false; // Prevent idle sleep while downloads are active
+  bool _shutdownWhenComplete = false; // Shut down after downloads finish
+  bool _clipboardMonitorEnabled =
+      false; // Watch the clipboard for downloadable URIs
+  int _clipboardMonitorSchemes = 0xF; // Scheme bitmask for clipboard watching
   bool _hideTitleBar = false; // Hide the native desktop title bar
   bool _isLoaded = false; // Whether settings have finished loading
 
@@ -187,6 +191,9 @@ class Settings extends ChangeNotifier with Loggable {
   bool get showDownloadsAfterAdd => _showDownloadsAfterAdd;
   bool get showProgressBar => _showProgressBar;
   bool get keepAwake => _keepAwake;
+  bool get shutdownWhenComplete => _shutdownWhenComplete;
+  bool get clipboardMonitorEnabled => _clipboardMonitorEnabled;
+  int get clipboardMonitorSchemes => _clipboardMonitorSchemes;
   bool get hideTitleBar => _hideTitleBar;
   bool get isLoaded => _isLoaded;
   ThemeMode get themeMode => _themeMode;
@@ -465,6 +472,17 @@ class Settings extends ChangeNotifier with Loggable {
         _showDownloadsAfterAdd = readBool('showDownloadsAfterAdd', true);
         _showProgressBar = readBool('showProgressBar', true);
         _keepAwake = readBool('keepAwake', false);
+        _shutdownWhenComplete = readBool('shutdownWhenComplete', false);
+        _clipboardMonitorEnabled = readBool('clipboardMonitorEnabled', false);
+        final loadedSchemes = readInt(
+          'clipboardMonitorSchemes',
+          0xF,
+          min: 0,
+          max: 0xF,
+        );
+        _clipboardMonitorSchemes = loadedSchemes == 0
+            ? 0xF
+            : loadedSchemes & 0xF;
         _hideTitleBar = readBool('hideTitleBar', false);
 
         // Appearance settings
@@ -688,6 +706,9 @@ class Settings extends ChangeNotifier with Loggable {
         'showDownloadsAfterAdd': _showDownloadsAfterAdd,
         'showProgressBar': _showProgressBar,
         'keepAwake': _keepAwake,
+        'shutdownWhenComplete': _shutdownWhenComplete,
+        'clipboardMonitorEnabled': _clipboardMonitorEnabled,
+        'clipboardMonitorSchemes': _clipboardMonitorSchemes,
         'hideTitleBar': _hideTitleBar,
         'themeMode': _themeMode.name,
         'primaryColor': _primaryColor.toARGB32().toString(),
@@ -905,6 +926,36 @@ class Settings extends ChangeNotifier with Loggable {
 
   Future<void> setHideTitleBar(bool value) async {
     _hideTitleBar = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setShutdownWhenComplete(bool value) async {
+    if (_shutdownWhenComplete == value) {
+      return;
+    }
+    _shutdownWhenComplete = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setClipboardMonitorEnabled(bool value) async {
+    if (_clipboardMonitorEnabled == value) {
+      return;
+    }
+    _clipboardMonitorEnabled = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  /// Scheme bitmask for clipboard watching: bit0 http(s), bit1 ftp,
+  /// bit2 magnet, bit3 thunder.
+  Future<void> setClipboardMonitorSchemes(int value) async {
+    final masked = value & 0xF;
+    if (_clipboardMonitorSchemes == masked) {
+      return;
+    }
+    _clipboardMonitorSchemes = masked == 0 ? 0xF : masked;
     notifyListeners();
     await _saveAllSettings();
   }
