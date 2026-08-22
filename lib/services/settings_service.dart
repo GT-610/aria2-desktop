@@ -63,7 +63,10 @@ class SettingsService extends ChangeNotifier with Loggable {
     return options;
   }
 
-  Future<bool> applySettingsToBuiltin() async {
+  /// Applies runtime settings to the built-in instance. When [rpcClient] is
+  /// provided it is reused and must be closed by its owner; otherwise a
+  /// dedicated client is created and closed here.
+  Future<bool> applySettingsToBuiltin({Aria2RpcClient? rpcClient}) async {
     if (_settings == null) {
       w(
         'Cannot apply built-in aria2 settings because settings are not initialized',
@@ -72,7 +75,8 @@ class SettingsService extends ChangeNotifier with Loggable {
     }
 
     final builtinInstance = BuiltinInstanceService().getBuiltinInstanceConfig();
-    final client = Aria2RpcClient(builtinInstance);
+    final ownedClient = rpcClient == null;
+    final client = rpcClient ?? Aria2RpcClient(builtinInstance);
 
     try {
       final result = await client.setGlobalOption(
@@ -94,7 +98,9 @@ class SettingsService extends ChangeNotifier with Loggable {
       );
       return false;
     } finally {
-      await client.close();
+      if (ownedClient) {
+        await client.close();
+      }
     }
   }
 }

@@ -95,6 +95,12 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   Map<String, InstanceRefreshState> get instanceStates =>
       Map.unmodifiable(_instanceStates);
 
+  /// Returns a shared RPC client for [instance], creating and registering it
+  /// on first use. Clients are owned by this service: do not close them.
+  Aria2RpcClient clientFor(Aria2Instance instance) {
+    return _getClient(instance);
+  }
+
   Aria2RpcClient _getClient(Aria2Instance instance) {
     final key = instance.connectionFingerprint;
     return _clientCache.putIfAbsent(key, () {

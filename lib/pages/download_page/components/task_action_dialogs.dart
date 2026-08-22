@@ -4,9 +4,9 @@ import 'package:provider/provider.dart' as p;
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
 import '../../../models/settings.dart';
-import '../../../services/aria2_rpc_client.dart';
 import '../../../services/download_data_service.dart';
 import '../../../services/instance_manager.dart';
+import '../../../services/task_bulk_action_service.dart';
 import '../../../utils/logging.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
@@ -24,6 +24,16 @@ class _TaskActionOutcome {
     this.skippedCount = 0,
     this.fileDeletionWarningCount = 0,
   });
+
+  factory _TaskActionOutcome.fromBulkResult(TaskBulkActionResult result) {
+    return _TaskActionOutcome(
+      successCount: result.successCount,
+      failCount: result.failureCount,
+      indeterminateCount: result.indeterminateCount,
+      skippedCount: result.skippedCount,
+      fileDeletionWarningCount: result.warningCount,
+    );
+  }
 
   final int successCount;
   final int failCount;
@@ -210,7 +220,11 @@ class TaskActionDialogs {
                             deleteDownloadedFiles = choice;
                           }
                         }
+                        if (!context.mounted) {
+                          return;
+                        }
                         final outcome = await _performActionForInstance(
+                          context,
                           instance,
                           actionType,
                           instanceTasks,
@@ -276,6 +290,7 @@ class TaskActionDialogs {
           .where((task) => task.instanceId == instance.id)
           .toList();
       totalOutcome += await _performActionForInstance(
+        context,
         instance,
         actionType,
         instanceTasks,
@@ -288,6 +303,7 @@ class TaskActionDialogs {
   }
 
   static Future<_TaskActionOutcome> _performActionForInstance(
+    BuildContext context,
     Aria2Instance instance,
     TaskActionType actionType,
     List<DownloadTask> tasks, {
@@ -298,97 +314,64 @@ class TaskActionDialogs {
       return const _TaskActionOutcome();
     }
 
-    Aria2RpcClient? client;
-    var successCount = 0;
-    var failCount = 0;
-    var indeterminateCount = 0;
-    var skippedCount = 0;
-    var fileDeletionWarningCount = 0;
-
-    try {
-      client = Aria2RpcClient(instance);
-
-      for (final task in tasks) {
-        try {
-          switch (actionType) {
-            case TaskActionType.resume:
-              if (task.status == DownloadStatus.waiting &&
-                  task.taskStatus == 'paused') {
-                await client.unpauseTask(task.id);
-                successCount++;
-              } else {
-                skippedCount++;
-              }
-              break;
-            case TaskActionType.pause:
-              if ((task.status == DownloadStatus.active ||
-                      task.status == DownloadStatus.waiting) &&
-                  task.taskStatus != 'paused') {
-                if (task.bittorrentInfo != null &&
-                    task.bittorrentInfo!.isNotEmpty) {
-                  await client.forcePauseTask(task.id);
-                } else {
-                  await client.pauseTask(task.id);
-                }
-                successCount++;
-              } else {
-                skippedCount++;
-              }
-              break;
-            case TaskActionType.delete:
-              final result = await DownloadTaskService.deleteTaskWithClient(
-                client,
-                task,
-                deleteDownloadedFiles: deleteDownloadedFiles,
-              );
-              if (result.hasFileDeletionErrors) {
-                fileDeletionWarningCount++;
-                _logger.w(
-                  'Task ${task.id} removed with file cleanup warnings: ${result.fileDeletionErrors.join(', ')}',
-                );
-              }
-              successCount++;
-              break;
-          }
-        } on RpcResultIndeterminateException catch (e, stackTrace) {
-          indeterminateCount++;
-          _logger.w(
-            'Result of ${actionType.name} is unknown for task ${task.id}',
-            error: e,
-            stackTrace: stackTrace,
-          );
-        } catch (e, stackTrace) {
-          failCount++;
-          _logger.e(
-            'Failed to ${actionType.name} task ${task.id}',
-            error: e,
-            stackTrace: stackTrace,
-          );
-        }
-      }
-
-      _logger.i(
-        'Action ${actionType.name} completed for instance ${instance.name}: $successCount success, $failCount failed, $skippedCount skipped',
-      );
-    } catch (e, stackTrace) {
-      _logger.e(
-        'Failed to execute ${actionType.name} action for instance ${instance.name}',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      failCount +=
-          tasks.length - successCount - indeterminateCount - skippedCount;
-    } finally {
-      await client?.close();
-    }
-
-    return _TaskActionOutcome(
-      successCount: successCount,
-      failCount: failCount,
-      indeterminateCount: indeterminateCount,
-      skippedCount: skippedCount,
-      fileDeletionWarningCount: fileDeletionWarningCount,
+    final downloadDataService = p.Provider.of<DownloadDataService>(
+      context,
+      listen: false,
     );
+
+    final result = await TaskBulkActionService().run(
+      instances: <Aria2Instance>[instance],
+      tasks: tasks,
+      clientFactory: (_) => downloadDataService.clientFor(instance),
+      perform: (client, task) async {
+        switch (actionType) {
+          case TaskActionType.resume:
+            if (task.status == DownloadStatus.waiting &&
+                task.taskStatus == 'paused') {
+              await client.unpauseTask(task.id);
+              return const BulkActionItemResult();
+            }
+            return const BulkActionItemResult.skipped();
+          case TaskActionType.pause:
+            if ((task.status == DownloadStatus.active ||
+                    task.status == DownloadStatus.waiting) &&
+                task.taskStatus != 'paused') {
+              if (task.bittorrentInfo != null &&
+                  task.bittorrentInfo!.isNotEmpty) {
+                await client.forcePauseTask(task.id);
+              } else {
+                await client.pauseTask(task.id);
+              }
+              return const BulkActionItemResult();
+            }
+            return const BulkActionItemResult.skipped();
+          case TaskActionType.delete:
+            final deleteResult = await DownloadTaskService.deleteTaskWithClient(
+              client,
+              task,
+              deleteDownloadedFiles: deleteDownloadedFiles,
+            );
+            if (deleteResult.hasFileDeletionErrors) {
+              _logger.w(
+                'Task ${task.id} removed with file cleanup warnings: '
+                '${deleteResult.fileDeletionErrors.join(', ')}',
+              );
+              return BulkActionItemResult(
+                warning: deleteResult.fileDeletionErrors.join(', '),
+              );
+            }
+            return const BulkActionItemResult();
+        }
+      },
+    );
+
+    _logger.i(
+      'Action ${actionType.name} completed for instance ${instance.name}: '
+      '${result.successCount} success, ${result.failureCount} failed, '
+      '${result.skippedCount} skipped',
+    );
+
+    return _TaskActionOutcome.fromBulkResult(result);
   }
 
   static void _showActionOutcome(

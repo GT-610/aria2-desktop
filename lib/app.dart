@@ -25,7 +25,6 @@ import 'services/auto_hide_window_service.dart';
 import 'services/startup_integration_service.dart';
 import 'services/system_tray_service.dart';
 import 'services/tracker_sync_service.dart';
-import 'services/aria2_rpc_client.dart';
 import 'services/task_bulk_action_service.dart';
 import 'utils/logging.dart';
 import 'widgets/sized_loading.dart';
@@ -102,13 +101,7 @@ class _ThemeProviderState extends State<_ThemeProvider> {
       home: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => InstanceManager()),
-          ChangeNotifierProxyProvider<InstanceManager, DownloadDataService>(
-            create: (context) => DownloadDataService(),
-            update: (context, instanceManager, downloadDataService) {
-              // Ensure DownloadDataService can access InstanceManager
-              return downloadDataService!;
-            },
-          ),
+          ChangeNotifierProvider(create: (context) => DownloadDataService()),
           ChangeNotifierProvider(create: (context) => SettingsService()),
         ],
         child: const _HomeWrapper(),
@@ -210,10 +203,21 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
     InstanceManager instanceManager,
   ) async {
     try {
+      if (!mounted) {
+        return;
+      }
       final builtinInstance = instanceManager.getBuiltinInstance();
+      if (builtinInstance == null) {
+        return;
+      }
+      final downloadDataService = Provider.of<DownloadDataService>(
+        context,
+        listen: false,
+      );
       await TrackerSyncService().syncBuiltinTrackersIfNeeded(
         settings,
         builtinInstance: builtinInstance,
+        rpcClient: downloadDataService.clientFor(builtinInstance),
       );
     } catch (e, stackTrace) {
       w('Automatic tracker sync failed', error: e, stackTrace: stackTrace);
@@ -386,41 +390,21 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
-    final tasksByInstance = <String, List<DownloadTask>>{};
-    for (final task in pausedTasks) {
-      tasksByInstance.putIfAbsent(task.instanceId, () => []).add(task);
-    }
-
-    var successCount = 0;
-    var failCount = 0;
-    for (final instance in connectedInstances) {
-      final instanceTasks = tasksByInstance[instance.id];
-      if (instanceTasks == null || instanceTasks.isEmpty) {
-        continue;
-      }
-
-      final client = Aria2RpcClient(instance);
-      try {
-        for (final task in instanceTasks) {
-          try {
-            await client.unpauseTask(task.id);
-            successCount++;
-          } catch (e, stackTrace) {
-            failCount++;
-            this.e(
-              'Failed to resume task ${task.id} on launch for instance ${instance.name}',
-              error: e,
-              stackTrace: stackTrace,
-            );
-          }
-        }
-      } finally {
-        await client.close();
-      }
-    }
+    final result = await TaskBulkActionService().run(
+      instances: connectedInstances,
+      tasks: pausedTasks,
+      clientFactory: downloadDataService.clientFor,
+      perform: (client, task) async {
+        await client.unpauseTask(task.id);
+        return const BulkActionItemResult();
+      },
+    );
 
     await downloadDataService.refreshTasks(connectedInstances);
-    i('Resume-on-launch finished: $successCount resumed, $failCount failed');
+    i(
+      'Resume-on-launch finished: ${result.successCount} resumed, '
+      '${result.failureCount} failed, ${result.indeterminateCount} unknown',
+    );
   }
 
   void _handleInstanceManagerChanged() {
@@ -742,7 +726,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
           (task.status == DownloadStatus.active ||
               task.status == DownloadStatus.waiting) &&
           task.taskStatus != 'paused',
-      perform: (client, taskId) => client.pauseTask(taskId),
+      perform: (client, task) async {
+        await client.pauseTask(task.id);
+        return const BulkActionItemResult();
+      },
     );
   }
 
@@ -755,15 +742,17 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       actionLabel: AppLocalizations.of(context)!.resumeTasks,
       shouldProcess: (task) =>
           task.status == DownloadStatus.waiting && task.taskStatus == 'paused',
-      perform: (client, taskId) => client.unpauseTask(taskId),
+      perform: (client, task) async {
+        await client.unpauseTask(task.id);
+        return const BulkActionItemResult();
+      },
     );
   }
 
   Future<void> _runTrayBulkAction({
     required String actionLabel,
     required bool Function(DownloadTask task) shouldProcess,
-    required Future<String> Function(Aria2RpcClient client, String taskId)
-    perform,
+    required TaskBulkItemAction perform,
   }) async {
     if (!mounted) {
       return;
@@ -801,6 +790,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     final result = await TaskBulkActionService().run(
       instances: connectedInstances,
       tasks: actionableTasks,
+      clientFactory: downloadDataService.clientFor,
       perform: perform,
     );
 

@@ -8,6 +8,7 @@ import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
 import '../../../models/settings.dart';
 import '../../../services/aria2_rpc_client.dart';
+import '../../../services/download_data_service.dart';
 import '../../../services/instance_manager.dart';
 import '../../../utils/logging.dart';
 import '../enums.dart';
@@ -129,57 +130,80 @@ class DownloadTaskService with Loggable {
     );
   }
 
-  static (String, Color) getStatusInfo(
+  /// Single source of truth for the per-status icon shown across the task
+  /// list, toolbar, and details dialog.
+  static IconData statusIconFor(DownloadTask task) {
+    if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
+      return Icons.pause;
+    }
+
+    if (isSeedingTask(task)) {
+      return Icons.upload;
+    }
+
+    if (task.status == DownloadStatus.stopped &&
+        task.taskStatus == 'complete') {
+      return Icons.check_circle;
+    }
+
+    switch (task.status) {
+      case DownloadStatus.active:
+        return Icons.file_download;
+      case DownloadStatus.waiting:
+        return Icons.schedule;
+      case DownloadStatus.stopped:
+        return Icons.pause_circle;
+    }
+  }
+
+  /// Single source of truth for the per-status label and color shown across
+  /// the task list, toolbar, and details dialog.
+  static ({String label, IconData icon, Color color}) getTaskVisuals(
     BuildContext context,
     DownloadTask task,
     ColorScheme colorScheme,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final String label;
+    final Color color;
     if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
-      return (l10n.paused, colorScheme.tertiary);
-    }
-
-    if (isSeedingTask(task)) {
-      return (l10n.seeding, const Color(0xFF4CAF50));
-    }
-
-    if (task.status == DownloadStatus.stopped &&
+      label = l10n.paused;
+      color = colorScheme.tertiary;
+    } else if (isSeedingTask(task)) {
+      label = l10n.seeding;
+      color = const Color(0xFF4CAF50);
+    } else if (task.status == DownloadStatus.stopped &&
         task.taskStatus == 'complete') {
-      return (l10n.completed, colorScheme.primaryContainer);
+      label = l10n.completed;
+      color = colorScheme.primaryContainer;
+    } else {
+      switch (task.status) {
+        case DownloadStatus.active:
+          label = l10n.downloading;
+          color = colorScheme.primary;
+        case DownloadStatus.waiting:
+          label = l10n.waiting;
+          color = colorScheme.secondary;
+        case DownloadStatus.stopped:
+          label = l10n.stopped;
+          color = colorScheme.errorContainer;
+      }
     }
 
-    switch (task.status) {
-      case DownloadStatus.active:
-        return (l10n.downloading, colorScheme.primary);
-      case DownloadStatus.waiting:
-        return (l10n.waiting, colorScheme.secondary);
-      case DownloadStatus.stopped:
-        return (l10n.stopped, colorScheme.errorContainer);
-    }
+    return (label: label, icon: statusIconFor(task), color: color);
+  }
+
+  static (String, Color) getStatusInfo(
+    BuildContext context,
+    DownloadTask task,
+    ColorScheme colorScheme,
+  ) {
+    final visuals = getTaskVisuals(context, task, colorScheme);
+    return (visuals.label, visuals.color);
   }
 
   static Icon getStatusIcon(DownloadTask task, Color color) {
-    if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
-      return Icon(Icons.pause, color: color);
-    }
-
-    if (isSeedingTask(task)) {
-      return Icon(Icons.upload, color: color);
-    }
-
-    if (task.status == DownloadStatus.stopped &&
-        task.taskStatus == 'complete') {
-      return Icon(Icons.check_circle, color: color);
-    }
-
-    switch (task.status) {
-      case DownloadStatus.active:
-        return Icon(Icons.file_download, color: color);
-      case DownloadStatus.waiting:
-        return Icon(Icons.schedule, color: color);
-      case DownloadStatus.stopped:
-        return Icon(Icons.pause_circle, color: color);
-    }
+    return Icon(statusIconFor(task), color: color);
   }
 
   static bool isPausedTask(DownloadTask task) {
@@ -209,7 +233,6 @@ class DownloadTaskService with Loggable {
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    Aria2RpcClient? client;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -217,7 +240,11 @@ class DownloadTaskService with Loggable {
       );
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
-        client = Aria2RpcClient(targetInstance!);
+        final downloadDataService = Provider.of<DownloadDataService>(
+          context,
+          listen: false,
+        );
+        final client = downloadDataService.clientFor(targetInstance!);
         if (task.bittorrentInfo != null && task.bittorrentInfo!.isNotEmpty) {
           await client.forcePauseTask(task.id);
         } else {
@@ -244,8 +271,6 @@ class DownloadTaskService with Loggable {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.failedToPauseTask('$e'))));
       }
-    } finally {
-      await client?.close();
     }
   }
 
@@ -255,7 +280,6 @@ class DownloadTaskService with Loggable {
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    Aria2RpcClient? client;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -267,10 +291,17 @@ class DownloadTaskService with Loggable {
       if (deleteDownloadedFiles == null) {
         return;
       }
+      if (!context.mounted) {
+        return;
+      }
 
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
-        client = Aria2RpcClient(targetInstance!);
+        final downloadDataService = Provider.of<DownloadDataService>(
+          context,
+          listen: false,
+        );
+        final client = downloadDataService.clientFor(targetInstance!);
         final result = await deleteTaskWithClient(
           client,
           task,
@@ -308,8 +339,6 @@ class DownloadTaskService with Loggable {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.failedToRemoveTask('$e'))));
       }
-    } finally {
-      await client?.close();
     }
   }
 
@@ -319,7 +348,6 @@ class DownloadTaskService with Loggable {
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    Aria2RpcClient? client;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -327,7 +355,11 @@ class DownloadTaskService with Loggable {
       );
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
-        client = Aria2RpcClient(targetInstance!);
+        final downloadDataService = Provider.of<DownloadDataService>(
+          context,
+          listen: false,
+        );
+        final client = downloadDataService.clientFor(targetInstance!);
         await client.changeOption(task.id, {'seed-time': '0'});
         onTaskUpdated();
 
@@ -359,8 +391,6 @@ class DownloadTaskService with Loggable {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.failedToStopSeeding('$e'))));
       }
-    } finally {
-      await client?.close();
     }
   }
 
@@ -370,7 +400,6 @@ class DownloadTaskService with Loggable {
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    Aria2RpcClient? client;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -378,7 +407,11 @@ class DownloadTaskService with Loggable {
       );
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
       if (targetInstance?.status == ConnectionStatus.connected) {
-        client = Aria2RpcClient(targetInstance!);
+        final downloadDataService = Provider.of<DownloadDataService>(
+          context,
+          listen: false,
+        );
+        final client = downloadDataService.clientFor(targetInstance!);
         await client.unpauseTask(task.id);
         onTaskUpdated();
       } else if (context.mounted) {
@@ -401,8 +434,6 @@ class DownloadTaskService with Loggable {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.failedToResumeTask('$e'))));
       }
-    } finally {
-      await client?.close();
     }
   }
 
@@ -412,7 +443,6 @@ class DownloadTaskService with Loggable {
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    Aria2RpcClient? client;
     try {
       final instanceManager = Provider.of<InstanceManager>(
         context,
@@ -424,11 +454,18 @@ class DownloadTaskService with Loggable {
       if (deleteDownloadedFiles == null) {
         return;
       }
+      if (!context.mounted) {
+        return;
+      }
 
       final targetInstance = instanceManager.getInstanceById(task.instanceId);
 
       if (targetInstance?.status == ConnectionStatus.connected) {
-        client = Aria2RpcClient(targetInstance!);
+        final downloadDataService = Provider.of<DownloadDataService>(
+          context,
+          listen: false,
+        );
+        final client = downloadDataService.clientFor(targetInstance!);
         final result = await deleteTaskWithClient(
           client,
           task,
@@ -466,8 +503,6 @@ class DownloadTaskService with Loggable {
           SnackBar(content: Text(l10n.failedToRemoveFailedTask('$e'))),
         );
       }
-    } finally {
-      await client?.close();
     }
   }
 
@@ -477,7 +512,6 @@ class DownloadTaskService with Loggable {
     VoidCallback onTaskUpdated,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    Aria2RpcClient? client;
     try {
       if (buildTaskRetrySources(task).isEmpty) {
         if (context.mounted) {
@@ -502,7 +536,11 @@ class DownloadTaskService with Loggable {
         return;
       }
 
-      client = Aria2RpcClient(targetInstance!);
+      final downloadDataService = Provider.of<DownloadDataService>(
+        context,
+        listen: false,
+      );
+      final client = downloadDataService.clientFor(targetInstance!);
       await retryTaskWithClient(client, task);
       onTaskUpdated();
     } catch (e, stackTrace) {
@@ -520,8 +558,6 @@ class DownloadTaskService with Loggable {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.failedToRetryTask('$e'))));
       }
-    } finally {
-      await client?.close();
     }
   }
 

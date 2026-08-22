@@ -5,6 +5,7 @@ import '../generated/l10n/l10n.dart';
 import '../models/aria2_instance.dart';
 import '../models/settings.dart';
 import '../services/builtin_instance_service.dart';
+import '../services/download_data_service.dart';
 import '../services/instance_manager.dart';
 import '../services/settings_service.dart';
 import '../services/tracker_sync_service.dart';
@@ -1210,7 +1211,13 @@ class _BuiltinInstanceSettingsPageState
           context,
           listen: false,
         );
-        final applied = await settingsService.applySettingsToBuiltin();
+        final downloadDataService = Provider.of<DownloadDataService>(
+          context,
+          listen: false,
+        );
+        final applied = await settingsService.applySettingsToBuiltin(
+          rpcClient: downloadDataService.clientFor(builtinInstance),
+        );
         await BuiltinInstanceService().syncUpnpStateForRunningInstance();
         if (!mounted) {
           return;
