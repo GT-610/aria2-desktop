@@ -7,6 +7,7 @@ import 'package:setsuna/models/settings.dart';
 import 'package:setsuna/pages/settings_page/components/speed_limit_card.dart';
 import 'package:setsuna/services/update_check_service.dart';
 import 'package:setsuna/utils/file_category.dart';
+import 'package:setsuna/widgets/app_card.dart';
 
 import 'support/memory_settings_repository.dart';
 
@@ -115,6 +116,42 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(settings.speedLimitEnabled, isFalse);
+    });
+
+    testWidgets('uses settings tiles and edits a limit in a dialog', (
+      tester,
+    ) async {
+      final settings = Settings(
+        repository: MemorySettingsRepository(<String, dynamic>{}),
+      );
+      await settings.loadSettings();
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [ChangeNotifierProvider<Settings>.value(value: settings)],
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: SpeedLimitCard(settings: settings)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppCard), findsNWidgets(4));
+      expect(find.byType(ListTile), findsNWidgets(4));
+      expect(find.byType(TextField), findsNothing);
+
+      await tester.tap(find.text('Overall upload speed limit'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '512');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(settings.maxOverallUploadLimit, 512);
+      expect(find.byType(AlertDialog), findsNothing);
     });
   });
 }

@@ -1373,6 +1373,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get speedLimits => '速度限制';
 
   @override
+  String get maxOverallUploadSpeed => '全局上传限速';
+
+  @override
+  String get maxOverallDownloadSpeed => '全局下载限速';
+
+  @override
   String get btPtSection => 'BT / PT';
 
   @override
@@ -1631,6 +1637,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get speedLimitEnabledTitle => '启用限速';
+
+  @override
+  String get speedLimitEnabledTip => '对全局上传和下载速度应用限制';
 
   @override
   String get speedCapsuleTooltip => '下载 / 上传速度 - 长按编辑限速';

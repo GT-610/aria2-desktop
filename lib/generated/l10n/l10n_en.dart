@@ -1426,6 +1426,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get speedLimits => 'Speed Limits';
 
   @override
+  String get maxOverallUploadSpeed => 'Overall upload speed limit';
+
+  @override
+  String get maxOverallDownloadSpeed => 'Overall download speed limit';
+
+  @override
   String get btPtSection => 'BT / PT';
 
   @override
@@ -1702,6 +1708,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get speedLimitEnabledTitle => 'Enable speed limits';
+
+  @override
+  String get speedLimitEnabledTip =>
+      'Apply global upload and download speed limits';
 
   @override
   String get speedCapsuleTooltip =>

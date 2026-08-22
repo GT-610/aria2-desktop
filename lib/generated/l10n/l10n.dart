@@ -2563,6 +2563,18 @@ abstract class AppLocalizations {
   /// **'Speed Limits'**
   String get speedLimits;
 
+  /// No description provided for @maxOverallUploadSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Overall upload speed limit'**
+  String get maxOverallUploadSpeed;
+
+  /// No description provided for @maxOverallDownloadSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Overall download speed limit'**
+  String get maxOverallDownloadSpeed;
+
   /// No description provided for @btPtSection.
   ///
   /// In en, this message translates to:
@@ -3054,6 +3066,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enable speed limits'**
   String get speedLimitEnabledTitle;
+
+  /// No description provided for @speedLimitEnabledTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply global upload and download speed limits'**
+  String get speedLimitEnabledTip;
 
   /// No description provided for @speedCapsuleTooltip.
   ///
