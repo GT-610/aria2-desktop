@@ -3049,6 +3049,24 @@ abstract class AppLocalizations {
   /// **'Options'**
   String get taskOptions;
 
+  /// No description provided for @selectFilesAfterMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Select files once torrent metadata is fetched'**
+  String get selectFilesAfterMetadata;
+
+  /// No description provided for @metadataTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Timed out waiting for torrent metadata'**
+  String get metadataTimeout;
+
+  /// No description provided for @metadataReadyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Torrent metadata fetched - choose the files to download'**
+  String get metadataReadyHint;
+
   /// No description provided for @healthPercentage.
   ///
   /// In en, this message translates to:

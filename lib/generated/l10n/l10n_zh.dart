@@ -1630,6 +1630,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskOptions => '选项';
 
   @override
+  String get selectFilesAfterMetadata => '获取到种子元数据后选择文件';
+
+  @override
+  String get metadataTimeout => '等待种子元数据超时';
+
+  @override
+  String get metadataReadyHint => '已获取种子元数据，请选择要下载的文件';
+
+  @override
   String healthPercentage(Object value) {
     return '健康度：$value';
   }

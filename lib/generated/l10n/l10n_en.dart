@@ -1701,6 +1701,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskOptions => 'Options';
 
   @override
+  String get selectFilesAfterMetadata =>
+      'Select files once torrent metadata is fetched';
+
+  @override
+  String get metadataTimeout => 'Timed out waiting for torrent metadata';
+
+  @override
+  String get metadataReadyHint =>
+      'Torrent metadata fetched - choose the files to download';
+
+  @override
   String healthPercentage(Object value) {
     return 'Health: $value';
   }

@@ -612,6 +612,9 @@
   "torrentUploaded": "Uploaded",
   "torrentRatio": "Ratio",
   "taskOptions": "Options",
+  "selectFilesAfterMetadata": "Select files once torrent metadata is fetched",
+  "metadataTimeout": "Timed out waiting for torrent metadata",
+  "metadataReadyHint": "Torrent metadata fetched - choose the files to download",
   "healthPercentage": "Health: {value}",
   "@healthPercentage": {
     "placeholders": {

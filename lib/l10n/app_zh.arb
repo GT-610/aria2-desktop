@@ -612,6 +612,9 @@
   "torrentUploaded": "已上传",
   "torrentRatio": "分享率",
   "taskOptions": "选项",
+  "selectFilesAfterMetadata": "获取到种子元数据后选择文件",
+  "metadataTimeout": "等待种子元数据超时",
+  "metadataReadyHint": "已获取种子元数据，请选择要下载的文件",
   "healthPercentage": "健康度：{value}",
   "@healthPercentage": {
     "placeholders": {

@@ -70,6 +70,7 @@ class _AddTaskDialogState extends State<AddTaskDialog>
   bool autoFileRenaming = true;
   bool allowOverwrite = false;
   bool showDownloadsAfterAdd = false;
+  bool selectFilesAfterMetadata = false;
   String? selectedTorrentFilePath;
   String? selectedMetalinkFilePath;
   late String? _selectedTargetInstanceId;
@@ -404,6 +405,14 @@ class _AddTaskDialogState extends State<AddTaskDialog>
     if (taskOptions == null) {
       return;
     }
+    if (taskType == 'uri' &&
+        selectFilesAfterMetadata &&
+        uri.toLowerCase().contains('magnet:')) {
+      // aria2 pauses the download once metadata is fetched; the flow in
+      // MagnetFileSelectionFlow then opens a file picker and resumes.
+      taskOptions['pause-metadata'] = 'true';
+      taskOptions['bt-save-metadata'] = 'true';
+    }
 
     if (taskType == 'uri' && uri.isEmpty) {
       if (mounted) {
@@ -498,6 +507,20 @@ class _AddTaskDialogState extends State<AddTaskDialog>
                     icon: Icons.paste,
                     onPressed: _isSubmitting ? null : _pasteFromClipboard,
                   ),
+                ),
+                CheckboxListTile(
+                  value: selectFilesAfterMetadata,
+                  onChanged: _isSubmitting
+                      ? null
+                      : (value) {
+                          setState(
+                            () => selectFilesAfterMetadata = value ?? false,
+                          );
+                        },
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: Text(l10n.selectFilesAfterMetadata),
                 ),
                 const SizedBox(height: 12),
                 Text(
