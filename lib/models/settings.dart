@@ -695,6 +695,17 @@ class Settings extends ChangeNotifier with Loggable {
     await _saveAllSettings();
   }
 
+  /// RPC listen port of the built-in instance; also persisted when the
+  /// engine recovers from a port conflict by moving to a free port.
+  Future<void> setRpcListenPort(int value) async {
+    if (_rpcListenPort == value) {
+      return;
+    }
+    _rpcListenPort = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
   Future<void> setRunMode(AppRunMode value) async {
     _runMode = value;
     notifyListeners();

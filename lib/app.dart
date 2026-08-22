@@ -18,6 +18,7 @@ import 'pages/settings_page/settings_page.dart';
 import 'services/download_data_service.dart';
 import 'services/desktop_progress_service.dart';
 import 'services/power_management_service.dart';
+import 'services/builtin_instance_service.dart';
 import 'services/instance_manager.dart';
 import 'services/protocol_integration_service.dart';
 import 'services/settings_service.dart';
@@ -266,8 +267,23 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
     windowManager.addListener(this);
+    BuiltinInstanceService.portRecoveryNotice.addListener(
+      _handlePortRecoveryNotice,
+    );
     unawaited(_showPreparedWindow());
     _initSystemTrayCallbacks();
+  }
+
+  void _handlePortRecoveryNotice() {
+    final message = BuiltinInstanceService.portRecoveryNotice.value;
+    if (message == null) {
+      return;
+    }
+    BuiltinInstanceService.portRecoveryNotice.value = null;
+    if (!mounted) {
+      return;
+    }
+    _showTrayActionSnackBar(message);
   }
 
   Future<void> _showPreparedWindow() async {
@@ -287,6 +303,9 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     _downloadDataService?.removeListener(_handleDownloadNotifications);
     _instanceManager?.removeListener(_handleInstanceManagerChanged);
     _settings?.removeListener(_handleSettingsChanged);
+    BuiltinInstanceService.portRecoveryNotice.removeListener(
+      _handlePortRecoveryNotice,
+    );
     unawaited(_desktopProgressService.clear());
     unawaited(_powerManagementService.dispose());
     _pendingAutoHideTimer?.cancel();

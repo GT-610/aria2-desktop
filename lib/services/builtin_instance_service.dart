@@ -22,6 +22,13 @@ enum BuiltinInstanceApplyMode { none, liveApply, restartRequired }
 class BuiltinInstanceService with Loggable {
   static const Duration _rpcShutdownTimeout = Duration(seconds: 5);
 
+  /// Set when the engine recovered from an RPC port conflict by moving to a
+  /// different port. The UI surfaces the message once and clears it.
+  static final ValueNotifier<String?> portRecoveryNotice =
+      ValueNotifier<String?>(null);
+
+  static bool? _cachedSupportsDetachShareOnly;
+
   static BuiltinInstanceService? _instance;
   Process? _aria2Process;
   String? _aria2cPath;
@@ -222,6 +229,75 @@ class BuiltinInstanceService with Loggable {
         : double.tryParse(rawValue?.toString() ?? '') ?? 1.0;
   }
 
+  /// aria2 only accepts HTTP proxies for --all-proxy and crashes on SOCKS
+  /// schemes; returns null for unsupported values.
+  @visibleForTesting
+  static String? sanitizeAllProxyArg(String rawValue) {
+    final value = rawValue.trim();
+    if (value.isEmpty) {
+      return null;
+    }
+    final scheme = Uri.tryParse(value)?.scheme.toLowerCase() ?? '';
+    if (scheme.startsWith('socks')) {
+      return null;
+    }
+    return value;
+  }
+
+  /// Removes inherited proxy environment variables so host-level proxies
+  /// never leak into the bundled engine.
+  @visibleForTesting
+  static Map<String, String> sanitizedEngineEnvironment(
+    Map<String, String> base,
+  ) {
+    const blockedNames = <String>{
+      'http_proxy',
+      'https_proxy',
+      'ftp_proxy',
+      'all_proxy',
+      'no_proxy',
+    };
+    final env = <String, String>{};
+    base.forEach((name, value) {
+      if (blockedNames.contains(name.toLowerCase())) {
+        return;
+      }
+      env[name] = value;
+    });
+    // Explicit empty overrides: aria2 treats empty proxy env vars as "no
+    // proxy", which also defeats platform-level environment merging.
+    for (final name in blockedNames) {
+      env[name] = '';
+    }
+    return env;
+  }
+
+  /// The bundled engine is aria2-next; its detach-share-only option does not
+  /// exist in vanilla aria2 (major version 1.x), which would refuse to start.
+  Future<bool> _engineSupportsDetachShareOnly() async {
+    final cached = _cachedSupportsDetachShareOnly;
+    if (cached != null) {
+      return cached;
+    }
+    try {
+      final result = await Process.run(_aria2cPath!, const ['--version']);
+      final match = RegExp(
+        r'^aria2\s+(\d+)\.',
+        multiLine: true,
+      ).firstMatch('${result.stdout}${result.stderr}');
+      final major = int.tryParse(match?.group(1) ?? '') ?? 0;
+      _cachedSupportsDetachShareOnly = major >= 2;
+    } catch (e, stackTrace) {
+      w(
+        'Could not probe the bundled engine version; assuming vanilla aria2',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      _cachedSupportsDetachShareOnly = false;
+    }
+    return _cachedSupportsDetachShareOnly!;
+  }
+
   String? validateBuiltinFiles() {
     final requiredFiles = <({String label, String path})>[
       (label: 'aria2c', path: _aria2cPath!),
@@ -324,7 +400,7 @@ class BuiltinInstanceService with Loggable {
     );
   }
 
-  List<String> _buildArgs() {
+  List<String> _buildArgs({required bool detachShareOnly}) {
     final settings = _readSettingsSnapshot();
     final rpcPort = _getConfiguredRpcPort(settings);
     final rpcSecret = _getConfiguredRpcSecret(settings);
@@ -373,6 +449,9 @@ class BuiltinInstanceService with Loggable {
       '--follow-torrent=mem',
       '--seed-time=$seedTime',
       '--seed-ratio=$seedRatio',
+      // Keep seeding tasks from occupying concurrent-download slots
+      // (aria2-next only; gated by an engine version probe at startup).
+      if (detachShareOnly) '--detach-share-only=true',
       '--bt-enable-lpd=true',
       '--bt-max-peers=100',
       '--bt-require-crypto=${settings['btForceEncryption'] ?? false}',
@@ -400,7 +479,15 @@ class BuiltinInstanceService with Loggable {
       args.add('--rpc-secret=$rpcSecret');
     }
     if (proxyEnabled && allProxy.isNotEmpty) {
-      args.add('--all-proxy=$allProxy');
+      final sanitizedProxy = sanitizeAllProxyArg(allProxy);
+      if (sanitizedProxy != null) {
+        args.add('--all-proxy=$sanitizedProxy');
+      } else {
+        w(
+          'Ignored the configured --all-proxy value because SOCKS proxies are '
+          'not supported by aria2 and crash the engine',
+        );
+      }
     }
     if (proxyEnabled && noProxy.isNotEmpty) {
       args.add('--no-proxy=$noProxy');
@@ -489,21 +576,35 @@ class BuiltinInstanceService with Loggable {
       }
 
       if (await _isRpcReachable()) {
-        _lastStartError =
-            'The built-in aria2 RPC port is already used by another process';
-        e(
-          'The configured built-in aria2 RPC endpoint is already in use by '
-          'an unmanaged process; refusing to start a duplicate process',
+        // An unmanaged aria2 answers on the configured port; fall through to
+        // the TCP-based recovery below which migrates us to a free port.
+        w(
+          'An unmanaged aria2 instance is answering on the configured built-in '
+          'RPC port; looking for a free port',
         );
-        return false;
       }
 
-      final args = _buildArgs();
+      final configuredRpcPort = _getConfiguredRpcPort(_readSettingsSnapshot());
+      final resolvedRpcPort = await _resolveAvailableRpcPort(configuredRpcPort);
+      if (resolvedRpcPort != configuredRpcPort) {
+        await _persistRpcPort(resolvedRpcPort);
+        final notice =
+            'RPC port $configuredRpcPort was busy; moved the built-in '
+            'instance to $resolvedRpcPort';
+        portRecoveryNotice.value = notice;
+        w(notice);
+      }
+
+      final args = _buildArgs(
+        detachShareOnly: await _engineSupportsDetachShareOnly(),
+      );
       final process = await Process.start(
         _aria2cPath!,
         args,
         runInShell: false,
         mode: ProcessStartMode.normal,
+        environment: sanitizedEngineEnvironment(Platform.environment),
+        includeParentEnvironment: false,
       );
       _aria2Process = process;
       _managedPid = process.pid;
@@ -655,6 +756,66 @@ class BuiltinInstanceService with Loggable {
       return false;
     } finally {
       await client.close();
+    }
+  }
+
+  /// Returns [preferred] when bindable, otherwise scans upward for the first
+  /// free loopback port so the engine can recover from conflicts.
+  @visibleForTesting
+  Future<int> resolveAvailableRpcPort(
+    int preferred, {
+    int maxAttempts = 32,
+  }) async {
+    if (await _isTcpPortFree(preferred)) {
+      return preferred;
+    }
+    for (var offset = 1; offset <= maxAttempts; offset++) {
+      final candidate = preferred + offset;
+      if (candidate > 65535) {
+        break;
+      }
+      if (await _isTcpPortFree(candidate)) {
+        return candidate;
+      }
+    }
+    // Nothing free in the window: keep the configured port and let the
+    // regular startup failure surface to the user.
+    return preferred;
+  }
+
+  Future<int> _resolveAvailableRpcPort(int preferred) async {
+    return resolveAvailableRpcPort(preferred);
+  }
+
+  Future<bool> _isTcpPortFree(int port) async {
+    ServerSocket? socket;
+    try {
+      socket = await ServerSocket.bind(InternetAddress.loopbackIPv4, port);
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      await socket?.close();
+    }
+  }
+
+  /// Best-effort persistence of a recovered RPC port so restarts keep
+  /// working. Requires bound settings; disk fallbacks are intentionally not
+  /// rewritten here.
+  Future<void> _persistRpcPort(int port) async {
+    final settings = _settings;
+    if (settings == null || !settings.isLoaded) {
+      w('Cannot persist recovered RPC port without loaded settings');
+      return;
+    }
+    try {
+      await settings.setRpcListenPort(port);
+    } catch (e, stackTrace) {
+      w(
+        'Failed to persist recovered built-in RPC port $port',
+        error: e,
+        stackTrace: stackTrace,
+      );
     }
   }
 

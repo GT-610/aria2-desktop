@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:setsuna/models/settings.dart';
 import 'package:setsuna/services/builtin_instance_service.dart';
@@ -300,6 +302,74 @@ void main() {
       test('converts int to double', () {
         expect(service.effectiveSeedRatio(false, 2), 2.0);
       });
+    });
+  });
+
+  group('engine hardening helpers', () {
+    test('sanitizeAllProxyArg rejects SOCKS schemes in any case', () {
+      expect(BuiltinInstanceService.sanitizeAllProxyArg('socks5://h:1'), null);
+      expect(BuiltinInstanceService.sanitizeAllProxyArg('SOCKS5://h:1'), null);
+      expect(BuiltinInstanceService.sanitizeAllProxyArg('socks4a://h:1'), null);
+      expect(BuiltinInstanceService.sanitizeAllProxyArg('socks5h://h:1'), null);
+    });
+
+    test('sanitizeAllProxyArg keeps HTTP and scheme-less proxies', () {
+      expect(
+        BuiltinInstanceService.sanitizeAllProxyArg('http://127.0.0.1:7890'),
+        'http://127.0.0.1:7890',
+      );
+      expect(
+        BuiltinInstanceService.sanitizeAllProxyArg('127.0.0.1:7890'),
+        '127.0.0.1:7890',
+      );
+      expect(BuiltinInstanceService.sanitizeAllProxyArg('   '), null);
+    });
+
+    test('sanitizedEngineEnvironment strips proxy variables', () {
+      final env = BuiltinInstanceService.sanitizedEngineEnvironment({
+        'PATH': 'C:\\Windows',
+        'HTTP_PROXY': 'http://proxy:8080',
+        'https_proxy': 'http://proxy:8080',
+        'ALL_PROXY': 'socks5://proxy:1080',
+        'no_proxy': 'localhost',
+      });
+
+      expect(env['PATH'], 'C:\\Windows');
+      // Blocked variables are removed from the inherited environment and
+      // re-added as explicit empty overrides (lowercase canonical form).
+      expect(env['http_proxy'], '');
+      expect(env['https_proxy'], '');
+      expect(env['all_proxy'], '');
+      expect(env['no_proxy'], '');
+      for (final name in ['HTTP_PROXY', 'ALL_PROXY']) {
+        expect(env.containsKey(name), isFalse, reason: '$name should be gone');
+      }
+    });
+
+    test('resolveAvailableRpcPort skips occupied loopback ports', () async {
+      final occupied = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(occupied.close);
+
+      final service = BuiltinInstanceService();
+      final resolved = await service.resolveAvailableRpcPort(
+        occupied.port,
+        maxAttempts: 8,
+      );
+
+      expect(resolved, isNot(occupied.port));
+      expect(resolved, greaterThan(occupied.port));
+      expect(resolved, lessThanOrEqualTo(occupied.port + 8));
+    });
+
+    test('resolveAvailableRpcPort keeps a free preferred port', () async {
+      final probe = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      final freePort = probe.port;
+      await probe.close();
+
+      final service = BuiltinInstanceService();
+      final resolved = await service.resolveAvailableRpcPort(freePort);
+
+      expect(resolved, freePort);
     });
   });
 }
