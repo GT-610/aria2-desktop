@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../generated/l10n/l10n.dart';
@@ -11,6 +12,7 @@ import '../enums.dart';
 import '../models/download_task.dart';
 import '../services/download_task_service.dart';
 import 'task_details_bt_helpers.dart';
+import 'task_details_options_tab.dart';
 import '../utils/task_utils.dart';
 
 class TaskDetailsDialog {
@@ -107,10 +109,12 @@ class TaskDetailsDialog {
             final overviewTab = Tab(text: l10n.overview);
             final piecesTab = Tab(text: l10n.pieces);
             final filesTab = Tab(text: l10n.filesTitle);
+            final optionsTab = Tab(text: l10n.taskOptions);
             final tabs = <Tab>[
               overviewTab,
               piecesTab,
               filesTab,
+              optionsTab,
               if (isBtTask) Tab(text: l10n.trackers),
               if (isBtTask) Tab(text: l10n.peers),
             ];
@@ -379,6 +383,23 @@ class TaskDetailsDialog {
                                               '${l10n.torrentSeeders}: ${currentTask.numSeeders ?? 0}',
                                             ),
                                             const SizedBox(height: 8),
+                                            if (peers.isNotEmpty)
+                                              ...() {
+                                                final health =
+                                                    TaskDetailsBtHelpers.estimateHealthPercent(
+                                                      currentTask,
+                                                      peers,
+                                                    );
+                                                return <Widget>[
+                                                  if (health != null)
+                                                    Text(
+                                                      l10n.healthPercentage(
+                                                        '${health.toStringAsFixed(0)}%',
+                                                      ),
+                                                    ),
+                                                  const SizedBox(height: 8),
+                                                ];
+                                              }(),
                                             Text(
                                               '${l10n.torrentUploaded}: ${formatBytes(currentTask.uploadLengthBytes)}',
                                             ),
@@ -485,6 +506,13 @@ class TaskDetailsDialog {
                                           context,
                                           currentTask,
                                         ),
+                                  ),
+                                  TaskDetailsOptionsTab(
+                                    key: ValueKey(
+                                      '${currentTask.instanceId}:${currentTask.id}',
+                                    ),
+                                    task: currentTask,
+                                    onSaved: onTaskUpdated,
                                   ),
                                   SingleChildScrollView(
                                     padding: const EdgeInsets.all(8),
@@ -856,6 +884,41 @@ class TaskDetailsDialog {
                         ),
                       ),
                       actions: [
+                        if (currentTask.infoHash?.trim().isNotEmpty ?? false)
+                          TextButton.icon(
+                            onPressed: () async {
+                              final buffer = StringBuffer(
+                                'magnet:?xt=urn:btih:${currentTask.infoHash!.trim()}',
+                              );
+                              final name = currentTask.name.trim();
+                              if (name.isNotEmpty) {
+                                buffer.write(
+                                  '&dn=${Uri.encodeComponent(name)}',
+                                );
+                              }
+                              for (final tracker
+                                  in currentTask.trackers ?? const <String>[]) {
+                                final trimmed = tracker.trim();
+                                if (trimmed.isEmpty) {
+                                  continue;
+                                }
+                                buffer.write(
+                                  '&tr=${Uri.encodeComponent(trimmed)}',
+                                );
+                              }
+                              await Clipboard.setData(
+                                ClipboardData(text: buffer.toString()),
+                              );
+                              if (!context.mounted) {
+                                return;
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(l10n.magnetLinkCopied)),
+                              );
+                            },
+                            icon: const Icon(Icons.link, size: 18),
+                            label: Text(l10n.copyMagnetLink),
+                          ),
                         TextButton(
                           onPressed: () {
                             disposeResources();

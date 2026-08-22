@@ -3043,6 +3043,72 @@ abstract class AppLocalizations {
   /// **'Ratio'**
   String get torrentRatio;
 
+  /// No description provided for @taskOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get taskOptions;
+
+  /// No description provided for @healthPercentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Health: {value}'**
+  String healthPercentage(Object value);
+
+  /// No description provided for @copyMagnetLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy magnet link'**
+  String get copyMagnetLink;
+
+  /// No description provided for @magnetLinkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Magnet link copied to clipboard'**
+  String get magnetLinkCopied;
+
+  /// No description provided for @optionPerTaskDownloadLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Download limit'**
+  String get optionPerTaskDownloadLimit;
+
+  /// No description provided for @optionPerTaskUploadLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload limit'**
+  String get optionPerTaskUploadLimit;
+
+  /// No description provided for @btMaxPeers.
+  ///
+  /// In en, this message translates to:
+  /// **'Max peers'**
+  String get btMaxPeers;
+
+  /// No description provided for @forceSaveOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Force save'**
+  String get forceSaveOption;
+
+  /// No description provided for @optionsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load task options: {error}'**
+  String optionsLoadFailed(Object error);
+
+  /// No description provided for @optionsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Options saved'**
+  String get optionsSaved;
+
+  /// No description provided for @optionsActiveOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only a subset of options can be changed while the task is active.'**
+  String get optionsActiveOnlyHint;
+
   /// No description provided for @english.
   ///
   /// In en, this message translates to:

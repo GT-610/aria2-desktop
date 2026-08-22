@@ -611,6 +611,27 @@
   "torrentSeeders": "种子数",
   "torrentUploaded": "已上传",
   "torrentRatio": "分享率",
+  "taskOptions": "选项",
+  "healthPercentage": "健康度：{value}",
+  "@healthPercentage": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "copyMagnetLink": "复制磁力链接",
+  "magnetLinkCopied": "磁力链接已复制到剪贴板",
+  "optionPerTaskDownloadLimit": "下载限速",
+  "optionPerTaskUploadLimit": "上传限速",
+  "btMaxPeers": "最大连接数",
+  "forceSaveOption": "强制保存",
+  "optionsLoadFailed": "加载任务选项失败：{error}",
+  "@optionsLoadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "optionsSaved": "选项已保存",
+  "optionsActiveOnlyHint": "任务进行中仅可修改部分选项。",
   "english": "English",
   "chinese": "中文"
 }

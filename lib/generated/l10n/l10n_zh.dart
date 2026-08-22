@@ -1627,6 +1627,43 @@ class AppLocalizationsZh extends AppLocalizations {
   String get torrentRatio => '分享率';
 
   @override
+  String get taskOptions => '选项';
+
+  @override
+  String healthPercentage(Object value) {
+    return '健康度：$value';
+  }
+
+  @override
+  String get copyMagnetLink => '复制磁力链接';
+
+  @override
+  String get magnetLinkCopied => '磁力链接已复制到剪贴板';
+
+  @override
+  String get optionPerTaskDownloadLimit => '下载限速';
+
+  @override
+  String get optionPerTaskUploadLimit => '上传限速';
+
+  @override
+  String get btMaxPeers => '最大连接数';
+
+  @override
+  String get forceSaveOption => '强制保存';
+
+  @override
+  String optionsLoadFailed(Object error) {
+    return '加载任务选项失败：$error';
+  }
+
+  @override
+  String get optionsSaved => '选项已保存';
+
+  @override
+  String get optionsActiveOnlyHint => '任务进行中仅可修改部分选项。';
+
+  @override
   String get english => 'English';
 
   @override

@@ -1,0 +1,82 @@
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:setsuna/pages/download_page/components/task_details_bt_helpers.dart';
+import 'package:setsuna/pages/download_page/enums.dart';
+import 'package:setsuna/pages/download_page/models/download_task.dart';
+
+DownloadTask _task(String? bitfield) {
+  return DownloadTask(
+    id: 'task',
+    name: 'task',
+    status: DownloadStatus.active,
+    progress: 0,
+    downloadSpeed: '0 B/s',
+    uploadSpeed: '0 B/s',
+    size: '0 B',
+    completedSize: '0 B',
+    isLocal: true,
+    instanceId: 'local',
+    bitfield: bitfield,
+  );
+}
+
+void main() {
+  group('estimateHealthPercent', () {
+    test('returns null without a local bitfield', () {
+      expect(
+        TaskDetailsBtHelpers.estimateHealthPercent(_task(null), const []),
+        isNull,
+      );
+      expect(
+        TaskDetailsBtHelpers.estimateHealthPercent(_task(''), const []),
+        isNull,
+      );
+    });
+
+    test('counts pieces available locally or at any peer', () {
+      // Local: piece 0 complete, piece 1 missing, piece 2 partial.
+      final task = _task('f05');
+      final peers = <Map<String, dynamic>>[
+        {'bitfield': '010'},
+        {'bitfield': '00f'},
+      ];
+
+      final health = TaskDetailsBtHelpers.estimateHealthPercent(task, peers);
+
+      expect(health, closeTo((3 / 3) * 100, 0.01));
+    });
+
+    test('reports only locally complete pieces without peers', () {
+      // f = complete, 5 = partial (not counted alone), 0 = missing.
+      final task = _task('f50');
+
+      final health = TaskDetailsBtHelpers.estimateHealthPercent(task, const []);
+
+      expect(health, closeTo((1 / 3) * 100, 0.01));
+    });
+
+    test('ignores peers without bitfields', () {
+      final task = _task('ff');
+      final peers = <Map<String, dynamic>>[
+        {'ip': '1.2.3.4'},
+        {'bitfield': ''},
+      ];
+
+      expect(
+        TaskDetailsBtHelpers.estimateHealthPercent(task, peers),
+        closeTo(100, 0.01),
+      );
+    });
+
+    test('clamps to the 0..100 range', () {
+      final task = _task('ff');
+
+      expect(
+        TaskDetailsBtHelpers.estimateHealthPercent(task, const [
+          {'bitfield': 'ff'},
+        ]),
+        closeTo(100, 0.01),
+      );
+    });
+  });
+}

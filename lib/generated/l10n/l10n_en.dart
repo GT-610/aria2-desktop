@@ -1698,6 +1698,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get torrentRatio => 'Ratio';
 
   @override
+  String get taskOptions => 'Options';
+
+  @override
+  String healthPercentage(Object value) {
+    return 'Health: $value';
+  }
+
+  @override
+  String get copyMagnetLink => 'Copy magnet link';
+
+  @override
+  String get magnetLinkCopied => 'Magnet link copied to clipboard';
+
+  @override
+  String get optionPerTaskDownloadLimit => 'Download limit';
+
+  @override
+  String get optionPerTaskUploadLimit => 'Upload limit';
+
+  @override
+  String get btMaxPeers => 'Max peers';
+
+  @override
+  String get forceSaveOption => 'Force save';
+
+  @override
+  String optionsLoadFailed(Object error) {
+    return 'Failed to load task options: $error';
+  }
+
+  @override
+  String get optionsSaved => 'Options saved';
+
+  @override
+  String get optionsActiveOnlyHint =>
+      'Only a subset of options can be changed while the task is active.';
+
+  @override
   String get english => 'English';
 
   @override

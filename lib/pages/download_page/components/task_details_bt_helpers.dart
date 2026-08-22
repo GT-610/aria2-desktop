@@ -137,31 +137,117 @@ class TaskDetailsBtHelpers {
     }
 
     return Column(
-      children: peers.map((peer) {
-        final ip = peer['ip']?.toString() ?? '--';
-        final port = peer['port']?.toString() ?? '--';
-        final peerId = _parsePeerClient(peer['peerId']?.toString());
-        final progress = _bitfieldToPercent(peer['bitfield']?.toString());
-        final uploadSpeed = formatBytes(
-          int.tryParse(peer['uploadSpeed']?.toString() ?? '0') ?? 0,
-        );
-        final downloadSpeed = formatBytes(
-          int.tryParse(peer['downloadSpeed']?.toString() ?? '0') ?? 0,
-        );
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            title: Text('$ip:$port'),
-            subtitle: Text(
-              '${l10n.clientLabel}: $peerId\n'
-              '${l10n.progress}: ${progress.toStringAsFixed(0)}%\n'
-              '${l10n.uploadShort}: $uploadSpeed/s  ${l10n.downloadShort}: $downloadSpeed/s',
-            ),
-          ),
-        );
-      }).toList(),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [for (final peer in peers) _buildPeerCard(context, peer)],
     );
+  }
+
+  static Widget _buildPeerCard(
+    BuildContext context,
+    Map<String, dynamic> peer,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final ip = peer['ip']?.toString() ?? '--';
+    final port = peer['port']?.toString() ?? '--';
+    final peerId = _parsePeerClient(peer['peerId']?.toString());
+    final bitfield = peer['bitfield']?.toString();
+    final progress = _bitfieldToPercent(bitfield);
+    final isSeeder = (peer['seeder']?.toString() ?? 'false') == 'true';
+    final uploadSpeed = formatBytes(
+      int.tryParse(peer['uploadSpeed']?.toString() ?? '0') ?? 0,
+    );
+    final downloadSpeed = formatBytes(
+      int.tryParse(peer['downloadSpeed']?.toString() ?? '0') ?? 0,
+    );
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '$ip:$port',
+                    style: theme.textTheme.titleSmall,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (isSeeder)
+                  Tooltip(
+                    message: l10n.seeding,
+                    child: Icon(Icons.done_all, size: 16, color: Colors.green),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${l10n.clientLabel}: $peerId',
+              style: theme.textTheme.bodySmall,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                SizedBox(
+                  width: 120,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: PeerBitfieldBar(bitfield: bitfield),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('${progress.toStringAsFixed(0)}%'),
+                const Spacer(),
+                Text(
+                  '${l10n.uploadShort}: $uploadSpeed/s  '
+                  '${l10n.downloadShort}: $downloadSpeed/s',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Swarm availability estimate: the union of pieces available across all
+  /// peers combined with the locally completed pieces.
+  static double? estimateHealthPercent(
+    DownloadTask task,
+    List<Map<String, dynamic>> peers,
+  ) {
+    final ownBitfield = task.bitfield;
+    if (ownBitfield == null || ownBitfield.isEmpty) {
+      return null;
+    }
+    final ownPieces = parseHexBitfield(ownBitfield);
+    if (ownPieces.isEmpty) {
+      return null;
+    }
+
+    final peerPieceMaps = <List<int>>[
+      for (final peer in peers)
+        parseHexBitfield(peer['bitfield']?.toString() ?? ''),
+    ]..removeWhere((pieces) => pieces.isEmpty);
+
+    var available = 0;
+    for (var i = 0; i < ownPieces.length; i++) {
+      final haveLocally = ownPieces[i] == 15;
+      final availableAtAnyPeer = peerPieceMaps.any(
+        (pieces) => i < pieces.length && pieces[i] > 0,
+      );
+      if (haveLocally || availableAtAnyPeer) {
+        available++;
+      }
+    }
+
+    return ((available / ownPieces.length) * 100).clamp(0.0, 100.0);
   }
 
   static TaskDetailsTorrentOverviewMetadata parseTorrentMetadata(
@@ -454,6 +540,68 @@ class TaskDetailsBtHelpers {
         );
       },
     );
+  }
+}
+
+/// Compact per-peer piece availability bar decoded from the hex bitfield.
+class PeerBitfieldBar extends StatelessWidget {
+  const PeerBitfieldBar({super.key, this.bitfield, this.height = 6});
+
+  final String? bitfield;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final pieces = bitfield == null || bitfield!.isEmpty
+        ? const <int>[]
+        : parseHexBitfield(bitfield!);
+    if (pieces.isEmpty) {
+      return Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(3),
+        ),
+      );
+    }
+    return SizedBox(
+      width: double.infinity,
+      height: height,
+      child: CustomPaint(painter: _PeerBitfieldBarPainter(pieces)),
+    );
+  }
+}
+
+class _PeerBitfieldBarPainter extends CustomPainter {
+  _PeerBitfieldBarPainter(this.pieces);
+
+  final List<int> pieces;
+
+  static const _completeColor = Color(0xFF4CAF50);
+  static const _partialColor = Color(0xFFFFEB3B);
+  static const _missingColor = Color(0xFF9E9E9E);
+
+  Color _colorFor(int value) {
+    if (value >= 15) return _completeColor;
+    if (value > 0) return _partialColor;
+    return _missingColor;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (pieces.isEmpty) return;
+    final pieceWidth = size.width / pieces.length;
+    for (var i = 0; i < pieces.length; i++) {
+      canvas.drawRect(
+        Rect.fromLTWH(i * pieceWidth, 0, pieceWidth + 0.5, size.height),
+        Paint()..color = _colorFor(pieces[i]),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PeerBitfieldBarPainter oldDelegate) {
+    return oldDelegate.pieces != pieces;
   }
 }
 

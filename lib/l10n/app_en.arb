@@ -611,6 +611,27 @@
   "torrentSeeders": "Seeders",
   "torrentUploaded": "Uploaded",
   "torrentRatio": "Ratio",
+  "taskOptions": "Options",
+  "healthPercentage": "Health: {value}",
+  "@healthPercentage": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "copyMagnetLink": "Copy magnet link",
+  "magnetLinkCopied": "Magnet link copied to clipboard",
+  "optionPerTaskDownloadLimit": "Download limit",
+  "optionPerTaskUploadLimit": "Upload limit",
+  "btMaxPeers": "Max peers",
+  "forceSaveOption": "Force save",
+  "optionsLoadFailed": "Failed to load task options: {error}",
+  "@optionsLoadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "optionsSaved": "Options saved",
+  "optionsActiveOnlyHint": "Only a subset of options can be changed while the task is active.",
   "english": "English",
   "chinese": "Chinese"
 }
