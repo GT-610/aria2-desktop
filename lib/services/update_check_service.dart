@@ -17,7 +17,7 @@ final _logger = taggedLogger('UpdateCheckService');
 const String kUpdateCheckRepo = '${GithubIds.author}/aria2-desktop';
 
 /// Result of comparing the local app version with a release tag.
-enum UpdateCheckStatus { upToDate, updateAvailable, failed }
+enum UpdateCheckStatus { upToDate, updateAvailable, failed, selfBuild }
 
 class UpdateCheckResult {
   const UpdateCheckResult({
@@ -33,6 +33,9 @@ class UpdateCheckResult {
   final String? releaseNotes;
 
   bool get isUpdateAvailable => status == UpdateCheckStatus.updateAvailable;
+
+  /// Version 0.0.0 marks a self-built binary; update checks stay disabled.
+  bool get isSelfBuild => status == UpdateCheckStatus.selfBuild;
 }
 
 /// Compares dotted numeric versions; returns true when [remote] is newer.
@@ -67,6 +70,11 @@ class UpdateCheckService with Loggable {
   Future<UpdateCheckResult> checkForUpdate() async {
     try {
       final info = await PackageInfo.fromPlatform();
+      // Self-built binaries (version 0.0.0) have no comparable version;
+      // update checks are disabled for them.
+      if (info.version == '0.0.0') {
+        return const UpdateCheckResult(status: UpdateCheckStatus.selfBuild);
+      }
       final response = await http
           .get(
             Uri.parse(
@@ -85,11 +93,7 @@ class UpdateCheckService with Loggable {
       final tag = '${decoded['tag_name'] ?? ''}';
       final body = '${decoded['body'] ?? ''}';
       final htmlUrl = '${decoded['html_url'] ?? ''}';
-
-      // Source builds report version 0.0.0; treat any tagged release as an
-      // offer rather than nagging about "updates" from CI-injected versions.
-      final localVersion = info.version == '0.0.0' ? '0.0.0' : info.version;
-      final available = tag.isNotEmpty && isNewerVersion(localVersion, tag);
+      final available = tag.isNotEmpty && isNewerVersion(info.version, tag);
 
       return UpdateCheckResult(
         status: available
@@ -117,6 +121,11 @@ class UpdateCheckService with Loggable {
       return;
     }
     final result = await checkForUpdate();
+    if (result.isSelfBuild) {
+      // Never persist a timestamp for self-builds so the check stays
+      // dormant without pretending it ran.
+      return;
+    }
     await settings.setLastUpdateCheckTimestamp(now);
     if (!context.mounted || !result.isUpdateAvailable) {
       return;

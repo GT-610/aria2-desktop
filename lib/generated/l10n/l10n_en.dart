@@ -1701,11 +1701,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskOptions => 'Options';
 
   @override
-  String get speedLimitEnabledTitle =>
-      'Speed limits on - tap to toggle, long-press to edit';
+  String get speedLimitEnabledTitle => 'Enable speed limits';
 
   @override
-  String get speedLimitDisabledTitle => 'Speed limits off - tap to enable';
+  String get speedCapsuleTooltip =>
+      'Download / upload speeds - long-press to edit limits';
+
+  @override
+  String get unlimited => 'unlimited';
 
   @override
   String get speedScheduleTitle => 'Limit schedule';
@@ -1773,6 +1776,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get upToDate => 'You are running the latest version.';
+
+  @override
+  String get updateCheckSelfBuild =>
+      'Update checks are unavailable for self-built versions.';
 
   @override
   String get selectFilesAfterMetadata =>

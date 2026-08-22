@@ -76,33 +76,22 @@ class _SpeedLimitCardState extends State<SpeedLimitCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(l10n.speedLimitEnabledTitle),
-            value: settings.speedLimitEnabled,
-            onChanged: (value) async {
-              await settings.setSpeedLimitEnabled(value);
-              await _pushToBuiltin();
-            },
-          ),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _downloadController,
-                  enabled: settings.speedLimitEnabled,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: l10n.maxOverallDownloadLimit,
-                    suffixText: 'KB/s',
-                    helperText: l10n.downloadLimitTip,
-                    isDense: true,
-                    border: const OutlineInputBorder(),
-                  ),
-                  onSubmitted: (_) => _commitLimits(),
+              // Column 1: master switch.
+              Tooltip(
+                message: l10n.speedLimitEnabledTitle,
+                child: Switch(
+                  value: settings.speedLimitEnabled,
+                  onChanged: (value) async {
+                    await settings.setSpeedLimitEnabled(value);
+                    await _pushToBuiltin();
+                  },
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              // Column 2: overall upload limit.
               Expanded(
                 child: TextField(
                   controller: _uploadController,
@@ -111,19 +100,44 @@ class _SpeedLimitCardState extends State<SpeedLimitCard> {
                   decoration: InputDecoration(
                     labelText: l10n.maxOverallUploadLimit,
                     suffixText: 'KB/s',
-                    helperText: l10n.downloadLimitTip,
                     isDense: true,
                     border: const OutlineInputBorder(),
                   ),
                   onSubmitted: (_) => _commitLimits(),
                 ),
               ),
-              IconButton(
-                tooltip: l10n.save,
-                onPressed: _commitLimits,
-                icon: const Icon(Icons.save_outlined),
+              const SizedBox(width: 12),
+              // Column 3: overall download limit.
+              Expanded(
+                child: TextField(
+                  controller: _downloadController,
+                  enabled: settings.speedLimitEnabled,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: l10n.maxOverallDownloadLimit,
+                    suffixText: 'KB/s',
+                    isDense: true,
+                    border: const OutlineInputBorder(),
+                  ),
+                  onSubmitted: (_) => _commitLimits(),
+                ),
               ),
             ],
+          ),
+          Text(
+            '0 KB/s = ${l10n.unlimited}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.tonalIcon(
+              onPressed: _commitLimits,
+              icon: const Icon(Icons.save_outlined, size: 18),
+              label: Text(l10n.save),
+            ),
           ),
           const Divider(height: 24),
           SwitchListTile(
@@ -172,13 +186,6 @@ class _SpeedLimitCardState extends State<SpeedLimitCard> {
                 const SizedBox(width: 8),
                 Expanded(child: _scheduleDropdown(false)),
               ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.downloadLimitTip,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
             ),
           ],
         ],

@@ -696,6 +696,14 @@ class _SettingsPageState extends State<SettingsPage>
     if (!mounted) {
       return;
     }
+    if (result.isSelfBuild) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.updateCheckSelfBuild),
+        ),
+      );
+      return;
+    }
     if (result.isUpdateAvailable) {
       await UpdateCheckService().showUpdateDialog(context, result);
     } else {

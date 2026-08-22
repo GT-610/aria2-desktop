@@ -3052,14 +3052,20 @@ abstract class AppLocalizations {
   /// No description provided for @speedLimitEnabledTitle.
   ///
   /// In en, this message translates to:
-  /// **'Speed limits on - tap to toggle, long-press to edit'**
+  /// **'Enable speed limits'**
   String get speedLimitEnabledTitle;
 
-  /// No description provided for @speedLimitDisabledTitle.
+  /// No description provided for @speedCapsuleTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Speed limits off - tap to enable'**
-  String get speedLimitDisabledTitle;
+  /// **'Download / upload speeds - long-press to edit limits'**
+  String get speedCapsuleTooltip;
+
+  /// No description provided for @unlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'unlimited'**
+  String get unlimited;
 
   /// No description provided for @speedScheduleTitle.
   ///
@@ -3180,6 +3186,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You are running the latest version.'**
   String get upToDate;
+
+  /// No description provided for @updateCheckSelfBuild.
+  ///
+  /// In en, this message translates to:
+  /// **'Update checks are unavailable for self-built versions.'**
+  String get updateCheckSelfBuild;
 
   /// No description provided for @selectFilesAfterMetadata.
   ///

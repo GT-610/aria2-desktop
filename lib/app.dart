@@ -1067,9 +1067,6 @@ class _StatusBar extends StatelessWidget {
     final uploadSpeed = context.select<DownloadDataService, int>(
       (service) => service.totalUploadSpeed,
     );
-    final limitsEnabled = context.select<Settings, bool>(
-      (settings) => settings.speedLimitEnabled,
-    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1090,29 +1087,14 @@ class _StatusBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Quick speed-limit capsule: tap toggles the limits, long-press
-          // edits them (Motrix-Next style).
+          // Speed capsule: long-press opens the quick limit editor.
           Tooltip(
-            message: limitsEnabled
-                ? l10n.speedLimitEnabledTitle
-                : l10n.speedLimitDisabledTitle,
+            message: l10n.speedCapsuleTooltip,
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
-              onTap: () async {
-                final settings = context.read<Settings>();
-                await settings.setSpeedLimitEnabled(!limitsEnabled);
-                if (!context.mounted) {
-                  return;
-                }
-                unawaited(applySpeedLimitsToBuiltin(context));
-              },
               onLongPress: () => showQuickSpeedLimitDialog(context),
               child: Chip(
-                avatar: Icon(
-                  limitsEnabled ? Icons.speed : Icons.block,
-                  size: 16,
-                  color: limitsEnabled ? null : colorScheme.error,
-                ),
+                avatar: const Icon(Icons.speed, size: 16),
                 label: Text(
                   '${l10n.downloadShort} ${formatSpeed(summary.speed)}  '
                   '${l10n.uploadShort} ${formatSpeed(uploadSpeed)}',

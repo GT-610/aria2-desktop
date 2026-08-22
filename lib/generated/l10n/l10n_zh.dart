@@ -1630,10 +1630,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskOptions => '选项';
 
   @override
-  String get speedLimitEnabledTitle => '限速已开启 - 点击切换，长按编辑';
+  String get speedLimitEnabledTitle => '启用限速';
 
   @override
-  String get speedLimitDisabledTitle => '限速已关闭 - 点击开启';
+  String get speedCapsuleTooltip => '下载 / 上传速度 - 长按编辑限速';
+
+  @override
+  String get unlimited => '不限速';
 
   @override
   String get speedScheduleTitle => '限速时段';
@@ -1699,6 +1702,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get upToDate => '当前已是最新版本。';
+
+  @override
+  String get updateCheckSelfBuild => '自构建版本不提供更新检查。';
 
   @override
   String get selectFilesAfterMetadata => '获取到种子元数据后选择文件';
