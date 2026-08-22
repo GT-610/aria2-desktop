@@ -328,7 +328,10 @@ void main() {
     releaseFirstRequest.complete();
     await Future.wait(<Future<void>>[firstRefresh, queuedRefresh]);
 
-    expect(requestCount, 2);
+    // Two-phase polling: the cold first refresh performs a basic poll plus a
+    // detailed re-fetch; the coalesced second refresh hits the
+    // "nothing changed" fast path and only polls basic fields.
+    expect(requestCount, 3);
     service.dispose();
     await server.close(force: true);
   });
@@ -461,6 +464,133 @@ void main() {
 
     await refreshed.future.timeout(const Duration(seconds: 2));
     expect(service.tasks.single.id, 'updated');
+    service.dispose();
+    await server.close(force: true);
+  });
+
+  test(
+    'reuses detailed task objects while basic fields are unchanged',
+    () async {
+      var requestCount = 0;
+      final fullTask = <String, dynamic>{
+        'gid': 'bt-1',
+        'status': 'active',
+        'totalLength': '100',
+        'completedLength': '10',
+        'downloadSpeed': '5',
+        'uploadSpeed': '1',
+        'dir': '/downloads',
+        'seeder': 'true',
+        'numSeeders': '3',
+        'infoHash': 'abc123',
+        'bittorrent': <String, dynamic>{
+          'info': <String, dynamic>{'name': 'Ubuntu ISO'},
+        },
+        'files': <Object>[
+          <String, String>{
+            'index': '1',
+            'path': '/downloads/ubuntu.iso',
+            'length': '100',
+            'completedLength': '10',
+            'selected': 'true',
+          },
+        ],
+      };
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        requestCount++;
+        final body = await utf8.decoder.bind(request).join();
+        final decoded = jsonDecode(body) as Map<String, dynamic>;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          jsonEncode(<String, dynamic>{
+            'jsonrpc': '2.0',
+            'id': decoded['id'],
+            'result': <Object>[
+              <Object>[fullTask],
+              <Object>[<Object>[]],
+              <Object>[<Object>[]],
+            ],
+          }),
+        );
+        await request.response.close();
+      });
+      final instance = Aria2Instance(
+        id: 'stable',
+        name: 'Stable',
+        type: InstanceType.remote,
+        protocol: 'http',
+        host: InternetAddress.loopbackIPv4.address,
+        port: server.port,
+        status: ConnectionStatus.connected,
+      );
+      final service = DownloadDataService();
+
+      // Cold refresh: basic poll (no bittorrent data) + detailed re-fetch.
+      await service.refreshTasks(<Aria2Instance>[instance]);
+      expect(service.tasks.single.name, 'Ubuntu ISO');
+      expect(requestCount, 2);
+
+      // Warm refresh with identical basic fields: only the cheap poll runs and
+      // the previously detailed task objects are published unchanged.
+      final before = service.tasks.single;
+      await service.refreshTasks(<Aria2Instance>[instance]);
+      expect(requestCount, 3);
+      expect(service.tasks.single.name, 'Ubuntu ISO');
+      expect(identical(service.tasks.single, before), isTrue);
+
+      service.dispose();
+      await server.close(force: true);
+    },
+  );
+
+  test('aggregates global stats reported by connected instances', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      final body = await utf8.decoder.bind(request).join();
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(
+        jsonEncode(<String, dynamic>{
+          'jsonrpc': '2.0',
+          'id': decoded['id'],
+          'result': <Object>[
+            <Object>[<Object>[]],
+            <Object>[<Object>[]],
+            <Object>[<Object>[]],
+            <Object>[
+              <String, String>{
+                'downloadSpeed': '2048',
+                'uploadSpeed': '512',
+                'numActive': '2',
+                'numWaiting': '3',
+                'numStopped': '4',
+              },
+            ],
+          ],
+        }),
+      );
+      await request.response.close();
+    });
+    final instance = Aria2Instance(
+      id: 'stats',
+      name: 'Stats',
+      type: InstanceType.remote,
+      protocol: 'http',
+      host: InternetAddress.loopbackIPv4.address,
+      port: server.port,
+      status: ConnectionStatus.connected,
+    );
+    final service = DownloadDataService();
+
+    expect(service.aggregatedGlobalSpeeds, isNull);
+
+    await service.refreshTasks(<Aria2Instance>[instance]);
+
+    expect(service.aggregatedGlobalSpeeds, (
+      downloadSpeed: 2048,
+      uploadSpeed: 512,
+    ));
     service.dispose();
     await server.close(force: true);
   });

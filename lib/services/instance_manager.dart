@@ -137,10 +137,22 @@ class InstanceManager extends ChangeNotifier with Loggable {
         stackTrace: stackTrace,
       );
     }
-    // Schedule notifyListeners to run after the current frame is built
-    SchedulerBinding.instance.addPostFrameCallback((_) {
+    _notifyAfterBuild();
+  }
+
+  /// Notifies listeners without depending on a frame being scheduled, so
+  /// state changes propagate while the window is hidden in the tray. When
+  /// called during frame building the notification is deferred to after the
+  /// current frame completes.
+  void _notifyAfterBuild() {
+    final binding = SchedulerBinding.instance;
+    if (binding.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      binding.addPostFrameCallback((_) {
+        notifyListeners();
+      });
+    } else {
       notifyListeners();
-    });
+    }
   }
 
   /// Load instance data
@@ -523,10 +535,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         errorMessage: errorMessage,
       );
       _invalidateConnectedCache();
-      // Schedule notifyListeners to run after the current frame is built
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        notifyListeners();
-      });
+      _notifyAfterBuild();
     }
   }
 

@@ -603,8 +603,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         _downloadDataService ??
         Provider.of<DownloadDataService>(context, listen: false);
     final connectedCount = instanceManager.getConnectedInstances().length;
-    final tasks = downloadDataService.tasks;
-    final summary = _computeTaskSummary(tasks);
+    final summary = downloadDataService.taskSummary;
     final settings = _settings ?? Provider.of<Settings>(context, listen: false);
     if (settings.runMode == AppRunMode.hideTray) {
       return;
@@ -976,38 +975,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   }
 }
 
-({int active, int waiting, int resumable, int pausable, int speed})
-_computeTaskSummary(List<DownloadTask> tasks) {
-  var active = 0;
-  var waiting = 0;
-  var resumable = 0;
-  var pausable = 0;
-  var speed = 0;
-  for (final task in tasks) {
-    if (task.status == DownloadStatus.active) {
-      active++;
-      speed += task.downloadSpeedBytes;
-    } else if (task.status == DownloadStatus.waiting) {
-      waiting++;
-    }
-    if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
-      resumable++;
-    }
-    if ((task.status == DownloadStatus.active ||
-            task.status == DownloadStatus.waiting) &&
-        task.taskStatus != 'paused') {
-      pausable++;
-    }
-  }
-  return (
-    active: active,
-    waiting: waiting,
-    resumable: resumable,
-    pausable: pausable,
-    speed: speed,
-  );
-}
-
 class _StatusBar extends StatelessWidget {
   const _StatusBar();
 
@@ -1015,13 +982,9 @@ class _StatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
-    final summary = context
-        .select<
-          DownloadDataService,
-          ({int active, int waiting, int resumable, int pausable, int speed})
-        >((service) {
-          return _computeTaskSummary(service.tasks);
-        });
+    final summary = context.select<DownloadDataService, TaskSummary>(
+      (service) => service.taskSummary,
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -577,30 +577,86 @@ class Aria2RpcClient with Loggable {
     }
   }
 
-  /// Get download status information
-  Future<List<Map<String, dynamic>>> getDownloadStatus() async {
+  /// Field projection for cheap periodic polling. Contains every key needed
+  /// to render task list rows and detect changes; heavyweight keys (files,
+  /// bittorrent metadata, infoHash, bitfield) are only fetched in detailed
+  /// mode.
+  static const List<String> basicTaskFields = <String>[
+    'gid',
+    'status',
+    'totalLength',
+    'completedLength',
+    'uploadSpeed',
+    'downloadSpeed',
+    'connections',
+    'numSeeders',
+    'seeder',
+    'errorCode',
+    'errorMessage',
+    'dir',
+  ];
+
+  List<dynamic> _buildTellParams({
+    required bool withOffset,
+    required int pageSize,
+    required List<String> fields,
+  }) {
+    return <dynamic>[
+      if (instance.secret.isNotEmpty) 'token:${instance.secret}',
+      if (withOffset) ...<int>[0, pageSize],
+      if (fields.isNotEmpty) fields,
+    ];
+  }
+
+  /// Get download status information.
+  ///
+  /// Returns a normalized multicall result list:
+  /// index 0-2 are the active/waiting/stopped task lists and optional index 3
+  /// carries global stats when [includeGlobalStat] is set.
+  ///
+  /// [detailed] controls the field projection: false polls only
+  /// [basicTaskFields], true omits the keys argument so aria2 returns every
+  /// available field.
+  Future<List<Map<String, dynamic>>> getDownloadStatus({
+    bool detailed = true,
+    bool includeGlobalStat = false,
+  }) async {
     const pageSize = 100;
     const maximumTasksPerState = 10000;
+    final fields = detailed ? const <String>[] : basicTaskFields;
     // Create multicall with three status requests using correct format
     final calls = [
       {
         "methodName": "aria2.tellActive",
-        "params": instance.secret.isNotEmpty
-            ? ["token:${instance.secret}"]
-            : [],
+        "params": _buildTellParams(
+          withOffset: false,
+          pageSize: pageSize,
+          fields: fields,
+        ),
       },
       {
         "methodName": "aria2.tellWaiting",
-        "params": instance.secret.isNotEmpty
-            ? ["token:${instance.secret}", 0, pageSize]
-            : [0, pageSize],
+        "params": _buildTellParams(
+          withOffset: true,
+          pageSize: pageSize,
+          fields: fields,
+        ),
       },
       {
         "methodName": "aria2.tellStopped",
-        "params": instance.secret.isNotEmpty
-            ? ["token:${instance.secret}", 0, pageSize]
-            : [0, pageSize],
+        "params": _buildTellParams(
+          withOffset: true,
+          pageSize: pageSize,
+          fields: fields,
+        ),
       },
+      if (includeGlobalStat)
+        {
+          "methodName": "aria2.getGlobalStat",
+          "params": instance.secret.isNotEmpty
+              ? ["token:${instance.secret}"]
+              : [],
+        },
     ];
 
     final firstPage = await multicall(calls, idempotent: true);
@@ -618,13 +674,36 @@ class Aria2RpcClient with Loggable {
       method: 'aria2.tellWaiting',
       pageSize: pageSize,
       maximumTasks: maximumTasksPerState,
+      fields: fields,
     );
     await _appendTaskPages(
       normalized[2],
       method: 'aria2.tellStopped',
       pageSize: pageSize,
       maximumTasks: maximumTasksPerState,
+      fields: fields,
     );
+    if (includeGlobalStat && firstPage.length >= 4) {
+      final raw = firstPage[3];
+      if (raw['success'] == true) {
+        final data = raw['data'];
+        Map<String, dynamic>? stats;
+        if (data is Map) {
+          stats = Map<String, dynamic>.from(data);
+        } else if (data is List &&
+            data.isNotEmpty &&
+            data.first != null &&
+            data.first is Map) {
+          stats = Map<String, dynamic>.from(data.first as Map);
+        }
+        normalized.add(<String, dynamic>{
+          'success': stats != null,
+          if (stats != null) 'data': stats else 'error': 'invalid payload',
+        });
+      } else {
+        normalized.add(raw);
+      }
+    }
     return normalized;
   }
 
@@ -648,6 +727,7 @@ class Aria2RpcClient with Loggable {
     required String method,
     required int pageSize,
     required int maximumTasks,
+    List<String> fields = const [],
   }) async {
     if (result['success'] != true || result['data'] is! List) {
       return;
@@ -658,6 +738,7 @@ class Aria2RpcClient with Loggable {
       final response = await callRpc(method, <dynamic>[
         offset,
         pageSize,
+        if (fields.isNotEmpty) fields,
       ], idempotent: true);
       final rawPage = response['result'];
       if (rawPage is! List || rawPage.isEmpty) {
