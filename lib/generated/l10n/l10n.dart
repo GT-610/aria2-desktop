@@ -3109,6 +3109,78 @@ abstract class AppLocalizations {
   /// **'Opens the add-task dialog when a supported link is copied.'**
   String get clipboardMonitorEnabledTip;
 
+  /// No description provided for @fileCategoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download categories'**
+  String get fileCategoriesTitle;
+
+  /// No description provided for @fileCategoriesEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No category rules yet. Add rules to route downloads like *.mp4 into a Videos subdirectory.'**
+  String get fileCategoriesEmptyHint;
+
+  /// No description provided for @fileCategoriesMaxHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum of 20 category rules reached.'**
+  String get fileCategoriesMaxHint;
+
+  /// No description provided for @fileCategoryAddRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Add rule'**
+  String get fileCategoryAddRule;
+
+  /// No description provided for @fileCategoryExtensionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Extensions (e.g. mp4, mkv)'**
+  String get fileCategoryExtensionsLabel;
+
+  /// No description provided for @fileCategorySubdirLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Subdirectory'**
+  String get fileCategorySubdirLabel;
+
+  /// No description provided for @fileCategoryRouting.
+  ///
+  /// In en, this message translates to:
+  /// **'Route downloads into category folders'**
+  String get fileCategoryRouting;
+
+  /// No description provided for @checkForUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get checkForUpdates;
+
+  /// No description provided for @updateAvailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update available'**
+  String get updateAvailableTitle;
+
+  /// No description provided for @updateAvailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} is available.'**
+  String updateAvailableMessage(Object version);
+
+  /// No description provided for @updateOpenReleasePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Open release page'**
+  String get updateOpenReleasePage;
+
+  /// No description provided for @upToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'You are running the latest version.'**
+  String get upToDate;
+
   /// No description provided for @selectFilesAfterMetadata.
   ///
   /// In en, this message translates to:

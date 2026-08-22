@@ -627,6 +627,23 @@
   },
   "clipboardMonitorEnabled": "监视剪贴板中的下载链接",
   "clipboardMonitorEnabledTip": "复制受支持的链接后自动打开新建任务对话框。",
+  "fileCategoriesTitle": "下载分类目录",
+  "fileCategoriesEmptyHint": "暂无分类规则。添加规则后可将 *.mp4 等下载自动归入 Videos 等子目录。",
+  "fileCategoriesMaxHint": "最多支持 20 条分类规则。",
+  "fileCategoryAddRule": "添加规则",
+  "fileCategoryExtensionsLabel": "扩展名（如 mp4, mkv）",
+  "fileCategorySubdirLabel": "子目录",
+  "fileCategoryRouting": "按类型将下载归类到子目录",
+  "checkForUpdates": "检查更新",
+  "updateAvailableTitle": "发现新版本",
+  "updateAvailableMessage": "新版本 {version} 已发布。",
+  "@updateAvailableMessage": {
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "updateOpenReleasePage": "打开发布页",
+  "upToDate": "当前已是最新版本。",
   "selectFilesAfterMetadata": "获取到种子元数据后选择文件",
   "metadataTimeout": "等待种子元数据超时",
   "metadataReadyHint": "已获取种子元数据，请选择要下载的文件",

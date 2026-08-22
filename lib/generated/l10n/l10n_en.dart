@@ -1736,6 +1736,45 @@ class AppLocalizationsEn extends AppLocalizations {
       'Opens the add-task dialog when a supported link is copied.';
 
   @override
+  String get fileCategoriesTitle => 'Download categories';
+
+  @override
+  String get fileCategoriesEmptyHint =>
+      'No category rules yet. Add rules to route downloads like *.mp4 into a Videos subdirectory.';
+
+  @override
+  String get fileCategoriesMaxHint => 'Maximum of 20 category rules reached.';
+
+  @override
+  String get fileCategoryAddRule => 'Add rule';
+
+  @override
+  String get fileCategoryExtensionsLabel => 'Extensions (e.g. mp4, mkv)';
+
+  @override
+  String get fileCategorySubdirLabel => 'Subdirectory';
+
+  @override
+  String get fileCategoryRouting => 'Route downloads into category folders';
+
+  @override
+  String get checkForUpdates => 'Check for updates';
+
+  @override
+  String get updateAvailableTitle => 'Update available';
+
+  @override
+  String updateAvailableMessage(Object version) {
+    return 'Version $version is available.';
+  }
+
+  @override
+  String get updateOpenReleasePage => 'Open release page';
+
+  @override
+  String get upToDate => 'You are running the latest version.';
+
+  @override
   String get selectFilesAfterMetadata =>
       'Select files once torrent metadata is fetched';
 

@@ -11,6 +11,7 @@ import '../../services/aria2_rpc_client.dart';
 import '../../services/download_data_service.dart';
 import '../../services/instance_manager.dart';
 import '../../services/protocol_integration_service.dart';
+import '../../utils/file_category.dart' show categorySubdirForUris;
 import '../../utils/logging.dart';
 import 'components/add_task_dialog.dart';
 import 'components/filter_selector.dart';
@@ -874,6 +875,19 @@ class DownloadPageState extends State<DownloadPage>
                   final options = <String, dynamic>{...taskOptions};
                   if (downloadDir.trim().isNotEmpty) {
                     options['dir'] = downloadDir.trim();
+                    if (taskType == 'uri' &&
+                        settings.fileCategoryRoutingEnabled) {
+                      final subdir = categorySubdirForUris(
+                        uri,
+                        settings.fileCategoryRules,
+                      );
+                      if (subdir != null) {
+                        final base = '${options['dir']}';
+                        options['dir'] = base.endsWith('/')
+                            ? '$base$subdir'
+                            : '$base/$subdir';
+                      }
+                    }
                   }
 
                   switch (taskType) {

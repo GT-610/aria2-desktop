@@ -1662,6 +1662,45 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clipboardMonitorEnabledTip => '复制受支持的链接后自动打开新建任务对话框。';
 
   @override
+  String get fileCategoriesTitle => '下载分类目录';
+
+  @override
+  String get fileCategoriesEmptyHint =>
+      '暂无分类规则。添加规则后可将 *.mp4 等下载自动归入 Videos 等子目录。';
+
+  @override
+  String get fileCategoriesMaxHint => '最多支持 20 条分类规则。';
+
+  @override
+  String get fileCategoryAddRule => '添加规则';
+
+  @override
+  String get fileCategoryExtensionsLabel => '扩展名（如 mp4, mkv）';
+
+  @override
+  String get fileCategorySubdirLabel => '子目录';
+
+  @override
+  String get fileCategoryRouting => '按类型将下载归类到子目录';
+
+  @override
+  String get checkForUpdates => '检查更新';
+
+  @override
+  String get updateAvailableTitle => '发现新版本';
+
+  @override
+  String updateAvailableMessage(Object version) {
+    return '新版本 $version 已发布。';
+  }
+
+  @override
+  String get updateOpenReleasePage => '打开发布页';
+
+  @override
+  String get upToDate => '当前已是最新版本。';
+
+  @override
   String get selectFilesAfterMetadata => '获取到种子元数据后选择文件';
 
   @override

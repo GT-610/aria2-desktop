@@ -12,10 +12,12 @@ import '../../models/settings.dart';
 import '../../pages/debug_log_page.dart';
 import '../../services/protocol_integration_service.dart';
 import '../../services/startup_integration_service.dart';
+import '../../services/update_check_service.dart';
 import '../../utils/logging.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/sized_loading.dart';
+import '../components/file_category_editor_dialog.dart';
 import './components/appearance_dialog.dart';
 import './components/speed_limit_card.dart';
 
@@ -259,6 +261,16 @@ class _SettingsPageState extends State<SettingsPage>
           onChanged: (value) => settings.setShutdownWhenComplete(value),
         ),
         _buildSwitchTile(
+          title: l10n.fileCategoryRouting,
+          value: settings.fileCategoryRoutingEnabled,
+          onChanged: (value) => settings.setFileCategoryRoutingEnabled(value),
+        ),
+        _buildTextCardTile(
+          title: l10n.fileCategoriesTitle,
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => showFileCategoryEditorDialog(context, settings),
+        ),
+        _buildSwitchTile(
           title: l10n.clipboardMonitorEnabled,
           subtitle: l10n.clipboardMonitorEnabledTip,
           value: settings.clipboardMonitorEnabled,
@@ -475,6 +487,11 @@ class _SettingsPageState extends State<SettingsPage>
       title: l10n.maintenance,
       child: _buildSettingsGroup([
         _buildTextCardTile(
+          title: l10n.checkForUpdates,
+          trailing: const Icon(Icons.system_update_alt_outlined),
+          onTap: _checkForUpdates,
+        ),
+        _buildTextCardTile(
           title: l10n.viewLogs,
           subtitle: Text(l10n.viewLogsTip),
           trailing: const Icon(Icons.article_outlined),
@@ -671,6 +688,21 @@ class _SettingsPageState extends State<SettingsPage>
       trailing: trailing,
       onTap: onTap,
     );
+  }
+
+  Future<void> _checkForUpdates() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await UpdateCheckService().checkForUpdate();
+    if (!mounted) {
+      return;
+    }
+    if (result.isUpdateAvailable) {
+      await UpdateCheckService().showUpdateDialog(context, result);
+    } else {
+      messenger.showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.upToDate)),
+      );
+    }
   }
 
   Widget _buildSwitchTile({

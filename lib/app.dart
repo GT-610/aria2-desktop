@@ -30,6 +30,7 @@ import 'services/system_tray_service.dart';
 import 'services/shutdown_service.dart';
 import 'services/tracker_sync_service.dart';
 import 'services/task_bulk_action_service.dart';
+import 'services/update_check_service.dart';
 import 'utils/logging.dart';
 import 'widgets/sized_loading.dart';
 import 'widgets/virtual_window_frame.dart';
@@ -164,6 +165,9 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
     await instanceManager.initialize();
 
     unawaited(_syncBuiltinTrackersIfNeeded(settings, instanceManager));
+    if (mounted) {
+      unawaited(UpdateCheckService().autoCheckIfNeeded(settings, context));
+    }
 
     setState(() {
       _isInitialized = true;

@@ -627,6 +627,23 @@
   },
   "clipboardMonitorEnabled": "Watch clipboard for download links",
   "clipboardMonitorEnabledTip": "Opens the add-task dialog when a supported link is copied.",
+  "fileCategoriesTitle": "Download categories",
+  "fileCategoriesEmptyHint": "No category rules yet. Add rules to route downloads like *.mp4 into a Videos subdirectory.",
+  "fileCategoriesMaxHint": "Maximum of 20 category rules reached.",
+  "fileCategoryAddRule": "Add rule",
+  "fileCategoryExtensionsLabel": "Extensions (e.g. mp4, mkv)",
+  "fileCategorySubdirLabel": "Subdirectory",
+  "fileCategoryRouting": "Route downloads into category folders",
+  "checkForUpdates": "Check for updates",
+  "updateAvailableTitle": "Update available",
+  "updateAvailableMessage": "Version {version} is available.",
+  "@updateAvailableMessage": {
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "updateOpenReleasePage": "Open release page",
+  "upToDate": "You are running the latest version.",
   "selectFilesAfterMetadata": "Select files once torrent metadata is fetched",
   "metadataTimeout": "Timed out waiting for torrent metadata",
   "metadataReadyHint": "Torrent metadata fetched - choose the files to download",

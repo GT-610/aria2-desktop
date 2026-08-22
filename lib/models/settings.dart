@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:path/path.dart' as p;
 
 import '../utils/default_download_directory.dart';
+import '../utils/file_category.dart';
 import '../utils/logging.dart';
 import '../utils/speed_schedule.dart';
 import '../repositories/settings_repository.dart';
@@ -38,6 +41,11 @@ class Settings extends ChangeNotifier with Loggable {
   bool _showProgressBar = true; // Show progress bars in task list
   bool _keepAwake = false; // Prevent idle sleep while downloads are active
   bool _shutdownWhenComplete = false; // Shut down after downloads finish
+  bool _fileCategoryRoutingEnabled =
+      false; // Route URIs into category subdirectories
+  String _fileCategoryRulesJson =
+      '[]'; // JSON array of encoded FileCategoryRule entries
+  int _lastUpdateCheckTimestamp = 0; // Millis since epoch of last update check
   bool _clipboardMonitorEnabled =
       false; // Watch the clipboard for downloadable URIs
   int _clipboardMonitorSchemes = 0xF; // Scheme bitmask for clipboard watching
@@ -192,6 +200,24 @@ class Settings extends ChangeNotifier with Loggable {
   bool get showProgressBar => _showProgressBar;
   bool get keepAwake => _keepAwake;
   bool get shutdownWhenComplete => _shutdownWhenComplete;
+  bool get fileCategoryRoutingEnabled => _fileCategoryRoutingEnabled;
+  int get lastUpdateCheckTimestamp => _lastUpdateCheckTimestamp;
+
+  /// Parsed file-category rules (invalid entries dropped).
+  List<FileCategoryRule> get fileCategoryRules {
+    try {
+      final decoded = jsonDecode(_fileCategoryRulesJson);
+      if (decoded is! List) {
+        return const [];
+      }
+      return parseFileCategoryRules(
+        decoded.map((entry) => '$entry').toList(growable: false),
+      );
+    } catch (_) {
+      return const [];
+    }
+  }
+
   bool get clipboardMonitorEnabled => _clipboardMonitorEnabled;
   int get clipboardMonitorSchemes => _clipboardMonitorSchemes;
   bool get hideTitleBar => _hideTitleBar;
@@ -473,6 +499,16 @@ class Settings extends ChangeNotifier with Loggable {
         _showProgressBar = readBool('showProgressBar', true);
         _keepAwake = readBool('keepAwake', false);
         _shutdownWhenComplete = readBool('shutdownWhenComplete', false);
+        _fileCategoryRoutingEnabled = readBool(
+          'fileCategoryRoutingEnabled',
+          false,
+        );
+        _fileCategoryRulesJson = readString('fileCategoryRulesJson', '[]');
+        _lastUpdateCheckTimestamp = readInt(
+          'lastUpdateCheckTimestamp',
+          0,
+          min: 0,
+        );
         _clipboardMonitorEnabled = readBool('clipboardMonitorEnabled', false);
         final loadedSchemes = readInt(
           'clipboardMonitorSchemes',
@@ -707,6 +743,9 @@ class Settings extends ChangeNotifier with Loggable {
         'showProgressBar': _showProgressBar,
         'keepAwake': _keepAwake,
         'shutdownWhenComplete': _shutdownWhenComplete,
+        'fileCategoryRoutingEnabled': _fileCategoryRoutingEnabled,
+        'fileCategoryRulesJson': _fileCategoryRulesJson,
+        'lastUpdateCheckTimestamp': _lastUpdateCheckTimestamp,
         'clipboardMonitorEnabled': _clipboardMonitorEnabled,
         'clipboardMonitorSchemes': _clipboardMonitorSchemes,
         'hideTitleBar': _hideTitleBar,
@@ -935,6 +974,36 @@ class Settings extends ChangeNotifier with Loggable {
       return;
     }
     _shutdownWhenComplete = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setFileCategoryRoutingEnabled(bool value) async {
+    if (_fileCategoryRoutingEnabled == value) {
+      return;
+    }
+    _fileCategoryRoutingEnabled = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setFileCategoryRules(List<FileCategoryRule> rules) async {
+    final encoded = jsonEncode(
+      rules.take(maxFileCategoryRules).map((rule) => rule.encode()).toList(),
+    );
+    if (_fileCategoryRulesJson == encoded) {
+      return;
+    }
+    _fileCategoryRulesJson = encoded;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setLastUpdateCheckTimestamp(int millisSinceEpoch) async {
+    if (_lastUpdateCheckTimestamp == millisSinceEpoch) {
+      return;
+    }
+    _lastUpdateCheckTimestamp = millisSinceEpoch;
     notifyListeners();
     await _saveAllSettings();
   }
