@@ -1701,6 +1701,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskOptions => 'Options';
 
   @override
+  String get speedLimitEnabledTitle =>
+      'Speed limits on - tap to toggle, long-press to edit';
+
+  @override
+  String get speedLimitDisabledTitle => 'Speed limits off - tap to enable';
+
+  @override
+  String get speedScheduleTitle => 'Limit schedule';
+
+  @override
+  String get speedScheduleFrom => 'From';
+
+  @override
+  String get speedScheduleTo => 'To';
+
+  @override
   String get selectFilesAfterMetadata =>
       'Select files once torrent metadata is fetched';
 

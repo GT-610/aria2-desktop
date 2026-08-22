@@ -17,6 +17,7 @@ import '../../widgets/app_card.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/sized_loading.dart';
 import './components/appearance_dialog.dart';
+import './components/speed_limit_card.dart';
 
 enum _SettingsTab { global, system, about }
 
@@ -132,6 +133,7 @@ class _SettingsPageState extends State<SettingsPage>
           children: [
             _buildTabView([
               _buildBehaviorSection(settings, l10n),
+              _buildSpeedSection(settings, l10n),
               _buildAppearanceSection(settings, l10n),
               _buildMaintenanceSection(l10n),
             ]),
@@ -251,6 +253,16 @@ class _SettingsPageState extends State<SettingsPage>
           onChanged: (value) => settings.setKeepAwake(value),
         ),
       ]),
+    );
+  }
+
+  _SettingsSection _buildSpeedSection(
+    Settings settings,
+    AppLocalizations l10n,
+  ) {
+    return _SettingsSection(
+      title: l10n.speedLimits,
+      child: SpeedLimitCard(settings: settings),
     );
   }
 

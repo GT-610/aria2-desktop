@@ -153,6 +153,20 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     return seen ? (downloadSpeed: download, uploadSpeed: upload) : null;
   }
 
+  /// Total upload speed with global-stat preference and task-sum fallback.
+  int get totalUploadSpeed {
+    final fromStats = aggregatedGlobalSpeeds?.uploadSpeed;
+    if (fromStats != null) {
+      return fromStats;
+    }
+    return _tasks.fold(
+      0,
+      (sum, task) => task.status == DownloadStatus.active
+          ? sum + task.uploadSpeedBytes
+          : sum,
+    );
+  }
+
   /// Status-bar/tray summary derived from global stat speeds when available,
   /// falling back to summing active task speeds.
   TaskSummary get taskSummary {

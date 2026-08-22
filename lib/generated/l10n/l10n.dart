@@ -3049,6 +3049,36 @@ abstract class AppLocalizations {
   /// **'Options'**
   String get taskOptions;
 
+  /// No description provided for @speedLimitEnabledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed limits on - tap to toggle, long-press to edit'**
+  String get speedLimitEnabledTitle;
+
+  /// No description provided for @speedLimitDisabledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed limits off - tap to enable'**
+  String get speedLimitDisabledTitle;
+
+  /// No description provided for @speedScheduleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Limit schedule'**
+  String get speedScheduleTitle;
+
+  /// No description provided for @speedScheduleFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get speedScheduleFrom;
+
+  /// No description provided for @speedScheduleTo.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get speedScheduleTo;
+
   /// No description provided for @selectFilesAfterMetadata.
   ///
   /// In en, this message translates to:

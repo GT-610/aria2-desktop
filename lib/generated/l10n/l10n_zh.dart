@@ -1630,6 +1630,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskOptions => '选项';
 
   @override
+  String get speedLimitEnabledTitle => '限速已开启 - 点击切换，长按编辑';
+
+  @override
+  String get speedLimitDisabledTitle => '限速已关闭 - 点击开启';
+
+  @override
+  String get speedScheduleTitle => '限速时段';
+
+  @override
+  String get speedScheduleFrom => '开始';
+
+  @override
+  String get speedScheduleTo => '结束';
+
+  @override
   String get selectFilesAfterMetadata => '获取到种子元数据后选择文件';
 
   @override

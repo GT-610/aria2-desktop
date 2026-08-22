@@ -12,6 +12,7 @@ import '../utils/app_paths.dart';
 import '../utils/atomic_file.dart';
 import '../utils/default_download_directory.dart';
 import '../utils/logging.dart';
+import '../utils/speed_schedule.dart';
 import 'aria2_rpc_client.dart';
 import 'builtin_upnp_service.dart';
 import 'process_lifecycle_service.dart';
@@ -205,6 +206,43 @@ class BuiltinInstanceService with Loggable {
         ? rawValue.toInt()
         : int.tryParse(rawValue?.toString() ?? '') ?? 0;
     return value > 0 ? '${value}K' : '0';
+  }
+
+  /// Computes the effective overall limit (KB/s, 0 = unlimited) from a
+  /// settings snapshot, honoring the master switch and the schedule window.
+  @visibleForTesting
+  int effectiveSpeedLimitValueFromSnapshot(
+    Map<String, dynamic> settings,
+    String key, [
+    DateTime? now,
+  ]) {
+    final raw = settings[key];
+    final configured = raw is num
+        ? raw.toInt()
+        : int.tryParse(raw?.toString() ?? '') ?? 0;
+    final enabledRaw = settings['speedLimitEnabled'];
+    final limitsEnabled = enabledRaw is bool ? enabledRaw : true;
+    final scheduleDaysRaw = settings['speedScheduleDays'];
+    final startRaw = settings['speedScheduleStartMinutes'];
+    final endRaw = settings['speedScheduleEndMinutes'];
+    final windowActive = isWithinSpeedScheduleWindow(
+      scheduleEnabled: settings['speedScheduleEnabled'] == true,
+      daysBitmask: scheduleDaysRaw is int ? scheduleDaysRaw : allDaysBitmask,
+      startMinutes: startRaw is int ? startRaw : 0,
+      endMinutes: endRaw is int ? endRaw : minutesPerDay,
+      now: now ?? DateTime.now(),
+    );
+    return effectiveSpeedLimit(
+      limitsEnabled: limitsEnabled,
+      windowActive: windowActive,
+      configuredValue: configured,
+    );
+  }
+
+  String _effectiveSpeedLimitArg(Map<String, dynamic> settings, String key) {
+    return formatSpeedLimitArg(
+      effectiveSpeedLimitValueFromSnapshot(settings, key),
+    );
   }
 
   @visibleForTesting
@@ -434,8 +472,8 @@ class BuiltinInstanceService with Loggable {
       '--max-connection-per-server=${settings['maxConnectionPerServer'] ?? 16}',
       '--min-split-size=10M',
       '--split=${settings['split'] ?? 16}',
-      '--max-overall-download-limit=${formatSpeedLimitArg(settings['maxOverallDownloadLimit'])}',
-      '--max-overall-upload-limit=${formatSpeedLimitArg(settings['maxOverallUploadLimit'])}',
+      '--max-overall-download-limit=${_effectiveSpeedLimitArg(settings, 'maxOverallDownloadLimit')}',
+      '--max-overall-upload-limit=${_effectiveSpeedLimitArg(settings, 'maxOverallUploadLimit')}',
       '--max-download-limit=0',
       '--max-upload-limit=0',
       '--file-allocation=prealloc',

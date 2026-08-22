@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/settings.dart';
@@ -8,11 +10,60 @@ import 'builtin_instance_service.dart';
 
 class SettingsService extends ChangeNotifier with Loggable {
   Settings? _settings;
+  Timer? _scheduleTimer;
+  String? _lastAppliedLimitsSignature;
   static const int _indefiniteSeedTimeMinutes = 525600;
+
+  /// Starts the passive speed-schedule ticker. Every tick re-evaluates the
+  /// effective limits; whenever they change (window entered/left, toggle
+  /// flipped) the built-in instance receives a live update. The user's
+  /// configured values and switches are never modified by the ticker.
+  void ensureScheduleTicker() {
+    _scheduleTimer ??= Timer.periodic(const Duration(seconds: 30), (_) {
+      unawaited(_evaluateScheduleTick());
+    });
+    unawaited(_evaluateScheduleTick());
+  }
+
+  Future<void> _evaluateScheduleTick() async {
+    final settings = _settings;
+    if (settings == null || !settings.isLoaded) {
+      return;
+    }
+    final limits = settings.effectiveOverallLimits();
+    final signature = '${limits.download}/${limits.upload}';
+    if (signature == _lastAppliedLimitsSignature) {
+      return;
+    }
+
+    final builtinService = BuiltinInstanceService();
+    if (!builtinService.isRunning()) {
+      // Nothing running to push to; clear so the next start applies fresh.
+      _lastAppliedLimitsSignature = null;
+      return;
+    }
+
+    final applied = await applySettingsToBuiltin();
+    _lastAppliedLimitsSignature = applied ? signature : null;
+    if (applied) {
+      i(
+        'Speed limits updated by schedule: down=${limits.download}, up=${limits.upload}',
+      );
+    }
+  }
 
   void initialize(Settings settings) {
     _settings = settings;
+    _lastAppliedLimitsSignature = null;
     BuiltinInstanceService().bindSettings(settings);
+    ensureScheduleTicker();
+  }
+
+  @override
+  void dispose() {
+    _scheduleTimer?.cancel();
+    _scheduleTimer = null;
+    super.dispose();
   }
 
   @visibleForTesting
@@ -25,17 +76,16 @@ class SettingsService extends ChangeNotifier with Loggable {
     }
 
     final settings = _settings!;
+    final limits = settings.effectiveOverallLimits();
     final options = <String, dynamic>{
       'max-concurrent-downloads': settings.maxConcurrentDownloads.toString(),
       'max-connection-per-server': settings.maxConnectionPerServer.toString(),
       'split': settings.split.toString(),
       'continue': settings.continueDownloads.toString(),
-      'max-overall-download-limit': formatSpeedLimitOption(
-        settings.maxOverallDownloadLimit,
-      ),
-      'max-overall-upload-limit': formatSpeedLimitOption(
-        settings.maxOverallUploadLimit,
-      ),
+      // Effective values honor the master switch and schedule window; 0
+      // means unlimited for aria2.
+      'max-overall-download-limit': formatSpeedLimitOption(limits.download),
+      'max-overall-upload-limit': formatSpeedLimitOption(limits.upload),
       'bt-save-metadata': settings.btSaveMetadata.toString(),
       'bt-require-crypto': settings.btForceEncryption.toString(),
       'seed-time':
@@ -63,6 +113,11 @@ class SettingsService extends ChangeNotifier with Loggable {
     return options;
   }
 
+  String _currentLimitsSignature() {
+    final limits = _settings?.effectiveOverallLimits();
+    return '${limits?.download}/${limits?.upload}';
+  }
+
   /// Applies runtime settings to the built-in instance. When [rpcClient] is
   /// provided it is reused and must be closed by its owner; otherwise a
   /// dedicated client is created and closed here.
@@ -83,6 +138,7 @@ class SettingsService extends ChangeNotifier with Loggable {
         convertSettingsToRuntimeAria2Options(),
       );
       if (result) {
+        _lastAppliedLimitsSignature = _currentLimitsSignature();
         i('Applied runtime settings to the built-in aria2 instance');
       } else {
         w(

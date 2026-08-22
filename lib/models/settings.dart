@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 
 import '../utils/default_download_directory.dart';
 import '../utils/logging.dart';
+import '../utils/speed_schedule.dart';
 import '../repositories/settings_repository.dart';
 
 enum AppRunMode { standard, tray, hideTray }
@@ -63,6 +64,12 @@ class Settings extends ChangeNotifier with Loggable {
   int _maxOverallDownloadLimit =
       0; // Global download speed limit (0 = unlimited)
   int _maxOverallUploadLimit = 0; // Global upload speed limit (0 = unlimited)
+  bool _speedLimitEnabled = true; // Master switch for the overall limits
+  bool _speedScheduleEnabled = false; // Enforce limits only inside a window
+  int _speedScheduleDays = allDaysBitmask; // Monday..Sunday bitmask
+  int _speedScheduleStartMinutes = 0; // Minutes since midnight
+  int _speedScheduleEndMinutes =
+      minutesPerDay; // Minutes since midnight (1440 = 24:00)
 
   // BT settings
   bool _btSaveMetadata = true; // Save BT metadata
@@ -202,6 +209,40 @@ class Settings extends ChangeNotifier with Loggable {
   // Speed settings
   int get maxOverallDownloadLimit => _maxOverallDownloadLimit;
   int get maxOverallUploadLimit => _maxOverallUploadLimit;
+  bool get speedLimitEnabled => _speedLimitEnabled;
+  bool get speedScheduleEnabled => _speedScheduleEnabled;
+  int get speedScheduleDays => _speedScheduleDays;
+  int get speedScheduleStartMinutes => _speedScheduleStartMinutes;
+  int get speedScheduleEndMinutes => _speedScheduleEndMinutes;
+
+  /// Whether the configured overall limits are currently being enforced
+  /// according to the master switch and the schedule window.
+  bool isSpeedLimitWindowActive([DateTime? now]) {
+    return isWithinSpeedScheduleWindow(
+      scheduleEnabled: _speedScheduleEnabled,
+      daysBitmask: _speedScheduleDays,
+      startMinutes: _speedScheduleStartMinutes,
+      endMinutes: _speedScheduleEndMinutes,
+      now: now ?? DateTime.now(),
+    );
+  }
+
+  /// The limits that should be applied to aria2 right now.
+  ({int download, int upload}) effectiveOverallLimits([DateTime? now]) {
+    final windowActive = isSpeedLimitWindowActive(now);
+    return (
+      download: effectiveSpeedLimit(
+        limitsEnabled: _speedLimitEnabled,
+        windowActive: windowActive,
+        configuredValue: _maxOverallDownloadLimit,
+      ),
+      upload: effectiveSpeedLimit(
+        limitsEnabled: _speedLimitEnabled,
+        windowActive: windowActive,
+        configuredValue: _maxOverallUploadLimit,
+      ),
+    );
+  }
 
   // BT settings
   bool get btSaveMetadata => _btSaveMetadata;
@@ -241,6 +282,11 @@ class Settings extends ChangeNotifier with Loggable {
       'downloadDir': _downloadDir,
       'maxOverallDownloadLimit': _maxOverallDownloadLimit,
       'maxOverallUploadLimit': _maxOverallUploadLimit,
+      'speedLimitEnabled': _speedLimitEnabled,
+      'speedScheduleEnabled': _speedScheduleEnabled,
+      'speedScheduleDays': _speedScheduleDays,
+      'speedScheduleStartMinutes': _speedScheduleStartMinutes,
+      'speedScheduleEndMinutes': _speedScheduleEndMinutes,
       'btSaveMetadata': _btSaveMetadata,
       'btForceEncryption': _btForceEncryption,
       'btLoadSavedMetadata': _btLoadSavedMetadata,
@@ -512,6 +558,29 @@ class Settings extends ChangeNotifier with Loggable {
           min: 0,
           max: 65535,
         );
+        _speedLimitEnabled = readBool('speedLimitEnabled', true);
+        _speedScheduleEnabled = readBool('speedScheduleEnabled', false);
+        final loadedDays = readInt(
+          'speedScheduleDays',
+          allDaysBitmask,
+          min: 0,
+          max: allDaysBitmask,
+        );
+        _speedScheduleDays = loadedDays == 0
+            ? allDaysBitmask
+            : loadedDays & allDaysBitmask;
+        _speedScheduleStartMinutes = readInt(
+          'speedScheduleStartMinutes',
+          0,
+          min: 0,
+          max: minutesPerDay,
+        );
+        _speedScheduleEndMinutes = readInt(
+          'speedScheduleEndMinutes',
+          minutesPerDay,
+          min: 0,
+          max: minutesPerDay,
+        );
 
         // BT settings
         _btSaveMetadata = readBool('btSaveMetadata', true);
@@ -702,6 +771,68 @@ class Settings extends ChangeNotifier with Loggable {
       return;
     }
     _rpcListenPort = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setSpeedLimitEnabled(bool value) async {
+    if (_speedLimitEnabled == value) {
+      return;
+    }
+    _speedLimitEnabled = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  /// Configured overall download limit in KB/s (0 = unlimited).
+  Future<void> setMaxOverallDownloadLimit(int kiloBytesPerSecond) async {
+    final value = kiloBytesPerSecond.clamp(0, 65535).toInt();
+    if (_maxOverallDownloadLimit == value) {
+      return;
+    }
+    _maxOverallDownloadLimit = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  /// Configured overall upload limit in KB/s (0 = unlimited).
+  Future<void> setMaxOverallUploadLimit(int kiloBytesPerSecond) async {
+    final value = kiloBytesPerSecond.clamp(0, 65535).toInt();
+    if (_maxOverallUploadLimit == value) {
+      return;
+    }
+    _maxOverallUploadLimit = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  /// Updates the speed-limit schedule; pass only the fields that changed so
+  /// unrelated values are preserved.
+  Future<void> setSpeedSchedule({
+    bool? enabled,
+    int? days,
+    int? startMinutes,
+    int? endMinutes,
+  }) async {
+    final nextEnabled = enabled ?? _speedScheduleEnabled;
+    var nextDays = (days ?? _speedScheduleDays) & allDaysBitmask;
+    if (nextDays == 0) {
+      nextDays = allDaysBitmask;
+    }
+    final nextStart = startMinutes ?? _speedScheduleStartMinutes;
+    final nextEnd = endMinutes ?? _speedScheduleEndMinutes;
+
+    if (nextEnabled == _speedScheduleEnabled &&
+        nextDays == _speedScheduleDays &&
+        nextStart == _speedScheduleStartMinutes &&
+        nextEnd == _speedScheduleEndMinutes) {
+      return;
+    }
+
+    _speedScheduleEnabled = nextEnabled;
+    _speedScheduleDays = nextDays;
+    _speedScheduleStartMinutes = nextStart.clamp(0, minutesPerDay).toInt();
+    _speedScheduleEndMinutes = nextEnd.clamp(0, minutesPerDay).toInt();
     notifyListeners();
     await _saveAllSettings();
   }

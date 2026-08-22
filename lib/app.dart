@@ -12,6 +12,7 @@ import 'pages/download_page/download_page.dart';
 import 'pages/download_page/enums.dart';
 import 'pages/download_page/models/download_task.dart';
 import 'pages/instance_page/instance_page.dart';
+import 'pages/components/quick_speed_limit_dialog.dart';
 import 'utils/format_utils.dart';
 import 'utils/windows_font_theme.dart';
 import 'pages/settings_page/settings_page.dart';
@@ -1004,6 +1005,12 @@ class _StatusBar extends StatelessWidget {
     final summary = context.select<DownloadDataService, TaskSummary>(
       (service) => service.taskSummary,
     );
+    final uploadSpeed = context.select<DownloadDataService, int>(
+      (service) => service.totalUploadSpeed,
+    );
+    final limitsEnabled = context.select<Settings, bool>(
+      (settings) => settings.speedLimitEnabled,
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1024,11 +1031,37 @@ class _StatusBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Chip(
-            label: Text(l10n.totalSpeed(formatSpeed(summary.speed))),
-            avatar: const Icon(Icons.speed, size: 16),
-            backgroundColor: colorScheme.surfaceContainerHighest,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          // Quick speed-limit capsule: tap toggles the limits, long-press
+          // edits them (Motrix-Next style).
+          Tooltip(
+            message: limitsEnabled
+                ? l10n.speedLimitEnabledTitle
+                : l10n.speedLimitDisabledTitle,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () async {
+                final settings = context.read<Settings>();
+                await settings.setSpeedLimitEnabled(!limitsEnabled);
+                if (!context.mounted) {
+                  return;
+                }
+                unawaited(applySpeedLimitsToBuiltin(context));
+              },
+              onLongPress: () => showQuickSpeedLimitDialog(context),
+              child: Chip(
+                avatar: Icon(
+                  limitsEnabled ? Icons.speed : Icons.block,
+                  size: 16,
+                  color: limitsEnabled ? null : colorScheme.error,
+                ),
+                label: Text(
+                  '${l10n.downloadShort} ${formatSpeed(summary.speed)}  '
+                  '${l10n.uploadShort} ${formatSpeed(uploadSpeed)}',
+                ),
+                backgroundColor: colorScheme.surfaceContainerHighest,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              ),
+            ),
           ),
           Chip(
             label: Text(l10n.activeTasks(summary.active.toString())),
