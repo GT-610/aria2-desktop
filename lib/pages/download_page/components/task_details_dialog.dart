@@ -1,17 +1,25 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
-import '../../../services/aria2_rpc_client.dart';
+import '../../../models/aria2_peer.dart';
+import '../../../services/clipboard_monitor_service.dart';
+import '../../../services/download_data_service.dart';
 import '../../../services/instance_manager.dart';
 import '../../../utils/format_utils.dart';
+import '../../../utils/logging.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
 import '../services/download_task_service.dart';
 import 'task_details_bt_helpers.dart';
+import 'task_details_options_tab.dart';
 import '../utils/task_utils.dart';
+
+final _logger = taggedLogger('TaskDetailsDialog');
 
 class TaskDetailsDialog {
   static Future<void> showTaskDetailsDialog(
@@ -38,21 +46,11 @@ class TaskDetailsDialog {
         Future<void> Function({bool force})? requestPeersIfNeeded;
         var currentTabIndex = 0;
         var peersTaskKey = '';
-        String? peersClientKey;
-        Aria2RpcClient? peersClient;
         var isLoadingPeers = false;
         DateTime? lastPeersFetchTime;
         String? peersError;
-        List<Map<String, dynamic>> peers = <Map<String, dynamic>>[];
-
-        String buildFileSelectionSignature(List<Map<String, dynamic>> files) {
-          return files
-              .map(
-                (file) =>
-                    '${file['index'] ?? ''}:${file['selected'] as String? ?? 'true'}',
-              )
-              .join('|');
-        }
+        List<Aria2Peer> peers = <Aria2Peer>[];
+        String lastRefreshSignature = '';
 
         Map<int, bool> buildFileSelectionState(
           List<Map<String, dynamic>> files,
@@ -90,12 +88,6 @@ class TaskDetailsDialog {
               activeTabController = null;
               activeTabListener = null;
               requestPeersIfNeeded = null;
-              final clientToClose = peersClient;
-              if (clientToClose != null) {
-                unawaited(clientToClose.close());
-              }
-              peersClient = null;
-              peersClientKey = null;
             }
 
             final currentTask = getLatestTaskData();
@@ -105,7 +97,8 @@ class TaskDetailsDialog {
             final isBtTask =
                 (currentTask.trackers?.isNotEmpty ?? false) ||
                 currentTask.bittorrentInfo != null;
-            final currentSignature = buildFileSelectionSignature(currentFiles);
+            final currentSignature =
+                TaskDetailsBtHelpers.buildFileSelectionSignature(currentFiles);
             if (fileSelectionSourceSignature != currentSignature &&
                 !hasFileSelectionChanges) {
               fileSelection = buildFileSelectionState(currentFiles);
@@ -114,16 +107,47 @@ class TaskDetailsDialog {
             final overviewTab = Tab(text: l10n.overview);
             final piecesTab = Tab(text: l10n.pieces);
             final filesTab = Tab(text: l10n.filesTitle);
+            final optionsTab = Tab(text: l10n.taskOptions);
             final tabs = <Tab>[
               overviewTab,
               piecesTab,
               filesTab,
+              optionsTab,
               if (isBtTask) Tab(text: l10n.trackers),
               if (isBtTask) Tab(text: l10n.peers),
             ];
+            String buildRefreshSignature(DownloadTask task) {
+              return [
+                task.status.name,
+                task.taskStatus,
+                task.completedLengthBytes,
+                task.totalLengthBytes,
+                task.downloadSpeedBytes,
+                task.uploadSpeedBytes,
+                task.uploadLengthBytes,
+                task.connections,
+                task.numSeeders,
+                task.isSeeder,
+                task.errorMessage,
+                TaskDetailsBtHelpers.buildFileSelectionSignature(
+                  task.files ?? const <Map<String, dynamic>>[],
+                ),
+                peers.length,
+                isLoadingPeers,
+                peersError,
+              ].join('\u001f');
+            }
+
             refreshTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
               unawaited(requestPeersIfNeeded?.call() ?? Future.value());
-              if (context.mounted) {
+              if (!context.mounted) {
+                return;
+              }
+              // Rebuild only when something the dialog renders changed;
+              // idle tasks would otherwise rebuild every second.
+              final signature = buildRefreshSignature(getLatestTaskData());
+              if (signature != lastRefreshSignature) {
+                lastRefreshSignature = signature;
                 setState(() {});
               }
             });
@@ -163,6 +187,12 @@ class TaskDetailsDialog {
                   currentTask,
                   torrentMetadata,
                 );
+            final torrentHealth = peers.isEmpty
+                ? null
+                : TaskDetailsBtHelpers.estimateHealthPercent(
+                    currentTask,
+                    peers,
+                  );
 
             return PopScope(
               canPop: true,
@@ -191,7 +221,7 @@ class TaskDetailsDialog {
                       }
 
                       if (peersTaskKey != taskKey) {
-                        peers = <Map<String, dynamic>>[];
+                        peers = <Aria2Peer>[];
                         peersError = null;
                         peersTaskKey = taskKey;
                       }
@@ -206,7 +236,7 @@ class TaskDetailsDialog {
 
                       isLoadingPeers = true;
                       lastPeersFetchTime = now;
-                      List<Map<String, dynamic>>? peersResult;
+                      List<Aria2Peer>? peersResult;
                       String? peersErrorLocal;
                       try {
                         if (!outerContext.mounted) return;
@@ -218,17 +248,11 @@ class TaskDetailsDialog {
                         if (instance == null) {
                           peersErrorLocal = l10n.targetInstanceNotConnected;
                         } else {
-                          final nextClientKey =
-                              '${instance.id}_${instance.protocol}_${instance.host}_${instance.port}_${instance.secret}';
-                          if (peersClientKey != nextClientKey ||
-                              peersClient == null) {
-                            await peersClient?.close();
-                            peersClient = Aria2RpcClient(instance);
-                            peersClientKey = nextClientKey;
-                          }
-                          peersResult = await peersClient!.getPeers(
-                            currentTask.id,
-                          );
+                          final downloadDataService = outerContext
+                              .read<DownloadDataService>();
+                          peersResult = await downloadDataService
+                              .clientFor(instance)
+                              .getPeers(currentTask.id);
                         }
                       } catch (error) {
                         peersErrorLocal = '$error';
@@ -364,6 +388,14 @@ class TaskDetailsDialog {
                                             Text(
                                               '${l10n.torrentSeeders}: ${currentTask.numSeeders ?? 0}',
                                             ),
+                                            if (torrentHealth != null) ...[
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                l10n.healthPercentage(
+                                                  '${torrentHealth.toStringAsFixed(0)}%',
+                                                ),
+                                              ),
+                                            ],
                                             const SizedBox(height: 8),
                                             Text(
                                               '${l10n.torrentUploaded}: ${formatBytes(currentTask.uploadLengthBytes)}',
@@ -592,22 +624,31 @@ class TaskDetailsDialog {
                                                               true;
                                                         });
 
-                                                        Aria2RpcClient? client;
                                                         try {
-                                                          client =
-                                                              Aria2RpcClient(
+                                                          final downloadDataService =
+                                                              outerContext
+                                                                  .read<
+                                                                    DownloadDataService
+                                                                  >();
+                                                          await downloadDataService
+                                                              .clientFor(
                                                                 instance,
+                                                              )
+                                                              .changeOption(
+                                                                currentTask.id,
+                                                                {
+                                                                  'select-file':
+                                                                      selectedIndexes
+                                                                          .join(
+                                                                            ',',
+                                                                          ),
+                                                                },
                                                               );
-                                                          await client.changeOption(
-                                                            currentTask.id,
-                                                            {
-                                                              'select-file':
-                                                                  selectedIndexes
-                                                                      .join(
-                                                                        ',',
-                                                                      ),
-                                                            },
-                                                          );
+                                                          downloadDataService
+                                                              .invalidateTaskDetails(
+                                                                currentTask
+                                                                    .instanceId,
+                                                              );
 
                                                           onTaskUpdated?.call();
 
@@ -648,7 +689,6 @@ class TaskDetailsDialog {
                                                             );
                                                           }
                                                         } finally {
-                                                          await client?.close();
                                                           if (context.mounted) {
                                                             setState(() {
                                                               isSavingFileSelection =
@@ -810,6 +850,13 @@ class TaskDetailsDialog {
                                       ],
                                     ),
                                   ),
+                                  TaskDetailsOptionsTab(
+                                    key: ValueKey(
+                                      '${currentTask.instanceId}:${currentTask.id}',
+                                    ),
+                                    task: currentTask,
+                                    onSaved: onTaskUpdated,
+                                  ),
                                   if (isBtTask)
                                     SingleChildScrollView(
                                       padding: const EdgeInsets.all(8),
@@ -822,7 +869,7 @@ class TaskDetailsDialog {
                                             ),
                                     ),
                                   if (isBtTask)
-                                    SingleChildScrollView(
+                                    Padding(
                                       padding: const EdgeInsets.all(8),
                                       child:
                                           TaskDetailsBtHelpers.buildPeersView(
@@ -839,6 +886,63 @@ class TaskDetailsDialog {
                         ),
                       ),
                       actions: [
+                        if (currentTask.infoHash?.trim().isNotEmpty ?? false)
+                          TextButton.icon(
+                            onPressed: () async {
+                              final buffer = StringBuffer(
+                                'magnet:?xt=urn:btih:${currentTask.infoHash!.trim()}',
+                              );
+                              final name = currentTask.name.trim();
+                              if (name.isNotEmpty) {
+                                buffer.write(
+                                  '&dn=${Uri.encodeComponent(name)}',
+                                );
+                              }
+                              for (final tracker
+                                  in currentTask.trackers ?? const <String>[]) {
+                                final trimmed = tracker.trim();
+                                if (trimmed.isEmpty) {
+                                  continue;
+                                }
+                                buffer.write(
+                                  '&tr=${Uri.encodeComponent(trimmed)}',
+                                );
+                              }
+                              final magnetLink = buffer.toString();
+                              ClipboardMonitorService.markSelfCopied(
+                                magnetLink,
+                              );
+                              try {
+                                await Clipboard.setData(
+                                  ClipboardData(text: magnetLink),
+                                );
+                              } catch (error, stackTrace) {
+                                _logger.e(
+                                  'Failed to copy magnet link',
+                                  error: error,
+                                  stackTrace: stackTrace,
+                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        l10n.operationFailed('$error'),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
+                              if (!context.mounted) {
+                                return;
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(l10n.magnetLinkCopied)),
+                              );
+                            },
+                            icon: const Icon(Icons.link, size: 18),
+                            label: Text(l10n.copyMagnetLink),
+                          ),
                         TextButton(
                           onPressed: () {
                             disposeResources();

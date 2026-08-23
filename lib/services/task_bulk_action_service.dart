@@ -3,24 +3,69 @@ import '../pages/download_page/models/download_task.dart';
 import '../utils/logging.dart';
 import 'aria2_rpc_client.dart';
 
+enum BulkActionItemStatus { performed, skipped }
+
+/// Result of a single task action inside a bulk run.
+class BulkActionItemResult {
+  const BulkActionItemResult({
+    this.status = BulkActionItemStatus.performed,
+    this.warning,
+  });
+
+  const BulkActionItemResult.skipped()
+    : status = BulkActionItemStatus.skipped,
+      warning = null;
+
+  final BulkActionItemStatus status;
+
+  /// Optional non-fatal warning (e.g. file cleanup issues) attached to a
+  /// successfully performed item.
+  final String? warning;
+}
+
 class TaskBulkActionResult {
   const TaskBulkActionResult({
     required this.successCount,
     required this.failureCount,
     this.indeterminateCount = 0,
+    this.skippedCount = 0,
+    this.warningCount = 0,
   });
 
   final int successCount;
   final int failureCount;
   final int indeterminateCount;
+  final int skippedCount;
+  final int warningCount;
 }
 
+typedef TaskBulkItemAction =
+    Future<BulkActionItemResult> Function(
+      Aria2RpcClient client,
+      DownloadTask task,
+    );
+
+typedef TaskBulkClientFactory =
+    Aria2RpcClient? Function(Aria2Instance instance);
+typedef TaskBulkClientBuilder = Aria2RpcClient Function(Aria2Instance instance);
+
+/// Executes one action per task, grouping tasks by instance so a single RPC
+/// client serves every task on the same instance.
+///
+/// When [clientFactory] is provided its clients are reused as-is and never
+/// closed; otherwise a fresh client is created per instance and closed after
+/// the instance's tasks are processed.
 class TaskBulkActionService with Loggable {
+  TaskBulkActionService({TaskBulkClientBuilder? clientBuilder})
+    : _clientBuilder = clientBuilder ?? Aria2RpcClient.new;
+
+  final TaskBulkClientBuilder _clientBuilder;
+
   Future<TaskBulkActionResult> run({
     required List<Aria2Instance> instances,
     required List<DownloadTask> tasks,
-    required Future<String> Function(Aria2RpcClient client, String taskId)
-    perform,
+    required TaskBulkItemAction perform,
+    TaskBulkClientFactory? clientFactory,
   }) async {
     final tasksByInstance = <String, List<DownloadTask>>{};
     for (final task in tasks) {
@@ -30,17 +75,47 @@ class TaskBulkActionService with Loggable {
     var successCount = 0;
     var failureCount = 0;
     var indeterminateCount = 0;
+    var skippedCount = 0;
+    var warningCount = 0;
+
     for (final instance in instances) {
       final instanceTasks = tasksByInstance[instance.id];
       if (instanceTasks == null || instanceTasks.isEmpty) {
         continue;
       }
-      final client = Aria2RpcClient(instance);
+
+      final Aria2RpcClient client;
+      late final bool ownsClient;
+      try {
+        final providedClient = clientFactory?.call(instance);
+        ownsClient = providedClient == null;
+        client = providedClient ?? _clientBuilder(instance);
+      } catch (error, stackTrace) {
+        failureCount += instanceTasks.length;
+        e(
+          'Failed to prepare RPC client for bulk action on ${instance.name}',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        continue;
+      }
+
       try {
         for (final task in instanceTasks) {
           try {
-            await perform(client, task.id);
-            successCount++;
+            final result = await perform(client, task);
+            if (result.status == BulkActionItemStatus.skipped) {
+              skippedCount++;
+            } else {
+              successCount++;
+              if (result.warning != null) {
+                warningCount++;
+                w(
+                  'Bulk action completed with a warning for task ${task.id} '
+                  'on ${instance.name}: ${result.warning}',
+                );
+              }
+            }
           } on RpcResultIndeterminateException catch (error, stackTrace) {
             indeterminateCount++;
             w(
@@ -58,7 +133,9 @@ class TaskBulkActionService with Loggable {
           }
         }
       } finally {
-        await client.close();
+        if (ownsClient) {
+          await client.close();
+        }
       }
     }
 
@@ -66,6 +143,8 @@ class TaskBulkActionService with Loggable {
       successCount: successCount,
       failureCount: failureCount,
       indeterminateCount: indeterminateCount,
+      skippedCount: skippedCount,
+      warningCount: warningCount,
     );
   }
 }

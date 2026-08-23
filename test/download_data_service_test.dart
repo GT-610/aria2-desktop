@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:setsuna/models/aria2_instance.dart';
+import 'package:setsuna/services/aria2_rpc_client.dart';
 import 'package:setsuna/services/download_data_service.dart';
 
 void main() {
@@ -328,7 +329,10 @@ void main() {
     releaseFirstRequest.complete();
     await Future.wait(<Future<void>>[firstRefresh, queuedRefresh]);
 
-    expect(requestCount, 2);
+    // The cold refresh performs basic + detailed requests; the one coalesced
+    // refresh then skips straight to details because the prior cycle needed
+    // them. Multiple queued callers still produce only one extra cycle.
+    expect(requestCount, 3);
     service.dispose();
     await server.close(force: true);
   });
@@ -461,6 +465,157 @@ void main() {
 
     await refreshed.future.timeout(const Duration(seconds: 2));
     expect(service.tasks.single.id, 'updated');
+    service.dispose();
+    await server.close(force: true);
+  });
+
+  test('uses basic polling until task details are invalidated', () async {
+    var requestCount = 0;
+    final requestedProjections = <List<dynamic>>[];
+    final fullTask = <String, dynamic>{
+      'gid': 'bt-1',
+      'status': 'active',
+      'totalLength': '100',
+      'completedLength': '10',
+      'downloadSpeed': '5',
+      'uploadSpeed': '1',
+      'dir': '/downloads',
+      'seeder': 'true',
+      'numSeeders': '3',
+      'infoHash': 'abc123',
+      'bittorrent': <String, dynamic>{
+        'info': <String, dynamic>{'name': 'Ubuntu ISO'},
+      },
+      'files': <Object>[
+        <String, String>{
+          'index': '1',
+          'path': '/downloads/ubuntu.iso',
+          'length': '100',
+          'completedLength': '10',
+          'selected': 'true',
+        },
+      ],
+    };
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      requestCount++;
+      final body = await utf8.decoder.bind(request).join();
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+      final calls = (decoded['params'] as List).single as List;
+      final activeParams = List<dynamic>.from(
+        (calls.first as Map)['params'] as List,
+      );
+      requestedProjections.add(
+        activeParams.isNotEmpty && activeParams.last is List
+            ? List<dynamic>.from(activeParams.last as List)
+            : <dynamic>[],
+      );
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(
+        jsonEncode(<String, dynamic>{
+          'jsonrpc': '2.0',
+          'id': decoded['id'],
+          'result': <Object>[
+            <Object>[fullTask],
+            <Object>[<Object>[]],
+            <Object>[<Object>[]],
+          ],
+        }),
+      );
+      await request.response.close();
+    });
+    final instance = Aria2Instance(
+      id: 'stable',
+      name: 'Stable',
+      type: InstanceType.remote,
+      protocol: 'http',
+      host: InternetAddress.loopbackIPv4.address,
+      port: server.port,
+      status: ConnectionStatus.connected,
+    );
+    final service = DownloadDataService();
+
+    // Cold refresh establishes a basic signature, then fetches details.
+    await service.refreshTasks(<Aria2Instance>[instance]);
+    expect(service.tasks.single.name, 'Ubuntu ISO');
+    expect(requestCount, 2);
+    expect(requestedProjections.first, Aria2RpcClient.basicTaskFields);
+    expect(requestedProjections[1], isEmpty);
+
+    // The prior refresh needed details, so the next cycle skips the basic
+    // projection. An unchanged detailed signature returns to cheap polling.
+    final before = service.tasks.single;
+    await service.refreshTasks(<Aria2Instance>[instance]);
+    expect(requestCount, 3);
+    expect(requestedProjections.last, isEmpty);
+    expect(service.tasks.single.name, 'Ubuntu ISO');
+    expect(identical(service.tasks.single, before), isFalse);
+
+    final stable = service.tasks.single;
+    await service.refreshTasks(<Aria2Instance>[instance]);
+    expect(requestCount, 4);
+    expect(requestedProjections.last, Aria2RpcClient.basicTaskFields);
+    expect(identical(service.tasks.single, stable), isTrue);
+
+    (fullTask['files'] as List).single['selected'] = 'false';
+    service.invalidateTaskDetails(instance.id);
+    await service.refreshTasks(<Aria2Instance>[instance]);
+    expect(requestCount, 5);
+    expect(requestedProjections.last, isEmpty);
+    expect(service.tasks.single.files!.single['selected'], 'false');
+    expect(identical(service.tasks.single, before), isFalse);
+
+    service.dispose();
+    await server.close(force: true);
+  });
+
+  test('aggregates global stats reported by connected instances', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      final body = await utf8.decoder.bind(request).join();
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(
+        jsonEncode(<String, dynamic>{
+          'jsonrpc': '2.0',
+          'id': decoded['id'],
+          'result': <Object>[
+            <Object>[<Object>[]],
+            <Object>[<Object>[]],
+            <Object>[<Object>[]],
+            <Object>[
+              <String, String>{
+                'downloadSpeed': '2048',
+                'uploadSpeed': '512',
+                'numActive': '2',
+                'numWaiting': '3',
+                'numStopped': '4',
+              },
+            ],
+          ],
+        }),
+      );
+      await request.response.close();
+    });
+    final instance = Aria2Instance(
+      id: 'stats',
+      name: 'Stats',
+      type: InstanceType.remote,
+      protocol: 'http',
+      host: InternetAddress.loopbackIPv4.address,
+      port: server.port,
+      status: ConnectionStatus.connected,
+    );
+    final service = DownloadDataService();
+
+    expect(service.aggregatedGlobalSpeeds, isNull);
+
+    await service.refreshTasks(<Aria2Instance>[instance]);
+
+    expect(service.aggregatedGlobalSpeeds, (
+      downloadSpeed: 2048,
+      uploadSpeed: 512,
+    ));
     service.dispose();
     await server.close(force: true);
   });

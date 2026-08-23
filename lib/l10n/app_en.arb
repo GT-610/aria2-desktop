@@ -506,6 +506,8 @@
   "connectionSection": "Connection",
   "transferSection": "Transfer",
   "speedLimits": "Speed Limits",
+  "maxOverallUploadSpeed": "Overall upload speed limit",
+  "maxOverallDownloadSpeed": "Overall download speed limit",
   "btPtSection": "BT / PT",
   "networkSection": "Network",
   "filesSection": "Files",
@@ -611,6 +613,67 @@
   "torrentSeeders": "Seeders",
   "torrentUploaded": "Uploaded",
   "torrentRatio": "Ratio",
+  "taskOptions": "Options",
+  "speedLimitEnabledTitle": "Enable speed limits",
+  "speedLimitEnabledTip": "Apply global upload and download speed limits",
+  "speedCapsuleTooltip": "Download / upload speeds - tap or long-press to edit limits",
+  "unlimited": "unlimited",
+  "speedScheduleTitle": "Limit schedule",
+  "speedScheduleFrom": "From",
+  "speedScheduleTo": "To",
+  "shutdownWhenComplete": "Shut down when downloads complete",
+  "shutdownWhenCompleteTip": "Shows a cancellable 60-second countdown once every download has finished.",
+  "shutdownCountdownMessage": "The system will shut down in {seconds} seconds.",
+  "@shutdownCountdownMessage": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
+  "clipboardMonitorEnabled": "Watch clipboard for download links",
+  "clipboardMonitorEnabledTip": "Opens the add-task dialog when a supported link is copied.",
+  "clipboardMonitorSchemeRequired": "Keep at least one clipboard link type enabled.",
+  "fileCategoriesTitle": "Download categories",
+  "fileCategoriesEmptyHint": "No category rules yet. Add rules to route downloads like *.mp4 into a Videos subdirectory.",
+  "fileCategoriesMaxHint": "Maximum of 20 category rules reached.",
+  "fileCategoryAddRule": "Add rule",
+  "fileCategoryExtensionsLabel": "Extensions (e.g. mp4, mkv)",
+  "fileCategorySubdirLabel": "Subdirectory",
+  "fileCategoryInvalidRule": "Enter at least one valid extension and a safe subdirectory.",
+  "fileCategoryRouting": "Route downloads into category folders",
+  "checkForUpdates": "Check for updates",
+  "updateAvailableTitle": "Update available",
+  "updateAvailableMessage": "Version {version} is available.",
+  "@updateAvailableMessage": {
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "updateOpenReleasePage": "Open release page",
+  "upToDate": "You are running the latest version.",
+  "updateCheckSelfBuild": "Update checks are unavailable for self-built versions.",
+  "selectFilesAfterMetadata": "Select files once torrent metadata is fetched",
+  "metadataTimeout": "Timed out waiting for torrent metadata",
+  "metadataReadyHint": "Torrent metadata fetched - choose the files to download",
+  "healthPercentage": "Health: {value}",
+  "@healthPercentage": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "copyMagnetLink": "Copy magnet link",
+  "magnetLinkCopied": "Magnet link copied to clipboard",
+  "optionPerTaskDownloadLimit": "Download limit",
+  "optionPerTaskUploadLimit": "Upload limit",
+  "btMaxPeers": "Max peers",
+  "forceSaveOption": "Force save",
+  "optionsLoadFailed": "Failed to load task options: {error}",
+  "@optionsLoadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "optionsSaved": "Options saved",
+  "optionsActiveOnlyHint": "Only a subset of options can be changed while the task is active.",
   "english": "English",
   "chinese": "Chinese"
 }

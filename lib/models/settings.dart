@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:path/path.dart' as p;
 
 import '../utils/default_download_directory.dart';
+import '../utils/file_category.dart';
 import '../utils/logging.dart';
+import '../utils/speed_schedule.dart';
 import '../repositories/settings_repository.dart';
 
 enum AppRunMode { standard, tray, hideTray }
@@ -36,6 +40,15 @@ class Settings extends ChangeNotifier with Loggable {
       true; // Focus downloading view after adding tasks
   bool _showProgressBar = true; // Show progress bars in task list
   bool _keepAwake = false; // Prevent idle sleep while downloads are active
+  bool _shutdownWhenComplete = false; // Shut down after downloads finish
+  bool _fileCategoryRoutingEnabled =
+      false; // Route URIs into category subdirectories
+  String _fileCategoryRulesJson =
+      '[]'; // JSON array of encoded FileCategoryRule entries
+  int _lastUpdateCheckTimestamp = 0; // Millis since epoch of last update check
+  bool _clipboardMonitorEnabled =
+      false; // Watch the clipboard for downloadable URIs
+  int _clipboardMonitorSchemes = 0xF; // Scheme bitmask for clipboard watching
   bool _hideTitleBar = false; // Hide the native desktop title bar
   bool _isLoaded = false; // Whether settings have finished loading
 
@@ -63,6 +76,12 @@ class Settings extends ChangeNotifier with Loggable {
   int _maxOverallDownloadLimit =
       0; // Global download speed limit (0 = unlimited)
   int _maxOverallUploadLimit = 0; // Global upload speed limit (0 = unlimited)
+  bool _speedLimitEnabled = true; // Master switch for the overall limits
+  bool _speedScheduleEnabled = false; // Enforce limits only inside a window
+  int _speedScheduleDays = allDaysBitmask; // Monday..Sunday bitmask
+  int _speedScheduleStartMinutes = 0; // Minutes since midnight
+  int _speedScheduleEndMinutes =
+      minutesPerDay; // Minutes since midnight (1440 = 24:00)
 
   // BT settings
   bool _btSaveMetadata = true; // Save BT metadata
@@ -108,6 +127,12 @@ class Settings extends ChangeNotifier with Loggable {
     _showDownloadsAfterAdd = true;
     _showProgressBar = true;
     _keepAwake = false;
+    _shutdownWhenComplete = false;
+    _fileCategoryRoutingEnabled = false;
+    _fileCategoryRulesJson = '[]';
+    _lastUpdateCheckTimestamp = 0;
+    _clipboardMonitorEnabled = false;
+    _clipboardMonitorSchemes = 0xF;
     _hideTitleBar = false;
     _themeMode = ThemeMode.system;
     _primaryColor = Colors.blue;
@@ -129,6 +154,11 @@ class Settings extends ChangeNotifier with Loggable {
     // Speed settings
     _maxOverallDownloadLimit = 0;
     _maxOverallUploadLimit = 0;
+    _speedLimitEnabled = true;
+    _speedScheduleEnabled = false;
+    _speedScheduleDays = allDaysBitmask;
+    _speedScheduleStartMinutes = 0;
+    _speedScheduleEndMinutes = minutesPerDay;
 
     // BT settings
     _btSaveMetadata = true;
@@ -180,6 +210,37 @@ class Settings extends ChangeNotifier with Loggable {
   bool get showDownloadsAfterAdd => _showDownloadsAfterAdd;
   bool get showProgressBar => _showProgressBar;
   bool get keepAwake => _keepAwake;
+  bool get shutdownWhenComplete => _shutdownWhenComplete;
+  bool get fileCategoryRoutingEnabled => _fileCategoryRoutingEnabled;
+  int get lastUpdateCheckTimestamp => _lastUpdateCheckTimestamp;
+
+  /// Parsed file-category rules (invalid entries dropped).
+  List<FileCategoryRule> get fileCategoryRules {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(_fileCategoryRulesJson);
+    } catch (error, stackTrace) {
+      w(
+        'Failed to decode saved file-category rules',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return const [];
+    }
+    if (decoded is! List) {
+      w('Ignored file-category rules because the saved value is not a list');
+      return const [];
+    }
+    final rawRules = decoded.map((entry) => '$entry').toList(growable: false);
+    final rules = parseFileCategoryRules(rawRules);
+    if (rules.length != rawRules.take(maxFileCategoryRules).length) {
+      w('Ignored one or more invalid saved file-category rules');
+    }
+    return rules;
+  }
+
+  bool get clipboardMonitorEnabled => _clipboardMonitorEnabled;
+  int get clipboardMonitorSchemes => _clipboardMonitorSchemes;
   bool get hideTitleBar => _hideTitleBar;
   bool get isLoaded => _isLoaded;
   ThemeMode get themeMode => _themeMode;
@@ -202,6 +263,40 @@ class Settings extends ChangeNotifier with Loggable {
   // Speed settings
   int get maxOverallDownloadLimit => _maxOverallDownloadLimit;
   int get maxOverallUploadLimit => _maxOverallUploadLimit;
+  bool get speedLimitEnabled => _speedLimitEnabled;
+  bool get speedScheduleEnabled => _speedScheduleEnabled;
+  int get speedScheduleDays => _speedScheduleDays;
+  int get speedScheduleStartMinutes => _speedScheduleStartMinutes;
+  int get speedScheduleEndMinutes => _speedScheduleEndMinutes;
+
+  /// Whether the configured overall limits are currently being enforced
+  /// according to the master switch and the schedule window.
+  bool isSpeedLimitWindowActive([DateTime? now]) {
+    return isWithinSpeedScheduleWindow(
+      scheduleEnabled: _speedScheduleEnabled,
+      daysBitmask: _speedScheduleDays,
+      startMinutes: _speedScheduleStartMinutes,
+      endMinutes: _speedScheduleEndMinutes,
+      now: now ?? DateTime.now(),
+    );
+  }
+
+  /// The limits that should be applied to aria2 right now.
+  ({int download, int upload}) effectiveOverallLimits([DateTime? now]) {
+    final windowActive = isSpeedLimitWindowActive(now);
+    return (
+      download: effectiveSpeedLimit(
+        limitsEnabled: _speedLimitEnabled,
+        windowActive: windowActive,
+        configuredValue: _maxOverallDownloadLimit,
+      ),
+      upload: effectiveSpeedLimit(
+        limitsEnabled: _speedLimitEnabled,
+        windowActive: windowActive,
+        configuredValue: _maxOverallUploadLimit,
+      ),
+    );
+  }
 
   // BT settings
   bool get btSaveMetadata => _btSaveMetadata;
@@ -241,6 +336,11 @@ class Settings extends ChangeNotifier with Loggable {
       'downloadDir': _downloadDir,
       'maxOverallDownloadLimit': _maxOverallDownloadLimit,
       'maxOverallUploadLimit': _maxOverallUploadLimit,
+      'speedLimitEnabled': _speedLimitEnabled,
+      'speedScheduleEnabled': _speedScheduleEnabled,
+      'speedScheduleDays': _speedScheduleDays,
+      'speedScheduleStartMinutes': _speedScheduleStartMinutes,
+      'speedScheduleEndMinutes': _speedScheduleEndMinutes,
       'btSaveMetadata': _btSaveMetadata,
       'btForceEncryption': _btForceEncryption,
       'btLoadSavedMetadata': _btLoadSavedMetadata,
@@ -393,6 +493,15 @@ class Settings extends ChangeNotifier with Loggable {
           return null;
         }
 
+        int readScheduleMinutes(String key, int fallback) {
+          final value = readInt(key, fallback, min: 0, max: minutesPerDay);
+          if (value % 30 != 0) {
+            needsSave = true;
+            return fallback;
+          }
+          return value;
+        }
+
         // Global settings
         _autoStart = readBool('autoStart', false);
         final minimizeToTray = readBool('minimizeToTray', true);
@@ -419,6 +528,27 @@ class Settings extends ChangeNotifier with Loggable {
         _showDownloadsAfterAdd = readBool('showDownloadsAfterAdd', true);
         _showProgressBar = readBool('showProgressBar', true);
         _keepAwake = readBool('keepAwake', false);
+        _shutdownWhenComplete = readBool('shutdownWhenComplete', false);
+        _fileCategoryRoutingEnabled = readBool(
+          'fileCategoryRoutingEnabled',
+          false,
+        );
+        _fileCategoryRulesJson = readString('fileCategoryRulesJson', '[]');
+        _lastUpdateCheckTimestamp = readInt(
+          'lastUpdateCheckTimestamp',
+          0,
+          min: 0,
+        );
+        _clipboardMonitorEnabled = readBool('clipboardMonitorEnabled', false);
+        final loadedSchemes = readInt(
+          'clipboardMonitorSchemes',
+          0xF,
+          min: 0,
+          max: 0xF,
+        );
+        _clipboardMonitorSchemes = loadedSchemes == 0
+            ? 0xF
+            : loadedSchemes & 0xF;
         _hideTitleBar = readBool('hideTitleBar', false);
 
         // Appearance settings
@@ -511,6 +641,25 @@ class Settings extends ChangeNotifier with Loggable {
           0,
           min: 0,
           max: 65535,
+        );
+        _speedLimitEnabled = readBool('speedLimitEnabled', true);
+        _speedScheduleEnabled = readBool('speedScheduleEnabled', false);
+        final loadedDays = readInt(
+          'speedScheduleDays',
+          allDaysBitmask,
+          min: 0,
+          max: allDaysBitmask,
+        );
+        _speedScheduleDays = loadedDays == 0
+            ? allDaysBitmask
+            : loadedDays & allDaysBitmask;
+        _speedScheduleStartMinutes = readScheduleMinutes(
+          'speedScheduleStartMinutes',
+          0,
+        );
+        _speedScheduleEndMinutes = readScheduleMinutes(
+          'speedScheduleEndMinutes',
+          minutesPerDay,
         );
 
         // BT settings
@@ -619,6 +768,12 @@ class Settings extends ChangeNotifier with Loggable {
         'showDownloadsAfterAdd': _showDownloadsAfterAdd,
         'showProgressBar': _showProgressBar,
         'keepAwake': _keepAwake,
+        'shutdownWhenComplete': _shutdownWhenComplete,
+        'fileCategoryRoutingEnabled': _fileCategoryRoutingEnabled,
+        'fileCategoryRulesJson': _fileCategoryRulesJson,
+        'lastUpdateCheckTimestamp': _lastUpdateCheckTimestamp,
+        'clipboardMonitorEnabled': _clipboardMonitorEnabled,
+        'clipboardMonitorSchemes': _clipboardMonitorSchemes,
         'hideTitleBar': _hideTitleBar,
         'themeMode': _themeMode.name,
         'primaryColor': _primaryColor.toARGB32().toString(),
@@ -640,6 +795,11 @@ class Settings extends ChangeNotifier with Loggable {
         // Speed settings
         'maxOverallDownloadLimit': _maxOverallDownloadLimit,
         'maxOverallUploadLimit': _maxOverallUploadLimit,
+        'speedLimitEnabled': _speedLimitEnabled,
+        'speedScheduleEnabled': _speedScheduleEnabled,
+        'speedScheduleDays': _speedScheduleDays,
+        'speedScheduleStartMinutes': _speedScheduleStartMinutes,
+        'speedScheduleEndMinutes': _speedScheduleEndMinutes,
 
         // BT settings
         'btSaveMetadata': _btSaveMetadata,
@@ -693,6 +853,101 @@ class Settings extends ChangeNotifier with Loggable {
     _autoStart = value;
     notifyListeners();
     await _saveAllSettings();
+  }
+
+  /// RPC listen port of the built-in instance; also persisted when the
+  /// engine recovers from a port conflict by moving to a free port.
+  Future<void> setRpcListenPort(int value) async {
+    if (_rpcListenPort == value) {
+      return;
+    }
+    _rpcListenPort = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setSpeedLimitEnabled(bool value) async {
+    if (_speedLimitEnabled == value) {
+      return;
+    }
+    _speedLimitEnabled = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  /// Configured overall download limit in KB/s (0 = unlimited).
+  Future<void> setMaxOverallDownloadLimit(int kiloBytesPerSecond) async {
+    final value = kiloBytesPerSecond.clamp(0, 65535).toInt();
+    if (_maxOverallDownloadLimit == value) {
+      return;
+    }
+    _maxOverallDownloadLimit = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  /// Configured overall upload limit in KB/s (0 = unlimited).
+  Future<void> setMaxOverallUploadLimit(int kiloBytesPerSecond) async {
+    final value = kiloBytesPerSecond.clamp(0, 65535).toInt();
+    if (_maxOverallUploadLimit == value) {
+      return;
+    }
+    _maxOverallUploadLimit = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  /// Updates the speed-limit schedule; pass only the fields that changed so
+  /// unrelated values are preserved.
+  Future<void> setSpeedSchedule({
+    bool? enabled,
+    int? days,
+    int? startMinutes,
+    int? endMinutes,
+  }) async {
+    final nextEnabled = enabled ?? _speedScheduleEnabled;
+    var nextDays = (days ?? _speedScheduleDays) & allDaysBitmask;
+    if (nextDays == 0) {
+      nextDays = allDaysBitmask;
+    }
+    final nextStart = _validateScheduleMinutes(
+      startMinutes,
+      _speedScheduleStartMinutes,
+      'startMinutes',
+    );
+    final nextEnd = _validateScheduleMinutes(
+      endMinutes,
+      _speedScheduleEndMinutes,
+      'endMinutes',
+    );
+
+    if (nextEnabled == _speedScheduleEnabled &&
+        nextDays == _speedScheduleDays &&
+        nextStart == _speedScheduleStartMinutes &&
+        nextEnd == _speedScheduleEndMinutes) {
+      return;
+    }
+
+    _speedScheduleEnabled = nextEnabled;
+    _speedScheduleDays = nextDays;
+    _speedScheduleStartMinutes = nextStart;
+    _speedScheduleEndMinutes = nextEnd;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  int _validateScheduleMinutes(int? value, int fallback, String name) {
+    if (value == null) {
+      return fallback;
+    }
+    if (value < 0 || value > minutesPerDay || value % 30 != 0) {
+      throw ArgumentError.value(
+        value,
+        name,
+        'must be between 0 and $minutesPerDay and divisible by 30',
+      );
+    }
+    return value;
   }
 
   Future<void> setRunMode(AppRunMode value) async {
@@ -763,6 +1018,73 @@ class Settings extends ChangeNotifier with Loggable {
 
   Future<void> setHideTitleBar(bool value) async {
     _hideTitleBar = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setShutdownWhenComplete(bool value) async {
+    if (_shutdownWhenComplete == value) {
+      return;
+    }
+    _shutdownWhenComplete = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setFileCategoryRoutingEnabled(bool value) async {
+    if (_fileCategoryRoutingEnabled == value) {
+      return;
+    }
+    _fileCategoryRoutingEnabled = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setFileCategoryRules(List<FileCategoryRule> rules) async {
+    final encoded = jsonEncode(
+      rules.take(maxFileCategoryRules).map((rule) => rule.encode()).toList(),
+    );
+    if (_fileCategoryRulesJson == encoded) {
+      return;
+    }
+    final previous = _fileCategoryRulesJson;
+    _fileCategoryRulesJson = encoded;
+    notifyListeners();
+    try {
+      await _saveAllSettings();
+    } catch (_) {
+      _fileCategoryRulesJson = previous;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> setLastUpdateCheckTimestamp(int millisSinceEpoch) async {
+    if (_lastUpdateCheckTimestamp == millisSinceEpoch) {
+      return;
+    }
+    _lastUpdateCheckTimestamp = millisSinceEpoch;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  Future<void> setClipboardMonitorEnabled(bool value) async {
+    if (_clipboardMonitorEnabled == value) {
+      return;
+    }
+    _clipboardMonitorEnabled = value;
+    notifyListeners();
+    await _saveAllSettings();
+  }
+
+  /// Scheme bitmask for clipboard watching: bit0 http(s), bit1 ftp,
+  /// bit2 magnet, bit3 thunder.
+  Future<void> setClipboardMonitorSchemes(int value) async {
+    final masked = value & 0xF;
+    if (_clipboardMonitorSchemes == masked) {
+      return;
+    }
+    _clipboardMonitorSchemes = masked == 0 ? 0xF : masked;
     notifyListeners();
     await _saveAllSettings();
   }

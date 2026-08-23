@@ -12,21 +12,25 @@ import 'pages/download_page/download_page.dart';
 import 'pages/download_page/enums.dart';
 import 'pages/download_page/models/download_task.dart';
 import 'pages/instance_page/instance_page.dart';
+import 'pages/components/quick_speed_limit_dialog.dart';
 import 'utils/format_utils.dart';
 import 'utils/windows_font_theme.dart';
 import 'pages/settings_page/settings_page.dart';
 import 'services/download_data_service.dart';
 import 'services/desktop_progress_service.dart';
 import 'services/power_management_service.dart';
+import 'services/builtin_instance_service.dart';
+import 'services/clipboard_monitor_service.dart';
 import 'services/instance_manager.dart';
 import 'services/protocol_integration_service.dart';
 import 'services/settings_service.dart';
 import 'services/auto_hide_window_service.dart';
 import 'services/startup_integration_service.dart';
 import 'services/system_tray_service.dart';
+import 'services/shutdown_service.dart';
 import 'services/tracker_sync_service.dart';
-import 'services/aria2_rpc_client.dart';
 import 'services/task_bulk_action_service.dart';
+import 'services/update_check_service.dart';
 import 'utils/logging.dart';
 import 'widgets/sized_loading.dart';
 import 'widgets/virtual_window_frame.dart';
@@ -102,13 +106,7 @@ class _ThemeProviderState extends State<_ThemeProvider> {
       home: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => InstanceManager()),
-          ChangeNotifierProxyProvider<InstanceManager, DownloadDataService>(
-            create: (context) => DownloadDataService(),
-            update: (context, instanceManager, downloadDataService) {
-              // Ensure DownloadDataService can access InstanceManager
-              return downloadDataService!;
-            },
-          ),
+          ChangeNotifierProvider(create: (context) => DownloadDataService()),
           ChangeNotifierProvider(create: (context) => SettingsService()),
         ],
         child: const _HomeWrapper(),
@@ -167,6 +165,9 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
     await instanceManager.initialize();
 
     unawaited(_syncBuiltinTrackersIfNeeded(settings, instanceManager));
+    if (mounted) {
+      unawaited(UpdateCheckService().autoCheckIfNeeded(settings, context));
+    }
 
     setState(() {
       _isInitialized = true;
@@ -210,10 +211,21 @@ class _HomeWrapperState extends State<_HomeWrapper> with Loggable {
     InstanceManager instanceManager,
   ) async {
     try {
+      if (!mounted) {
+        return;
+      }
       final builtinInstance = instanceManager.getBuiltinInstance();
+      if (builtinInstance == null) {
+        return;
+      }
+      final downloadDataService = Provider.of<DownloadDataService>(
+        context,
+        listen: false,
+      );
       await TrackerSyncService().syncBuiltinTrackersIfNeeded(
         settings,
         builtinInstance: builtinInstance,
+        rpcClient: downloadDataService.clientFor(builtinInstance),
       );
     } catch (e, stackTrace) {
       w('Automatic tracker sync failed', error: e, stackTrace: stackTrace);
@@ -262,8 +274,41 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     super.initState();
     _pageController = PageController(initialPage: _selectedIndex);
     windowManager.addListener(this);
+    BuiltinInstanceService.portRecoveryNotice.addListener(
+      _handlePortRecoveryNotice,
+    );
+    ClipboardMonitorService.instance.version.addListener(
+      _handleClipboardUriDetected,
+    );
+    final initialSettings = Provider.of<Settings>(context, listen: false);
+    ClipboardMonitorService.instance.synchronize(
+      enabled: initialSettings.clipboardMonitorEnabled,
+      schemes: initialSettings.clipboardMonitorSchemes,
+    );
     unawaited(_showPreparedWindow());
     _initSystemTrayCallbacks();
+  }
+
+  void _handlePortRecoveryNotice() {
+    final message = BuiltinInstanceService.portRecoveryNotice.value;
+    if (message == null) {
+      return;
+    }
+    BuiltinInstanceService.portRecoveryNotice.value = null;
+    if (!mounted) {
+      return;
+    }
+    _showTrayActionSnackBar(message);
+  }
+
+  bool _isShowingShutdownDialog = false;
+
+  void _handleClipboardUriDetected() {
+    final uri = ClipboardMonitorService.instance.takePendingUri();
+    if (uri == null || !mounted) {
+      return;
+    }
+    unawaited(_navigateAndOpenAddTask(initialUri: uri));
   }
 
   Future<void> _showPreparedWindow() async {
@@ -283,6 +328,13 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     _downloadDataService?.removeListener(_handleDownloadNotifications);
     _instanceManager?.removeListener(_handleInstanceManagerChanged);
     _settings?.removeListener(_handleSettingsChanged);
+    BuiltinInstanceService.portRecoveryNotice.removeListener(
+      _handlePortRecoveryNotice,
+    );
+    ClipboardMonitorService.instance.version.removeListener(
+      _handleClipboardUriDetected,
+    );
+    ClipboardMonitorService.instance.stop();
     unawaited(_desktopProgressService.clear());
     unawaited(_powerManagementService.dispose());
     _pendingAutoHideTimer?.cancel();
@@ -343,6 +395,13 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   }
 
   void _handleSettingsChanged() {
+    final settings = _settings;
+    if (settings != null) {
+      ClipboardMonitorService.instance.synchronize(
+        enabled: settings.clipboardMonitorEnabled,
+        schemes: settings.clipboardMonitorSchemes,
+      );
+    }
     unawaited(_synchronizeDesktopProgress());
     unawaited(_synchronizePowerManagement());
     unawaited(_handleTrayStateChanged());
@@ -386,41 +445,21 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       return;
     }
 
-    final tasksByInstance = <String, List<DownloadTask>>{};
-    for (final task in pausedTasks) {
-      tasksByInstance.putIfAbsent(task.instanceId, () => []).add(task);
-    }
-
-    var successCount = 0;
-    var failCount = 0;
-    for (final instance in connectedInstances) {
-      final instanceTasks = tasksByInstance[instance.id];
-      if (instanceTasks == null || instanceTasks.isEmpty) {
-        continue;
-      }
-
-      final client = Aria2RpcClient(instance);
-      try {
-        for (final task in instanceTasks) {
-          try {
-            await client.unpauseTask(task.id);
-            successCount++;
-          } catch (e, stackTrace) {
-            failCount++;
-            this.e(
-              'Failed to resume task ${task.id} on launch for instance ${instance.name}',
-              error: e,
-              stackTrace: stackTrace,
-            );
-          }
-        }
-      } finally {
-        await client.close();
-      }
-    }
+    final result = await TaskBulkActionService().run(
+      instances: connectedInstances,
+      tasks: pausedTasks,
+      clientFactory: downloadDataService.clientFor,
+      perform: (client, task) async {
+        await client.unpauseTask(task.id);
+        return const BulkActionItemResult();
+      },
+    );
 
     await downloadDataService.refreshTasks(connectedInstances);
-    i('Resume-on-launch finished: $successCount resumed, $failCount failed');
+    i(
+      'Resume-on-launch finished: ${result.successCount} resumed, '
+      '${result.failureCount} failed, ${result.indeterminateCount} unknown',
+    );
   }
 
   void _handleInstanceManagerChanged() {
@@ -582,6 +621,24 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     }
 
     final notifications = _downloadDataService!.takePendingNotifications();
+    ShutdownService.instance.synchronize(
+      notifications: notifications,
+      tasks: _downloadDataService!.tasks,
+      enabled: Provider.of<Settings>(
+        context,
+        listen: false,
+      ).shutdownWhenComplete,
+    );
+    if (ShutdownService.instance.isCountingDown &&
+        mounted &&
+        !_isShowingShutdownDialog) {
+      _isShowingShutdownDialog = true;
+      showDialog<void>(
+        context: context,
+        builder: (_) => const ShutdownCountdownDialog(),
+      ).whenComplete(() => _isShowingShutdownDialog = false);
+    }
+
     if (notifications.isEmpty) {
       return;
     }
@@ -619,8 +676,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         _downloadDataService ??
         Provider.of<DownloadDataService>(context, listen: false);
     final connectedCount = instanceManager.getConnectedInstances().length;
-    final tasks = downloadDataService.tasks;
-    final summary = _computeTaskSummary(tasks);
+    final summary = downloadDataService.taskSummary;
     final settings = _settings ?? Provider.of<Settings>(context, listen: false);
     if (settings.runMode == AppRunMode.hideTray) {
       return;
@@ -702,6 +758,11 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   }
 
   Future<void> _openAddTaskFromTray() async {
+    await _navigateAndOpenAddTask();
+    await _handleTrayStateChanged();
+  }
+
+  Future<void> _navigateAndOpenAddTask({String? initialUri}) async {
     if (!mounted) {
       return;
     }
@@ -726,9 +787,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _downloadPageKey.currentState?.showAddTaskDialogFromExternalTrigger();
+      _downloadPageKey.currentState?.showAddTaskDialogFromExternalTrigger(
+        initialUri: initialUri,
+      );
     });
-    await _handleTrayStateChanged();
   }
 
   Future<void> _pauseAllTasksFromTray() async {
@@ -742,7 +804,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
           (task.status == DownloadStatus.active ||
               task.status == DownloadStatus.waiting) &&
           task.taskStatus != 'paused',
-      perform: (client, taskId) => client.pauseTask(taskId),
+      perform: (client, task) async {
+        await client.pauseTask(task.id);
+        return const BulkActionItemResult();
+      },
     );
   }
 
@@ -755,15 +820,17 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
       actionLabel: AppLocalizations.of(context)!.resumeTasks,
       shouldProcess: (task) =>
           task.status == DownloadStatus.waiting && task.taskStatus == 'paused',
-      perform: (client, taskId) => client.unpauseTask(taskId),
+      perform: (client, task) async {
+        await client.unpauseTask(task.id);
+        return const BulkActionItemResult();
+      },
     );
   }
 
   Future<void> _runTrayBulkAction({
     required String actionLabel,
     required bool Function(DownloadTask task) shouldProcess,
-    required Future<String> Function(Aria2RpcClient client, String taskId)
-    perform,
+    required TaskBulkItemAction perform,
   }) async {
     if (!mounted) {
       return;
@@ -801,6 +868,7 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     final result = await TaskBulkActionService().run(
       instances: connectedInstances,
       tasks: actionableTasks,
+      clientFactory: downloadDataService.clientFor,
       perform: perform,
     );
 
@@ -986,38 +1054,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
   }
 }
 
-({int active, int waiting, int resumable, int pausable, int speed})
-_computeTaskSummary(List<DownloadTask> tasks) {
-  var active = 0;
-  var waiting = 0;
-  var resumable = 0;
-  var pausable = 0;
-  var speed = 0;
-  for (final task in tasks) {
-    if (task.status == DownloadStatus.active) {
-      active++;
-      speed += task.downloadSpeedBytes;
-    } else if (task.status == DownloadStatus.waiting) {
-      waiting++;
-    }
-    if (task.status == DownloadStatus.waiting && task.taskStatus == 'paused') {
-      resumable++;
-    }
-    if ((task.status == DownloadStatus.active ||
-            task.status == DownloadStatus.waiting) &&
-        task.taskStatus != 'paused') {
-      pausable++;
-    }
-  }
-  return (
-    active: active,
-    waiting: waiting,
-    resumable: resumable,
-    pausable: pausable,
-    speed: speed,
-  );
-}
-
 class _StatusBar extends StatelessWidget {
   const _StatusBar();
 
@@ -1025,13 +1061,12 @@ class _StatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
-    final summary = context
-        .select<
-          DownloadDataService,
-          ({int active, int waiting, int resumable, int pausable, int speed})
-        >((service) {
-          return _computeTaskSummary(service.tasks);
-        });
+    final summary = context.select<DownloadDataService, TaskSummary>(
+      (service) => service.taskSummary,
+    );
+    final uploadSpeed = context.select<DownloadDataService, int>(
+      (service) => service.totalUploadSpeed,
+    );
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1052,11 +1087,23 @@ class _StatusBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Chip(
-            label: Text(l10n.totalSpeed(formatSpeed(summary.speed))),
-            avatar: const Icon(Icons.speed, size: 16),
-            backgroundColor: colorScheme.surfaceContainerHighest,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          // Speed capsule: activate or long-press to edit limits.
+          Tooltip(
+            message: l10n.speedCapsuleTooltip,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => showQuickSpeedLimitDialog(context),
+              onLongPress: () => showQuickSpeedLimitDialog(context),
+              child: Chip(
+                avatar: const Icon(Icons.speed, size: 16),
+                label: Text(
+                  '${l10n.downloadShort} ${formatSpeed(summary.speed)}  '
+                  '${l10n.uploadShort} ${formatSpeed(uploadSpeed)}',
+                ),
+                backgroundColor: colorScheme.surfaceContainerHighest,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              ),
+            ),
           ),
           Chip(
             label: Text(l10n.activeTasks(summary.active.toString())),

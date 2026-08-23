@@ -2,8 +2,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:setsuna/models/aria2_instance.dart';
 
 void main() {
+  Map<String, dynamic> runtimeJson(Aria2Instance instance) {
+    return {
+      'id': instance.id,
+      'name': instance.name,
+      'type': instance.type.name,
+      'protocol': instance.protocol,
+      'host': instance.host,
+      'port': instance.port,
+      'secret': instance.secret,
+      'downloadDir': instance.downloadDir,
+      'rpcPath': instance.rpcPath,
+      'rpcRequestHeaders': instance.rpcRequestHeaders,
+      'version': instance.version,
+      'errorMessage': instance.errorMessage,
+      'status': instance.status.name,
+    };
+  }
+
   group('Aria2Instance', () {
-    group('fromJson / toJson round-trip', () {
+    group('fromJson round-trip', () {
       test('round-trips all fields', () {
         final original = Aria2Instance(
           id: 'abc-123',
@@ -21,7 +39,7 @@ void main() {
           status: ConnectionStatus.connected,
         );
 
-        final json = original.toJson();
+        final json = runtimeJson(original);
         final restored = Aria2Instance.fromJson(json);
 
         expect(restored.id, original.id);
@@ -318,39 +336,6 @@ void main() {
         expect(copy.port, 8080);
         expect(copy.secret, 'new-secret');
         expect(copy.protocol, 'http');
-      });
-    });
-
-    group('toJson field types', () {
-      test('serializes enum as name string', () {
-        final instance = Aria2Instance(
-          id: '1',
-          name: 'Test',
-          type: InstanceType.builtin,
-          protocol: 'ws',
-          host: 'localhost',
-          port: 16800,
-          status: ConnectionStatus.connected,
-        );
-
-        final json = instance.toJson();
-        expect(json['type'], 'builtin');
-        expect(json['status'], 'connected');
-      });
-
-      test('serializes null fields as null', () {
-        final instance = Aria2Instance(
-          id: '1',
-          name: 'Test',
-          type: InstanceType.remote,
-          protocol: 'http',
-          host: 'localhost',
-          port: 6800,
-        );
-
-        final json = instance.toJson();
-        expect(json['version'], isNull);
-        expect(json['errorMessage'], isNull);
       });
     });
   });

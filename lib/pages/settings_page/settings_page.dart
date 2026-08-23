@@ -10,13 +10,17 @@ import '../../constants/github_id.dart';
 import '../../generated/l10n/l10n.dart';
 import '../../models/settings.dart';
 import '../../pages/debug_log_page.dart';
+import '../../services/clipboard_monitor_service.dart';
 import '../../services/protocol_integration_service.dart';
 import '../../services/startup_integration_service.dart';
+import '../../services/update_check_service.dart';
 import '../../utils/logging.dart';
 import '../../widgets/app_card.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/sized_loading.dart';
+import '../components/file_category_editor_dialog.dart';
 import './components/appearance_dialog.dart';
+import './components/speed_limit_card.dart';
 
 enum _SettingsTab { global, system, about }
 
@@ -28,7 +32,9 @@ class _SettingsSection {
 }
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({super.key, this.updateCheckService});
+
+  final UpdateCheckService? updateCheckService;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -41,6 +47,7 @@ class _SettingsPageState extends State<SettingsPage>
         SingleTickerProviderStateMixin {
   String _versionLabel = '';
   bool _isLoading = true;
+  bool _isCheckingForUpdates = false;
   late final TabController _tabController = TabController(
     length: _SettingsTab.values.length,
     vsync: this,
@@ -132,6 +139,7 @@ class _SettingsPageState extends State<SettingsPage>
           children: [
             _buildTabView([
               _buildBehaviorSection(settings, l10n),
+              _buildSpeedSection(settings, l10n),
               _buildAppearanceSection(settings, l10n),
               _buildMaintenanceSection(l10n),
             ]),
@@ -250,7 +258,41 @@ class _SettingsPageState extends State<SettingsPage>
           value: settings.keepAwake,
           onChanged: (value) => settings.setKeepAwake(value),
         ),
+        _buildSwitchTile(
+          title: l10n.shutdownWhenComplete,
+          subtitle: l10n.shutdownWhenCompleteTip,
+          value: settings.shutdownWhenComplete,
+          onChanged: (value) => settings.setShutdownWhenComplete(value),
+        ),
+        _buildSwitchTile(
+          title: l10n.fileCategoryRouting,
+          value: settings.fileCategoryRoutingEnabled,
+          onChanged: (value) => settings.setFileCategoryRoutingEnabled(value),
+        ),
+        _buildTextCardTile(
+          title: l10n.fileCategoriesTitle,
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => showFileCategoryEditorDialog(context, settings),
+        ),
+        _buildSwitchTile(
+          title: l10n.clipboardMonitorEnabled,
+          subtitle: l10n.clipboardMonitorEnabledTip,
+          value: settings.clipboardMonitorEnabled,
+          onChanged: (value) => settings.setClipboardMonitorEnabled(value),
+        ),
+        if (settings.clipboardMonitorEnabled)
+          _buildClipboardSchemeSelector(settings),
       ]),
+    );
+  }
+
+  _SettingsSection _buildSpeedSection(
+    Settings settings,
+    AppLocalizations l10n,
+  ) {
+    return _SettingsSection(
+      title: l10n.speedLimits,
+      child: SpeedLimitCard(settings: settings),
     );
   }
 
@@ -451,6 +493,13 @@ class _SettingsPageState extends State<SettingsPage>
       title: l10n.maintenance,
       child: _buildSettingsGroup([
         _buildTextCardTile(
+          title: l10n.checkForUpdates,
+          trailing: _isCheckingForUpdates
+              ? SizedLoading.small
+              : const Icon(Icons.system_update_alt_outlined),
+          onTap: _isCheckingForUpdates ? null : _checkForUpdates,
+        ),
+        _buildTextCardTile(
           title: l10n.viewLogs,
           subtitle: Text(l10n.viewLogsTip),
           trailing: const Icon(Icons.article_outlined),
@@ -646,6 +695,84 @@ class _SettingsPageState extends State<SettingsPage>
       subtitle: subtitle,
       trailing: trailing,
       onTap: onTap,
+    );
+  }
+
+  Future<void> _checkForUpdates() async {
+    if (_isCheckingForUpdates) {
+      return;
+    }
+    setState(() => _isCheckingForUpdates = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final service = widget.updateCheckService ?? UpdateCheckService();
+      final result = await service.checkForUpdate();
+      if (!mounted) {
+        return;
+      }
+      final l10n = AppLocalizations.of(context)!;
+      if (result.isSelfBuild) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.updateCheckSelfBuild)),
+        );
+        return;
+      }
+      if (result.isFailed) {
+        _showErrorSnackBar(l10n.operationFailed(l10n.checkForUpdates));
+        return;
+      }
+      if (result.isUpdateAvailable) {
+        await service.showUpdateDialog(context, result);
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text(l10n.upToDate)));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingForUpdates = false);
+      }
+    }
+  }
+
+  Widget _buildClipboardSchemeSelector(Settings settings) {
+    const schemes = <(String, int)>[
+      ('HTTP(S)', ClipboardMonitorService.schemeHttp),
+      ('FTP', ClipboardMonitorService.schemeFtp),
+      ('Magnet', ClipboardMonitorService.schemeMagnet),
+      ('Thunder', ClipboardMonitorService.schemeThunder),
+    ];
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final scheme in schemes)
+              FilterChip(
+                label: Text(scheme.$1),
+                selected: settings.clipboardMonitorSchemes & scheme.$2 != 0,
+                onSelected: (selected) {
+                  final current = settings.clipboardMonitorSchemes;
+                  final next = selected
+                      ? current | scheme.$2
+                      : current & ~scheme.$2;
+                  if (next == 0) {
+                    _showWarningSnackBar(
+                      AppLocalizations.of(
+                        context,
+                      )!.clipboardMonitorSchemeRequired,
+                    );
+                    return;
+                  }
+                  _runSettingAction(
+                    () => settings.setClipboardMonitorSchemes(next),
+                    AppLocalizations.of(context)!.saveSettingsFailed,
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 

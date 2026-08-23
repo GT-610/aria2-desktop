@@ -1373,6 +1373,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get speedLimits => '速度限制';
 
   @override
+  String get maxOverallUploadSpeed => '全局上传限速';
+
+  @override
+  String get maxOverallDownloadSpeed => '全局下载限速';
+
+  @override
   String get btPtSection => 'BT / PT';
 
   @override
@@ -1625,6 +1631,138 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get torrentRatio => '分享率';
+
+  @override
+  String get taskOptions => '选项';
+
+  @override
+  String get speedLimitEnabledTitle => '启用限速';
+
+  @override
+  String get speedLimitEnabledTip => '对全局上传和下载速度应用限制';
+
+  @override
+  String get speedCapsuleTooltip => '下载 / 上传速度 - 点击或长按编辑限速';
+
+  @override
+  String get unlimited => '不限速';
+
+  @override
+  String get speedScheduleTitle => '限速时段';
+
+  @override
+  String get speedScheduleFrom => '开始';
+
+  @override
+  String get speedScheduleTo => '结束';
+
+  @override
+  String get shutdownWhenComplete => '下载完成后自动关机';
+
+  @override
+  String get shutdownWhenCompleteTip => '全部下载结束后显示可取消的 60 秒倒计时。';
+
+  @override
+  String shutdownCountdownMessage(Object seconds) {
+    return '系统将在 $seconds 秒后关机。';
+  }
+
+  @override
+  String get clipboardMonitorEnabled => '监视剪贴板中的下载链接';
+
+  @override
+  String get clipboardMonitorEnabledTip => '复制受支持的链接后自动打开新建任务对话框。';
+
+  @override
+  String get clipboardMonitorSchemeRequired => '请至少保留一种剪贴板链接类型。';
+
+  @override
+  String get fileCategoriesTitle => '下载分类目录';
+
+  @override
+  String get fileCategoriesEmptyHint =>
+      '暂无分类规则。添加规则后可将 *.mp4 等下载自动归入 Videos 等子目录。';
+
+  @override
+  String get fileCategoriesMaxHint => '最多支持 20 条分类规则。';
+
+  @override
+  String get fileCategoryAddRule => '添加规则';
+
+  @override
+  String get fileCategoryExtensionsLabel => '扩展名（如 mp4, mkv）';
+
+  @override
+  String get fileCategorySubdirLabel => '子目录';
+
+  @override
+  String get fileCategoryInvalidRule => '请输入至少一个有效扩展名和安全的子目录。';
+
+  @override
+  String get fileCategoryRouting => '按类型将下载归类到子目录';
+
+  @override
+  String get checkForUpdates => '检查更新';
+
+  @override
+  String get updateAvailableTitle => '发现新版本';
+
+  @override
+  String updateAvailableMessage(Object version) {
+    return '新版本 $version 已发布。';
+  }
+
+  @override
+  String get updateOpenReleasePage => '打开发布页';
+
+  @override
+  String get upToDate => '当前已是最新版本。';
+
+  @override
+  String get updateCheckSelfBuild => '自构建版本不提供更新检查。';
+
+  @override
+  String get selectFilesAfterMetadata => '获取到种子元数据后选择文件';
+
+  @override
+  String get metadataTimeout => '等待种子元数据超时';
+
+  @override
+  String get metadataReadyHint => '已获取种子元数据，请选择要下载的文件';
+
+  @override
+  String healthPercentage(Object value) {
+    return '健康度：$value';
+  }
+
+  @override
+  String get copyMagnetLink => '复制磁力链接';
+
+  @override
+  String get magnetLinkCopied => '磁力链接已复制到剪贴板';
+
+  @override
+  String get optionPerTaskDownloadLimit => '下载限速';
+
+  @override
+  String get optionPerTaskUploadLimit => '上传限速';
+
+  @override
+  String get btMaxPeers => '最大连接数';
+
+  @override
+  String get forceSaveOption => '强制保存';
+
+  @override
+  String optionsLoadFailed(Object error) {
+    return '加载任务选项失败：$error';
+  }
+
+  @override
+  String get optionsSaved => '选项已保存';
+
+  @override
+  String get optionsActiveOnlyHint => '任务进行中仅可修改部分选项。';
 
   @override
   String get english => 'English';

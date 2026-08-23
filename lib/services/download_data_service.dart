@@ -28,6 +28,42 @@ class InstanceRefreshState {
   final DateTime? nextRetryAt;
 }
 
+/// Snapshot of aria2's global stat for a single instance.
+class GlobalInstanceStats {
+  const GlobalInstanceStats({
+    required this.downloadSpeed,
+    required this.uploadSpeed,
+    required this.activeCount,
+    required this.waitingCount,
+    required this.stoppedCount,
+  });
+
+  factory GlobalInstanceStats.fromRpc(Map<String, dynamic> data) {
+    return GlobalInstanceStats(
+      downloadSpeed: int.tryParse('${data['downloadSpeed']}') ?? 0,
+      uploadSpeed: int.tryParse('${data['uploadSpeed']}') ?? 0,
+      activeCount: int.tryParse('${data['numActive']}') ?? 0,
+      waitingCount: int.tryParse('${data['numWaiting']}') ?? 0,
+      stoppedCount: int.tryParse('${data['numStopped']}') ?? 0,
+    );
+  }
+
+  final int downloadSpeed;
+  final int uploadSpeed;
+  final int activeCount;
+  final int waitingCount;
+  final int stoppedCount;
+}
+
+/// Aggregated cross-instance counters used by the status bar and tray.
+typedef TaskSummary = ({
+  int active,
+  int waiting,
+  int resumable,
+  int pausable,
+  int speed,
+});
+
 class _InstanceTaskRefreshResult {
   const _InstanceTaskRefreshResult.success(this.instanceId, this.tasks)
     : error = null,
@@ -78,6 +114,12 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   final List<DownloadTaskNotification> _pendingNotifications = [];
   int _tasksVersion = 0;
   final Map<String, InstanceRefreshState> _instanceStates = {};
+  final Map<String, GlobalInstanceStats?> _globalStats = {};
+
+  // instanceId -> gid -> signature of the basic projected fields from the
+  // last detailed fetch. Used to skip full re-fetches while nothing changed.
+  final Map<String, Map<String, String>> _taskSignatures = {};
+  final Set<String> _detailedRefreshRequired = {};
 
   final int _refreshInterval = 1000;
 
@@ -94,6 +136,88 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   String? get lastError => _lastError;
   Map<String, InstanceRefreshState> get instanceStates =>
       Map.unmodifiable(_instanceStates);
+
+  /// Aggregated global speeds across instances that reported stats in the
+  /// latest cycle; null when no instance reported them.
+  ({int downloadSpeed, int uploadSpeed})? get aggregatedGlobalSpeeds {
+    var download = 0;
+    var upload = 0;
+    var seen = false;
+    for (final stats in _globalStats.values) {
+      if (stats == null) {
+        continue;
+      }
+      seen = true;
+      download += stats.downloadSpeed;
+      upload += stats.uploadSpeed;
+    }
+    return seen ? (downloadSpeed: download, uploadSpeed: upload) : null;
+  }
+
+  /// Total upload speed with global-stat preference and task-sum fallback.
+  int get totalUploadSpeed {
+    final fromStats = aggregatedGlobalSpeeds?.uploadSpeed;
+    if (fromStats != null) {
+      return fromStats;
+    }
+    return _tasks.fold(
+      0,
+      (sum, task) => task.status == DownloadStatus.active
+          ? sum + task.uploadSpeedBytes
+          : sum,
+    );
+  }
+
+  /// Status-bar/tray summary derived from global stat speeds when available,
+  /// falling back to summing active task speeds.
+  TaskSummary get taskSummary {
+    var active = 0;
+    var waiting = 0;
+    var resumable = 0;
+    var pausable = 0;
+    for (final task in _tasks) {
+      if (task.status == DownloadStatus.active) {
+        active++;
+      } else if (task.status == DownloadStatus.waiting) {
+        waiting++;
+      }
+      if (task.status == DownloadStatus.waiting &&
+          task.taskStatus == 'paused') {
+        resumable++;
+      }
+      if ((task.status == DownloadStatus.active ||
+              task.status == DownloadStatus.waiting) &&
+          task.taskStatus != 'paused') {
+        pausable++;
+      }
+    }
+    final fallbackSpeed = _tasks.fold<int>(
+      0,
+      (sum, task) => task.status == DownloadStatus.active
+          ? sum + task.downloadSpeedBytes
+          : sum,
+    );
+    final speed = aggregatedGlobalSpeeds?.downloadSpeed ?? fallbackSpeed;
+    return (
+      active: active,
+      waiting: waiting,
+      resumable: resumable,
+      pausable: pausable,
+      speed: speed,
+    );
+  }
+
+  /// Returns a shared RPC client for [instance], creating and registering it
+  /// on first use. Clients are owned by this service: do not close them.
+  Aria2RpcClient clientFor(Aria2Instance instance) {
+    return _getClient(instance);
+  }
+
+  /// Forces the next refresh for [instanceId] to request detailed task data.
+  void invalidateTaskDetails(String instanceId) {
+    _taskSignatures.remove(instanceId);
+    _detailedRefreshRequired.add(instanceId);
+  }
 
   Aria2RpcClient _getClient(Aria2Instance instance) {
     final key = instance.connectionFingerprint;
@@ -214,6 +338,9 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       _tasks = [];
       _tasksView = UnmodifiableListView(_tasks);
       _instanceStates.clear();
+      _globalStats.clear();
+      _taskSignatures.clear();
+      _detailedRefreshRequired.clear();
       _tasksVersion++;
       _lastError = null;
       if (hadTasks || hadError || hadInstanceStates) {
@@ -283,6 +410,18 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       }
       _instanceStates.removeWhere(
         (instanceId, _) =>
+            !connectedInstances.any((instance) => instance.id == instanceId),
+      );
+      _globalStats.removeWhere(
+        (instanceId, _) =>
+            !connectedInstances.any((instance) => instance.id == instanceId),
+      );
+      _taskSignatures.removeWhere(
+        (instanceId, _) =>
+            !connectedInstances.any((instance) => instance.id == instanceId),
+      );
+      _detailedRefreshRequired.removeWhere(
+        (instanceId) =>
             !connectedInstances.any((instance) => instance.id == instanceId),
       );
       _lastError = errors.isEmpty ? null : errors.join('; ');
@@ -373,59 +512,64 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     }
 
     try {
-      final allTasks = <DownloadTask>[];
-
       final client = _getClient(instance);
-      final results = await client.getDownloadStatus();
 
-      if (results.length < 3 ||
-          results.take(3).any((result) => result['success'] != true)) {
-        throw const RpcException(
-          'aria2 returned an incomplete task status response',
+      if (_detailedRefreshRequired.contains(instanceId)) {
+        // A previous refresh already established that detailed data is
+        // required, so avoid another basic request on a changing task.
+        final previousSignatures = _taskSignatures[instanceId];
+        final detailedResults = await client.getDownloadStatus(
+          includeGlobalStat: true,
+        );
+        _validateTaskResults(detailedResults);
+        _updateGlobalStats(instanceId, detailedResults);
+        final parsedDetailed = _parseTaskGroups(
+          detailedResults,
+          instanceId,
+          isLocal,
+        );
+        final nextSignatures = _signaturesFromResults(detailedResults);
+        _taskSignatures[instanceId] = nextSignatures;
+        if (previousSignatures != null &&
+            !_signaturesEqual(previousSignatures, nextSignatures)) {
+          _detailedRefreshRequired.add(instanceId);
+        } else {
+          _detailedRefreshRequired.remove(instanceId);
+        }
+        return _InstanceTaskRefreshResult.success(instance.id, parsedDetailed);
+      }
+
+      // Phase 1: cheap poll with a basic field projection plus global stats.
+      final basicResults = await client.getDownloadStatus(
+        detailed: false,
+        includeGlobalStat: true,
+      );
+      _validateTaskResults(basicResults);
+      _updateGlobalStats(instanceId, basicResults);
+
+      final parsedBasic = _parseTaskGroups(basicResults, instanceId, isLocal);
+      final basicSignatures = _signaturesFromResults(basicResults);
+      if (_basicSnapshotUnchanged(instanceId, parsedBasic, basicSignatures)) {
+        // Nothing visible changed: keep the previously parsed (fully
+        // detailed) task objects so list identity stays stable and we skip
+        // the expensive files/bittorrent re-fetch.
+        return _InstanceTaskRefreshResult.success(
+          instance.id,
+          _tasks.where((task) => task.instanceId == instanceId).toList(),
         );
       }
 
-      if (results[0]['success'] && results[0]['data'] is List) {
-        final activeTasks = results[0]['data'] as List;
-        allTasks.addAll(
-          TaskParser.parseTasks(
-            activeTasks,
-            DownloadStatus.active,
-            instanceId,
-            isLocal,
-          ),
-        );
-      }
-
-      if (results.length > 1 &&
-          results[1]['success'] &&
-          results[1]['data'] is List) {
-        final waitingTasks = results[1]['data'] as List;
-        allTasks.addAll(
-          TaskParser.parseTasks(
-            waitingTasks,
-            DownloadStatus.waiting,
-            instanceId,
-            isLocal,
-          ),
-        );
-      }
-
-      if (results.length > 2 &&
-          results[2]['success'] &&
-          results[2]['data'] is List) {
-        final stoppedTasks = results[2]['data'] as List;
-        allTasks.addAll(
-          TaskParser.parseTasks(
-            stoppedTasks,
-            DownloadStatus.stopped,
-            instanceId,
-            isLocal,
-          ),
-        );
-      }
-
-      return _InstanceTaskRefreshResult.success(instance.id, allTasks);
+      // Phase 2: the basic projection changed, so re-fetch every field.
+      _detailedRefreshRequired.add(instanceId);
+      final detailedResults = await client.getDownloadStatus();
+      _validateTaskResults(detailedResults);
+      final parsedDetailed = _parseTaskGroups(
+        detailedResults,
+        instanceId,
+        isLocal,
+      );
+      _storeTaskSignatures(instanceId, detailedResults);
+      return _InstanceTaskRefreshResult.success(instance.id, parsedDetailed);
     } catch (e, stackTrace) {
       this.e(
         'Failed to fetch tasks for instance ${instance.name}',
@@ -434,6 +578,135 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       );
       return _InstanceTaskRefreshResult.failure(instance.id, e);
     }
+  }
+
+  void _validateTaskResults(List<Map<String, dynamic>> results) {
+    if (results.length < 3 ||
+        results.take(3).any((result) => result['success'] != true)) {
+      throw const RpcException(
+        'aria2 returned an incomplete task status response',
+      );
+    }
+  }
+
+  void _updateGlobalStats(
+    String instanceId,
+    List<Map<String, dynamic>> results,
+  ) {
+    if (results.length < 4) {
+      _globalStats.remove(instanceId);
+      return;
+    }
+    final entry = results[3];
+    if (entry['success'] == true && entry['data'] is Map) {
+      _globalStats[instanceId] = GlobalInstanceStats.fromRpc(
+        Map<String, dynamic>.from(entry['data'] as Map),
+      );
+    } else {
+      _globalStats.remove(instanceId);
+    }
+  }
+
+  List<DownloadTask> _parseTaskGroups(
+    List<Map<String, dynamic>> results,
+    String instanceId,
+    bool isLocal,
+  ) {
+    final allTasks = <DownloadTask>[];
+    const statuses = [
+      DownloadStatus.active,
+      DownloadStatus.waiting,
+      DownloadStatus.stopped,
+    ];
+    for (var i = 0; i < statuses.length && i < results.length; i++) {
+      final result = results[i];
+      if (result['success'] == true && result['data'] is List) {
+        allTasks.addAll(
+          TaskParser.parseTasks(
+            result['data'] as List,
+            statuses[i],
+            instanceId,
+            isLocal,
+          ),
+        );
+      }
+    }
+    return allTasks;
+  }
+
+  static String _rawTaskSignature(Map<String, dynamic> rawTask) {
+    final buffer = StringBuffer();
+    for (final key in Aria2RpcClient.basicTaskFields) {
+      buffer
+        ..write(rawTask[key])
+        ..write('\u001f');
+    }
+    return buffer.toString();
+  }
+
+  Map<String, String> _signaturesFromResults(
+    List<Map<String, dynamic>> results,
+  ) {
+    final signatures = <String, String>{};
+    for (var i = 0; i < 3 && i < results.length; i++) {
+      final data = results[i]['data'];
+      if (results[i]['success'] != true || data is! List) {
+        continue;
+      }
+      for (final rawTask in data) {
+        if (rawTask is Map) {
+          final task = Map<String, dynamic>.from(rawTask);
+          final gid = '${task['gid']}';
+          if (gid.isNotEmpty) {
+            signatures[gid] = _rawTaskSignature(task);
+          }
+        }
+      }
+    }
+    return signatures;
+  }
+
+  void _storeTaskSignatures(
+    String instanceId,
+    List<Map<String, dynamic>> results,
+  ) {
+    _taskSignatures[instanceId] = _signaturesFromResults(results);
+  }
+
+  static bool _signaturesEqual(
+    Map<String, String> left,
+    Map<String, String> right,
+  ) {
+    if (left.length != right.length) {
+      return false;
+    }
+    for (final entry in left.entries) {
+      if (right[entry.key] != entry.value) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _basicSnapshotUnchanged(
+    String instanceId,
+    List<DownloadTask> parsedBasic,
+    Map<String, String> basicSignatures,
+  ) {
+    final store = _taskSignatures[instanceId];
+    if (parsedBasic.isEmpty) {
+      // Only stable when the previous detailed snapshot was empty as well.
+      return store != null && store.isEmpty && basicSignatures.isEmpty;
+    }
+    if (store == null || store.length != basicSignatures.length) {
+      return false;
+    }
+    for (final entry in basicSignatures.entries) {
+      if (store[entry.key] != entry.value) {
+        return false;
+      }
+    }
+    return true;
   }
 
   static const _statusOrder = {

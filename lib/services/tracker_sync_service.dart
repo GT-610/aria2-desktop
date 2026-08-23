@@ -80,9 +80,13 @@ class TrackerSyncService with Loggable {
     return true;
   }
 
+  /// Pushes the synced tracker list to the built-in instance. When
+  /// [rpcClient] is provided it is reused and must be closed by its owner;
+  /// otherwise a dedicated client is created and closed here.
   Future<bool> syncBuiltinTrackersIfNeeded(
     Settings settings, {
     Aria2Instance? builtinInstance,
+    Aria2RpcClient? rpcClient,
   }) async {
     if (!settings.autoSyncTracker) {
       return false;
@@ -109,12 +113,15 @@ class TrackerSyncService with Loggable {
       return synced;
     }
 
-    final client = Aria2RpcClient(builtinInstance);
+    final ownedClient = rpcClient == null;
+    final client = rpcClient ?? Aria2RpcClient(builtinInstance);
     try {
       await client.setGlobalOption({'bt-tracker': settings.btTracker});
       return true;
     } finally {
-      await client.close();
+      if (ownedClient) {
+        await client.close();
+      }
     }
   }
 

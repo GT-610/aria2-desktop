@@ -2563,6 +2563,18 @@ abstract class AppLocalizations {
   /// **'Speed Limits'**
   String get speedLimits;
 
+  /// No description provided for @maxOverallUploadSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Overall upload speed limit'**
+  String get maxOverallUploadSpeed;
+
+  /// No description provided for @maxOverallDownloadSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Overall download speed limit'**
+  String get maxOverallDownloadSpeed;
+
   /// No description provided for @btPtSection.
   ///
   /// In en, this message translates to:
@@ -3042,6 +3054,252 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ratio'**
   String get torrentRatio;
+
+  /// No description provided for @taskOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get taskOptions;
+
+  /// No description provided for @speedLimitEnabledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable speed limits'**
+  String get speedLimitEnabledTitle;
+
+  /// No description provided for @speedLimitEnabledTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply global upload and download speed limits'**
+  String get speedLimitEnabledTip;
+
+  /// No description provided for @speedCapsuleTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Download / upload speeds - tap or long-press to edit limits'**
+  String get speedCapsuleTooltip;
+
+  /// No description provided for @unlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'unlimited'**
+  String get unlimited;
+
+  /// No description provided for @speedScheduleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Limit schedule'**
+  String get speedScheduleTitle;
+
+  /// No description provided for @speedScheduleFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get speedScheduleFrom;
+
+  /// No description provided for @speedScheduleTo.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get speedScheduleTo;
+
+  /// No description provided for @shutdownWhenComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Shut down when downloads complete'**
+  String get shutdownWhenComplete;
+
+  /// No description provided for @shutdownWhenCompleteTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows a cancellable 60-second countdown once every download has finished.'**
+  String get shutdownWhenCompleteTip;
+
+  /// No description provided for @shutdownCountdownMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The system will shut down in {seconds} seconds.'**
+  String shutdownCountdownMessage(Object seconds);
+
+  /// No description provided for @clipboardMonitorEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch clipboard for download links'**
+  String get clipboardMonitorEnabled;
+
+  /// No description provided for @clipboardMonitorEnabledTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Opens the add-task dialog when a supported link is copied.'**
+  String get clipboardMonitorEnabledTip;
+
+  /// No description provided for @clipboardMonitorSchemeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep at least one clipboard link type enabled.'**
+  String get clipboardMonitorSchemeRequired;
+
+  /// No description provided for @fileCategoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download categories'**
+  String get fileCategoriesTitle;
+
+  /// No description provided for @fileCategoriesEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No category rules yet. Add rules to route downloads like *.mp4 into a Videos subdirectory.'**
+  String get fileCategoriesEmptyHint;
+
+  /// No description provided for @fileCategoriesMaxHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum of 20 category rules reached.'**
+  String get fileCategoriesMaxHint;
+
+  /// No description provided for @fileCategoryAddRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Add rule'**
+  String get fileCategoryAddRule;
+
+  /// No description provided for @fileCategoryExtensionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Extensions (e.g. mp4, mkv)'**
+  String get fileCategoryExtensionsLabel;
+
+  /// No description provided for @fileCategorySubdirLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Subdirectory'**
+  String get fileCategorySubdirLabel;
+
+  /// No description provided for @fileCategoryInvalidRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least one valid extension and a safe subdirectory.'**
+  String get fileCategoryInvalidRule;
+
+  /// No description provided for @fileCategoryRouting.
+  ///
+  /// In en, this message translates to:
+  /// **'Route downloads into category folders'**
+  String get fileCategoryRouting;
+
+  /// No description provided for @checkForUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get checkForUpdates;
+
+  /// No description provided for @updateAvailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update available'**
+  String get updateAvailableTitle;
+
+  /// No description provided for @updateAvailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} is available.'**
+  String updateAvailableMessage(Object version);
+
+  /// No description provided for @updateOpenReleasePage.
+  ///
+  /// In en, this message translates to:
+  /// **'Open release page'**
+  String get updateOpenReleasePage;
+
+  /// No description provided for @upToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'You are running the latest version.'**
+  String get upToDate;
+
+  /// No description provided for @updateCheckSelfBuild.
+  ///
+  /// In en, this message translates to:
+  /// **'Update checks are unavailable for self-built versions.'**
+  String get updateCheckSelfBuild;
+
+  /// No description provided for @selectFilesAfterMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Select files once torrent metadata is fetched'**
+  String get selectFilesAfterMetadata;
+
+  /// No description provided for @metadataTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Timed out waiting for torrent metadata'**
+  String get metadataTimeout;
+
+  /// No description provided for @metadataReadyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Torrent metadata fetched - choose the files to download'**
+  String get metadataReadyHint;
+
+  /// No description provided for @healthPercentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Health: {value}'**
+  String healthPercentage(Object value);
+
+  /// No description provided for @copyMagnetLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy magnet link'**
+  String get copyMagnetLink;
+
+  /// No description provided for @magnetLinkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Magnet link copied to clipboard'**
+  String get magnetLinkCopied;
+
+  /// No description provided for @optionPerTaskDownloadLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Download limit'**
+  String get optionPerTaskDownloadLimit;
+
+  /// No description provided for @optionPerTaskUploadLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload limit'**
+  String get optionPerTaskUploadLimit;
+
+  /// No description provided for @btMaxPeers.
+  ///
+  /// In en, this message translates to:
+  /// **'Max peers'**
+  String get btMaxPeers;
+
+  /// No description provided for @forceSaveOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Force save'**
+  String get forceSaveOption;
+
+  /// No description provided for @optionsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load task options: {error}'**
+  String optionsLoadFailed(Object error);
+
+  /// No description provided for @optionsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Options saved'**
+  String get optionsSaved;
+
+  /// No description provided for @optionsActiveOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only a subset of options can be changed while the task is active.'**
+  String get optionsActiveOnlyHint;
 
   /// No description provided for @english.
   ///

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import '../../generated/l10n/l10n.dart';
@@ -11,9 +12,11 @@ import '../../services/aria2_rpc_client.dart';
 import '../../services/download_data_service.dart';
 import '../../services/instance_manager.dart';
 import '../../services/protocol_integration_service.dart';
+import '../../utils/file_category.dart' show categorySubdirForUris;
 import '../../utils/logging.dart';
 import 'components/add_task_dialog.dart';
 import 'components/filter_selector.dart';
+import 'components/magnet_file_select_flow.dart';
 import 'components/task_action_dialogs.dart';
 import 'components/task_details_dialog.dart';
 import 'components/task_list_view.dart';
@@ -852,7 +855,6 @@ class DownloadPageState extends State<DownloadPage>
                 taskOptions,
                 showDownloadsAfterAdd,
               ) async {
-                Aria2RpcClient? client;
                 try {
                   final targetInstance = instanceManager.getInstanceById(
                     targetInstanceId,
@@ -867,10 +869,26 @@ class DownloadPageState extends State<DownloadPage>
                     return false;
                   }
 
-                  client = Aria2RpcClient(targetInstance);
+                  final downloadDataService = pageContext
+                      .read<DownloadDataService>();
+                  final client = downloadDataService.clientFor(targetInstance);
                   final options = <String, dynamic>{...taskOptions};
                   if (downloadDir.trim().isNotEmpty) {
                     options['dir'] = downloadDir.trim();
+                    if (taskType == 'uri' &&
+                        settings.fileCategoryRoutingEnabled) {
+                      final subdir = categorySubdirForUris(
+                        uri,
+                        settings.fileCategoryRules,
+                      );
+                      if (subdir != null) {
+                        final base = '${options['dir']}';
+                        final pathContext = base.contains('\\')
+                            ? p.Context(style: p.Style.windows)
+                            : p.Context(style: p.Style.posix);
+                        options['dir'] = pathContext.join(base, subdir);
+                      }
+                    }
                   }
 
                   switch (taskType) {
@@ -883,7 +901,17 @@ class DownloadPageState extends State<DownloadPage>
                       if (uris.isEmpty) {
                         return false;
                       }
-                      await client.addUri(uris, options);
+                      final gid = await client.addUri(uris, options);
+                      if (options[pauseMetadataOptionKey] == 'true' &&
+                          pageContext.mounted) {
+                        unawaited(
+                          MagnetFileSelectionFlow.watchAndPrompt(
+                            pageContext,
+                            targetInstance,
+                            gid,
+                          ),
+                        );
+                      }
                       break;
                     case 'torrent':
                       if (fileContent == null) {
@@ -950,18 +978,6 @@ class DownloadPageState extends State<DownloadPage>
                     );
                   }
                   return false;
-                } finally {
-                  if (client != null) {
-                    try {
-                      await client.close();
-                    } catch (error, stackTrace) {
-                      w(
-                        'Failed to close task-add RPC client',
-                        error: error,
-                        stackTrace: stackTrace,
-                      );
-                    }
-                  }
                 }
               },
         );

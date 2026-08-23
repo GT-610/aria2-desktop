@@ -226,25 +226,6 @@ class Aria2Instance {
     return instance;
   }
 
-  // Convert to JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'type': type.name,
-      'protocol': protocol,
-      'host': host,
-      'port': port,
-      'secret': secret,
-      'downloadDir': downloadDir,
-      'rpcPath': rpcPath,
-      'rpcRequestHeaders': rpcRequestHeaders,
-      'version': version,
-      'errorMessage': errorMessage,
-      'status': status.name,
-    };
-  }
-
   Map<String, dynamic> toPersistenceJson() {
     return {
       'id': id,

@@ -13,6 +13,11 @@ The current product goal is to cover the day-to-day workflow of a Motrix-style d
 ### Built-in instance
 
 - Managed built-in aria2 instance with start, reconnect, and settings application
+- Hardened engine lifecycle: proxy environment stripping (host proxies never
+  leak into downloads), SOCKS rejection for `--all-proxy`, and automatic RPC
+  port-conflict recovery with persistence and a user-visible notice
+- `--detach-share-only` on Aria2 Next engines so seeding tasks do not consume
+  concurrent-download slots
 - Built-in aria2 settings page with desktop-oriented options
 - Session reset tool for built-in aria2 recovery
 - BT and seeding support, including seeding-aware task state handling
@@ -28,9 +33,37 @@ The current product goal is to cover the day-to-day workflow of a Motrix-style d
 ### Download workflow
 
 - Add tasks through URI, Torrent, and Metalink
-- Pause, resume, retry, remove, open folder, and batch task actions
-- Task details dialog with files, peers, trackers, pieces, and BT-specific overview data
+- Optional magnet metadata-only flow: stage magnets with `pause-metadata`,
+  pick files once the torrent metadata arrives, and resume; canceling removes
+  the staged task entirely
+- Pause, resume, retry (with rollback on partial re-submission), remove, open
+  folder, and batch task actions across instances
+- Task details dialog with Overview / Pieces / Files / Options / Trackers /
+  Peers tabs: piece-map visualization, BT swarm health estimation, peer client
+  identification with per-peer piece bars, copy-magnet-link action, and live
+  per-task option editing (`getOption`/`changeOption`) gated by aria2 status
+  rules
+- IDM-style file-category routing: extension-based subdirectory rules applied
+  to URI tasks at add time
 - BT seeding detection aligned with aria2 task semantics
+
+### Speed control
+
+- Status-bar speed capsule: tap or long-press for a quick up/down limit editor
+- Global speed-limit settings card with an optional weekday + time-window
+  schedule (overnight windows supported); the scheduler passively pushes or
+  releases `max-overall-*-limit` without ever mutating user-configured values
+- Per-task download/upload limits through the details dialog options tab
+
+### Automation
+
+- Shut down after downloads complete, with a cancellable 60-second countdown;
+  new activity cancels it automatically (seeding does not block shutdown)
+- Clipboard monitoring for http(s)/ftp/magnet/thunder links with self-copy
+  suppression and size guards; detected links open the add-task dialog
+  prefilled
+- Daily background update check against GitHub Releases plus a manual check in
+  maintenance settings
 
 ### Desktop shell
 
@@ -145,6 +178,10 @@ without a packaged core continue to support remote aria2 instances.
   may have been sent.
 - Download polling is application-scoped. A failed instance retains its last
   successful task snapshot as stale data without clearing healthy instances.
+- Polling uses an AriaNg-style two-phase refresh: cheap basic-field
+  projections every tick, with a full `files`/`bittorrent` re-fetch only when
+  the projected snapshot actually changed. `aria2.getGlobalStat` rides the
+  same multicall and feeds the status bar and tray speeds.
 
 ### Project structure
 
@@ -160,6 +197,16 @@ lib/
   utils/
 test/
 ```
+
+## Roadmap
+
+Deferred for now, in rough priority order:
+
+- ED2K support surface (the bundled Aria2 Next engine can provide it; needs
+  dedicated RPC/UI design)
+- Local HTTP API for browser-extension integration
+- A lightweight/headless mode that keeps downloads running with the window
+  closed
 
 ## Notes
 

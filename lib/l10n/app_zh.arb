@@ -506,6 +506,8 @@
   "connectionSection": "连接",
   "transferSection": "传输",
   "speedLimits": "速度限制",
+  "maxOverallUploadSpeed": "全局上传限速",
+  "maxOverallDownloadSpeed": "全局下载限速",
   "btPtSection": "BT / PT",
   "networkSection": "网络",
   "filesSection": "文件",
@@ -611,6 +613,67 @@
   "torrentSeeders": "种子数",
   "torrentUploaded": "已上传",
   "torrentRatio": "分享率",
+  "taskOptions": "选项",
+  "speedLimitEnabledTitle": "启用限速",
+  "speedLimitEnabledTip": "对全局上传和下载速度应用限制",
+  "speedCapsuleTooltip": "下载 / 上传速度 - 点击或长按编辑限速",
+  "unlimited": "不限速",
+  "speedScheduleTitle": "限速时段",
+  "speedScheduleFrom": "开始",
+  "speedScheduleTo": "结束",
+  "shutdownWhenComplete": "下载完成后自动关机",
+  "shutdownWhenCompleteTip": "全部下载结束后显示可取消的 60 秒倒计时。",
+  "shutdownCountdownMessage": "系统将在 {seconds} 秒后关机。",
+  "@shutdownCountdownMessage": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
+  "clipboardMonitorEnabled": "监视剪贴板中的下载链接",
+  "clipboardMonitorEnabledTip": "复制受支持的链接后自动打开新建任务对话框。",
+  "clipboardMonitorSchemeRequired": "请至少保留一种剪贴板链接类型。",
+  "fileCategoriesTitle": "下载分类目录",
+  "fileCategoriesEmptyHint": "暂无分类规则。添加规则后可将 *.mp4 等下载自动归入 Videos 等子目录。",
+  "fileCategoriesMaxHint": "最多支持 20 条分类规则。",
+  "fileCategoryAddRule": "添加规则",
+  "fileCategoryExtensionsLabel": "扩展名（如 mp4, mkv）",
+  "fileCategorySubdirLabel": "子目录",
+  "fileCategoryInvalidRule": "请输入至少一个有效扩展名和安全的子目录。",
+  "fileCategoryRouting": "按类型将下载归类到子目录",
+  "checkForUpdates": "检查更新",
+  "updateAvailableTitle": "发现新版本",
+  "updateAvailableMessage": "新版本 {version} 已发布。",
+  "@updateAvailableMessage": {
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "updateOpenReleasePage": "打开发布页",
+  "upToDate": "当前已是最新版本。",
+  "updateCheckSelfBuild": "自构建版本不提供更新检查。",
+  "selectFilesAfterMetadata": "获取到种子元数据后选择文件",
+  "metadataTimeout": "等待种子元数据超时",
+  "metadataReadyHint": "已获取种子元数据，请选择要下载的文件",
+  "healthPercentage": "健康度：{value}",
+  "@healthPercentage": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "copyMagnetLink": "复制磁力链接",
+  "magnetLinkCopied": "磁力链接已复制到剪贴板",
+  "optionPerTaskDownloadLimit": "下载限速",
+  "optionPerTaskUploadLimit": "上传限速",
+  "btMaxPeers": "最大连接数",
+  "forceSaveOption": "强制保存",
+  "optionsLoadFailed": "加载任务选项失败：{error}",
+  "@optionsLoadFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "optionsSaved": "选项已保存",
+  "optionsActiveOnlyHint": "任务进行中仅可修改部分选项。",
   "english": "English",
   "chinese": "中文"
 }

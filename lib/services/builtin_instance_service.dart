@@ -12,6 +12,7 @@ import '../utils/app_paths.dart';
 import '../utils/atomic_file.dart';
 import '../utils/default_download_directory.dart';
 import '../utils/logging.dart';
+import '../utils/speed_schedule.dart';
 import 'aria2_rpc_client.dart';
 import 'builtin_upnp_service.dart';
 import 'process_lifecycle_service.dart';
@@ -21,6 +22,13 @@ enum BuiltinInstanceApplyMode { none, liveApply, restartRequired }
 /// Service class for managing the built-in Aria2 instance
 class BuiltinInstanceService with Loggable {
   static const Duration _rpcShutdownTimeout = Duration(seconds: 5);
+
+  /// Set when the engine recovered from an RPC port conflict by moving to a
+  /// different port. The UI surfaces the message once and clears it.
+  static final ValueNotifier<String?> portRecoveryNotice =
+      ValueNotifier<String?>(null);
+
+  static bool? _cachedSupportsDetachShareOnly;
 
   static BuiltinInstanceService? _instance;
   Process? _aria2Process;
@@ -38,6 +46,7 @@ class BuiltinInstanceService with Loggable {
   Future<void> _lifecycleTail = Future<void>.value();
   String? _lastStartError;
   Settings? _settings;
+  int? _activeRpcPort;
 
   factory BuiltinInstanceService() {
     _instance ??= BuiltinInstanceService._internal();
@@ -55,6 +64,12 @@ class BuiltinInstanceService with Loggable {
   @visibleForTesting
   void clearBoundSettings() {
     _settings = null;
+    _activeRpcPort = null;
+  }
+
+  @visibleForTesting
+  void setActiveRpcPortForTesting(int? port) {
+    _activeRpcPort = port;
   }
 
   void _initializePaths() {
@@ -200,6 +215,43 @@ class BuiltinInstanceService with Loggable {
     return value > 0 ? '${value}K' : '0';
   }
 
+  /// Computes the effective overall limit (KB/s, 0 = unlimited) from a
+  /// settings snapshot, honoring the master switch and the schedule window.
+  @visibleForTesting
+  int effectiveSpeedLimitValueFromSnapshot(
+    Map<String, dynamic> settings,
+    String key, [
+    DateTime? now,
+  ]) {
+    final raw = settings[key];
+    final configured = raw is num
+        ? raw.toInt()
+        : int.tryParse(raw?.toString() ?? '') ?? 0;
+    final enabledRaw = settings['speedLimitEnabled'];
+    final limitsEnabled = enabledRaw is bool ? enabledRaw : true;
+    final scheduleDaysRaw = settings['speedScheduleDays'];
+    final startRaw = settings['speedScheduleStartMinutes'];
+    final endRaw = settings['speedScheduleEndMinutes'];
+    final windowActive = isWithinSpeedScheduleWindow(
+      scheduleEnabled: settings['speedScheduleEnabled'] == true,
+      daysBitmask: scheduleDaysRaw is int ? scheduleDaysRaw : allDaysBitmask,
+      startMinutes: startRaw is int ? startRaw : 0,
+      endMinutes: endRaw is int ? endRaw : minutesPerDay,
+      now: now ?? DateTime.now(),
+    );
+    return effectiveSpeedLimit(
+      limitsEnabled: limitsEnabled,
+      windowActive: windowActive,
+      configuredValue: configured,
+    );
+  }
+
+  String _effectiveSpeedLimitArg(Map<String, dynamic> settings, String key) {
+    return formatSpeedLimitArg(
+      effectiveSpeedLimitValueFromSnapshot(settings, key),
+    );
+  }
+
   @visibleForTesting
   int effectiveSeedTime(bool keepSeeding, dynamic rawValue) {
     if (keepSeeding) {
@@ -220,6 +272,104 @@ class BuiltinInstanceService with Loggable {
     return rawValue is num
         ? rawValue.toDouble()
         : double.tryParse(rawValue?.toString() ?? '') ?? 1.0;
+  }
+
+  /// aria2 only accepts HTTP proxies for --all-proxy and crashes on SOCKS
+  /// schemes; returns null for unsupported values.
+  @visibleForTesting
+  static String? sanitizeAllProxyArg(String rawValue) {
+    final value = rawValue.trim();
+    if (value.isEmpty) {
+      return null;
+    }
+    final scheme = Uri.tryParse(value)?.scheme.toLowerCase() ?? '';
+    if (scheme.startsWith('socks')) {
+      return null;
+    }
+    return value;
+  }
+
+  /// Removes inherited proxy environment variables so host-level proxies
+  /// never leak into the bundled engine.
+  @visibleForTesting
+  static Map<String, String> sanitizedEngineEnvironment(
+    Map<String, String> base,
+  ) {
+    const blockedNames = <String>{
+      'http_proxy',
+      'https_proxy',
+      'ftp_proxy',
+      'all_proxy',
+      'no_proxy',
+    };
+    final env = <String, String>{};
+    base.forEach((name, value) {
+      if (blockedNames.contains(name.toLowerCase())) {
+        return;
+      }
+      env[name] = value;
+    });
+    // Explicit empty overrides: aria2 treats empty proxy env vars as "no
+    // proxy", which also defeats platform-level environment merging.
+    for (final name in blockedNames) {
+      env[name] = '';
+    }
+    return env;
+  }
+
+  /// The bundled engine is aria2-next; its detach-share-only option does not
+  /// exist in vanilla aria2 (major version 1.x), which would refuse to start.
+  Future<bool> _engineSupportsDetachShareOnly({
+    Future<ProcessResult> Function(String, List<String>)? runProcess,
+  }) async {
+    final cached = _cachedSupportsDetachShareOnly;
+    if (cached != null) {
+      return cached;
+    }
+    try {
+      final probe = runProcess ?? Process.run;
+      final result = await probe(_aria2cPath!, const ['--version']);
+      if (result.exitCode != 0) {
+        w(
+          'Bundled engine version probe exited with code ${result.exitCode}; '
+          'assuming vanilla aria2 for this launch',
+        );
+        return false;
+      }
+      final match = RegExp(
+        r'^aria2\s+(\d+)\.',
+        multiLine: true,
+      ).firstMatch('${result.stdout}${result.stderr}');
+      final major = int.tryParse(match?.group(1) ?? '');
+      if (major == null) {
+        w(
+          'Could not parse the bundled engine version; assuming vanilla '
+          'aria2 for this launch',
+        );
+        return false;
+      }
+      _cachedSupportsDetachShareOnly = major >= 2;
+    } catch (e, stackTrace) {
+      w(
+        'Could not probe the bundled engine version; assuming vanilla aria2',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+    return _cachedSupportsDetachShareOnly!;
+  }
+
+  @visibleForTesting
+  static void clearDetachShareOnlySupportCache() {
+    _cachedSupportsDetachShareOnly = null;
+  }
+
+  @visibleForTesting
+  Future<bool> engineSupportsDetachShareOnlyForTesting(
+    Future<ProcessResult> Function(String, List<String>) runProcess,
+  ) {
+    return _engineSupportsDetachShareOnly(runProcess: runProcess);
   }
 
   String? validateBuiltinFiles() {
@@ -324,19 +474,35 @@ class BuiltinInstanceService with Loggable {
     );
   }
 
-  List<String> _buildArgs() {
+  String _recoveryFilePath(String filePath, int rpcPort) {
+    final extension = p.extension(filePath);
+    final basename = p.basenameWithoutExtension(filePath);
+    return p.join(p.dirname(filePath), '$basename.recovery-$rpcPort$extension');
+  }
+
+  List<String> _buildArgs({
+    required bool detachShareOnly,
+    int? rpcPortOverride,
+    bool useRecoveryPaths = false,
+  }) {
     final settings = _readSettingsSnapshot();
-    final rpcPort = _getConfiguredRpcPort(settings);
+    final rpcPort = rpcPortOverride ?? _getConfiguredRpcPort(settings);
     final rpcSecret = _getConfiguredRpcSecret(settings);
     final keepSeeding = settings['keepSeeding'] == true;
     final seedTime = effectiveSeedTime(keepSeeding, settings['seedTime']);
     final seedRatio = effectiveSeedRatio(keepSeeding, settings['seedRatio']);
     final btListenPort = resolveEffectiveBtListenPort(settings);
-    final sessionPath = _resolveEffectiveSessionPath(settings);
-    final logPath = resolveConfiguredFilePath(
+    final configuredSessionPath = _resolveEffectiveSessionPath(settings);
+    final configuredLogPath = resolveConfiguredFilePath(
       settings['logPath'],
       _defaultLogPath(),
     );
+    final sessionPath = useRecoveryPaths
+        ? _recoveryFilePath(configuredSessionPath, rpcPort)
+        : configuredSessionPath;
+    final logPath = useRecoveryPaths
+        ? _recoveryFilePath(configuredLogPath, rpcPort)
+        : configuredLogPath;
     final downloadDir = resolveConfiguredFilePath(
       settings['downloadDir'],
       _defaultDownloadDir(),
@@ -358,8 +524,8 @@ class BuiltinInstanceService with Loggable {
       '--max-connection-per-server=${settings['maxConnectionPerServer'] ?? 16}',
       '--min-split-size=10M',
       '--split=${settings['split'] ?? 16}',
-      '--max-overall-download-limit=${formatSpeedLimitArg(settings['maxOverallDownloadLimit'])}',
-      '--max-overall-upload-limit=${formatSpeedLimitArg(settings['maxOverallUploadLimit'])}',
+      '--max-overall-download-limit=${_effectiveSpeedLimitArg(settings, 'maxOverallDownloadLimit')}',
+      '--max-overall-upload-limit=${_effectiveSpeedLimitArg(settings, 'maxOverallUploadLimit')}',
       '--max-download-limit=0',
       '--max-upload-limit=0',
       '--file-allocation=prealloc',
@@ -373,6 +539,9 @@ class BuiltinInstanceService with Loggable {
       '--follow-torrent=mem',
       '--seed-time=$seedTime',
       '--seed-ratio=$seedRatio',
+      // Keep seeding tasks from occupying concurrent-download slots
+      // (aria2-next only; gated by an engine version probe at startup).
+      if (detachShareOnly) '--detach-share-only=true',
       '--bt-enable-lpd=true',
       '--bt-max-peers=100',
       '--bt-require-crypto=${settings['btForceEncryption'] ?? false}',
@@ -400,7 +569,15 @@ class BuiltinInstanceService with Loggable {
       args.add('--rpc-secret=$rpcSecret');
     }
     if (proxyEnabled && allProxy.isNotEmpty) {
-      args.add('--all-proxy=$allProxy');
+      final sanitizedProxy = sanitizeAllProxyArg(allProxy);
+      if (sanitizedProxy != null) {
+        args.add('--all-proxy=$sanitizedProxy');
+      } else {
+        w(
+          'Ignored the configured --all-proxy value because SOCKS proxies are '
+          'not supported by aria2 and crash the engine',
+        );
+      }
     }
     if (proxyEnabled && noProxy.isNotEmpty) {
       args.add('--no-proxy=$noProxy');
@@ -419,6 +596,19 @@ class BuiltinInstanceService with Loggable {
     }
 
     return args;
+  }
+
+  @visibleForTesting
+  List<String> buildArgsForTesting({
+    required bool detachShareOnly,
+    int? rpcPortOverride,
+    bool useRecoveryPaths = false,
+  }) {
+    return _buildArgs(
+      detachShareOnly: detachShareOnly,
+      rpcPortOverride: rpcPortOverride,
+      useRecoveryPaths: useRecoveryPaths,
+    );
   }
 
   Future<T> _serializeLifecycle<T>(Future<T> Function() action) {
@@ -489,24 +679,42 @@ class BuiltinInstanceService with Loggable {
       }
 
       if (await _isRpcReachable()) {
-        _lastStartError =
-            'The built-in aria2 RPC port is already used by another process';
-        e(
-          'The configured built-in aria2 RPC endpoint is already in use by '
-          'an unmanaged process; refusing to start a duplicate process',
+        // An unmanaged aria2 answers on the configured port; fall through to
+        // the TCP-based recovery below which migrates us to a free port.
+        w(
+          'An unmanaged aria2 instance is answering on the configured built-in '
+          'RPC port; looking for a free port',
         );
-        return false;
       }
 
-      final args = _buildArgs();
+      final configuredRpcPort = _getConfiguredRpcPort(_readSettingsSnapshot());
+      final resolvedRpcPort = await _resolveAvailableRpcPort(configuredRpcPort);
+      final recoveredFromPortCollision = resolvedRpcPort != configuredRpcPort;
+      if (recoveredFromPortCollision) {
+        await _persistRpcPort(resolvedRpcPort);
+        final notice =
+            'RPC port $configuredRpcPort was busy; moved the built-in '
+            'instance to $resolvedRpcPort';
+        portRecoveryNotice.value = notice;
+        w(notice);
+      }
+
+      final args = _buildArgs(
+        detachShareOnly: await _engineSupportsDetachShareOnly(),
+        rpcPortOverride: resolvedRpcPort,
+        useRecoveryPaths: recoveredFromPortCollision,
+      );
       final process = await Process.start(
         _aria2cPath!,
         args,
         runInShell: false,
         mode: ProcessStartMode.normal,
+        environment: sanitizedEngineEnvironment(Platform.environment),
+        includeParentEnvironment: false,
       );
       _aria2Process = process;
       _managedPid = process.pid;
+      _activeRpcPort = resolvedRpcPort;
       try {
         await _persistManagedPid(process.pid);
         if (!await ProcessLifecycleService.instance.attachToAppLifecycle(
@@ -521,6 +729,7 @@ class BuiltinInstanceService with Loggable {
         process.kill();
         _aria2Process = null;
         _managedPid = null;
+        _activeRpcPort = null;
         rethrow;
       }
 
@@ -530,6 +739,7 @@ class BuiltinInstanceService with Loggable {
           _aria2Process = null;
           _managedPid = null;
           _isConnected = false;
+          _activeRpcPort = null;
           unawaited(_deletePidFileIfMatches(process.pid));
           unawaited(_upnpService.shutdown());
         }
@@ -658,6 +868,66 @@ class BuiltinInstanceService with Loggable {
     }
   }
 
+  /// Returns [preferred] when bindable, otherwise scans upward for the first
+  /// free loopback port so the engine can recover from conflicts.
+  @visibleForTesting
+  Future<int> resolveAvailableRpcPort(
+    int preferred, {
+    int maxAttempts = 32,
+  }) async {
+    if (await _isTcpPortFree(preferred)) {
+      return preferred;
+    }
+    for (var offset = 1; offset <= maxAttempts; offset++) {
+      final candidate = preferred + offset;
+      if (candidate > 65535) {
+        break;
+      }
+      if (await _isTcpPortFree(candidate)) {
+        return candidate;
+      }
+    }
+    // Nothing free in the window: keep the configured port and let the
+    // regular startup failure surface to the user.
+    return preferred;
+  }
+
+  Future<int> _resolveAvailableRpcPort(int preferred) async {
+    return resolveAvailableRpcPort(preferred);
+  }
+
+  Future<bool> _isTcpPortFree(int port) async {
+    ServerSocket? socket;
+    try {
+      socket = await ServerSocket.bind(InternetAddress.loopbackIPv4, port);
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      await socket?.close();
+    }
+  }
+
+  /// Best-effort persistence of a recovered RPC port so restarts keep
+  /// working. Requires bound settings; disk fallbacks are intentionally not
+  /// rewritten here.
+  Future<void> _persistRpcPort(int port) async {
+    final settings = _settings;
+    if (settings == null || !settings.isLoaded) {
+      w('Cannot persist recovered RPC port without loaded settings');
+      return;
+    }
+    try {
+      await settings.setRpcListenPort(port);
+    } catch (e, stackTrace) {
+      w(
+        'Failed to persist recovered built-in RPC port $port',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
   Future<int?> _readPersistedPid() async {
     final pidFile = _pidFile;
     if (pidFile == null || !await pidFile.exists()) {
@@ -726,6 +996,7 @@ class BuiltinInstanceService with Loggable {
     _aria2Process = null;
     _managedPid = null;
     _isConnected = false;
+    _activeRpcPort = null;
     if (pid != null) {
       await _deletePidFileIfMatches(pid);
     }
@@ -784,7 +1055,7 @@ class BuiltinInstanceService with Loggable {
       type: InstanceType.builtin,
       protocol: 'ws',
       host: '127.0.0.1',
-      port: _getConfiguredRpcPort(settings),
+      port: _activeRpcPort ?? _getConfiguredRpcPort(settings),
       secret: _getConfiguredRpcSecret(settings),
       downloadDir: resolveConfiguredFilePath(
         settings['downloadDir'],
@@ -797,6 +1068,8 @@ class BuiltinInstanceService with Loggable {
   void dispose() {
     if (isRunning()) {
       unawaited(stopInstance());
+    } else {
+      _activeRpcPort = null;
     }
     clearPendingApply();
     _instance = null;

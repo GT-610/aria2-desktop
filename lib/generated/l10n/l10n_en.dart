@@ -1426,6 +1426,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get speedLimits => 'Speed Limits';
 
   @override
+  String get maxOverallUploadSpeed => 'Overall upload speed limit';
+
+  @override
+  String get maxOverallDownloadSpeed => 'Overall download speed limit';
+
+  @override
   String get btPtSection => 'BT / PT';
 
   @override
@@ -1696,6 +1702,148 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get torrentRatio => 'Ratio';
+
+  @override
+  String get taskOptions => 'Options';
+
+  @override
+  String get speedLimitEnabledTitle => 'Enable speed limits';
+
+  @override
+  String get speedLimitEnabledTip =>
+      'Apply global upload and download speed limits';
+
+  @override
+  String get speedCapsuleTooltip =>
+      'Download / upload speeds - tap or long-press to edit limits';
+
+  @override
+  String get unlimited => 'unlimited';
+
+  @override
+  String get speedScheduleTitle => 'Limit schedule';
+
+  @override
+  String get speedScheduleFrom => 'From';
+
+  @override
+  String get speedScheduleTo => 'To';
+
+  @override
+  String get shutdownWhenComplete => 'Shut down when downloads complete';
+
+  @override
+  String get shutdownWhenCompleteTip =>
+      'Shows a cancellable 60-second countdown once every download has finished.';
+
+  @override
+  String shutdownCountdownMessage(Object seconds) {
+    return 'The system will shut down in $seconds seconds.';
+  }
+
+  @override
+  String get clipboardMonitorEnabled => 'Watch clipboard for download links';
+
+  @override
+  String get clipboardMonitorEnabledTip =>
+      'Opens the add-task dialog when a supported link is copied.';
+
+  @override
+  String get clipboardMonitorSchemeRequired =>
+      'Keep at least one clipboard link type enabled.';
+
+  @override
+  String get fileCategoriesTitle => 'Download categories';
+
+  @override
+  String get fileCategoriesEmptyHint =>
+      'No category rules yet. Add rules to route downloads like *.mp4 into a Videos subdirectory.';
+
+  @override
+  String get fileCategoriesMaxHint => 'Maximum of 20 category rules reached.';
+
+  @override
+  String get fileCategoryAddRule => 'Add rule';
+
+  @override
+  String get fileCategoryExtensionsLabel => 'Extensions (e.g. mp4, mkv)';
+
+  @override
+  String get fileCategorySubdirLabel => 'Subdirectory';
+
+  @override
+  String get fileCategoryInvalidRule =>
+      'Enter at least one valid extension and a safe subdirectory.';
+
+  @override
+  String get fileCategoryRouting => 'Route downloads into category folders';
+
+  @override
+  String get checkForUpdates => 'Check for updates';
+
+  @override
+  String get updateAvailableTitle => 'Update available';
+
+  @override
+  String updateAvailableMessage(Object version) {
+    return 'Version $version is available.';
+  }
+
+  @override
+  String get updateOpenReleasePage => 'Open release page';
+
+  @override
+  String get upToDate => 'You are running the latest version.';
+
+  @override
+  String get updateCheckSelfBuild =>
+      'Update checks are unavailable for self-built versions.';
+
+  @override
+  String get selectFilesAfterMetadata =>
+      'Select files once torrent metadata is fetched';
+
+  @override
+  String get metadataTimeout => 'Timed out waiting for torrent metadata';
+
+  @override
+  String get metadataReadyHint =>
+      'Torrent metadata fetched - choose the files to download';
+
+  @override
+  String healthPercentage(Object value) {
+    return 'Health: $value';
+  }
+
+  @override
+  String get copyMagnetLink => 'Copy magnet link';
+
+  @override
+  String get magnetLinkCopied => 'Magnet link copied to clipboard';
+
+  @override
+  String get optionPerTaskDownloadLimit => 'Download limit';
+
+  @override
+  String get optionPerTaskUploadLimit => 'Upload limit';
+
+  @override
+  String get btMaxPeers => 'Max peers';
+
+  @override
+  String get forceSaveOption => 'Force save';
+
+  @override
+  String optionsLoadFailed(Object error) {
+    return 'Failed to load task options: $error';
+  }
+
+  @override
+  String get optionsSaved => 'Options saved';
+
+  @override
+  String get optionsActiveOnlyHint =>
+      'Only a subset of options can be changed while the task is active.';
 
   @override
   String get english => 'English';

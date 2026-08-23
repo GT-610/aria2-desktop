@@ -23,6 +23,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
       BuiltinInstanceService();
   List<Aria2Instance>? _cachedConnectedInstances;
   bool _credentialsBlocked = false;
+  bool _isDisposed = false;
   final Map<String, Future<bool>> _connectionOperations = {};
 
   List<Aria2Instance> get instances => _instances;
@@ -137,10 +138,27 @@ class InstanceManager extends ChangeNotifier with Loggable {
         stackTrace: stackTrace,
       );
     }
-    // Schedule notifyListeners to run after the current frame is built
-    SchedulerBinding.instance.addPostFrameCallback((_) {
+    _notifyAfterBuild();
+  }
+
+  /// Notifies listeners without depending on a frame being scheduled, so
+  /// state changes propagate while the window is hidden in the tray. When
+  /// called during frame building the notification is deferred to after the
+  /// current frame completes.
+  void _notifyAfterBuild() {
+    if (_isDisposed) {
+      return;
+    }
+    final binding = SchedulerBinding.instance;
+    if (binding.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      binding.addPostFrameCallback((_) {
+        if (!_isDisposed) {
+          notifyListeners();
+        }
+      });
+    } else {
       notifyListeners();
-    });
+    }
   }
 
   /// Load instance data
@@ -352,6 +370,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
           );
           return false;
         }
+        await refreshBuiltinInstanceConfig(
+          preserveStatus: ConnectionStatus.connecting,
+          preserveVersion: instance.version,
+        );
+        resolvedInstance = getBuiltinInstance() ?? resolvedInstance;
       }
 
       final canConnect = instance.type == InstanceType.builtin
@@ -523,10 +546,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
         errorMessage: errorMessage,
       );
       _invalidateConnectedCache();
-      // Schedule notifyListeners to run after the current frame is built
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        notifyListeners();
-      });
+      _notifyAfterBuild();
     }
   }
 
@@ -595,7 +615,15 @@ class InstanceManager extends ChangeNotifier with Loggable {
   }
 
   @override
+  void notifyListeners() {
+    if (!_isDisposed) {
+      super.notifyListeners();
+    }
+  }
+
+  @override
   void dispose() {
+    _isDisposed = true;
     _builtinInstanceService.dispose();
     super.dispose();
   }
