@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -95,6 +96,30 @@ void main() {
       expect(service.synchronizedSchemes, ClipboardMonitorService.schemeMagnet);
     });
 
+    test(
+      'reprocesses clipboard content after the scheme mask changes',
+      () async {
+        const uri = 'https://example.com/file.zip';
+        final service = ClipboardMonitorService(readText: () async => uri);
+        addTearDown(service.dispose);
+
+        service.synchronize(
+          enabled: true,
+          schemes: ClipboardMonitorService.schemeMagnet,
+        );
+        await service.pollNow();
+        expect(service.takePendingUri(), isNull);
+
+        service.synchronize(
+          enabled: true,
+          schemes: ClipboardMonitorService.schemeHttp,
+        );
+        await service.pollNow();
+
+        expect(service.takePendingUri(), uri);
+      },
+    );
+
     test('rejects multi-line and unsupported content', () {
       final service = ClipboardMonitorService();
       expect(service.extractEligibleUri('hello world', all), isNull);
@@ -183,6 +208,56 @@ void main() {
       );
 
       expect(service.executionState.value, ShutdownExecutionState.failed);
+    });
+
+    test('running shutdown execution cannot restart the countdown', () async {
+      final service = ShutdownService.instance;
+      final shutdownResult = Completer<ProcessResult>();
+      final operation = service.executeShutdown(
+        shutdown: () => shutdownResult.future,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      service.synchronize(
+        notifications: const <DownloadTaskNotification>[
+          DownloadTaskNotification(
+            taskId: 'complete',
+            taskName: 'complete',
+            instanceId: 'builtin',
+            type: DownloadTaskNotificationType.completed,
+          ),
+        ],
+        tasks: const <DownloadTask>[],
+        enabled: true,
+      );
+
+      expect(service.executionState.value, ShutdownExecutionState.running);
+      expect(service.isCountingDown, isFalse);
+      shutdownResult.complete(ProcessResult(1, 0, '', ''));
+      await operation;
+    });
+
+    test('failed shutdown execution cannot restart the countdown', () async {
+      final service = ShutdownService.instance;
+      await service.executeShutdown(
+        shutdown: () async => ProcessResult(1, 1, '', 'permission denied'),
+      );
+
+      service.synchronize(
+        notifications: const <DownloadTaskNotification>[
+          DownloadTaskNotification(
+            taskId: 'complete',
+            taskName: 'complete',
+            instanceId: 'builtin',
+            type: DownloadTaskNotificationType.completed,
+          ),
+        ],
+        tasks: const <DownloadTask>[],
+        enabled: true,
+      );
+
+      expect(service.executionState.value, ShutdownExecutionState.failed);
+      expect(service.isCountingDown, isFalse);
     });
 
     test('Linux falls back when systemctl exits unsuccessfully', () async {

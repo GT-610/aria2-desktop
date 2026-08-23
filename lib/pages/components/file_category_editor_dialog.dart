@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../generated/l10n/l10n.dart';
 import '../../models/settings.dart';
 import '../../utils/file_category.dart';
+import '../../utils/logging.dart';
+
+final _logger = taggedLogger('FileCategoryEditorDialog');
 
 /// Editor for the extension -> subdirectory routing rules (max
 /// [maxFileCategoryRules] entries).
@@ -111,7 +114,23 @@ class _FileCategoryEditorDialogState extends State<_FileCategoryEditorDialog> {
       });
       return;
     }
-    await widget.settings.setFileCategoryRules(rules);
+    try {
+      await widget.settings.setFileCategoryRules(rules);
+    } catch (error, stackTrace) {
+      _logger.e(
+        'Failed to persist file-category rules',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.saveSettingsFailed),
+          ),
+        );
+      }
+      return;
+    }
     if (mounted) {
       Navigator.of(context).pop();
     }

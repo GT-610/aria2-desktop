@@ -757,6 +757,11 @@ class _SettingsPageState extends State<SettingsPage>
                       ? current | scheme.$2
                       : current & ~scheme.$2;
                   if (next == 0) {
+                    _showWarningSnackBar(
+                      AppLocalizations.of(
+                        context,
+                      )!.clipboardMonitorSchemeRequired,
+                    );
                     return;
                   }
                   _runSettingAction(

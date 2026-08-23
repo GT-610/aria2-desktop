@@ -370,6 +370,11 @@ class InstanceManager extends ChangeNotifier with Loggable {
           );
           return false;
         }
+        await refreshBuiltinInstanceConfig(
+          preserveStatus: ConnectionStatus.connecting,
+          preserveVersion: instance.version,
+        );
+        resolvedInstance = getBuiltinInstance() ?? resolvedInstance;
       }
 
       final canConnect = instance.type == InstanceType.builtin

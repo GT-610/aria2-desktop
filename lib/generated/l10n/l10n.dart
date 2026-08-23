@@ -3133,6 +3133,12 @@ abstract class AppLocalizations {
   /// **'Opens the add-task dialog when a supported link is copied.'**
   String get clipboardMonitorEnabledTip;
 
+  /// No description provided for @clipboardMonitorSchemeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep at least one clipboard link type enabled.'**
+  String get clipboardMonitorSchemeRequired;
+
   /// No description provided for @fileCategoriesTitle.
   ///
   /// In en, this message translates to:

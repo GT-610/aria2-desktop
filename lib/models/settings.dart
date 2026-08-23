@@ -216,7 +216,7 @@ class Settings extends ChangeNotifier with Loggable {
 
   /// Parsed file-category rules (invalid entries dropped).
   List<FileCategoryRule> get fileCategoryRules {
-    final dynamic decoded;
+    final Object? decoded;
     try {
       decoded = jsonDecode(_fileCategoryRulesJson);
     } catch (error, stackTrace) {
@@ -1047,9 +1047,16 @@ class Settings extends ChangeNotifier with Loggable {
     if (_fileCategoryRulesJson == encoded) {
       return;
     }
+    final previous = _fileCategoryRulesJson;
     _fileCategoryRulesJson = encoded;
     notifyListeners();
-    await _saveAllSettings();
+    try {
+      await _saveAllSettings();
+    } catch (_) {
+      _fileCategoryRulesJson = previous;
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> setLastUpdateCheckTimestamp(int millisSinceEpoch) async {

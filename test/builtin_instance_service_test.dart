@@ -81,6 +81,26 @@ void main() {
       expect(instance.downloadDir, 'C:\\Downloads\\Setsuna');
     });
 
+    test(
+      'active recovered RPC port overrides stale persisted settings',
+      () async {
+        final settings = Settings(
+          repository: MemorySettingsRepository(<String, dynamic>{
+            'rpcListenPort': 16882,
+          }),
+        );
+        await settings.loadSettings();
+        service.bindSettings(settings);
+
+        service.setActiveRpcPortForTesting(16883);
+
+        expect(service.getBuiltinInstanceConfig().port, 16883);
+
+        service.setActiveRpcPortForTesting(null);
+        expect(service.getBuiltinInstanceConfig().port, 16882);
+      },
+    );
+
     group('resolveEffectiveDhtListenPort', () {
       test('returns valid int port', () {
         expect(

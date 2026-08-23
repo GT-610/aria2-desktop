@@ -51,15 +51,6 @@ class TaskDetailsDialog {
         List<Map<String, dynamic>> peers = <Map<String, dynamic>>[];
         String lastRefreshSignature = '';
 
-        String buildFileSelectionSignature(List<Map<String, dynamic>> files) {
-          return files
-              .map(
-                (file) =>
-                    '${file['index'] ?? ''}:${file['selected'] as String? ?? 'true'}',
-              )
-              .join('|');
-        }
-
         Map<int, bool> buildFileSelectionState(
           List<Map<String, dynamic>> files,
         ) {
@@ -105,7 +96,8 @@ class TaskDetailsDialog {
             final isBtTask =
                 (currentTask.trackers?.isNotEmpty ?? false) ||
                 currentTask.bittorrentInfo != null;
-            final currentSignature = buildFileSelectionSignature(currentFiles);
+            final currentSignature =
+                TaskDetailsBtHelpers.buildFileSelectionSignature(currentFiles);
             if (fileSelectionSourceSignature != currentSignature &&
                 !hasFileSelectionChanges) {
               fileSelection = buildFileSelectionState(currentFiles);
@@ -136,7 +128,9 @@ class TaskDetailsDialog {
                 task.numSeeders,
                 task.isSeeder,
                 task.errorMessage,
-                task.files?.length,
+                TaskDetailsBtHelpers.buildFileSelectionSignature(
+                  task.files ?? const <Map<String, dynamic>>[],
+                ),
                 peers.length,
                 isLoadingPeers,
                 peersError,

@@ -35,10 +35,9 @@ class ShutdownService {
   bool get isCountingDown => _timer != null;
 
   void _startCountdown() {
-    if (_timer != null) {
+    if (_timer != null || executionState.value != ShutdownExecutionState.idle) {
       return;
     }
-    executionState.value = ShutdownExecutionState.idle;
     remainingSeconds.value = countdownSeconds;
     _logger.i(
       'All downloads finished; shutting down in $countdownSeconds seconds',

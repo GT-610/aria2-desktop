@@ -46,6 +46,7 @@ class BuiltinInstanceService with Loggable {
   Future<void> _lifecycleTail = Future<void>.value();
   String? _lastStartError;
   Settings? _settings;
+  int? _activeRpcPort;
 
   factory BuiltinInstanceService() {
     _instance ??= BuiltinInstanceService._internal();
@@ -63,6 +64,12 @@ class BuiltinInstanceService with Loggable {
   @visibleForTesting
   void clearBoundSettings() {
     _settings = null;
+    _activeRpcPort = null;
+  }
+
+  @visibleForTesting
+  void setActiveRpcPortForTesting(int? port) {
+    _activeRpcPort = port;
   }
 
   void _initializePaths() {
@@ -707,6 +714,7 @@ class BuiltinInstanceService with Loggable {
       );
       _aria2Process = process;
       _managedPid = process.pid;
+      _activeRpcPort = resolvedRpcPort;
       try {
         await _persistManagedPid(process.pid);
         if (!await ProcessLifecycleService.instance.attachToAppLifecycle(
@@ -721,6 +729,7 @@ class BuiltinInstanceService with Loggable {
         process.kill();
         _aria2Process = null;
         _managedPid = null;
+        _activeRpcPort = null;
         rethrow;
       }
 
@@ -730,6 +739,7 @@ class BuiltinInstanceService with Loggable {
           _aria2Process = null;
           _managedPid = null;
           _isConnected = false;
+          _activeRpcPort = null;
           unawaited(_deletePidFileIfMatches(process.pid));
           unawaited(_upnpService.shutdown());
         }
@@ -986,6 +996,7 @@ class BuiltinInstanceService with Loggable {
     _aria2Process = null;
     _managedPid = null;
     _isConnected = false;
+    _activeRpcPort = null;
     if (pid != null) {
       await _deletePidFileIfMatches(pid);
     }
@@ -1044,7 +1055,7 @@ class BuiltinInstanceService with Loggable {
       type: InstanceType.builtin,
       protocol: 'ws',
       host: '127.0.0.1',
-      port: _getConfiguredRpcPort(settings),
+      port: _activeRpcPort ?? _getConfiguredRpcPort(settings),
       secret: _getConfiguredRpcSecret(settings),
       downloadDir: resolveConfiguredFilePath(
         settings['downloadDir'],
@@ -1057,6 +1068,8 @@ class BuiltinInstanceService with Loggable {
   void dispose() {
     if (isRunning()) {
       unawaited(stopInstance());
+    } else {
+      _activeRpcPort = null;
     }
     clearPendingApply();
     _instance = null;

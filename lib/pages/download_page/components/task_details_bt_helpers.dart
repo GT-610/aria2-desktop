@@ -10,6 +10,16 @@ class TaskDetailsBtHelpers {
   static final _azureusPattern = RegExp(r'^-([A-Za-z~]{2})(.{4})-');
   static final _digitPattern = RegExp(r'[0-9]');
   static final _letterPattern = RegExp(r'[A-Za-z]');
+
+  static String buildFileSelectionSignature(List<Map<String, dynamic>> files) {
+    return files
+        .map(
+          (file) =>
+              '${file['index'] ?? ''}:${file['selected'] as String? ?? 'true'}',
+        )
+        .join('|');
+  }
+
   static Widget buildBitfieldVisualization(
     BuildContext context,
     DownloadTask task,

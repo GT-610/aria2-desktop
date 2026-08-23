@@ -128,13 +128,18 @@ String? _normalizeExtension(String value) {
 
 String _sanitizeSubdirectory(String value) {
   var sanitized = value.trim().replaceAll('\\', '/');
-  while (sanitized.startsWith('/')) {
-    sanitized = sanitized.substring(1);
+  if (sanitized.startsWith('/')) {
+    return '';
   }
   while (sanitized.endsWith('/')) {
     sanitized = sanitized.substring(0, sanitized.length - 1);
   }
-  if (sanitized.isEmpty || sanitized.split('/').any((part) => part == '..')) {
+  final parts = sanitized.split('/');
+  if (sanitized.isEmpty ||
+      parts.any(
+        (part) =>
+            part.isEmpty || part == '.' || part == '..' || part.contains(':'),
+      )) {
     return '';
   }
   return sanitized;

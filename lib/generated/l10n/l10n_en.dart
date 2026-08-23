@@ -1749,6 +1749,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Opens the add-task dialog when a supported link is copied.';
 
   @override
+  String get clipboardMonitorSchemeRequired =>
+      'Keep at least one clipboard link type enabled.';
+
+  @override
   String get fileCategoriesTitle => 'Download categories';
 
   @override

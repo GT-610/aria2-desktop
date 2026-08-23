@@ -631,6 +631,7 @@
   },
   "clipboardMonitorEnabled": "Watch clipboard for download links",
   "clipboardMonitorEnabledTip": "Opens the add-task dialog when a supported link is copied.",
+  "clipboardMonitorSchemeRequired": "Keep at least one clipboard link type enabled.",
   "fileCategoriesTitle": "Download categories",
   "fileCategoriesEmptyHint": "No category rules yet. Add rules to route downloads like *.mp4 into a Videos subdirectory.",
   "fileCategoriesMaxHint": "Maximum of 20 category rules reached.",

@@ -631,6 +631,7 @@
   },
   "clipboardMonitorEnabled": "监视剪贴板中的下载链接",
   "clipboardMonitorEnabledTip": "复制受支持的链接后自动打开新建任务对话框。",
+  "clipboardMonitorSchemeRequired": "请至少保留一种剪贴板链接类型。",
   "fileCategoriesTitle": "下载分类目录",
   "fileCategoriesEmptyHint": "暂无分类规则。添加规则后可将 *.mp4 等下载自动归入 Videos 等子目录。",
   "fileCategoriesMaxHint": "最多支持 20 条分类规则。",

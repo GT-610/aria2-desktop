@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/settings.dart';
+import '../../../services/builtin_instance_service.dart';
 import '../../../utils/logging.dart';
 import '../../../utils/speed_schedule.dart';
 import '../../../widgets/app_card.dart';
@@ -13,10 +14,10 @@ final _logger = taggedLogger('SpeedLimitCard');
 Future<void> _pushSpeedLimits(BuildContext context) async {
   try {
     final applied = await applySpeedLimitsToBuiltin(context);
-    if (!applied) {
+    if (!applied && BuiltinInstanceService().isRunning()) {
       _logger.w(
-        'Speed limits were not pushed because the built-in instance is '
-        'unavailable or rejected the update',
+        'Speed limits were not pushed because the running built-in instance '
+        'rejected the update',
       );
     }
   } catch (error, stackTrace) {

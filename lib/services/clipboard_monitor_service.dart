@@ -15,7 +15,8 @@ final _logger = taggedLogger('ClipboardMonitorService');
 /// copied are ignored), oversized-content protection, and per-scheme
 /// filtering.
 class ClipboardMonitorService with Loggable {
-  ClipboardMonitorService();
+  ClipboardMonitorService({Future<String?> Function()? readText})
+    : _readText = readText ?? _readClipboardText;
 
   static final ClipboardMonitorService instance = ClipboardMonitorService();
 
@@ -25,10 +26,13 @@ class ClipboardMonitorService with Loggable {
   static const int schemeThunder = 1 << 3;
   static const int allSchemes = 0xF;
 
+  static const Duration _pollInterval = Duration(seconds: 1);
+
   /// Notified whenever a new eligible URI was detected; consumers call
   /// [takePendingUri] to consume it.
   final ValueNotifier<int> version = ValueNotifier<int>(0);
 
+  final Future<String?> Function() _readText;
   Timer? _timer;
   int _schemes = allSchemes;
   String? _lastSeenContent;
@@ -44,15 +48,23 @@ class ClipboardMonitorService with Loggable {
   }
 
   void synchronize({required bool enabled, required int schemes}) {
-    _schemes = schemes & allSchemes;
+    final nextSchemes = schemes & allSchemes;
+    final schemesChanged = nextSchemes != _schemes;
+    _schemes = nextSchemes;
+    if (schemesChanged) {
+      _lastSeenContent = null;
+    }
     if (!enabled) {
       stop();
       return;
     }
     if (_timer != null) {
+      if (schemesChanged) {
+        unawaited(_tick());
+      }
       return;
     }
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _timer = Timer.periodic(_pollInterval, (_) {
       unawaited(_tick());
     });
     unawaited(_tick());
@@ -72,11 +84,13 @@ class ClipboardMonitorService with Loggable {
   @visibleForTesting
   int get synchronizedSchemes => _schemes;
 
+  @visibleForTesting
+  Future<void> pollNow() => _tick();
+
   Future<void> _tick() async {
     String? content;
     try {
-      final data = await Clipboard.getData(Clipboard.kTextPlain);
-      content = data?.text;
+      content = await _readText();
     } catch (error, stackTrace) {
       w('Failed to read clipboard', error: error, stackTrace: stackTrace);
       return;
@@ -107,6 +121,11 @@ class ClipboardMonitorService with Loggable {
     _logger.i('Detected downloadable URI from clipboard');
     _pendingUri = uri;
     version.value++;
+  }
+
+  static Future<String?> _readClipboardText() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    return data?.text;
   }
 
   /// Extracts a single-line URI matching an enabled scheme. Returns null for

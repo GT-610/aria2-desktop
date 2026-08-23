@@ -1674,6 +1674,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clipboardMonitorEnabledTip => '复制受支持的链接后自动打开新建任务对话框。';
 
   @override
+  String get clipboardMonitorSchemeRequired => '请至少保留一种剪贴板链接类型。';
+
+  @override
   String get fileCategoriesTitle => '下载分类目录';
 
   @override

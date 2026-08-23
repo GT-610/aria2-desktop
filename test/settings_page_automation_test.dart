@@ -94,6 +94,32 @@ void main() {
     );
   });
 
+  testWidgets('clipboard monitor keeps at least one scheme enabled', (
+    tester,
+  ) async {
+    final settings = await pumpSettingsPage(
+      tester,
+      values: <String, dynamic>{
+        'clipboardMonitorEnabled': true,
+        'clipboardMonitorSchemes': ClipboardMonitorService.schemeHttp,
+      },
+    );
+
+    final httpChip = find.widgetWithText(FilterChip, 'HTTP(S)');
+    await tester.ensureVisible(httpChip);
+    await tester.tap(httpChip);
+    await tester.pump();
+
+    expect(
+      settings.clipboardMonitorSchemes,
+      ClipboardMonitorService.schemeHttp,
+    );
+    expect(
+      find.text('Keep at least one clipboard link type enabled.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('failed update check shows an error instead of up-to-date', (
     tester,
   ) async {
