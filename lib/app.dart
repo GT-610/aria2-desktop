@@ -621,10 +621,6 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
     }
 
     final notifications = _downloadDataService!.takePendingNotifications();
-    if (notifications.isEmpty) {
-      return;
-    }
-
     ShutdownService.instance.synchronize(
       notifications: notifications,
       tasks: _downloadDataService!.tasks,
@@ -641,6 +637,10 @@ class _MainWindowState extends State<MainWindow> with WindowListener, Loggable {
         context: context,
         builder: (_) => const ShutdownCountdownDialog(),
       ).whenComplete(() => _isShowingShutdownDialog = false);
+    }
+
+    if (notifications.isEmpty) {
+      return;
     }
 
     final settings = Provider.of<Settings>(context, listen: false);
@@ -1087,11 +1087,12 @@ class _StatusBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Speed capsule: long-press opens the quick limit editor.
+          // Speed capsule: activate or long-press to edit limits.
           Tooltip(
             message: l10n.speedCapsuleTooltip,
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
+              onTap: () => showQuickSpeedLimitDialog(context),
               onLongPress: () => showQuickSpeedLimitDialog(context),
               child: Chip(
                 avatar: const Icon(Icons.speed, size: 16),

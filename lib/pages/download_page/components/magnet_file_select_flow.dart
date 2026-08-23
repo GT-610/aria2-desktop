@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
+import '../../../services/aria2_rpc_client.dart';
 import '../../../services/download_data_service.dart';
 import '../../../utils/format_utils.dart';
 import '../../../utils/logging.dart';
@@ -18,6 +19,13 @@ final _logger = taggedLogger('MagnetFileSelectFlow');
 class MagnetFileSelectionFlow {
   static const Duration _pollInterval = Duration(seconds: 1);
   static const int _maximumPolls = 180;
+  static const int _maximumConsecutivePollErrors = 3;
+  static const List<String> _metadataStatusFields = <String>[
+    'status',
+    'bittorrent',
+    'files',
+    'errorMessage',
+  ];
 
   static Future<void> watchAndPrompt(
     BuildContext context,
@@ -28,15 +36,32 @@ class MagnetFileSelectionFlow {
     final client = downloadDataService.clientFor(instance);
 
     Map<String, dynamic>? status;
+    var consecutiveErrors = 0;
     for (var poll = 0; poll < _maximumPolls; poll++) {
       await Future<void>.delayed(_pollInterval);
       if (!context.mounted) {
         return;
       }
       try {
-        final candidate = await client.getTaskStatus(gid);
+        final response = await client.callRpc('aria2.tellStatus', <dynamic>[
+          gid,
+          _metadataStatusFields,
+        ], idempotent: true);
+        final candidate = Map<String, dynamic>.from(response['result'] as Map);
+        consecutiveErrors = 0;
+        if (!context.mounted) {
+          return;
+        }
         final taskStatus = '${candidate['status'] ?? ''}';
-        if (taskStatus == 'error' || taskStatus == 'removed') {
+        if (taskStatus == 'error') {
+          final errorMessage = '${candidate['errorMessage'] ?? ''}'.trim();
+          _showFailure(
+            context,
+            errorMessage.isEmpty ? taskStatus : errorMessage,
+          );
+          return;
+        }
+        if (taskStatus == 'removed') {
           return;
         }
         if (_hasMetadata(candidate) &&
@@ -45,12 +70,19 @@ class MagnetFileSelectionFlow {
           break;
         }
       } catch (error, stackTrace) {
+        consecutiveErrors++;
         _logger.w(
           'Failed to poll magnet metadata for $gid',
           error: error,
           stackTrace: stackTrace,
         );
-        return;
+        if (consecutiveErrors >= _maximumConsecutivePollErrors) {
+          if (context.mounted) {
+            _showFailure(context, error);
+          }
+          await _discardStagedTask(client, gid);
+          return;
+        }
       }
     }
 
@@ -61,6 +93,7 @@ class MagnetFileSelectionFlow {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.metadataTimeout)),
       );
+      await _discardStagedTask(client, gid);
       return;
     }
 
@@ -68,7 +101,7 @@ class MagnetFileSelectionFlow {
     final files = List<Map<String, dynamic>>.from(status['files'] as List);
 
     // Single-file torrents have nothing worth selecting; resume directly.
-    if (files.where((file) => _fileIndex(file) != null).length <= 1) {
+    if (files.length == 1 && _fileIndex(files.single) != null) {
       try {
         await client.unpauseTask(gid);
       } catch (error, stackTrace) {
@@ -77,6 +110,9 @@ class MagnetFileSelectionFlow {
           error: error,
           stackTrace: stackTrace,
         );
+        if (context.mounted) {
+          _showFailure(context, error);
+        }
       }
       return;
     }
@@ -99,6 +135,9 @@ class MagnetFileSelectionFlow {
           error: error,
           stackTrace: stackTrace,
         );
+        if (context.mounted) {
+          _showFailure(context, error);
+        }
       }
       return;
     }
@@ -107,6 +146,7 @@ class MagnetFileSelectionFlow {
       await client.changeOption(gid, {
         'select-file': selectedIndexes.join(','),
       });
+      downloadDataService.invalidateTaskDetails(instance.id);
       await client.unpauseTask(gid);
     } catch (error, stackTrace) {
       _logger.e(
@@ -134,6 +174,31 @@ class MagnetFileSelectionFlow {
 
   static int? _fileIndex(Map<String, dynamic> file) =>
       int.tryParse(file['index']?.toString() ?? '');
+
+  static void _showFailure(BuildContext context, Object error) {
+    if (!context.mounted) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.operationFailed('$error'))));
+  }
+
+  static Future<void> _discardStagedTask(
+    Aria2RpcClient client,
+    String gid,
+  ) async {
+    try {
+      await client.removeTask(gid);
+    } catch (error, stackTrace) {
+      _logger.w(
+        'Failed to discard staged magnet task $gid',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
 }
 
 /// File picker shown once magnet metadata became available. Pops with the
@@ -203,18 +268,23 @@ class _MagnetFileSelectDialogState extends State<MagnetFileSelectDialog> {
                 itemCount: widget.files.length,
                 itemBuilder: (context, index) {
                   final file = widget.files[index];
-                  final fileIndex =
-                      MagnetFileSelectionFlow._fileIndex(file) ?? index + 1;
+                  final fileIndex = MagnetFileSelectionFlow._fileIndex(file);
                   final path = '${file['path'] ?? ''}';
                   final fileName = path.split('/').last.split('\\').last;
                   final size = formatBytes(
                     int.tryParse('${file['length'] ?? '0'}') ?? 0,
                   );
                   return CheckboxListTile(
-                    value: _selection[fileIndex] ?? true,
-                    onChanged: (value) {
-                      setState(() => _selection[fileIndex] = value ?? false);
-                    },
+                    value: fileIndex == null
+                        ? false
+                        : _selection[fileIndex] ?? false,
+                    onChanged: fileIndex == null
+                        ? null
+                        : (value) {
+                            setState(
+                              () => _selection[fileIndex] = value ?? false,
+                            );
+                          },
                     controlAffinity: ListTileControlAffinity.leading,
                     dense: true,
                     contentPadding: EdgeInsets.zero,

@@ -1,10 +1,26 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:setsuna/generated/l10n/l10n.dart';
 import 'package:setsuna/models/settings.dart';
 import 'package:setsuna/pages/download_page/enums.dart';
 import 'package:setsuna/pages/download_page/models/download_task.dart';
 import 'package:setsuna/services/clipboard_monitor_service.dart';
+import 'package:setsuna/services/download_data_service.dart';
+import 'package:setsuna/services/instance_manager.dart';
 import 'package:setsuna/services/shutdown_service.dart';
+import 'package:setsuna/services/update_check_service.dart';
+
+import 'support/memory_settings_repository.dart';
+
+class _FailedUpdateCheckService extends UpdateCheckService {
+  @override
+  Future<UpdateCheckResult> checkForUpdate() async {
+    return const UpdateCheckResult(status: UpdateCheckStatus.failed);
+  }
+}
 
 DownloadTask _task(
   DownloadStatus status, {
@@ -63,6 +79,22 @@ void main() {
       );
     });
 
+    test('updates the live scheme mask while already synchronized', () {
+      final service = ClipboardMonitorService();
+      addTearDown(service.dispose);
+
+      service.synchronize(
+        enabled: true,
+        schemes: ClipboardMonitorService.schemeHttp,
+      );
+      service.synchronize(
+        enabled: true,
+        schemes: ClipboardMonitorService.schemeMagnet,
+      );
+
+      expect(service.synchronizedSchemes, ClipboardMonitorService.schemeMagnet);
+    });
+
     test('rejects multi-line and unsupported content', () {
       final service = ClipboardMonitorService();
       expect(service.extractEligibleUri('hello world', all), isNull);
@@ -113,6 +145,113 @@ void main() {
         isFalse,
       );
     });
+  });
+
+  group('ShutdownService automation', () {
+    tearDown(() => ShutdownService.instance.cancel(reason: 'test cleanup'));
+
+    test('empty notifications still cancel countdown when work resumes', () {
+      final service = ShutdownService.instance;
+      service.synchronize(
+        notifications: const <DownloadTaskNotification>[
+          DownloadTaskNotification(
+            taskId: 'complete',
+            taskName: 'complete',
+            instanceId: 'builtin',
+            type: DownloadTaskNotificationType.completed,
+          ),
+        ],
+        tasks: const <DownloadTask>[],
+        enabled: true,
+      );
+      expect(service.isCountingDown, isTrue);
+
+      service.synchronize(
+        notifications: const <DownloadTaskNotification>[],
+        tasks: <DownloadTask>[_task(DownloadStatus.active)],
+        enabled: true,
+      );
+
+      expect(service.isCountingDown, isFalse);
+    });
+
+    test('failed shutdown execution remains observable', () async {
+      final service = ShutdownService.instance;
+
+      await service.executeShutdown(
+        shutdown: () async => ProcessResult(1, 1, '', 'permission denied'),
+      );
+
+      expect(service.executionState.value, ShutdownExecutionState.failed);
+    });
+
+    test('Linux falls back when systemctl exits unsuccessfully', () async {
+      final calls = <String>[];
+
+      final result = await ShutdownService.executeSystemShutdownForPlatform(
+        'linux',
+        processRunner: (executable, arguments) async {
+          calls.add('$executable ${arguments.join(' ')}');
+          return executable == 'systemctl'
+              ? ProcessResult(1, 1, '', 'unavailable')
+              : ProcessResult(2, 0, '', '');
+        },
+      );
+
+      expect(result.exitCode, 0);
+      expect(calls, <String>['systemctl poweroff', 'shutdown -h now']);
+    });
+
+    testWidgets('failed shutdown dialog offers retry and close', (
+      tester,
+    ) async {
+      ShutdownService.instance.executionState.value =
+          ShutdownExecutionState.failed;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(body: ShutdownCountdownDialog()),
+        ),
+      );
+
+      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Close'), findsOneWidget);
+      expect(find.textContaining('Operation failed'), findsOneWidget);
+    });
+  });
+
+  test('InstanceManager ignores notifications after disposal', () {
+    final manager = InstanceManager();
+    manager.dispose();
+
+    expect(manager.notifyListeners, returnsNormally);
+  });
+
+  testWidgets('failed automatic update check does not save a timestamp', (
+    tester,
+  ) async {
+    final repository = MemorySettingsRepository(<String, dynamic>{
+      'lastUpdateCheckTimestamp': 0,
+    });
+    final settings = Settings(repository: repository);
+    await settings.loadSettings();
+    late BuildContext context;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (builderContext) {
+            context = builderContext;
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+
+    await _FailedUpdateCheckService().autoCheckIfNeeded(settings, context);
+
+    expect(settings.lastUpdateCheckTimestamp, 0);
+    expect(repository.savedValues!['lastUpdateCheckTimestamp'], 0);
   });
 
   group('Settings clipboard defaults', () {

@@ -23,6 +23,7 @@ class InstanceManager extends ChangeNotifier with Loggable {
       BuiltinInstanceService();
   List<Aria2Instance>? _cachedConnectedInstances;
   bool _credentialsBlocked = false;
+  bool _isDisposed = false;
   final Map<String, Future<bool>> _connectionOperations = {};
 
   List<Aria2Instance> get instances => _instances;
@@ -145,10 +146,15 @@ class InstanceManager extends ChangeNotifier with Loggable {
   /// called during frame building the notification is deferred to after the
   /// current frame completes.
   void _notifyAfterBuild() {
+    if (_isDisposed) {
+      return;
+    }
     final binding = SchedulerBinding.instance;
     if (binding.schedulerPhase == SchedulerPhase.persistentCallbacks) {
       binding.addPostFrameCallback((_) {
-        notifyListeners();
+        if (!_isDisposed) {
+          notifyListeners();
+        }
       });
     } else {
       notifyListeners();
@@ -604,7 +610,15 @@ class InstanceManager extends ChangeNotifier with Loggable {
   }
 
   @override
+  void notifyListeners() {
+    if (!_isDisposed) {
+      super.notifyListeners();
+    }
+  }
+
+  @override
   void dispose() {
+    _isDisposed = true;
     _builtinInstanceService.dispose();
     super.dispose();
   }

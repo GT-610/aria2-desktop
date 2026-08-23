@@ -45,6 +45,7 @@ class _QuickSpeedLimitDialog extends StatefulWidget {
 class _QuickSpeedLimitDialogState extends State<_QuickSpeedLimitDialog> {
   late final TextEditingController _downloadController;
   late final TextEditingController _uploadController;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -69,16 +70,47 @@ class _QuickSpeedLimitDialogState extends State<_QuickSpeedLimitDialog> {
   }
 
   Future<void> _save() async {
+    if (_saving) {
+      return;
+    }
+    setState(() => _saving = true);
+
     final download = int.tryParse(_downloadController.text.trim()) ?? 0;
     final upload = int.tryParse(_uploadController.text.trim()) ?? 0;
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    await widget.settings.setMaxOverallDownloadLimit(download);
-    await widget.settings.setMaxOverallUploadLimit(upload);
+    try {
+      await widget.settings.setMaxOverallDownloadLimit(download);
+      await widget.settings.setMaxOverallUploadLimit(upload);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.saveSettingsFailed)),
+        );
+      }
+      return;
+    }
     if (!mounted) {
       return;
     }
-    await applySpeedLimitsToBuiltin(context);
+    try {
+      final applied = await applySpeedLimitsToBuiltin(context);
+      if (!applied && BuiltinInstanceService().isRunning()) {
+        throw StateError('running built-in instance rejected speed limits');
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.saveSettingsFailed)),
+        );
+      }
+      return;
+    }
     if (mounted) {
+      setState(() => _saving = false);
       navigator.pop();
     }
   }
@@ -95,7 +127,7 @@ class _QuickSpeedLimitDialogState extends State<_QuickSpeedLimitDialog> {
             controller: _downloadController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: l10n.optionPerTaskDownloadLimit,
+              labelText: l10n.maxOverallDownloadSpeed,
               suffixText: 'KB/s',
               border: const OutlineInputBorder(),
               helperText: l10n.downloadLimitTip,
@@ -106,7 +138,7 @@ class _QuickSpeedLimitDialogState extends State<_QuickSpeedLimitDialog> {
             controller: _uploadController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: l10n.optionPerTaskUploadLimit,
+              labelText: l10n.maxOverallUploadSpeed,
               suffixText: 'KB/s',
               border: const OutlineInputBorder(),
               helperText: l10n.uploadLimitTip,
@@ -119,7 +151,7 @@ class _QuickSpeedLimitDialogState extends State<_QuickSpeedLimitDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
         ),
-        FilledButton(onPressed: _save, child: Text(l10n.save)),
+        FilledButton(onPressed: _saving ? null : _save, child: Text(l10n.save)),
       ],
     );
   }

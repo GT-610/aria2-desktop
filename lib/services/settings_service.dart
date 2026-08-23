@@ -11,6 +11,7 @@ import 'builtin_instance_service.dart';
 class SettingsService extends ChangeNotifier with Loggable {
   Settings? _settings;
   Timer? _scheduleTimer;
+  bool _scheduleTickInFlight = false;
   String? _lastAppliedLimitsSignature;
   static const int _indefiniteSeedTimeMinutes = 525600;
 
@@ -20,35 +21,45 @@ class SettingsService extends ChangeNotifier with Loggable {
   /// configured values and switches are never modified by the ticker.
   void ensureScheduleTicker() {
     _scheduleTimer ??= Timer.periodic(const Duration(seconds: 30), (_) {
-      unawaited(_evaluateScheduleTick());
+      unawaited(evaluateScheduleTick());
     });
-    unawaited(_evaluateScheduleTick());
+    unawaited(evaluateScheduleTick());
   }
 
-  Future<void> _evaluateScheduleTick() async {
-    final settings = _settings;
-    if (settings == null || !settings.isLoaded) {
+  @visibleForTesting
+  Future<void> evaluateScheduleTick() async {
+    if (_scheduleTickInFlight) {
       return;
     }
-    final limits = settings.effectiveOverallLimits();
-    final signature = '${limits.download}/${limits.upload}';
-    if (signature == _lastAppliedLimitsSignature) {
-      return;
-    }
+    _scheduleTickInFlight = true;
+    try {
+      final settings = _settings;
+      if (settings == null || !settings.isLoaded) {
+        return;
+      }
+      final limits = settings.effectiveOverallLimits();
+      final signature = _currentLimitsSignature();
+      if (signature == _lastAppliedLimitsSignature) {
+        return;
+      }
 
-    final builtinService = BuiltinInstanceService();
-    if (!builtinService.isRunning()) {
-      // Nothing running to push to; clear so the next start applies fresh.
-      _lastAppliedLimitsSignature = null;
-      return;
-    }
+      final builtinService = BuiltinInstanceService();
+      if (!builtinService.isRunning()) {
+        // Nothing running to push to; clear so the next start applies fresh.
+        _lastAppliedLimitsSignature = null;
+        return;
+      }
 
-    final applied = await applySettingsToBuiltin();
-    _lastAppliedLimitsSignature = applied ? signature : null;
-    if (applied) {
-      i(
-        'Speed limits updated by schedule: down=${limits.download}, up=${limits.upload}',
-      );
+      final applied = await applySettingsToBuiltin();
+      _lastAppliedLimitsSignature = applied ? signature : null;
+      if (applied) {
+        i(
+          'Speed limits updated by schedule: '
+          'down=${limits.download}, up=${limits.upload}',
+        );
+      }
+    } finally {
+      _scheduleTickInFlight = false;
     }
   }
 

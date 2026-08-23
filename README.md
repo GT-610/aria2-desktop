@@ -49,8 +49,7 @@ The current product goal is to cover the day-to-day workflow of a Motrix-style d
 
 ### Speed control
 
-- Status-bar speed capsule: tap to toggle limits, long-press for a quick
-  up/down limit editor
+- Status-bar speed capsule: tap or long-press for a quick up/down limit editor
 - Global speed-limit settings card with an optional weekday + time-window
   schedule (overnight windows supported); the scheduler passively pushes or
   releases `max-overall-*-limit` without ever mutating user-configured values
@@ -184,16 +183,6 @@ without a packaged core continue to support remote aria2 instances.
   the projected snapshot actually changed. `aria2.getGlobalStat` rides the
   same multicall and feeds the status bar and tray speeds.
 
-## Roadmap
-
-Deferred for now, in rough priority order:
-
-- ED2K support surface (the bundled Aria2 Next engine can provide it; needs
-  dedicated RPC/UI design)
-- Local HTTP API for browser-extension integration
-- A lightweight/headless mode that keeps downloads running with the window
-  closed
-
 ### Project structure
 
 ```text
@@ -208,6 +197,16 @@ lib/
   utils/
 test/
 ```
+
+## Roadmap
+
+Deferred for now, in rough priority order:
+
+- ED2K support surface (the bundled Aria2 Next engine can provide it; needs
+  dedicated RPC/UI design)
+- Local HTTP API for browser-extension integration
+- A lightweight/headless mode that keeps downloads running with the window
+  closed
 
 ## Notes
 

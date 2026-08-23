@@ -85,6 +85,46 @@ void main() {
       );
     });
 
+    test('uses the starting day for a Monday-only overnight window', () {
+      const mondayOnly = 0x01;
+      expect(
+        within(
+          at(0, 23, 0),
+          startMinutes: 22 * 60,
+          endMinutes: 6 * 60,
+          daysBitmask: mondayOnly,
+        ),
+        isTrue,
+      );
+      expect(
+        within(
+          at(1, 2, 0),
+          startMinutes: 22 * 60,
+          endMinutes: 6 * 60,
+          daysBitmask: mondayOnly,
+        ),
+        isTrue,
+      );
+      expect(
+        within(
+          at(0, 2, 0),
+          startMinutes: 22 * 60,
+          endMinutes: 6 * 60,
+          daysBitmask: mondayOnly,
+        ),
+        isFalse,
+      );
+      expect(
+        within(
+          at(1, 23, 0),
+          startMinutes: 22 * 60,
+          endMinutes: 6 * 60,
+          daysBitmask: mondayOnly,
+        ),
+        isFalse,
+      );
+    });
+
     test('respects the selected weekdays only', () {
       // Only Monday (bit 0) with an all-day window.
       expect(

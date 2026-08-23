@@ -45,6 +45,10 @@ typedef TaskBulkItemAction =
       DownloadTask task,
     );
 
+typedef TaskBulkClientFactory =
+    Aria2RpcClient? Function(Aria2Instance instance);
+typedef TaskBulkClientBuilder = Aria2RpcClient Function(Aria2Instance instance);
+
 /// Executes one action per task, grouping tasks by instance so a single RPC
 /// client serves every task on the same instance.
 ///
@@ -52,11 +56,16 @@ typedef TaskBulkItemAction =
 /// closed; otherwise a fresh client is created per instance and closed after
 /// the instance's tasks are processed.
 class TaskBulkActionService with Loggable {
+  TaskBulkActionService({TaskBulkClientBuilder? clientBuilder})
+    : _clientBuilder = clientBuilder ?? Aria2RpcClient.new;
+
+  final TaskBulkClientBuilder _clientBuilder;
+
   Future<TaskBulkActionResult> run({
     required List<Aria2Instance> instances,
     required List<DownloadTask> tasks,
     required TaskBulkItemAction perform,
-    Aria2RpcClient? Function(Aria2Instance instance)? clientFactory,
+    TaskBulkClientFactory? clientFactory,
   }) async {
     final tasksByInstance = <String, List<DownloadTask>>{};
     for (final task in tasks) {
@@ -76,8 +85,11 @@ class TaskBulkActionService with Loggable {
       }
 
       final Aria2RpcClient client;
+      late final bool ownsClient;
       try {
-        client = clientFactory?.call(instance) ?? Aria2RpcClient(instance);
+        final providedClient = clientFactory?.call(instance);
+        ownsClient = providedClient == null;
+        client = providedClient ?? _clientBuilder(instance);
       } catch (error, stackTrace) {
         failureCount += instanceTasks.length;
         e(
@@ -87,7 +99,6 @@ class TaskBulkActionService with Loggable {
         );
         continue;
       }
-      final ownsClient = clientFactory == null;
 
       try {
         for (final task in instanceTasks) {

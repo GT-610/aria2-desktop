@@ -136,9 +136,9 @@ class TaskDetailsBtHelpers {
       return Text(l10n.noPeerInformation);
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [for (final peer in peers) _buildPeerCard(context, peer)],
+    return ListView.builder(
+      itemCount: peers.length,
+      itemBuilder: (context, index) => _buildPeerCard(context, peers[index]),
     );
   }
 
@@ -152,7 +152,10 @@ class TaskDetailsBtHelpers {
     final port = peer['port']?.toString() ?? '--';
     final peerId = _parsePeerClient(peer['peerId']?.toString());
     final bitfield = peer['bitfield']?.toString();
-    final progress = _bitfieldToPercent(bitfield);
+    final pieces = bitfield == null || bitfield.isEmpty
+        ? const <int>[]
+        : parseHexBitfield(bitfield);
+    final progress = _bitfieldToPercent(pieces);
     final isSeeder = (peer['seeder']?.toString() ?? 'false') == 'true';
     final uploadSpeed = formatBytes(
       int.tryParse(peer['uploadSpeed']?.toString() ?? '0') ?? 0,
@@ -180,7 +183,11 @@ class TaskDetailsBtHelpers {
                 if (isSeeder)
                   Tooltip(
                     message: l10n.seeding,
-                    child: Icon(Icons.done_all, size: 16, color: Colors.green),
+                    child: const Icon(
+                      Icons.done_all,
+                      size: 16,
+                      color: Colors.green,
+                    ),
                   ),
               ],
             ),
@@ -197,7 +204,7 @@ class TaskDetailsBtHelpers {
                   width: 120,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(3),
-                    child: PeerBitfieldBar(bitfield: bitfield),
+                    child: PeerBitfieldBar(pieces: pieces),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -247,7 +254,7 @@ class TaskDetailsBtHelpers {
       }
     }
 
-    return ((available / ownPieces.length) * 100).clamp(0.0, 100.0);
+    return (available / ownPieces.length) * 100;
   }
 
   static TaskDetailsTorrentOverviewMetadata parseTorrentMetadata(
@@ -325,11 +332,7 @@ class TaskDetailsBtHelpers {
     return ratio.toStringAsFixed(4);
   }
 
-  static double _bitfieldToPercent(String? bitfield) {
-    if (bitfield == null || bitfield.isEmpty) {
-      return 0;
-    }
-    final pieces = parseHexBitfield(bitfield);
+  static double _bitfieldToPercent(List<int> pieces) {
     if (pieces.isEmpty) {
       return 0;
     }
@@ -545,16 +548,13 @@ class TaskDetailsBtHelpers {
 
 /// Compact per-peer piece availability bar decoded from the hex bitfield.
 class PeerBitfieldBar extends StatelessWidget {
-  const PeerBitfieldBar({super.key, this.bitfield, this.height = 6});
+  const PeerBitfieldBar({super.key, required this.pieces, this.height = 6});
 
-  final String? bitfield;
+  final List<int> pieces;
   final double height;
 
   @override
   Widget build(BuildContext context) {
-    final pieces = bitfield == null || bitfield!.isEmpty
-        ? const <int>[]
-        : parseHexBitfield(bitfield!);
     if (pieces.isEmpty) {
       return Container(
         height: height,
@@ -590,11 +590,22 @@ class _PeerBitfieldBarPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (pieces.isEmpty) return;
-    final pieceWidth = size.width / pieces.length;
-    for (var i = 0; i < pieces.length; i++) {
+    final pixelCount = size.width.floor().clamp(1, pieces.length);
+    final pixelWidth = size.width / pixelCount;
+    final paint = Paint();
+    for (var i = 0; i < pixelCount; i++) {
+      final start = i * pieces.length ~/ pixelCount;
+      final end = ((i + 1) * pieces.length / pixelCount).ceil();
+      var value = 0;
+      for (var pieceIndex = start; pieceIndex < end; pieceIndex++) {
+        if (pieces[pieceIndex] > value) {
+          value = pieces[pieceIndex];
+        }
+      }
+      paint.color = _colorFor(value);
       canvas.drawRect(
-        Rect.fromLTWH(i * pieceWidth, 0, pieceWidth + 0.5, size.height),
-        Paint()..color = _colorFor(pieces[i]),
+        Rect.fromLTWH(i * pixelWidth, 0, pixelWidth + 0.5, size.height),
+        paint,
       );
     }
   }
@@ -645,6 +656,7 @@ class _PiecesGridPainter extends CustomPainter {
       ..color = _borderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.5;
+    final fillPaint = Paint();
 
     for (var i = 0; i < pieces.length; i++) {
       final col = i % cols;
@@ -653,10 +665,8 @@ class _PiecesGridPainter extends CustomPainter {
       final y = row * (pieceSize + spacing);
       final rect = Rect.fromLTWH(x, y, pieceSize, pieceSize);
 
-      canvas.drawRect(
-        rect,
-        Paint()..color = _pieceColors[pieces[i]] ?? _defaultColor,
-      );
+      fillPaint.color = _pieceColors[pieces[i]] ?? _defaultColor;
+      canvas.drawRect(rect, fillPaint);
       canvas.drawRect(rect, borderPaint);
     }
   }

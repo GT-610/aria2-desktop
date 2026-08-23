@@ -67,22 +67,17 @@ bool isWithinSpeedScheduleWindow({
     return true;
   }
 
-  if (!isDaySelected(daysBitmask, now)) {
-    return false;
-  }
-
   final current = now.hour * 60 + now.minute;
   if (start < end) {
-    return current >= start && current < end;
+    return isDaySelected(daysBitmask, now) && current >= start && current < end;
   }
 
   // Overnight window (e.g. 22:00 -> 06:00).
-  final dayIsSelected = isDaySelected(daysBitmask, now);
   final previousDayIsSelected = isDaySelected(
     daysBitmask,
     now.subtract(const Duration(days: 1)),
   );
-  return (current >= start && dayIsSelected) ||
+  return (current >= start && isDaySelected(daysBitmask, now)) ||
       (current < end && previousDayIsSelected);
 }
 

@@ -55,27 +55,22 @@ void main() {
       expect(health, closeTo((1 / 3) * 100, 0.01));
     });
 
-    test('ignores peers without bitfields', () {
-      final task = _task('ff');
-      final peers = <Map<String, dynamic>>[
+    test('peers without bitfields do not increase health', () {
+      final task = _task('00');
+      final missingBitfields = <Map<String, dynamic>>[
         {'ip': '1.2.3.4'},
         {'bitfield': ''},
       ];
 
       expect(
-        TaskDetailsBtHelpers.estimateHealthPercent(task, peers),
-        closeTo(100, 0.01),
+        TaskDetailsBtHelpers.estimateHealthPercent(task, missingBitfields),
+        closeTo(0, 0.01),
       );
-    });
-
-    test('clamps to the 0..100 range', () {
-      final task = _task('ff');
-
       expect(
         TaskDetailsBtHelpers.estimateHealthPercent(task, const [
-          {'bitfield': 'ff'},
+          {'bitfield': 'f0'},
         ]),
-        closeTo(100, 0.01),
+        closeTo(50, 0.01),
       );
     });
   });

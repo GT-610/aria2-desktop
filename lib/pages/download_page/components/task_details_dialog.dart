@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -9,12 +10,15 @@ import '../../../services/clipboard_monitor_service.dart';
 import '../../../services/download_data_service.dart';
 import '../../../services/instance_manager.dart';
 import '../../../utils/format_utils.dart';
+import '../../../utils/logging.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
 import '../services/download_task_service.dart';
 import 'task_details_bt_helpers.dart';
 import 'task_details_options_tab.dart';
 import '../utils/task_utils.dart';
+
+final _logger = taggedLogger('TaskDetailsDialog');
 
 class TaskDetailsDialog {
   static Future<void> showTaskDetailsDialog(
@@ -188,6 +192,12 @@ class TaskDetailsDialog {
                   currentTask,
                   torrentMetadata,
                 );
+            final torrentHealth = peers.isEmpty
+                ? null
+                : TaskDetailsBtHelpers.estimateHealthPercent(
+                    currentTask,
+                    peers,
+                  );
 
             return PopScope(
               canPop: true,
@@ -383,24 +393,15 @@ class TaskDetailsDialog {
                                             Text(
                                               '${l10n.torrentSeeders}: ${currentTask.numSeeders ?? 0}',
                                             ),
+                                            if (torrentHealth != null) ...[
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                l10n.healthPercentage(
+                                                  '${torrentHealth.toStringAsFixed(0)}%',
+                                                ),
+                                              ),
+                                            ],
                                             const SizedBox(height: 8),
-                                            if (peers.isNotEmpty)
-                                              ...() {
-                                                final health =
-                                                    TaskDetailsBtHelpers.estimateHealthPercent(
-                                                      currentTask,
-                                                      peers,
-                                                    );
-                                                return <Widget>[
-                                                  if (health != null)
-                                                    Text(
-                                                      l10n.healthPercentage(
-                                                        '${health.toStringAsFixed(0)}%',
-                                                      ),
-                                                    ),
-                                                  const SizedBox(height: 8),
-                                                ];
-                                              }(),
                                             Text(
                                               '${l10n.torrentUploaded}: ${formatBytes(currentTask.uploadLengthBytes)}',
                                             ),
@@ -507,13 +508,6 @@ class TaskDetailsDialog {
                                           context,
                                           currentTask,
                                         ),
-                                  ),
-                                  TaskDetailsOptionsTab(
-                                    key: ValueKey(
-                                      '${currentTask.instanceId}:${currentTask.id}',
-                                    ),
-                                    task: currentTask,
-                                    onSaved: onTaskUpdated,
                                   ),
                                   SingleChildScrollView(
                                     padding: const EdgeInsets.all(8),
@@ -654,6 +648,11 @@ class TaskDetailsDialog {
                                                                             ',',
                                                                           ),
                                                                 },
+                                                              );
+                                                          downloadDataService
+                                                              .invalidateTaskDetails(
+                                                                currentTask
+                                                                    .instanceId,
                                                               );
 
                                                           onTaskUpdated?.call();
@@ -856,6 +855,13 @@ class TaskDetailsDialog {
                                       ],
                                     ),
                                   ),
+                                  TaskDetailsOptionsTab(
+                                    key: ValueKey(
+                                      '${currentTask.instanceId}:${currentTask.id}',
+                                    ),
+                                    task: currentTask,
+                                    onSaved: onTaskUpdated,
+                                  ),
                                   if (isBtTask)
                                     SingleChildScrollView(
                                       padding: const EdgeInsets.all(8),
@@ -868,7 +874,7 @@ class TaskDetailsDialog {
                                             ),
                                     ),
                                   if (isBtTask)
-                                    SingleChildScrollView(
+                                    Padding(
                                       padding: const EdgeInsets.all(8),
                                       child:
                                           TaskDetailsBtHelpers.buildPeersView(
@@ -907,12 +913,31 @@ class TaskDetailsDialog {
                                   '&tr=${Uri.encodeComponent(trimmed)}',
                                 );
                               }
-                              await Clipboard.setData(
-                                ClipboardData(text: buffer.toString()),
-                              );
+                              final magnetLink = buffer.toString();
                               ClipboardMonitorService.markSelfCopied(
-                                buffer.toString(),
+                                magnetLink,
                               );
+                              try {
+                                await Clipboard.setData(
+                                  ClipboardData(text: magnetLink),
+                                );
+                              } catch (error, stackTrace) {
+                                _logger.e(
+                                  'Failed to copy magnet link',
+                                  error: error,
+                                  stackTrace: stackTrace,
+                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        l10n.operationFailed('$error'),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
                               if (!context.mounted) {
                                 return;
                               }

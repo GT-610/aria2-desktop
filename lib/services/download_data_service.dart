@@ -119,6 +119,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   // instanceId -> gid -> signature of the basic projected fields from the
   // last detailed fetch. Used to skip full re-fetches while nothing changed.
   final Map<String, Map<String, String>> _taskSignatures = {};
+  final Set<String> _detailedRefreshRequired = {};
 
   final int _refreshInterval = 1000;
 
@@ -210,6 +211,12 @@ class DownloadDataService extends ChangeNotifier with Loggable {
   /// on first use. Clients are owned by this service: do not close them.
   Aria2RpcClient clientFor(Aria2Instance instance) {
     return _getClient(instance);
+  }
+
+  /// Forces the next refresh for [instanceId] to request detailed task data.
+  void invalidateTaskDetails(String instanceId) {
+    _taskSignatures.remove(instanceId);
+    _detailedRefreshRequired.add(instanceId);
   }
 
   Aria2RpcClient _getClient(Aria2Instance instance) {
@@ -333,6 +340,7 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       _instanceStates.clear();
       _globalStats.clear();
       _taskSignatures.clear();
+      _detailedRefreshRequired.clear();
       _tasksVersion++;
       _lastError = null;
       if (hadTasks || hadError || hadInstanceStates) {
@@ -410,6 +418,10 @@ class DownloadDataService extends ChangeNotifier with Loggable {
       );
       _taskSignatures.removeWhere(
         (instanceId, _) =>
+            !connectedInstances.any((instance) => instance.id == instanceId),
+      );
+      _detailedRefreshRequired.removeWhere(
+        (instanceId) =>
             !connectedInstances.any((instance) => instance.id == instanceId),
       );
       _lastError = errors.isEmpty ? null : errors.join('; ');
@@ -502,6 +514,31 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     try {
       final client = _getClient(instance);
 
+      if (_detailedRefreshRequired.contains(instanceId)) {
+        // A previous refresh already established that detailed data is
+        // required, so avoid another basic request on a changing task.
+        final previousSignatures = _taskSignatures[instanceId];
+        final detailedResults = await client.getDownloadStatus(
+          includeGlobalStat: true,
+        );
+        _validateTaskResults(detailedResults);
+        _updateGlobalStats(instanceId, detailedResults);
+        final parsedDetailed = _parseTaskGroups(
+          detailedResults,
+          instanceId,
+          isLocal,
+        );
+        final nextSignatures = _signaturesFromResults(detailedResults);
+        _taskSignatures[instanceId] = nextSignatures;
+        if (previousSignatures != null &&
+            !_signaturesEqual(previousSignatures, nextSignatures)) {
+          _detailedRefreshRequired.add(instanceId);
+        } else {
+          _detailedRefreshRequired.remove(instanceId);
+        }
+        return _InstanceTaskRefreshResult.success(instance.id, parsedDetailed);
+      }
+
       // Phase 1: cheap poll with a basic field projection plus global stats.
       final basicResults = await client.getDownloadStatus(
         detailed: false,
@@ -522,7 +559,8 @@ class DownloadDataService extends ChangeNotifier with Loggable {
         );
       }
 
-      // Phase 2: something changed, re-fetch every available field.
+      // Phase 2: the basic projection changed, so re-fetch every field.
+      _detailedRefreshRequired.add(instanceId);
       final detailedResults = await client.getDownloadStatus();
       _validateTaskResults(detailedResults);
       final parsedDetailed = _parseTaskGroups(
@@ -633,6 +671,21 @@ class DownloadDataService extends ChangeNotifier with Loggable {
     List<Map<String, dynamic>> results,
   ) {
     _taskSignatures[instanceId] = _signaturesFromResults(results);
+  }
+
+  static bool _signaturesEqual(
+    Map<String, String> left,
+    Map<String, String> right,
+  ) {
+    if (left.length != right.length) {
+      return false;
+    }
+    for (final entry in left.entries) {
+      if (right[entry.key] != entry.value) {
+        return false;
+      }
+    }
+    return true;
   }
 
   bool _basicSnapshotUnchanged(

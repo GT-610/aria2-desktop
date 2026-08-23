@@ -30,6 +30,7 @@ class ClipboardMonitorService with Loggable {
   final ValueNotifier<int> version = ValueNotifier<int>(0);
 
   Timer? _timer;
+  int _schemes = allSchemes;
   String? _lastSeenContent;
   String? _pendingUri;
   final Set<String> _selfCopiedTexts = <String>{};
@@ -43,6 +44,7 @@ class ClipboardMonitorService with Loggable {
   }
 
   void synchronize({required bool enabled, required int schemes}) {
+    _schemes = schemes & allSchemes;
     if (!enabled) {
       stop();
       return;
@@ -51,9 +53,9 @@ class ClipboardMonitorService with Loggable {
       return;
     }
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      unawaited(_tick(schemes));
+      unawaited(_tick());
     });
-    unawaited(_tick(schemes));
+    unawaited(_tick());
   }
 
   void stop() {
@@ -67,7 +69,10 @@ class ClipboardMonitorService with Loggable {
     return uri;
   }
 
-  Future<void> _tick(int schemes) async {
+  @visibleForTesting
+  int get synchronizedSchemes => _schemes;
+
+  Future<void> _tick() async {
     String? content;
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
@@ -94,7 +99,7 @@ class ClipboardMonitorService with Loggable {
       return;
     }
 
-    final uri = extractEligibleUri(content, schemes);
+    final uri = extractEligibleUri(content, _schemes);
     if (uri == null) {
       return;
     }

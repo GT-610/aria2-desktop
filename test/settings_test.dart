@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:setsuna/models/settings.dart';
+import 'package:setsuna/utils/speed_schedule.dart';
 
 import 'support/memory_settings_repository.dart';
 
@@ -42,6 +43,11 @@ void main() {
       test('has expected default speed limits', () {
         expect(settings.maxOverallDownloadLimit, 0);
         expect(settings.maxOverallUploadLimit, 0);
+        expect(settings.speedLimitEnabled, isTrue);
+        expect(settings.speedScheduleEnabled, isFalse);
+        expect(settings.speedScheduleDays, allDaysBitmask);
+        expect(settings.speedScheduleStartMinutes, 0);
+        expect(settings.speedScheduleEndMinutes, minutesPerDay);
       });
 
       test('has expected default BT settings', () {
@@ -76,6 +82,12 @@ void main() {
         expect(settings.showDownloadsAfterAdd, isTrue);
         expect(settings.showProgressBar, isTrue);
         expect(settings.keepAwake, isFalse);
+        expect(settings.shutdownWhenComplete, isFalse);
+        expect(settings.fileCategoryRoutingEnabled, isFalse);
+        expect(settings.fileCategoryRules, isEmpty);
+        expect(settings.lastUpdateCheckTimestamp, 0);
+        expect(settings.clipboardMonitorEnabled, isFalse);
+        expect(settings.clipboardMonitorSchemes, 0xF);
         expect(settings.hideTitleBar, isFalse);
       });
 
@@ -363,6 +375,101 @@ void main() {
 
         expect(settings.keepAwake, isTrue);
         expect(repository.savedValues!['keepAwake'], isTrue);
+      });
+
+      test('persists speed switches and schedule values', () async {
+        final repository = MemorySettingsRepository(<String, dynamic>{});
+        final settings = Settings(repository: repository);
+
+        await settings.loadSettings();
+        await settings.setSpeedLimitEnabled(false);
+        await settings.setSpeedSchedule(
+          enabled: true,
+          days: 0x01,
+          startMinutes: 22 * 60,
+          endMinutes: 6 * 60,
+        );
+
+        expect(repository.savedValues!['speedLimitEnabled'], isFalse);
+        expect(repository.savedValues!['speedScheduleEnabled'], isTrue);
+        expect(repository.savedValues!['speedScheduleDays'], 0x01);
+        expect(repository.savedValues!['speedScheduleStartMinutes'], 22 * 60);
+        expect(repository.savedValues!['speedScheduleEndMinutes'], 6 * 60);
+
+        final reloaded = Settings(
+          repository: MemorySettingsRepository(repository.savedValues!),
+        );
+        await reloaded.loadSettings();
+        expect(reloaded.speedLimitEnabled, isFalse);
+        expect(reloaded.speedScheduleEnabled, isTrue);
+        expect(reloaded.speedScheduleDays, 0x01);
+        expect(reloaded.speedScheduleStartMinutes, 22 * 60);
+        expect(reloaded.speedScheduleEndMinutes, 6 * 60);
+      });
+
+      test('repairs schedule times that are not half-hour choices', () async {
+        final repository = MemorySettingsRepository(<String, dynamic>{
+          'speedScheduleStartMinutes': 615,
+          'speedScheduleEndMinutes': 1450,
+        });
+        final settings = Settings(repository: repository);
+
+        await settings.loadSettings();
+
+        expect(settings.speedScheduleStartMinutes, 0);
+        expect(settings.speedScheduleEndMinutes, minutesPerDay);
+        expect(repository.savedValues!['speedScheduleStartMinutes'], 0);
+        expect(
+          repository.savedValues!['speedScheduleEndMinutes'],
+          minutesPerDay,
+        );
+
+        expect(
+          () => settings.setSpeedSchedule(startMinutes: -30),
+          throwsArgumentError,
+        );
+        expect(
+          () => settings.setSpeedSchedule(endMinutes: 601),
+          throwsArgumentError,
+        );
+        expect(settings.speedScheduleStartMinutes, 0);
+        expect(settings.speedScheduleEndMinutes, minutesPerDay);
+      });
+
+      test('reset restores all persisted automation preferences', () async {
+        final repository = MemorySettingsRepository(<String, dynamic>{
+          'shutdownWhenComplete': true,
+          'fileCategoryRoutingEnabled': true,
+          'fileCategoryRulesJson':
+              '["{\\"extensions\\":[\\"zip\\"],'
+              '\\"subdirectory\\":\\"Archives\\"}"]',
+          'lastUpdateCheckTimestamp': 123,
+          'clipboardMonitorEnabled': true,
+          'clipboardMonitorSchemes': 0x04,
+          'speedLimitEnabled': false,
+          'speedScheduleEnabled': true,
+          'speedScheduleDays': 0x01,
+          'speedScheduleStartMinutes': 1320,
+          'speedScheduleEndMinutes': 360,
+        });
+        final settings = Settings(repository: repository);
+        await settings.loadSettings();
+
+        await settings.resetToDefaults();
+
+        expect(settings.shutdownWhenComplete, isFalse);
+        expect(settings.fileCategoryRoutingEnabled, isFalse);
+        expect(settings.fileCategoryRules, isEmpty);
+        expect(settings.lastUpdateCheckTimestamp, 0);
+        expect(settings.clipboardMonitorEnabled, isFalse);
+        expect(settings.clipboardMonitorSchemes, 0xF);
+        expect(settings.speedLimitEnabled, isTrue);
+        expect(settings.speedScheduleEnabled, isFalse);
+        expect(settings.speedScheduleDays, allDaysBitmask);
+        expect(settings.speedScheduleStartMinutes, 0);
+        expect(settings.speedScheduleEndMinutes, minutesPerDay);
+        expect(repository.savedValues!['shutdownWhenComplete'], isFalse);
+        expect(repository.savedValues!['speedLimitEnabled'], isTrue);
       });
     });
   });

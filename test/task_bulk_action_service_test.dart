@@ -147,7 +147,8 @@ void main() {
 
   test('closes its own clients after the run', () async {
     final instance = _instance('remote');
-    final service = TaskBulkActionService();
+    final client = Aria2RpcClient(instance);
+    final service = TaskBulkActionService(clientBuilder: (_) => client);
 
     await service.run(
       instances: <Aria2Instance>[instance],
@@ -155,12 +156,26 @@ void main() {
       perform: (_, _) async => const BulkActionItemResult(),
     );
 
-    // No way to reach the internally created client; assert via a fresh
-    // closed-client comparison that the closed state raises immediately.
-    final probe = Aria2RpcClient(instance);
-    await probe.close();
     await expectLater(
-      probe.callRpc('aria2.getVersion', []),
+      client.callRpc('aria2.getVersion', []),
+      throwsA(isA<ConnectionFailedException>()),
+    );
+  });
+
+  test('owns and closes a fallback when the factory returns null', () async {
+    final instance = _instance('remote');
+    final fallbackClient = Aria2RpcClient(instance);
+    final service = TaskBulkActionService(clientBuilder: (_) => fallbackClient);
+
+    await service.run(
+      instances: <Aria2Instance>[instance],
+      tasks: [_task(instance, 'task')],
+      clientFactory: (_) => null,
+      perform: (_, _) async => const BulkActionItemResult(),
+    );
+
+    await expectLater(
+      fallbackClient.callRpc('aria2.getVersion', []),
       throwsA(isA<ConnectionFailedException>()),
     );
   });

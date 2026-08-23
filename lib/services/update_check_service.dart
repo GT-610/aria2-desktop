@@ -34,6 +34,8 @@ class UpdateCheckResult {
 
   bool get isUpdateAvailable => status == UpdateCheckStatus.updateAvailable;
 
+  bool get isFailed => status == UpdateCheckStatus.failed;
+
   /// Version 0.0.0 marks a self-built binary; update checks stay disabled.
   bool get isSelfBuild => status == UpdateCheckStatus.selfBuild;
 }
@@ -66,8 +68,25 @@ bool isNewerVersion(String local, String remote) {
 class UpdateCheckService with Loggable {
   static const Duration _requestTimeout = Duration(seconds: 10);
   static const Duration _autoCheckInterval = Duration(days: 1);
+  static Future<UpdateCheckResult>? _inFlightCheck;
 
   Future<UpdateCheckResult> checkForUpdate() async {
+    final existing = _inFlightCheck;
+    if (existing != null) {
+      return existing;
+    }
+    final check = _performCheck();
+    _inFlightCheck = check;
+    try {
+      return await check;
+    } finally {
+      if (identical(_inFlightCheck, check)) {
+        _inFlightCheck = null;
+      }
+    }
+  }
+
+  Future<UpdateCheckResult> _performCheck() async {
     try {
       final info = await PackageInfo.fromPlatform();
       // Self-built binaries (version 0.0.0) have no comparable version;
@@ -121,9 +140,9 @@ class UpdateCheckService with Loggable {
       return;
     }
     final result = await checkForUpdate();
-    if (result.isSelfBuild) {
+    if (result.isSelfBuild || result.isFailed) {
       // Never persist a timestamp for self-builds so the check stays
-      // dormant without pretending it ran.
+      // dormant, or for failures so the check can retry on next launch.
       return;
     }
     await settings.setLastUpdateCheckTimestamp(now);

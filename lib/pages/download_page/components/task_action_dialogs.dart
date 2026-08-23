@@ -178,13 +178,15 @@ class TaskActionDialogs {
                       deleteDownloadedFiles = choice;
                     }
                   }
-                  await _performActionForAllInstances(
-                    context,
+                  final outcome = await _performActionForAllInstances(
                     actionType,
                     actionableAllTasks,
                     instanceManager,
+                    downloadDataService,
                     deleteDownloadedFiles: deleteDownloadedFiles,
                   );
+                  if (!context.mounted) return;
+                  _showActionOutcome(context, actionType, outcome);
                   onActionCompleted?.call();
                 },
               ),
@@ -224,10 +226,10 @@ class TaskActionDialogs {
                           return;
                         }
                         final outcome = await _performActionForInstance(
-                          context,
                           instance,
                           actionType,
                           instanceTasks,
+                          downloadDataService,
                           deleteDownloadedFiles: deleteDownloadedFiles,
                         );
                         if (!context.mounted) return;
@@ -275,11 +277,11 @@ class TaskActionDialogs {
     );
   }
 
-  static Future<void> _performActionForAllInstances(
-    BuildContext context,
+  static Future<_TaskActionOutcome> _performActionForAllInstances(
     TaskActionType actionType,
     List<DownloadTask> allTasks,
-    InstanceManager instanceManager, {
+    InstanceManager instanceManager,
+    DownloadDataService downloadDataService, {
     bool deleteDownloadedFiles = false,
   }) async {
     final connectedInstances = instanceManager.getConnectedInstances();
@@ -290,23 +292,22 @@ class TaskActionDialogs {
           .where((task) => task.instanceId == instance.id)
           .toList();
       totalOutcome += await _performActionForInstance(
-        context,
         instance,
         actionType,
         instanceTasks,
+        downloadDataService,
         deleteDownloadedFiles: deleteDownloadedFiles,
       );
     }
 
-    if (!context.mounted) return;
-    _showActionOutcome(context, actionType, totalOutcome);
+    return totalOutcome;
   }
 
   static Future<_TaskActionOutcome> _performActionForInstance(
-    BuildContext context,
     Aria2Instance instance,
     TaskActionType actionType,
-    List<DownloadTask> tasks, {
+    List<DownloadTask> tasks,
+    DownloadDataService downloadDataService, {
     bool deleteDownloadedFiles = false,
   }) async {
     if (tasks.isEmpty) {
@@ -314,15 +315,11 @@ class TaskActionDialogs {
       return const _TaskActionOutcome();
     }
 
-    final downloadDataService = p.Provider.of<DownloadDataService>(
-      context,
-      listen: false,
-    );
-
     final result = await TaskBulkActionService().run(
       instances: <Aria2Instance>[instance],
       tasks: tasks,
-      clientFactory: (_) => downloadDataService.clientFor(instance),
+      clientFactory: (targetInstance) =>
+          downloadDataService.clientFor(targetInstance),
       perform: (client, task) async {
         switch (actionType) {
           case TaskActionType.resume:

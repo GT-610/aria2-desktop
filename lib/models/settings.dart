@@ -127,6 +127,12 @@ class Settings extends ChangeNotifier with Loggable {
     _showDownloadsAfterAdd = true;
     _showProgressBar = true;
     _keepAwake = false;
+    _shutdownWhenComplete = false;
+    _fileCategoryRoutingEnabled = false;
+    _fileCategoryRulesJson = '[]';
+    _lastUpdateCheckTimestamp = 0;
+    _clipboardMonitorEnabled = false;
+    _clipboardMonitorSchemes = 0xF;
     _hideTitleBar = false;
     _themeMode = ThemeMode.system;
     _primaryColor = Colors.blue;
@@ -148,6 +154,11 @@ class Settings extends ChangeNotifier with Loggable {
     // Speed settings
     _maxOverallDownloadLimit = 0;
     _maxOverallUploadLimit = 0;
+    _speedLimitEnabled = true;
+    _speedScheduleEnabled = false;
+    _speedScheduleDays = allDaysBitmask;
+    _speedScheduleStartMinutes = 0;
+    _speedScheduleEndMinutes = minutesPerDay;
 
     // BT settings
     _btSaveMetadata = true;
@@ -205,17 +216,27 @@ class Settings extends ChangeNotifier with Loggable {
 
   /// Parsed file-category rules (invalid entries dropped).
   List<FileCategoryRule> get fileCategoryRules {
+    final dynamic decoded;
     try {
-      final decoded = jsonDecode(_fileCategoryRulesJson);
-      if (decoded is! List) {
-        return const [];
-      }
-      return parseFileCategoryRules(
-        decoded.map((entry) => '$entry').toList(growable: false),
+      decoded = jsonDecode(_fileCategoryRulesJson);
+    } catch (error, stackTrace) {
+      w(
+        'Failed to decode saved file-category rules',
+        error: error,
+        stackTrace: stackTrace,
       );
-    } catch (_) {
       return const [];
     }
+    if (decoded is! List) {
+      w('Ignored file-category rules because the saved value is not a list');
+      return const [];
+    }
+    final rawRules = decoded.map((entry) => '$entry').toList(growable: false);
+    final rules = parseFileCategoryRules(rawRules);
+    if (rules.length != rawRules.take(maxFileCategoryRules).length) {
+      w('Ignored one or more invalid saved file-category rules');
+    }
+    return rules;
   }
 
   bool get clipboardMonitorEnabled => _clipboardMonitorEnabled;
@@ -472,6 +493,15 @@ class Settings extends ChangeNotifier with Loggable {
           return null;
         }
 
+        int readScheduleMinutes(String key, int fallback) {
+          final value = readInt(key, fallback, min: 0, max: minutesPerDay);
+          if (value % 30 != 0) {
+            needsSave = true;
+            return fallback;
+          }
+          return value;
+        }
+
         // Global settings
         _autoStart = readBool('autoStart', false);
         final minimizeToTray = readBool('minimizeToTray', true);
@@ -623,17 +653,13 @@ class Settings extends ChangeNotifier with Loggable {
         _speedScheduleDays = loadedDays == 0
             ? allDaysBitmask
             : loadedDays & allDaysBitmask;
-        _speedScheduleStartMinutes = readInt(
+        _speedScheduleStartMinutes = readScheduleMinutes(
           'speedScheduleStartMinutes',
           0,
-          min: 0,
-          max: minutesPerDay,
         );
-        _speedScheduleEndMinutes = readInt(
+        _speedScheduleEndMinutes = readScheduleMinutes(
           'speedScheduleEndMinutes',
           minutesPerDay,
-          min: 0,
-          max: minutesPerDay,
         );
 
         // BT settings
@@ -769,6 +795,11 @@ class Settings extends ChangeNotifier with Loggable {
         // Speed settings
         'maxOverallDownloadLimit': _maxOverallDownloadLimit,
         'maxOverallUploadLimit': _maxOverallUploadLimit,
+        'speedLimitEnabled': _speedLimitEnabled,
+        'speedScheduleEnabled': _speedScheduleEnabled,
+        'speedScheduleDays': _speedScheduleDays,
+        'speedScheduleStartMinutes': _speedScheduleStartMinutes,
+        'speedScheduleEndMinutes': _speedScheduleEndMinutes,
 
         // BT settings
         'btSaveMetadata': _btSaveMetadata,
@@ -879,8 +910,16 @@ class Settings extends ChangeNotifier with Loggable {
     if (nextDays == 0) {
       nextDays = allDaysBitmask;
     }
-    final nextStart = startMinutes ?? _speedScheduleStartMinutes;
-    final nextEnd = endMinutes ?? _speedScheduleEndMinutes;
+    final nextStart = _validateScheduleMinutes(
+      startMinutes,
+      _speedScheduleStartMinutes,
+      'startMinutes',
+    );
+    final nextEnd = _validateScheduleMinutes(
+      endMinutes,
+      _speedScheduleEndMinutes,
+      'endMinutes',
+    );
 
     if (nextEnabled == _speedScheduleEnabled &&
         nextDays == _speedScheduleDays &&
@@ -891,10 +930,24 @@ class Settings extends ChangeNotifier with Loggable {
 
     _speedScheduleEnabled = nextEnabled;
     _speedScheduleDays = nextDays;
-    _speedScheduleStartMinutes = nextStart.clamp(0, minutesPerDay).toInt();
-    _speedScheduleEndMinutes = nextEnd.clamp(0, minutesPerDay).toInt();
+    _speedScheduleStartMinutes = nextStart;
+    _speedScheduleEndMinutes = nextEnd;
     notifyListeners();
     await _saveAllSettings();
+  }
+
+  int _validateScheduleMinutes(int? value, int fallback, String name) {
+    if (value == null) {
+      return fallback;
+    }
+    if (value < 0 || value > minutesPerDay || value % 30 != 0) {
+      throw ArgumentError.value(
+        value,
+        name,
+        'must be between 0 and $minutesPerDay and divisible by 30',
+      );
+    }
+    return value;
   }
 
   Future<void> setRunMode(AppRunMode value) async {

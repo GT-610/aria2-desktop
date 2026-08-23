@@ -1715,7 +1715,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get speedCapsuleTooltip =>
-      'Download / upload speeds - long-press to edit limits';
+      'Download / upload speeds - tap or long-press to edit limits';
 
   @override
   String get unlimited => 'unlimited';
@@ -1766,6 +1766,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fileCategorySubdirLabel => 'Subdirectory';
+
+  @override
+  String get fileCategoryInvalidRule =>
+      'Enter at least one valid extension and a safe subdirectory.';
 
   @override
   String get fileCategoryRouting => 'Route downloads into category folders';

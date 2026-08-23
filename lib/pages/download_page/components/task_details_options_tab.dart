@@ -1,13 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../generated/l10n/l10n.dart';
 import '../../../services/download_data_service.dart';
 import '../../../services/instance_manager.dart';
+import '../../../utils/logging.dart';
 import '../enums.dart';
 import '../models/download_task.dart';
 
-enum _OptionKind { text, intText, boolValue }
+final _logger = taggedLogger('TaskDetailsOptionsTab');
+
+enum _OptionKind { text, integer, decimal, boolValue }
 
 class _OptionFieldSpec {
   const _OptionFieldSpec({
@@ -42,7 +48,7 @@ final _optionSpecs = <_OptionFieldSpec>[
   _OptionFieldSpec(
     key: 'bt-max-peers',
     label: (l10n) => l10n.btMaxPeers,
-    kind: _OptionKind.intText,
+    kind: _OptionKind.integer,
     editableWhileActive: true,
   ),
   _OptionFieldSpec(
@@ -74,12 +80,12 @@ final _optionSpecs = <_OptionFieldSpec>[
   _OptionFieldSpec(
     key: 'seed-ratio',
     label: (l10n) => l10n.seedRatio,
-    kind: _OptionKind.text,
+    kind: _OptionKind.decimal,
   ),
   _OptionFieldSpec(
     key: 'seed-time',
     label: (l10n) => l10n.seedTimeMinutes,
-    kind: _OptionKind.intText,
+    kind: _OptionKind.decimal,
   ),
 ];
 
@@ -122,7 +128,7 @@ class _TaskDetailsOptionsTabState extends State<TaskDetailsOptionsTab> {
   @override
   void initState() {
     super.initState();
-    _loadOptions();
+    unawaited(_loadOptions());
   }
 
   @override
@@ -156,7 +162,12 @@ class _TaskDetailsOptionsTabState extends State<TaskDetailsOptionsTab> {
       _pending = {};
       _dirtyKeys.clear();
       setState(() => _loading = false);
-    } catch (error) {
+    } catch (error, stackTrace) {
+      _logger.e(
+        'Failed to load options for task ${widget.task.id}',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -186,12 +197,18 @@ class _TaskDetailsOptionsTabState extends State<TaskDetailsOptionsTab> {
   }
 
   void _stageTextValue(_OptionFieldSpec spec, String value) {
-    if (_pending[spec.key] == value) {
+    final original = _original?[spec.key] ?? '';
+    if (_effectiveValue(spec.key) == value) {
       return;
     }
     setState(() {
-      _pending = {..._pending, spec.key: value};
-      _dirtyKeys.add(spec.key);
+      if (value == original) {
+        _pending = {..._pending}..remove(spec.key);
+        _dirtyKeys.remove(spec.key);
+      } else {
+        _pending = {..._pending, spec.key: value};
+        _dirtyKeys.add(spec.key);
+      }
     });
   }
 
@@ -217,15 +234,19 @@ class _TaskDetailsOptionsTabState extends State<TaskDetailsOptionsTab> {
       switch (spec.kind) {
         case _OptionKind.boolValue:
           updates[key] = _effectiveValue(key) == 'true' ? 'true' : 'false';
-        case _OptionKind.intText || _OptionKind.text:
+        case _OptionKind.integer || _OptionKind.decimal || _OptionKind.text:
           final value =
               _controllers[key]?.text.trim() ?? _effectiveValue(key).trim();
-          if (value.isNotEmpty) {
-            updates[key] = value;
-          } else {
-            // Empty text clears the per-task override where supported.
-            updates[key] = '';
+          if (!_isValidNumericValue(spec, value)) {
+            final l10n = AppLocalizations.of(context)!;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.operationFailed(spec.label(l10n)))),
+            );
+            setState(() => _saving = false);
+            return;
           }
+          // Empty text clears the per-task override where supported.
+          updates[key] = value;
       }
     }
 
@@ -257,7 +278,12 @@ class _TaskDetailsOptionsTabState extends State<TaskDetailsOptionsTab> {
         _saving = false;
       });
       widget.onSaved?.call();
-    } catch (error) {
+    } catch (error, stackTrace) {
+      _logger.e(
+        'Failed to save options for task ${widget.task.id}',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -281,7 +307,7 @@ class _TaskDetailsOptionsTabState extends State<TaskDetailsOptionsTab> {
             Text(l10n.optionsLoadFailed(_error!)),
             const SizedBox(height: 12),
             TextButton.icon(
-              onPressed: _loadOptions,
+              onPressed: () => unawaited(_loadOptions()),
               icon: const Icon(Icons.refresh),
               label: Text(l10n.retry),
             ),
@@ -316,12 +342,14 @@ class _TaskDetailsOptionsTabState extends State<TaskDetailsOptionsTab> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                onPressed: _dirtyKeys.isEmpty ? null : _discardChanges,
+                onPressed: _dirtyKeys.isEmpty || _saving
+                    ? null
+                    : _discardChanges,
                 child: Text(l10n.discard),
               ),
               const SizedBox(width: 8),
               FilledButton.icon(
-                onPressed: _dirtyKeys.isEmpty && !_saving ? null : _saveChanges,
+                onPressed: _dirtyKeys.isEmpty || _saving ? null : _saveChanges,
                 icon: _saving
                     ? const SizedBox(
                         width: 14,
@@ -346,15 +374,38 @@ class _TaskDetailsOptionsTabState extends State<TaskDetailsOptionsTab> {
           contentPadding: EdgeInsets.zero,
           title: Text(spec.label(AppLocalizations.of(context)!)),
           value: current,
-          onChanged: (value) {
-            _stageTextValue(spec, value ? 'true' : 'false');
-          },
+          onChanged: _saving
+              ? null
+              : (value) {
+                  _stageTextValue(spec, value ? 'true' : 'false');
+                },
         );
-      case _OptionKind.intText || _OptionKind.text:
+      case _OptionKind.integer || _OptionKind.decimal || _OptionKind.text:
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: TextField(
             controller: _controllerFor(spec),
+            enabled: !_saving,
+            keyboardType: switch (spec.kind) {
+              _OptionKind.integer => TextInputType.number,
+              _OptionKind.decimal => const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              _ => null,
+            },
+            inputFormatters: switch (spec.kind) {
+              _OptionKind.integer => <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly,
+              ],
+              _OptionKind.decimal => <TextInputFormatter>[
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  return RegExp(r'^\d*(?:\.\d*)?$').hasMatch(newValue.text)
+                      ? newValue
+                      : oldValue;
+                }),
+              ],
+              _ => null,
+            },
             decoration: InputDecoration(
               labelText: spec.label(AppLocalizations.of(context)!),
               isDense: true,
@@ -372,5 +423,16 @@ class _TaskDetailsOptionsTabState extends State<TaskDetailsOptionsTab> {
           ),
         );
     }
+  }
+
+  bool _isValidNumericValue(_OptionFieldSpec spec, String value) {
+    if (value.isEmpty || spec.kind == _OptionKind.text) {
+      return true;
+    }
+    return switch (spec.kind) {
+      _OptionKind.integer => (int.tryParse(value) ?? -1) >= 0,
+      _OptionKind.decimal => (double.tryParse(value) ?? -1) >= 0,
+      _ => true,
+    };
   }
 }

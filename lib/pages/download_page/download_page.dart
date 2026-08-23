@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import '../../generated/l10n/l10n.dart';
@@ -854,7 +855,6 @@ class DownloadPageState extends State<DownloadPage>
                 taskOptions,
                 showDownloadsAfterAdd,
               ) async {
-                Aria2RpcClient? client;
                 try {
                   final targetInstance = instanceManager.getInstanceById(
                     targetInstanceId,
@@ -871,7 +871,7 @@ class DownloadPageState extends State<DownloadPage>
 
                   final downloadDataService = pageContext
                       .read<DownloadDataService>();
-                  client = downloadDataService.clientFor(targetInstance);
+                  final client = downloadDataService.clientFor(targetInstance);
                   final options = <String, dynamic>{...taskOptions};
                   if (downloadDir.trim().isNotEmpty) {
                     options['dir'] = downloadDir.trim();
@@ -883,9 +883,10 @@ class DownloadPageState extends State<DownloadPage>
                       );
                       if (subdir != null) {
                         final base = '${options['dir']}';
-                        options['dir'] = base.endsWith('/')
-                            ? '$base$subdir'
-                            : '$base/$subdir';
+                        final pathContext = base.contains('\\')
+                            ? p.Context(style: p.Style.windows)
+                            : p.Context(style: p.Style.posix);
+                        options['dir'] = pathContext.join(base, subdir);
                       }
                     }
                   }
@@ -901,7 +902,7 @@ class DownloadPageState extends State<DownloadPage>
                         return false;
                       }
                       final gid = await client.addUri(uris, options);
-                      if (options['pause-metadata'] == 'true' &&
+                      if (options[pauseMetadataOptionKey] == 'true' &&
                           pageContext.mounted) {
                         unawaited(
                           MagnetFileSelectionFlow.watchAndPrompt(

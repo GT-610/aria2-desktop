@@ -3076,7 +3076,7 @@ abstract class AppLocalizations {
   /// No description provided for @speedCapsuleTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Download / upload speeds - long-press to edit limits'**
+  /// **'Download / upload speeds - tap or long-press to edit limits'**
   String get speedCapsuleTooltip;
 
   /// No description provided for @unlimited.
@@ -3168,6 +3168,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Subdirectory'**
   String get fileCategorySubdirLabel;
+
+  /// No description provided for @fileCategoryInvalidRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least one valid extension and a safe subdirectory.'**
+  String get fileCategoryInvalidRule;
 
   /// No description provided for @fileCategoryRouting.
   ///

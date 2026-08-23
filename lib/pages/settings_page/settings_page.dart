@@ -10,6 +10,7 @@ import '../../constants/github_id.dart';
 import '../../generated/l10n/l10n.dart';
 import '../../models/settings.dart';
 import '../../pages/debug_log_page.dart';
+import '../../services/clipboard_monitor_service.dart';
 import '../../services/protocol_integration_service.dart';
 import '../../services/startup_integration_service.dart';
 import '../../services/update_check_service.dart';
@@ -31,7 +32,9 @@ class _SettingsSection {
 }
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({super.key, this.updateCheckService});
+
+  final UpdateCheckService? updateCheckService;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -44,6 +47,7 @@ class _SettingsPageState extends State<SettingsPage>
         SingleTickerProviderStateMixin {
   String _versionLabel = '';
   bool _isLoading = true;
+  bool _isCheckingForUpdates = false;
   late final TabController _tabController = TabController(
     length: _SettingsTab.values.length,
     vsync: this,
@@ -276,6 +280,8 @@ class _SettingsPageState extends State<SettingsPage>
           value: settings.clipboardMonitorEnabled,
           onChanged: (value) => settings.setClipboardMonitorEnabled(value),
         ),
+        if (settings.clipboardMonitorEnabled)
+          _buildClipboardSchemeSelector(settings),
       ]),
     );
   }
@@ -488,8 +494,10 @@ class _SettingsPageState extends State<SettingsPage>
       child: _buildSettingsGroup([
         _buildTextCardTile(
           title: l10n.checkForUpdates,
-          trailing: const Icon(Icons.system_update_alt_outlined),
-          onTap: _checkForUpdates,
+          trailing: _isCheckingForUpdates
+              ? SizedLoading.small
+              : const Icon(Icons.system_update_alt_outlined),
+          onTap: _isCheckingForUpdates ? null : _checkForUpdates,
         ),
         _buildTextCardTile(
           title: l10n.viewLogs,
@@ -691,26 +699,76 @@ class _SettingsPageState extends State<SettingsPage>
   }
 
   Future<void> _checkForUpdates() async {
+    if (_isCheckingForUpdates) {
+      return;
+    }
+    setState(() => _isCheckingForUpdates = true);
     final messenger = ScaffoldMessenger.of(context);
-    final result = await UpdateCheckService().checkForUpdate();
-    if (!mounted) {
-      return;
+    try {
+      final service = widget.updateCheckService ?? UpdateCheckService();
+      final result = await service.checkForUpdate();
+      if (!mounted) {
+        return;
+      }
+      final l10n = AppLocalizations.of(context)!;
+      if (result.isSelfBuild) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.updateCheckSelfBuild)),
+        );
+        return;
+      }
+      if (result.isFailed) {
+        _showErrorSnackBar(l10n.operationFailed(l10n.checkForUpdates));
+        return;
+      }
+      if (result.isUpdateAvailable) {
+        await service.showUpdateDialog(context, result);
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text(l10n.upToDate)));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingForUpdates = false);
+      }
     }
-    if (result.isSelfBuild) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.updateCheckSelfBuild),
+  }
+
+  Widget _buildClipboardSchemeSelector(Settings settings) {
+    const schemes = <(String, int)>[
+      ('HTTP(S)', ClipboardMonitorService.schemeHttp),
+      ('FTP', ClipboardMonitorService.schemeFtp),
+      ('Magnet', ClipboardMonitorService.schemeMagnet),
+      ('Thunder', ClipboardMonitorService.schemeThunder),
+    ];
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final scheme in schemes)
+              FilterChip(
+                label: Text(scheme.$1),
+                selected: settings.clipboardMonitorSchemes & scheme.$2 != 0,
+                onSelected: (selected) {
+                  final current = settings.clipboardMonitorSchemes;
+                  final next = selected
+                      ? current | scheme.$2
+                      : current & ~scheme.$2;
+                  if (next == 0) {
+                    return;
+                  }
+                  _runSettingAction(
+                    () => settings.setClipboardMonitorSchemes(next),
+                    AppLocalizations.of(context)!.saveSettingsFailed,
+                  );
+                },
+              ),
+          ],
         ),
-      );
-      return;
-    }
-    if (result.isUpdateAvailable) {
-      await UpdateCheckService().showUpdateDialog(context, result);
-    } else {
-      messenger.showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.upToDate)),
-      );
-    }
+      ),
+    );
   }
 
   Widget _buildSwitchTile({

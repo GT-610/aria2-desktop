@@ -14,6 +14,8 @@ import '../../../utils/logging.dart';
 import '../utils/add_task_options.dart';
 import 'directory_picker.dart';
 
+const pauseMetadataOptionKey = 'pause-metadata';
+
 class AddTaskDialog extends StatefulWidget {
   final List<Aria2Instance> targetInstances;
   final String? defaultTargetInstanceId;
@@ -405,12 +407,14 @@ class _AddTaskDialogState extends State<AddTaskDialog>
     if (taskOptions == null) {
       return;
     }
-    if (taskType == 'uri' &&
-        selectFilesAfterMetadata &&
-        uri.toLowerCase().contains('magnet:')) {
+    final hasMagnetUri = uri
+        .split(RegExp(r'[\r\n]+'))
+        .map((line) => line.trim().toLowerCase())
+        .any((line) => line.startsWith('magnet:?'));
+    if (taskType == 'uri' && selectFilesAfterMetadata && hasMagnetUri) {
       // aria2 pauses the download once metadata is fetched; the flow in
       // MagnetFileSelectionFlow then opens a file picker and resumes.
-      taskOptions['pause-metadata'] = 'true';
+      taskOptions[pauseMetadataOptionKey] = 'true';
       taskOptions['bt-save-metadata'] = 'true';
     }
 

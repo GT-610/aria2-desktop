@@ -3,9 +3,30 @@ import 'package:intl/intl.dart';
 
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/settings.dart';
+import '../../../utils/logging.dart';
 import '../../../utils/speed_schedule.dart';
 import '../../../widgets/app_card.dart';
 import '../../components/quick_speed_limit_dialog.dart';
+
+final _logger = taggedLogger('SpeedLimitCard');
+
+Future<void> _pushSpeedLimits(BuildContext context) async {
+  try {
+    final applied = await applySpeedLimitsToBuiltin(context);
+    if (!applied) {
+      _logger.w(
+        'Speed limits were not pushed because the built-in instance is '
+        'unavailable or rejected the update',
+      );
+    }
+  } catch (error, stackTrace) {
+    _logger.w(
+      'Failed to push speed limits to the built-in instance',
+      error: error,
+      stackTrace: stackTrace,
+    );
+  }
+}
 
 /// Speed-limit settings built from the same tiles used across the settings
 /// page: a master switch row, value rows that open edit dialogs, and a
@@ -214,18 +235,19 @@ class SpeedLimitCard extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await action();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _logger.e(
+        'Failed to persist speed-limit settings',
+        error: error,
+        stackTrace: stackTrace,
+      );
       messenger.showSnackBar(SnackBar(content: Text(l10n.saveSettingsFailed)));
       return;
     }
     if (!context.mounted) {
       return;
     }
-    try {
-      await applySpeedLimitsToBuiltin(context);
-    } catch (_) {
-      // Non-fatal: the limits are applied on the next engine start.
-    }
+    await _pushSpeedLimits(context);
   }
 }
 
@@ -273,7 +295,12 @@ class _LimitEditDialogState extends State<_LimitEditDialog> {
       } else {
         await widget.settings.setMaxOverallDownloadLimit(value);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _logger.e(
+        'Failed to persist speed-limit settings',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (mounted) {
         setState(() => _saving = false);
         messenger.showSnackBar(
@@ -285,11 +312,7 @@ class _LimitEditDialogState extends State<_LimitEditDialog> {
     if (!mounted) {
       return;
     }
-    try {
-      await applySpeedLimitsToBuiltin(context);
-    } catch (_) {
-      // Non-fatal: the limits are applied on the next engine start.
-    }
+    await _pushSpeedLimits(context);
     if (mounted) {
       Navigator.of(context).pop();
     }

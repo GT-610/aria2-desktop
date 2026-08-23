@@ -29,12 +29,15 @@ class FileCategoryRule {
         return null;
       }
       final rawExtensions = decoded['extensions'];
-      final extensions = <String>{
-        if (rawExtensions is List)
-          for (final entry in rawExtensions)
-            if (_normalizeExtension('$entry') != null)
-              _normalizeExtension('$entry')!,
-      };
+      final extensions = <String>{};
+      if (rawExtensions is List) {
+        for (final entry in rawExtensions) {
+          final normalized = _normalizeExtension('$entry');
+          if (normalized != null) {
+            extensions.add(normalized);
+          }
+        }
+      }
       final subdirectory = _sanitizeSubdirectory(
         '${decoded['subdirectory'] ?? ''}',
       );
@@ -45,7 +48,7 @@ class FileCategoryRule {
         extensions: extensions,
         subdirectory: subdirectory,
       );
-    } catch (_) {
+    } on FormatException {
       return null;
     }
   }

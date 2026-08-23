@@ -312,18 +312,35 @@ class BuiltinInstanceService with Loggable {
 
   /// The bundled engine is aria2-next; its detach-share-only option does not
   /// exist in vanilla aria2 (major version 1.x), which would refuse to start.
-  Future<bool> _engineSupportsDetachShareOnly() async {
+  Future<bool> _engineSupportsDetachShareOnly({
+    Future<ProcessResult> Function(String, List<String>)? runProcess,
+  }) async {
     final cached = _cachedSupportsDetachShareOnly;
     if (cached != null) {
       return cached;
     }
     try {
-      final result = await Process.run(_aria2cPath!, const ['--version']);
+      final probe = runProcess ?? Process.run;
+      final result = await probe(_aria2cPath!, const ['--version']);
+      if (result.exitCode != 0) {
+        w(
+          'Bundled engine version probe exited with code ${result.exitCode}; '
+          'assuming vanilla aria2 for this launch',
+        );
+        return false;
+      }
       final match = RegExp(
         r'^aria2\s+(\d+)\.',
         multiLine: true,
       ).firstMatch('${result.stdout}${result.stderr}');
-      final major = int.tryParse(match?.group(1) ?? '') ?? 0;
+      final major = int.tryParse(match?.group(1) ?? '');
+      if (major == null) {
+        w(
+          'Could not parse the bundled engine version; assuming vanilla '
+          'aria2 for this launch',
+        );
+        return false;
+      }
       _cachedSupportsDetachShareOnly = major >= 2;
     } catch (e, stackTrace) {
       w(
@@ -331,9 +348,21 @@ class BuiltinInstanceService with Loggable {
         error: e,
         stackTrace: stackTrace,
       );
-      _cachedSupportsDetachShareOnly = false;
+      return false;
     }
     return _cachedSupportsDetachShareOnly!;
+  }
+
+  @visibleForTesting
+  static void clearDetachShareOnlySupportCache() {
+    _cachedSupportsDetachShareOnly = null;
+  }
+
+  @visibleForTesting
+  Future<bool> engineSupportsDetachShareOnlyForTesting(
+    Future<ProcessResult> Function(String, List<String>) runProcess,
+  ) {
+    return _engineSupportsDetachShareOnly(runProcess: runProcess);
   }
 
   String? validateBuiltinFiles() {
@@ -438,19 +467,35 @@ class BuiltinInstanceService with Loggable {
     );
   }
 
-  List<String> _buildArgs({required bool detachShareOnly}) {
+  String _recoveryFilePath(String filePath, int rpcPort) {
+    final extension = p.extension(filePath);
+    final basename = p.basenameWithoutExtension(filePath);
+    return p.join(p.dirname(filePath), '$basename.recovery-$rpcPort$extension');
+  }
+
+  List<String> _buildArgs({
+    required bool detachShareOnly,
+    int? rpcPortOverride,
+    bool useRecoveryPaths = false,
+  }) {
     final settings = _readSettingsSnapshot();
-    final rpcPort = _getConfiguredRpcPort(settings);
+    final rpcPort = rpcPortOverride ?? _getConfiguredRpcPort(settings);
     final rpcSecret = _getConfiguredRpcSecret(settings);
     final keepSeeding = settings['keepSeeding'] == true;
     final seedTime = effectiveSeedTime(keepSeeding, settings['seedTime']);
     final seedRatio = effectiveSeedRatio(keepSeeding, settings['seedRatio']);
     final btListenPort = resolveEffectiveBtListenPort(settings);
-    final sessionPath = _resolveEffectiveSessionPath(settings);
-    final logPath = resolveConfiguredFilePath(
+    final configuredSessionPath = _resolveEffectiveSessionPath(settings);
+    final configuredLogPath = resolveConfiguredFilePath(
       settings['logPath'],
       _defaultLogPath(),
     );
+    final sessionPath = useRecoveryPaths
+        ? _recoveryFilePath(configuredSessionPath, rpcPort)
+        : configuredSessionPath;
+    final logPath = useRecoveryPaths
+        ? _recoveryFilePath(configuredLogPath, rpcPort)
+        : configuredLogPath;
     final downloadDir = resolveConfiguredFilePath(
       settings['downloadDir'],
       _defaultDownloadDir(),
@@ -546,6 +591,19 @@ class BuiltinInstanceService with Loggable {
     return args;
   }
 
+  @visibleForTesting
+  List<String> buildArgsForTesting({
+    required bool detachShareOnly,
+    int? rpcPortOverride,
+    bool useRecoveryPaths = false,
+  }) {
+    return _buildArgs(
+      detachShareOnly: detachShareOnly,
+      rpcPortOverride: rpcPortOverride,
+      useRecoveryPaths: useRecoveryPaths,
+    );
+  }
+
   Future<T> _serializeLifecycle<T>(Future<T> Function() action) {
     final completer = Completer<T>();
     _lifecycleTail = _lifecycleTail.then((_) async {
@@ -624,7 +682,8 @@ class BuiltinInstanceService with Loggable {
 
       final configuredRpcPort = _getConfiguredRpcPort(_readSettingsSnapshot());
       final resolvedRpcPort = await _resolveAvailableRpcPort(configuredRpcPort);
-      if (resolvedRpcPort != configuredRpcPort) {
+      final recoveredFromPortCollision = resolvedRpcPort != configuredRpcPort;
+      if (recoveredFromPortCollision) {
         await _persistRpcPort(resolvedRpcPort);
         final notice =
             'RPC port $configuredRpcPort was busy; moved the built-in '
@@ -635,6 +694,8 @@ class BuiltinInstanceService with Loggable {
 
       final args = _buildArgs(
         detachShareOnly: await _engineSupportsDetachShareOnly(),
+        rpcPortOverride: resolvedRpcPort,
+        useRecoveryPaths: recoveredFromPortCollision,
       );
       final process = await Process.start(
         _aria2cPath!,
