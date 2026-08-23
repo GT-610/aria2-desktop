@@ -346,6 +346,48 @@ void main() {
       expect(find.byType(AlertDialog), findsNothing);
       expect(settings.fileCategoryRules.single.subdirectory, 'Videos');
     });
+
+    testWidgets('guards an in-progress category save', (tester) async {
+      final repository = _ControlledSettingsRepository();
+      final settings = Settings(repository: repository);
+      await settings.loadSettings();
+
+      await tester.pumpWidget(
+        _testApp(
+          settings,
+          _dialogLauncher(
+            (context) => showFileCategoryEditorDialog(context, settings),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final l10n = _l10n(tester);
+      await tester.tap(find.byKey(_dialogLauncherKey));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(TextButton, l10n.fileCategoryAddRule),
+      );
+      await tester.pump();
+      await tester.enterText(find.byType(TextField).first, 'mp4');
+      await tester.enterText(find.byType(TextField).last, 'Videos');
+      repository.pendingSave = Completer<void>();
+      final callsBeforeSave = repository.saveCalls;
+      final saveFinder = find.widgetWithText(FilledButton, l10n.save);
+      final save = tester.widget<FilledButton>(saveFinder).onPressed!;
+
+      save();
+      save();
+      await tester.pump();
+
+      expect(repository.saveCalls, callsBeforeSave + 1);
+      expect(tester.widget<FilledButton>(saveFinder).onPressed, isNull);
+
+      repository.pendingSave!.complete();
+      await tester.pumpAndSettle();
+
+      expect(repository.saveCalls, callsBeforeSave + 1);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
   });
 
   group('Quick speed-limit dialog', () {

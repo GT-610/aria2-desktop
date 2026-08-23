@@ -46,6 +46,7 @@ class _FileCategoryEditorDialog extends StatefulWidget {
 class _FileCategoryEditorDialogState extends State<_FileCategoryEditorDialog> {
   late final List<_RuleRow> _rows;
   final Set<_RuleRow> _invalidRows = {};
+  bool _saving = false;
 
   @override
   void initState() {
@@ -96,6 +97,9 @@ class _FileCategoryEditorDialogState extends State<_FileCategoryEditorDialog> {
   }
 
   Future<void> _save() async {
+    if (_saving) {
+      return;
+    }
     final rules = <FileCategoryRule>[];
     final invalidRows = <_RuleRow>{};
     for (final row in _rows) {
@@ -114,6 +118,7 @@ class _FileCategoryEditorDialogState extends State<_FileCategoryEditorDialog> {
       });
       return;
     }
+    setState(() => _saving = true);
     try {
       await widget.settings.setFileCategoryRules(rules);
     } catch (error, stackTrace) {
@@ -130,6 +135,10 @@ class _FileCategoryEditorDialogState extends State<_FileCategoryEditorDialog> {
         );
       }
       return;
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
     if (mounted) {
       Navigator.of(context).pop();
@@ -244,7 +253,7 @@ class _FileCategoryEditorDialogState extends State<_FileCategoryEditorDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
         ),
-        FilledButton(onPressed: _save, child: Text(l10n.save)),
+        FilledButton(onPressed: _saving ? null : _save, child: Text(l10n.save)),
       ],
     );
   }

@@ -120,6 +120,41 @@ void main() {
       },
     );
 
+    test(
+      'ignores an in-flight clipboard read after monitoring stops',
+      () async {
+        const uri = 'https://example.com/file.zip';
+        final readResult = Completer<String?>();
+        final service = ClipboardMonitorService(
+          readText: () => readResult.future,
+        );
+        addTearDown(service.dispose);
+        var notifications = 0;
+        service.version.addListener(() => notifications++);
+
+        service.synchronize(enabled: true, schemes: all);
+        service.stop();
+        readResult.complete(uri);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(service.takePendingUri(), isNull);
+        expect(notifications, 0);
+        expect(service.version.value, 0);
+      },
+    );
+
+    test('clears a pending URI when monitoring stops', () async {
+      const uri = 'https://example.com/file.zip';
+      final service = ClipboardMonitorService(readText: () async => uri);
+      addTearDown(service.dispose);
+
+      service.synchronize(enabled: true, schemes: all);
+      await service.pollNow();
+      service.stop();
+
+      expect(service.takePendingUri(), isNull);
+    });
+
     test('rejects multi-line and unsupported content', () {
       final service = ClipboardMonitorService();
       expect(service.extractEligibleUri('hello world', all), isNull);

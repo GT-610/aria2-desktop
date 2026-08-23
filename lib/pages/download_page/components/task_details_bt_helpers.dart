@@ -248,18 +248,23 @@ class TaskDetailsBtHelpers {
       return null;
     }
 
-    final peerPieceMaps = <List<int>>[
-      for (final peer in peers)
-        parseHexBitfield(peer['bitfield']?.toString() ?? ''),
-    ]..removeWhere((pieces) => pieces.isEmpty);
+    final peerAvailability = List<bool>.filled(ownPieces.length, false);
+    for (final peer in peers) {
+      final pieces = parseHexBitfield(peer['bitfield']?.toString() ?? '');
+      final limit = pieces.length < ownPieces.length
+          ? pieces.length
+          : ownPieces.length;
+      for (var i = 0; i < limit; i++) {
+        if (pieces[i] > 0) {
+          peerAvailability[i] = true;
+        }
+      }
+    }
 
     var available = 0;
     for (var i = 0; i < ownPieces.length; i++) {
       final haveLocally = ownPieces[i] == 15;
-      final availableAtAnyPeer = peerPieceMaps.any(
-        (pieces) => i < pieces.length && pieces[i] > 0,
-      );
-      if (haveLocally || availableAtAnyPeer) {
+      if (haveLocally || peerAvailability[i]) {
         available++;
       }
     }

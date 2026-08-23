@@ -95,5 +95,18 @@ void main() {
         closeTo(50, 0.01),
       );
     });
+
+    test('unions peer availability while respecting local piece bounds', () {
+      final task = _task('000');
+
+      expect(
+        TaskDetailsBtHelpers.estimateHealthPercent(task, const [
+          {'bitfield': 'f'},
+          {'bitfield': '0f'},
+          {'bitfield': '00ff'},
+        ]),
+        closeTo(100, 0.01),
+      );
+    });
   });
 }

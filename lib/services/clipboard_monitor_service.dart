@@ -35,6 +35,7 @@ class ClipboardMonitorService with Loggable {
   final Future<String?> Function() _readText;
   Timer? _timer;
   int _schemes = allSchemes;
+  int _generation = 0;
   String? _lastSeenContent;
   String? _pendingUri;
   final Set<String> _selfCopiedTexts = <String>{};
@@ -73,6 +74,8 @@ class ClipboardMonitorService with Loggable {
   void stop() {
     _timer?.cancel();
     _timer = null;
+    _generation++;
+    _pendingUri = null;
   }
 
   String? takePendingUri() {
@@ -88,11 +91,16 @@ class ClipboardMonitorService with Loggable {
   Future<void> pollNow() => _tick();
 
   Future<void> _tick() async {
+    final generation = _generation;
     String? content;
     try {
       content = await _readText();
     } catch (error, stackTrace) {
       w('Failed to read clipboard', error: error, stackTrace: stackTrace);
+      return;
+    }
+
+    if (generation != _generation) {
       return;
     }
 
