@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:setsuna/models/aria2_peer.dart';
 import 'package:setsuna/pages/download_page/components/task_details_bt_helpers.dart';
 import 'package:setsuna/pages/download_page/enums.dart';
 import 'package:setsuna/pages/download_page/models/download_task.dart';
@@ -18,6 +19,10 @@ DownloadTask _task(String? bitfield) {
     instanceId: 'local',
     bitfield: bitfield,
   );
+}
+
+Aria2Peer _peer(String bitfield) {
+  return Aria2Peer.fromRpc(<Object?, Object?>{'bitfield': bitfield});
 }
 
 void main() {
@@ -68,10 +73,7 @@ void main() {
     test('counts pieces available locally or at any peer', () {
       // Local: piece 0 complete, piece 1 missing, piece 2 partial.
       final task = _task('f05');
-      final peers = <Map<String, dynamic>>[
-        {'bitfield': '010'},
-        {'bitfield': '00f'},
-      ];
+      final peers = <Aria2Peer>[_peer('010'), _peer('00f')];
 
       final health = TaskDetailsBtHelpers.estimateHealthPercent(task, peers);
 
@@ -89,9 +91,9 @@ void main() {
 
     test('peers without bitfields do not increase health', () {
       final task = _task('00');
-      final missingBitfields = <Map<String, dynamic>>[
-        {'ip': '1.2.3.4'},
-        {'bitfield': ''},
+      final missingBitfields = <Aria2Peer>[
+        const Aria2Peer(ip: '1.2.3.4'),
+        _peer(''),
       ];
 
       expect(
@@ -99,9 +101,7 @@ void main() {
         closeTo(0, 0.01),
       );
       expect(
-        TaskDetailsBtHelpers.estimateHealthPercent(task, const [
-          {'bitfield': 'f0'},
-        ]),
+        TaskDetailsBtHelpers.estimateHealthPercent(task, [_peer('f0')]),
         closeTo(50, 0.01),
       );
     });
@@ -110,10 +110,10 @@ void main() {
       final task = _task('000');
 
       expect(
-        TaskDetailsBtHelpers.estimateHealthPercent(task, const [
-          {'bitfield': 'f'},
-          {'bitfield': '0f'},
-          {'bitfield': '00ff'},
+        TaskDetailsBtHelpers.estimateHealthPercent(task, [
+          _peer('f'),
+          _peer('0f'),
+          _peer('00ff'),
         ]),
         closeTo(100, 0.01),
       );

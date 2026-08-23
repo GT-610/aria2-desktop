@@ -3,10 +3,103 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:setsuna/models/aria2_instance.dart';
+import 'package:setsuna/models/aria2_peer.dart';
 import 'package:setsuna/services/aria2_rpc_client.dart';
 
 void main() {
+  group('Aria2Peer', () {
+    test('decodes peer RPC fields into safe typed values', () {
+      final peer = Aria2Peer.fromRpc(<Object?, Object?>{
+        'ip': '192.0.2.1',
+        'port': '6881',
+        'peerId': '-UT3530-',
+        'bitfield': 'f0a',
+        'seeder': 'true',
+        'uploadSpeed': '1024',
+        'downloadSpeed': 2048,
+      });
+
+      expect(peer.ip, '192.0.2.1');
+      expect(peer.port, 6881);
+      expect(peer.peerId, '-UT3530-');
+      expect(peer.pieces, <int>[15, 0, 10]);
+      expect(peer.isSeeder, isTrue);
+      expect(peer.uploadSpeed, 1024);
+      expect(peer.downloadSpeed, 2048);
+    });
+
+    test('defaults malformed peer RPC fields safely', () {
+      final peer = Aria2Peer.fromRpc(<Object?, Object?>{
+        'ip': 123,
+        'port': '70000',
+        'peerId': <String>['invalid'],
+        'bitfield': 'fg',
+        'seeder': 'yes',
+        'uploadSpeed': '-1',
+        'downloadSpeed': <String>['invalid'],
+      });
+
+      expect(peer.ip, isEmpty);
+      expect(peer.port, isNull);
+      expect(peer.peerId, isNull);
+      expect(peer.pieces, isEmpty);
+      expect(peer.isSeeder, isFalse);
+      expect(peer.uploadSpeed, 0);
+      expect(peer.downloadSpeed, 0);
+    });
+  });
+
   group('Aria2RpcClient', () {
+    test('decodes getPeers results before returning them to callers', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        final body = await utf8.decoder.bind(request).join();
+        final decoded = jsonDecode(body) as Map<String, dynamic>;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          jsonEncode(<String, dynamic>{
+            'jsonrpc': '2.0',
+            'id': decoded['id'],
+            'result': <Object?>[
+              <String, Object?>{
+                'ip': '192.0.2.1',
+                'port': '6881',
+                'bitfield': 'f0',
+                'seeder': 'true',
+                'uploadSpeed': '1024',
+              },
+              <String, Object?>{'ip': 123, 'port': 'invalid', 'bitfield': 'fg'},
+              'not a peer',
+            ],
+          }),
+        );
+        await request.response.close();
+      });
+      final client = Aria2RpcClient(
+        Aria2Instance(
+          id: 'peers',
+          name: 'Peers',
+          type: InstanceType.remote,
+          protocol: 'http',
+          host: InternetAddress.loopbackIPv4.address,
+          port: server.port,
+        ),
+      );
+
+      final peers = await client.getPeers('gid');
+
+      expect(peers, hasLength(2));
+      expect(peers.first.pieces, <int>[15, 0]);
+      expect(peers.first.isSeeder, isTrue);
+      expect(peers.first.uploadSpeed, 1024);
+      expect(peers.last.ip, isEmpty);
+      expect(peers.last.port, isNull);
+      expect(peers.last.pieces, isEmpty);
+
+      await client.close();
+      await server.close(force: true);
+    });
+
     group('buildRequestBody', () {
       test('builds standard RPC request with token', () {
         final instance = Aria2Instance(

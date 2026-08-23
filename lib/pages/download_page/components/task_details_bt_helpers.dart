@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../../generated/l10n/l10n.dart';
+import '../../../models/aria2_peer.dart';
 import '../../../utils/format_utils.dart';
 import '../models/download_task.dart';
 
@@ -130,7 +131,7 @@ class TaskDetailsBtHelpers {
 
   static Widget buildPeersView({
     required BuildContext context,
-    required List<Map<String, dynamic>> peers,
+    required List<Aria2Peer> peers,
     required bool isLoading,
     required String? error,
   }) {
@@ -153,27 +154,15 @@ class TaskDetailsBtHelpers {
     );
   }
 
-  static Widget _buildPeerCard(
-    BuildContext context,
-    Map<String, dynamic> peer,
-  ) {
+  static Widget _buildPeerCard(BuildContext context, Aria2Peer peer) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final ip = peer['ip']?.toString() ?? '--';
-    final port = peer['port']?.toString() ?? '--';
-    final peerId = _parsePeerClient(peer['peerId']?.toString());
-    final bitfield = peer['bitfield']?.toString();
-    final pieces = bitfield == null || bitfield.isEmpty
-        ? const <int>[]
-        : parseHexBitfield(bitfield);
-    final progress = _bitfieldToPercent(pieces);
-    final isSeeder = (peer['seeder']?.toString() ?? 'false') == 'true';
-    final uploadSpeed = formatBytes(
-      int.tryParse(peer['uploadSpeed']?.toString() ?? '0') ?? 0,
-    );
-    final downloadSpeed = formatBytes(
-      int.tryParse(peer['downloadSpeed']?.toString() ?? '0') ?? 0,
-    );
+    final ip = peer.ip.isEmpty ? '--' : peer.ip;
+    final port = peer.port;
+    final peerId = _parsePeerClient(peer.peerId);
+    final progress = _bitfieldToPercent(peer.pieces);
+    final uploadSpeed = formatBytes(peer.uploadSpeed);
+    final downloadSpeed = formatBytes(peer.downloadSpeed);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -186,12 +175,12 @@ class TaskDetailsBtHelpers {
               children: [
                 Expanded(
                   child: Text(
-                    '$ip:$port',
+                    '$ip:${port ?? '--'}',
                     style: theme.textTheme.titleSmall,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (isSeeder)
+                if (peer.isSeeder)
                   Tooltip(
                     message: l10n.seeding,
                     child: const Icon(
@@ -215,7 +204,7 @@ class TaskDetailsBtHelpers {
                   width: 120,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(3),
-                    child: PeerBitfieldBar(pieces: pieces),
+                    child: PeerBitfieldBar(pieces: peer.pieces),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -238,7 +227,7 @@ class TaskDetailsBtHelpers {
   /// peers combined with the locally completed pieces.
   static double? estimateHealthPercent(
     DownloadTask task,
-    List<Map<String, dynamic>> peers,
+    List<Aria2Peer> peers,
   ) {
     final ownBitfield = task.bitfield;
     if (ownBitfield == null || ownBitfield.isEmpty) {
@@ -251,7 +240,7 @@ class TaskDetailsBtHelpers {
 
     final peerAvailability = List<bool>.filled(ownPieces.length, false);
     for (final peer in peers) {
-      final pieces = parseHexBitfield(peer['bitfield']?.toString() ?? '');
+      final pieces = peer.pieces;
       final limit = pieces.length < ownPieces.length
           ? pieces.length
           : ownPieces.length;

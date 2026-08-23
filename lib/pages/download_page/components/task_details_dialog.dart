@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../generated/l10n/l10n.dart';
 import '../../../models/aria2_instance.dart';
+import '../../../models/aria2_peer.dart';
 import '../../../services/clipboard_monitor_service.dart';
 import '../../../services/download_data_service.dart';
 import '../../../services/instance_manager.dart';
@@ -48,7 +49,7 @@ class TaskDetailsDialog {
         var isLoadingPeers = false;
         DateTime? lastPeersFetchTime;
         String? peersError;
-        List<Map<String, dynamic>> peers = <Map<String, dynamic>>[];
+        List<Aria2Peer> peers = <Aria2Peer>[];
         String lastRefreshSignature = '';
 
         Map<int, bool> buildFileSelectionState(
@@ -220,7 +221,7 @@ class TaskDetailsDialog {
                       }
 
                       if (peersTaskKey != taskKey) {
-                        peers = <Map<String, dynamic>>[];
+                        peers = <Aria2Peer>[];
                         peersError = null;
                         peersTaskKey = taskKey;
                       }
@@ -235,7 +236,7 @@ class TaskDetailsDialog {
 
                       isLoadingPeers = true;
                       lastPeersFetchTime = now;
-                      List<Map<String, dynamic>>? peersResult;
+                      List<Aria2Peer>? peersResult;
                       String? peersErrorLocal;
                       try {
                         if (!outerContext.mounted) return;

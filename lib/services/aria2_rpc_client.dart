@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/aria2_instance.dart';
+import '../models/aria2_peer.dart';
 import '../utils/logging.dart';
 
 // Custom exception classes
@@ -833,7 +834,7 @@ class Aria2RpcClient with Loggable {
   }
 
   /// Get peer information for a BT task.
-  Future<List<Map<String, dynamic>>> getPeers(String gid) async {
+  Future<List<Aria2Peer>> getPeers(String gid) async {
     try {
       final response = await callRpc('aria2.getPeers', [gid], idempotent: true);
       final result = response['result'];
@@ -842,7 +843,7 @@ class Aria2RpcClient with Loggable {
       }
       return result
           .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item))
+          .map((item) => Aria2Peer.fromRpc(Map<Object?, Object?>.from(item)))
           .toList();
     } on Exception catch (error) {
       if (_isNoPeerDataError(error)) {
