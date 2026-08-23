@@ -23,23 +23,33 @@ DownloadTask _task(String? bitfield) {
 void main() {
   test('file selection signature changes with index or selected state', () {
     final original = TaskDetailsBtHelpers.buildFileSelectionSignature(const [
-      <String, dynamic>{'index': '1', 'selected': 'true'},
-      <String, dynamic>{'index': '2', 'selected': 'false'},
+      <String, Object?>{'index': '1', 'selected': 'true'},
+      <String, Object?>{'index': '2', 'selected': 'false'},
     ]);
 
     expect(
       TaskDetailsBtHelpers.buildFileSelectionSignature(const [
-        <String, dynamic>{'index': '1', 'selected': 'false'},
-        <String, dynamic>{'index': '2', 'selected': 'false'},
+        <String, Object?>{'index': '1', 'selected': 'false'},
+        <String, Object?>{'index': '2', 'selected': 'false'},
       ]),
       isNot(original),
     );
     expect(
       TaskDetailsBtHelpers.buildFileSelectionSignature(const [
-        <String, dynamic>{'index': '3', 'selected': 'true'},
-        <String, dynamic>{'index': '2', 'selected': 'false'},
+        <String, Object?>{'index': '3', 'selected': 'true'},
+        <String, Object?>{'index': '2', 'selected': 'false'},
       ]),
       isNot(original),
+    );
+  });
+
+  test('normalizes boolean file selection values', () {
+    expect(
+      TaskDetailsBtHelpers.buildFileSelectionSignature(const [
+        <String, Object?>{'index': 1, 'selected': true},
+        <String, Object?>{'index': 2, 'selected': false},
+      ]),
+      '1:true|2:false',
     );
   });
 

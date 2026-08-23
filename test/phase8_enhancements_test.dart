@@ -381,6 +381,31 @@ void main() {
 
       expect(repository.saveCalls, callsBeforeSave + 1);
       expect(tester.widget<FilledButton>(saveFinder).onPressed, isNull);
+      expect(
+        tester
+            .widgetList<TextField>(find.byType(TextField))
+            .every((field) => field.enabled == false),
+        isTrue,
+      );
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byWidgetPredicate(
+                (widget) =>
+                    widget is IconButton && widget.tooltip == l10n.delete,
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<TextButton>(
+              find.widgetWithText(TextButton, l10n.fileCategoryAddRule),
+            )
+            .onPressed,
+        isNull,
+      );
 
       repository.pendingSave!.complete();
       await tester.pumpAndSettle();

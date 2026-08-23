@@ -36,6 +36,7 @@ class ClipboardMonitorService with Loggable {
   Timer? _timer;
   int _schemes = allSchemes;
   int _generation = 0;
+  Future<void>? _tickInFlight;
   String? _lastSeenContent;
   String? _pendingUri;
   final Set<String> _selfCopiedTexts = <String>{};
@@ -75,6 +76,7 @@ class ClipboardMonitorService with Loggable {
     _timer?.cancel();
     _timer = null;
     _generation++;
+    _tickInFlight = null;
     _pendingUri = null;
   }
 
@@ -90,8 +92,33 @@ class ClipboardMonitorService with Loggable {
   @visibleForTesting
   Future<void> pollNow() => _tick();
 
-  Future<void> _tick() async {
+  Future<void> _tick() {
+    final inFlight = _tickInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
     final generation = _generation;
+    final tick = _readTick(generation);
+    _tickInFlight = tick;
+    unawaited(
+      tick.then<void>(
+        (_) {
+          if (identical(_tickInFlight, tick)) {
+            _tickInFlight = null;
+          }
+        },
+        onError: (Object _, StackTrace _) {
+          if (identical(_tickInFlight, tick)) {
+            _tickInFlight = null;
+          }
+        },
+      ),
+    );
+    return tick;
+  }
+
+  Future<void> _readTick(int generation) async {
     String? content;
     try {
       content = await _readText();

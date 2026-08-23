@@ -11,12 +11,13 @@ class TaskDetailsBtHelpers {
   static final _digitPattern = RegExp(r'[0-9]');
   static final _letterPattern = RegExp(r'[A-Za-z]');
 
-  static String buildFileSelectionSignature(List<Map<String, dynamic>> files) {
+  static String buildFileSelectionSignature(List<Map<String, Object?>> files) {
     return files
-        .map(
-          (file) =>
-              '${file['index'] ?? ''}:${file['selected'] as String? ?? 'true'}',
-        )
+        .map((file) {
+          final index = file['index']?.toString() ?? '';
+          final selected = file['selected']?.toString() ?? 'true';
+          return '$index:$selected';
+        })
         .join('|');
   }
 

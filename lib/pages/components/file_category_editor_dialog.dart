@@ -178,6 +178,7 @@ class _FileCategoryEditorDialogState extends State<_FileCategoryEditorDialog> {
                                 flex: 2,
                                 child: TextField(
                                   controller: row.extensionsController,
+                                  enabled: !_saving,
                                   onChanged: (_) => _revalidateRow(row),
                                   decoration: InputDecoration(
                                     labelText: l10n.fileCategoryExtensionsLabel,
@@ -191,6 +192,7 @@ class _FileCategoryEditorDialogState extends State<_FileCategoryEditorDialog> {
                                 flex: 2,
                                 child: TextField(
                                   controller: row.subdirectoryController,
+                                  enabled: !_saving,
                                   onChanged: (_) => _revalidateRow(row),
                                   decoration: InputDecoration(
                                     labelText: l10n.fileCategorySubdirLabel,
@@ -201,13 +203,15 @@ class _FileCategoryEditorDialogState extends State<_FileCategoryEditorDialog> {
                               ),
                               IconButton(
                                 tooltip: l10n.delete,
-                                onPressed: () {
-                                  setState(() {
-                                    final removed = _rows.removeAt(index);
-                                    _invalidRows.remove(removed);
-                                    removed.dispose();
-                                  });
-                                },
+                                onPressed: _saving
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          final removed = _rows.removeAt(index);
+                                          _invalidRows.remove(removed);
+                                          removed.dispose();
+                                        });
+                                      },
                                 icon: const Icon(Icons.delete_outline),
                               ),
                             ],
@@ -239,7 +243,7 @@ class _FileCategoryEditorDialogState extends State<_FileCategoryEditorDialog> {
       ),
       actions: [
         TextButton.icon(
-          onPressed: _canAddMore
+          onPressed: !_saving && _canAddMore
               ? () {
                   setState(
                     () => _rows.add(_RuleRow(extensions: '', subdirectory: '')),

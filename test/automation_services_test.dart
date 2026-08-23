@@ -143,6 +143,36 @@ void main() {
       },
     );
 
+    test('serializes overlapping polls within a generation', () async {
+      const uri = 'magnet:?xt=urn:btih:abc';
+      final readResult = Completer<String?>();
+      var reads = 0;
+      final service = ClipboardMonitorService(
+        readText: () {
+          reads++;
+          return readResult.future;
+        },
+      );
+      addTearDown(service.dispose);
+
+      service.synchronize(
+        enabled: true,
+        schemes: ClipboardMonitorService.schemeHttp,
+      );
+      service.synchronize(
+        enabled: true,
+        schemes: ClipboardMonitorService.schemeMagnet,
+      );
+      final poll = service.pollNow();
+
+      expect(reads, 1);
+      readResult.complete(uri);
+      await poll;
+
+      expect(service.takePendingUri(), uri);
+      expect(service.version.value, 1);
+    });
+
     test('clears a pending URI when monitoring stops', () async {
       const uri = 'https://example.com/file.zip';
       final service = ClipboardMonitorService(readText: () async => uri);
@@ -341,7 +371,7 @@ void main() {
   testWidgets('failed automatic update check does not save a timestamp', (
     tester,
   ) async {
-    final repository = MemorySettingsRepository(<String, dynamic>{
+    final repository = MemorySettingsRepository(<String, Object?>{
       'lastUpdateCheckTimestamp': 0,
     });
     final settings = Settings(repository: repository);
