@@ -239,7 +239,7 @@ jobs:
           repository: flutter/flutter
           ref: stable
           path: flutter-sdk
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Bootstrap Flutter for ARM64
         if: matrix.flutter_sdk == 'source'
