@@ -199,12 +199,14 @@ jobs:
           - runner: ubuntu-22.04
             core_target: linux-x64
             flutter_target: linux-x64
+            flutter_sdk: archive
             bundle_arch: x64
             deb_arch: amd64
             artifact_arch: x64
           - runner: ubuntu-22.04-arm
             core_target: linux-arm64
             flutter_target: linux-arm64
+            flutter_sdk: source
             bundle_arch: arm64
             deb_arch: arm64
             artifact_arch: arm64
@@ -225,9 +227,26 @@ jobs:
             libsecret-1-dev libayatana-appindicator3-dev libnotify-dev
 
       - name: Set up Flutter
+        if: matrix.flutter_sdk == 'archive'
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+
+      - name: Check out Flutter source for ARM64
+        if: matrix.flutter_sdk == 'source'
+        uses: actions/checkout@v6
+        with:
+          repository: flutter/flutter
+          ref: stable
+          path: flutter-sdk
+          fetch-depth: 1
+
+      - name: Bootstrap Flutter for ARM64
+        if: matrix.flutter_sdk == 'source'
+        shell: bash
+        run: |
+          echo "$GITHUB_WORKSPACE/flutter-sdk/bin" >> "$GITHUB_PATH"
+          "$GITHUB_WORKSPACE/flutter-sdk/bin/flutter" --version
 
       - name: Build, bundle, and verify Linux release
         shell: bash
