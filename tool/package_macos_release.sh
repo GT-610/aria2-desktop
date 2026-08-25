@@ -107,7 +107,7 @@ if [[ "$ad_hoc_signing" == "false" ]]; then
   xcrun stapler staple "$artifact_path"
   xcrun stapler validate "$artifact_path"
 else
-  echo "Created an ad hoc-signed validation package; do not publish it." >&2
+  echo "Created an ad hoc-signed package; it is not notarized." >&2
 fi
 
 echo "Created $artifact_path"

@@ -138,12 +138,15 @@ Runtime settings, logs, and session files are rejected from every release
 artifact. GitHub Actions publishes a Windows x64 ZIP, Apple Silicon and Intel
 macOS DMGs, and Linux x64/ARM64 tarballs and Debian packages.
 
-Published macOS packages require these GitHub Actions secrets:
+When all of these GitHub Actions secrets are configured, published macOS
+packages use Developer ID signing and Apple notarization:
 `MACOS_CERTIFICATE_BASE64`, `MACOS_CERTIFICATE_PASSWORD`,
 `MACOS_SIGNING_IDENTITY`, `MACOS_NOTARY_APPLE_ID`, `MACOS_NOTARY_TEAM_ID`, and
 `MACOS_NOTARY_PASSWORD`. The certificate must be a base64-encoded Developer ID
 Application PKCS #12 file, and the notarization password must be an app-specific
-password.
+password. Without `MACOS_CERTIFICATE_BASE64`, the release workflow produces
+ad hoc-signed, non-notarized macOS DMGs, which may require a Gatekeeper override
+before first use.
 
 ### Application data and credentials
 
