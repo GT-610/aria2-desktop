@@ -616,7 +616,7 @@
   "taskOptions": "选项",
   "speedLimitEnabledTitle": "启用限速",
   "speedLimitEnabledTip": "对全局上传和下载速度应用限制",
-  "speedCapsuleTooltip": "下载 / 上传速度 - 点击或长按编辑限速",
+  "speedCapsuleTooltip": "下载 / 上传速度 - 点击编辑限速",
   "unlimited": "不限速",
   "speedScheduleTitle": "限速时段",
   "speedScheduleFrom": "开始",

@@ -1087,13 +1087,12 @@ class _StatusBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Speed capsule: activate or long-press to edit limits.
+          // Speed capsule: click to edit limits.
           Tooltip(
             message: l10n.speedCapsuleTooltip,
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
               onTap: () => showQuickSpeedLimitDialog(context),
-              onLongPress: () => showQuickSpeedLimitDialog(context),
               child: Chip(
                 avatar: const Icon(Icons.speed, size: 16),
                 label: Text(
