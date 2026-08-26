@@ -616,7 +616,7 @@
   "taskOptions": "Options",
   "speedLimitEnabledTitle": "Enable speed limits",
   "speedLimitEnabledTip": "Apply global upload and download speed limits",
-  "speedCapsuleTooltip": "Download / upload speeds - tap or long-press to edit limits",
+  "speedCapsuleTooltip": "Download / upload speeds - click to edit limits",
   "unlimited": "unlimited",
   "speedScheduleTitle": "Limit schedule",
   "speedScheduleFrom": "From",

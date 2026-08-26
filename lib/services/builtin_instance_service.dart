@@ -337,7 +337,8 @@ class BuiltinInstanceService with Loggable {
         return false;
       }
       final match = RegExp(
-        r'^aria2\s+(\d+)\.',
+        r'^aria2(?:-next)?(?:\s+version)?\s+(\d+)\.',
+        caseSensitive: false,
         multiLine: true,
       ).firstMatch('${result.stdout}${result.stderr}');
       final major = int.tryParse(match?.group(1) ?? '');
@@ -654,13 +655,11 @@ class BuiltinInstanceService with Loggable {
         w(
           'Built-in Aria2 process is already running, PID: ${_aria2Process!.pid}',
         );
-        unawaited(syncUpnpStateForRunningInstance());
         return true;
       }
 
       if (await _adoptPersistedProcess()) {
         i('Adopted existing built-in Aria2 process, PID: $_managedPid');
-        unawaited(syncUpnpStateForRunningInstance());
         return true;
       }
 
@@ -674,7 +673,6 @@ class BuiltinInstanceService with Loggable {
         await _persistManagedPid(legacyPid);
         await ProcessLifecycleService.instance.attachToAppLifecycle(legacyPid);
         i('Adopted legacy built-in Aria2 process, PID: $legacyPid');
-        unawaited(syncUpnpStateForRunningInstance());
         return true;
       }
 
@@ -747,8 +745,6 @@ class BuiltinInstanceService with Loggable {
 
       _monitorProcessOutput(process);
 
-      unawaited(syncUpnpStateForRunningInstance());
-
       return true;
     } catch (e, stackTrace) {
       _lastStartError = 'Failed to start built-in aria2: $e';
@@ -810,7 +806,7 @@ class BuiltinInstanceService with Loggable {
 
       await _clearManagedProcessState();
       await _cancelProcessOutput();
-      await _upnpService.shutdown();
+      unawaited(_upnpService.shutdown());
       return true;
     } catch (e, stackTrace) {
       this.e(
@@ -1045,6 +1041,7 @@ class BuiltinInstanceService with Loggable {
     _isConnected = true;
     _lastStartError = null;
     clearPendingApply();
+    unawaited(syncUpnpStateForRunningInstance());
   }
 
   Aria2Instance getBuiltinInstanceConfig() {

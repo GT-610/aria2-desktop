@@ -29,6 +29,29 @@ class _PortMappingRule {
   int get hashCode => Object.hash(port, protocol);
 }
 
+class _PortMappingRequest {
+  const _PortMappingRequest({
+    required this.enabled,
+    required this.btListenPort,
+    required this.dhtListenPort,
+  });
+
+  final bool enabled;
+  final String btListenPort;
+  final int dhtListenPort;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _PortMappingRequest &&
+        other.enabled == enabled &&
+        other.btListenPort == btListenPort &&
+        other.dhtListenPort == dhtListenPort;
+  }
+
+  @override
+  int get hashCode => Object.hash(enabled, btListenPort, dhtListenPort);
+}
+
 class BuiltinUpnpService with Loggable {
   static const Duration _discoverTimeout = Duration(seconds: 5);
   static const Duration _mappingTimeout = Duration(seconds: 3);
@@ -37,27 +60,49 @@ class BuiltinUpnpService with Loggable {
   Gateway? _gateway;
   Set<_PortMappingRule> _mappedRules = <_PortMappingRule>{};
   Future<void> _pendingOperation = Future<void>.value();
+  _PortMappingRequest? _lastQueuedRequest;
+  int _operationGeneration = 0;
 
   Future<void> syncMappings({
     required bool enabled,
     required String btListenPort,
     required int dhtListenPort,
   }) {
-    _pendingOperation = _pendingOperation.catchError((Object _) {}).then((_) {
-      return _syncMappings(
-        enabled: enabled,
-        btListenPort: btListenPort,
-        dhtListenPort: dhtListenPort,
-      );
-    });
+    final request = _PortMappingRequest(
+      enabled: enabled,
+      btListenPort: btListenPort,
+      dhtListenPort: dhtListenPort,
+    );
+    if (request == _lastQueuedRequest) {
+      return _pendingOperation;
+    }
+
+    _lastQueuedRequest = request;
+    final generation = ++_operationGeneration;
+    _pendingOperation = _pendingOperation
+        .catchError((Object error) {
+          w(
+            'Previous UPnP synchronization failed; continuing queued operation',
+            error: error,
+          );
+        })
+        .then((_) {
+          return _syncMappings(
+            enabled: request.enabled,
+            btListenPort: request.btListenPort,
+            dhtListenPort: request.dhtListenPort,
+          );
+        })
+        .whenComplete(() {
+          if (_operationGeneration == generation) {
+            _lastQueuedRequest = null;
+          }
+        });
     return _pendingOperation;
   }
 
   Future<void> shutdown() {
-    _pendingOperation = _pendingOperation.catchError((Object _) {}).then((_) {
-      return _shutdown();
-    });
-    return _pendingOperation;
+    return syncMappings(enabled: false, btListenPort: '', dhtListenPort: 0);
   }
 
   Future<void> _syncMappings({
@@ -78,6 +123,11 @@ class BuiltinUpnpService with Loggable {
     if (desiredRules.isEmpty) {
       w('UPnP is enabled but no valid ports were resolved for mapping');
       await _shutdown();
+      return;
+    }
+
+    if (_mappedRules.length == desiredRules.length &&
+        _mappedRules.containsAll(desiredRules)) {
       return;
     }
 
@@ -249,7 +299,7 @@ class BuiltinUpnpService with Loggable {
               )
               .timeout(_mappingTimeout);
           successfulRules.add(rule);
-        } on UPnPError catch (e, stackTrace) {
+        } on UPnPError catch (e) {
           final alreadyMapped = await _isRuleAlreadyMapped(gateway, rule);
           if (alreadyMapped) {
             successfulRules.add(rule);
@@ -262,9 +312,7 @@ class BuiltinUpnpService with Loggable {
           }
           w(
             'Failed to map ${rule.protocol.name.toUpperCase()} port '
-            '${rule.port}',
-            error: e,
-            stackTrace: stackTrace,
+            '${rule.port}: $e',
           );
         } catch (e, stackTrace) {
           w(
@@ -307,6 +355,12 @@ class BuiltinUpnpService with Loggable {
       return await gateway
           .isMapped(protocol: rule.protocol, externalPort: rule.port)
           .timeout(_mappingTimeout);
+    } on UPnPError catch (e) {
+      w(
+        'Failed to check if ${rule.protocol.name.toUpperCase()} port '
+        '${rule.port} is already mapped: $e',
+      );
+      return false;
     } catch (e, stackTrace) {
       w(
         'Failed to check if ${rule.protocol.name.toUpperCase()} port '
@@ -330,6 +384,11 @@ class BuiltinUpnpService with Loggable {
               .closePort(protocol: rule.protocol, externalPort: rule.port)
               .timeout(_mappingTimeout);
           successfulRules.add(rule);
+        } on UPnPError catch (e) {
+          w(
+            'Failed to unmap ${rule.protocol.name.toUpperCase()} port '
+            '${rule.port}: $e',
+          );
         } catch (e, stackTrace) {
           w(
             'Failed to unmap ${rule.protocol.name.toUpperCase()} port '

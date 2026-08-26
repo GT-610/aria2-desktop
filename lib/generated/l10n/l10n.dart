@@ -3076,7 +3076,7 @@ abstract class AppLocalizations {
   /// No description provided for @speedCapsuleTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Download / upload speeds - tap or long-press to edit limits'**
+  /// **'Download / upload speeds - click to edit limits'**
   String get speedCapsuleTooltip;
 
   /// No description provided for @unlimited.

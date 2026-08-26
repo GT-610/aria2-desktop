@@ -1642,7 +1642,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get speedLimitEnabledTip => '对全局上传和下载速度应用限制';
 
   @override
-  String get speedCapsuleTooltip => '下载 / 上传速度 - 点击或长按编辑限速';
+  String get speedCapsuleTooltip => '下载 / 上传速度 - 点击编辑限速';
 
   @override
   String get unlimited => '不限速';

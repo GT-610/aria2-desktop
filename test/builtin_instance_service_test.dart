@@ -450,6 +450,32 @@ void main() {
       expect(calls, 1);
     });
 
+    test('recognizes aria2-next version output', () async {
+      final service = BuiltinInstanceService();
+
+      Future<ProcessResult> runProbe(String _, List<String> _) async {
+        return ProcessResult(1, 0, 'aria2-next version 2.5.5', '');
+      }
+
+      expect(
+        await service.engineSupportsDetachShareOnlyForTesting(runProbe),
+        isTrue,
+      );
+    });
+
+    test('recognizes aria2 version output with a version label', () async {
+      final service = BuiltinInstanceService();
+
+      Future<ProcessResult> runProbe(String _, List<String> _) async {
+        return ProcessResult(1, 0, 'aria2 version 2.5.5', '');
+      }
+
+      expect(
+        await service.engineSupportsDetachShareOnlyForTesting(runProbe),
+        isTrue,
+      );
+    });
+
     test('recovery arguments isolate port, session, and log paths', () async {
       final directory = await Directory.systemTemp.createTemp(
         'setsuna-recovery-args-',

@@ -27,6 +27,8 @@ class SettingsRepository with Loggable {
 
   final AppPaths? _providedPaths;
   final CredentialStore _credentialStore;
+  bool _hasPersistedBuiltinSecret = false;
+  String _persistedBuiltinSecret = '';
 
   AppPaths get _paths => _providedPaths ?? AppPaths.instance;
   File get _file => File(p.join(_paths.configDirectory.path, 'settings.json'));
@@ -63,7 +65,10 @@ class SettingsRepository with Loggable {
             legacySecret,
           );
         }
-        values['rpcSecret'] = storedSecret ?? legacySecret;
+        final resolvedSecret = storedSecret ?? legacySecret;
+        values['rpcSecret'] = resolvedSecret;
+        _persistedBuiltinSecret = resolvedSecret;
+        _hasPersistedBuiltinSecret = true;
       } catch (error, stackTrace) {
         credentialsBlocked = true;
         w(
@@ -103,10 +108,14 @@ class SettingsRepository with Loggable {
     }
 
     final secret = values['rpcSecret']?.toString() ?? '';
-    await _credentialStore.writeVerified(
-      SecureCredentialStore.builtinSecretKey,
-      secret,
-    );
+    if (!_hasPersistedBuiltinSecret || _persistedBuiltinSecret != secret) {
+      await _credentialStore.writeVerified(
+        SecureCredentialStore.builtinSecretKey,
+        secret,
+      );
+      _persistedBuiltinSecret = secret;
+      _hasPersistedBuiltinSecret = true;
+    }
     final persisted = Map<String, dynamic>.from(values)..remove('rpcSecret');
     await AtomicFile.writeString(
       _file,

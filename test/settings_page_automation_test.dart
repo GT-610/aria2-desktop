@@ -130,6 +130,7 @@ void main() {
 
     final checkTile = find.text('Check for updates');
     await tester.ensureVisible(checkTile);
+    expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
     await tester.tap(checkTile);
     await tester.pump();
 

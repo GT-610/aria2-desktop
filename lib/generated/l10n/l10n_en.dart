@@ -1715,7 +1715,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get speedCapsuleTooltip =>
-      'Download / upload speeds - tap or long-press to edit limits';
+      'Download / upload speeds - click to edit limits';
 
   @override
   String get unlimited => 'unlimited';

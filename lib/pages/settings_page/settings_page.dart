@@ -496,7 +496,7 @@ class _SettingsPageState extends State<SettingsPage>
           title: l10n.checkForUpdates,
           trailing: _isCheckingForUpdates
               ? SizedLoading.small
-              : const Icon(Icons.system_update_alt_outlined),
+              : const Icon(Icons.refresh_rounded),
           onTap: _isCheckingForUpdates ? null : _checkForUpdates,
         ),
         _buildTextCardTile(

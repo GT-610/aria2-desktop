@@ -15,6 +15,7 @@ import 'package:setsuna/utils/atomic_file.dart';
 class _MemoryCredentialStore implements CredentialStore {
   final Map<String, String> values = <String, String>{};
   bool failWrites = false;
+  int writeCalls = 0;
 
   @override
   Future<void> delete(String key) async {
@@ -26,6 +27,7 @@ class _MemoryCredentialStore implements CredentialStore {
 
   @override
   Future<void> writeVerified(String key, String value) async {
+    writeCalls++;
     if (failWrites) {
       throw StateError('secure storage unavailable');
     }
@@ -142,6 +144,36 @@ void main() {
       expect(await file.readAsString(), legacyJson);
     },
   );
+
+  test('settings repository only writes a changed builtin secret', () async {
+    final file = File(p.join(paths.configDirectory.path, 'settings.json'));
+    await file.writeAsString(
+      jsonEncode(<String, Object>{
+        'schemaVersion': SettingsRepository.schemaVersion,
+        'settings': <String, Object>{'autoStart': false},
+      }),
+    );
+    final credentials = _MemoryCredentialStore();
+    final repository = SettingsRepository(
+      paths: paths,
+      credentialStore: credentials,
+    );
+    final result = await repository.load();
+    final values = Map<String, dynamic>.from(result.values!);
+
+    await repository.save(values);
+    await repository.save(values);
+    expect(credentials.writeCalls, 0);
+
+    values['rpcSecret'] = 'new-secret';
+    await repository.save(values);
+    await repository.save(values);
+    expect(credentials.writeCalls, 1);
+
+    values['rpcSecret'] = '';
+    await repository.save(values);
+    expect(credentials.writeCalls, 2);
+  });
 
   test(
     'instance repository stores credentials separately and deletes them',
