@@ -80,7 +80,12 @@ class BuiltinUpnpService with Loggable {
     _lastQueuedRequest = request;
     final generation = ++_operationGeneration;
     _pendingOperation = _pendingOperation
-        .catchError((Object _) {})
+        .catchError((Object error) {
+          w(
+            'Previous UPnP synchronization failed; continuing queued operation',
+            error: error,
+          );
+        })
         .then((_) {
           return _syncMappings(
             enabled: request.enabled,
