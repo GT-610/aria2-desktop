@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -5,7 +7,6 @@ import '../generated/l10n/l10n.dart';
 import '../models/aria2_instance.dart';
 import '../models/settings.dart';
 import '../services/builtin_instance_service.dart';
-import '../services/download_data_service.dart';
 import '../services/instance_manager.dart';
 import '../services/settings_service.dart';
 import '../services/tracker_sync_service.dart';
@@ -889,12 +890,13 @@ class _BuiltinInstanceSettingsPageState
     bool enabled = true,
   }) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return ListTile(
       title: Text(title, style: _settingTitleStyle(theme)),
       contentPadding: SettingsPageHelpers.kSettingTilePadding,
       subtitle: Padding(
-        padding: const EdgeInsets.only(right: 0),
+        padding: const EdgeInsets.only(top: 8),
         child: TextFormField(
           controller: controller,
           initialValue: controller == null ? initialValue : null,
@@ -906,9 +908,25 @@ class _BuiltinInstanceSettingsPageState
           decoration: InputDecoration(
             helperText: helperText,
             helperStyle: _settingHintStyle(theme),
-            border: InputBorder.none,
+            filled: true,
+            fillColor: colorScheme.surfaceContainerHighest,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+            ),
             isDense: true,
-            contentPadding: EdgeInsets.zero,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
           ),
           style: _settingBodyStyle(theme),
         ),
@@ -1211,14 +1229,8 @@ class _BuiltinInstanceSettingsPageState
           context,
           listen: false,
         );
-        final downloadDataService = Provider.of<DownloadDataService>(
-          context,
-          listen: false,
-        );
-        final applied = await settingsService.applySettingsToBuiltin(
-          rpcClient: downloadDataService.clientFor(builtinInstance),
-        );
-        await BuiltinInstanceService().syncUpnpStateForRunningInstance();
+        final applied = await settingsService.applySettingsToBuiltin();
+        unawaited(BuiltinInstanceService().syncUpnpStateForRunningInstance());
         if (!mounted) {
           return;
         }

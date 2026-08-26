@@ -9,6 +9,7 @@ import 'aria2_rpc_client.dart';
 import 'builtin_instance_service.dart';
 
 class SettingsService extends ChangeNotifier with Loggable {
+  static const Duration _runtimeApplyTimeout = Duration(seconds: 5);
   Settings? _settings;
   Timer? _scheduleTimer;
   bool _scheduleTickInFlight = false;
@@ -142,12 +143,18 @@ class SettingsService extends ChangeNotifier with Loggable {
 
     final builtinInstance = BuiltinInstanceService().getBuiltinInstanceConfig();
     final ownedClient = rpcClient == null;
-    final client = rpcClient ?? Aria2RpcClient(builtinInstance);
+    final client =
+        rpcClient ??
+        Aria2RpcClient(
+          builtinInstance,
+          requestTimeout: _runtimeApplyTimeout,
+          maximumAttempts: 1,
+        );
 
     try {
-      final result = await client.setGlobalOption(
-        convertSettingsToRuntimeAria2Options(),
-      );
+      final result = await client
+          .setGlobalOption(convertSettingsToRuntimeAria2Options())
+          .timeout(_runtimeApplyTimeout);
       if (result) {
         _lastAppliedLimitsSignature = _currentLimitsSignature();
         i('Applied runtime settings to the built-in aria2 instance');
